@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -303,6 +304,11 @@ public class SlideEditorActivity extends Activity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
+        // check if the size of slideshowmodel is lessthan/equalto 0
+        // before getting the slide at the given position.
+        if (mSlideshowModel.size() <= 0) {
+            return false;
+        }
 
         SlideModel slide = mSlideshowModel.get(mPosition);
 

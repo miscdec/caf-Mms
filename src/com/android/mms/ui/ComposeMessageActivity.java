@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1812,7 +1813,7 @@ public class ComposeMessageActivity extends Activity
     private void onKeyboardStateChanged(boolean isKeyboardOpen) {
         // If the keyboard is hidden, don't show focus highlights for
         // things that cannot receive input.
-        if (isKeyboardOpen) {
+/*        if (isKeyboardOpen) { */
             if (mRecipientsEditor != null) {
                 mRecipientsEditor.setFocusableInTouchMode(true);
             }
@@ -1822,7 +1823,7 @@ public class ComposeMessageActivity extends Activity
             mTextEditor.setFocusableInTouchMode(true);
             mTextEditor.setHint(R.string.type_to_compose_text_enter_to_send);
             initFocus();
-        } else {
+/*        } else {
             if (mRecipientsEditor != null) {
                 mRecipientsEditor.setFocusable(false);
             }
@@ -1832,6 +1833,7 @@ public class ComposeMessageActivity extends Activity
             mTextEditor.setFocusable(false);
             mTextEditor.setHint(R.string.open_keyboard_to_compose_message);
         }
+*/
     }
 
     @Override
@@ -1982,10 +1984,14 @@ public class ComposeMessageActivity extends Activity
             // Removed search as part of b/1205708
             //menu.add(0, MENU_SEARCH, 0, R.string.menu_search).setIcon(
             //        R.drawable.ic_menu_search);
-            Cursor cursor = mMsgListAdapter.getCursor();
-            if ((null != cursor) && (cursor.getCount() > 0)) {
-                menu.add(0, MENU_DELETE_THREAD, 0, R.string.delete_thread).setIcon(
-                    android.R.drawable.ic_menu_delete);
+            // Get the cursor only when the MsgListAdapter exists
+            // Added this check to fix a monkey crash
+            if (null != mMsgListAdapter) {
+                Cursor cursor = mMsgListAdapter.getCursor();
+                if ((null != cursor) && (cursor.getCount() > 0)) {
+                    menu.add(0, MENU_DELETE_THREAD, 0, R.string.delete_thread).setIcon(
+                        android.R.drawable.ic_menu_delete);
+                }
             }
         } else {
             menu.add(0, MENU_DISCARD, 0, R.string.discard).setIcon(android.R.drawable.ic_menu_delete);
@@ -3319,10 +3325,10 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void initFocus() {
-        if (!mIsKeyboardOpen) {
+/*        if (!mIsKeyboardOpen) {
             return;
         }
-
+*/
         // If the recipients editor is visible, there is nothing in it,
         // and the text editor is not already focused, focus the
         // recipients editor.
