@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -109,6 +110,11 @@ public class SlideshowPresenter extends Presenter {
 
     @Override
     public void present() {
+    //Check that the location of slide is less than the total size of the SlideshowModel
+    //Adding this checks prevents a monkey crash in MMS package
+    if(((SlideshowModel) mModel).size()<= mLocation)
+        return;
+
         presentSlide((SlideViewInterface) mView, ((SlideshowModel) mModel).get(mLocation));
     }
 

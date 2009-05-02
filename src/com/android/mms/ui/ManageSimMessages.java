@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -249,6 +250,10 @@ public class ManageSimMessages extends Activity
     }
 
     private void deleteFromSim(Cursor cursor) {
+        // check if the cursor is already closed
+        if(cursor.isClosed()) {
+            return;
+        }
         String messageIndexString =
                 cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
         Uri simUri = ICC_URI.buildUpon().appendPath(messageIndexString).build();
