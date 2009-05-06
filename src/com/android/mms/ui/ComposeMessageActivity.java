@@ -2836,6 +2836,9 @@ public class ComposeMessageActivity extends Activity
     
     public static void updateTemporaryMmsMessage(Uri uri, PduPersister persister,
             SlideshowModel slideshow, SendReq sendReq) {
+        // Validate the msg Uri before updating temporary Mms message
+        if (uri == null)
+            return;
         persister.updateHeaders(uri, sendReq);
         final PduBody pb = slideshow.toPduBody();
 
