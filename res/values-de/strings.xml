@@ -47,7 +47,7 @@
     <string name="undelivered_msg_dialog_body">"Senden der Nachricht nicht möglich."\n"Anzahl bisheriger Versuche: <xliff:g id="MESSAGE">%s</xliff:g>."</string>
     <string name="undelivered_sms_dialog_body">"Nachricht kann nicht gesendet werden."</string>
     <string name="delete_thread">"Thread löschen"</string>
-    <string name="menu_forward">"Senden"</string>
+    <string name="menu_forward">"Weiterleiten"</string>
     <string name="download">"Herunterladen"</string>
     <string name="downloading">"Ladevorgang wird ausgeführt"</string>
     <string name="inline_subject">"&lt;Betreff: <xliff:g id="SUBJECT">%s</xliff:g>&gt;"</string>
@@ -150,7 +150,7 @@
     <string name="pref_summary_sms_delivery_reports">"Zustellbestätigung für jede gesendete Nachricht anfordern"</string>
     <string name="pref_title_manage_sim_messages">"Nachrichten auf SIM-Karte"</string>
     <string name="pref_title_mms_delivery_reports">"Zustellberichte"</string>
-    <string name="pref_title_mms_read_reports">"Berichte lesen"</string>
+    <string name="pref_title_mms_read_reports">"Leseberichte"</string>
     <string name="pref_title_sms_delivery_reports">"Zustellberichte"</string>
     <string name="pref_title_notification_enabled">"Benachrichtigungen"</string>
     <string name="pref_summary_notification_enabled">"Bei Nachrichteneingang Benachrichtigung in Statuszeile anzeigen"</string>
