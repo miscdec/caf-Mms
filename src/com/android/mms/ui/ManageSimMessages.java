@@ -143,7 +143,6 @@ public class ManageSimMessages extends Activity
                     updateState(SHOW_LIST);
                 }
                 startManagingCursor(mCursor);
-                registerSimChangeObserver();
             }
         }
     }
