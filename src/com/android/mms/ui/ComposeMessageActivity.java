@@ -3100,6 +3100,10 @@ public class ComposeMessageActivity extends Activity
 
     private void sendMmsWorker(String[] dests, Uri mmsUri, PduPersister persister,
                                SlideshowModel slideshow, SendReq sendReq) {
+        // Check if the message Uri is null
+        if(mmsUri == null) {
+            return;
+        }
         // Make sure we are still using the correct thread ID for our
         // recipient set.
         long threadId = getOrCreateThreadId(dests);
