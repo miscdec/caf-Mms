@@ -1643,9 +1643,16 @@ public class ComposeMessageActivity extends Activity
             initRecipientsEditor();
         }
         
-        int attachmentType = requiresMms()
-                ? MessageUtils.getAttachmentType(mSlideshow)
-                : AttachmentEditor.TEXT_ONLY;
+        // Get the attachment type based on the mode. If the slide show is null
+        // and we are still in MMS mode, we need to update the message state and
+        // the attachment type to TEXT_ONLY.This could happen only in monkey
+        int attachmentType = 0;
+        if ((mSlideshow != null) && requiresMms()) {
+            attachmentType = MessageUtils.getAttachmentType(mSlideshow);
+        } else {
+            mMessageState &= RECIPIENTS_REQUIRE_MMS;
+            attachmentType = AttachmentEditor.TEXT_ONLY;
+        }
 
         updateSendButtonState();
 
