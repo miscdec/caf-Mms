@@ -510,12 +510,7 @@ public class SmilPlayer implements Runnable {
     }
 
     private synchronized TimelineEntry reloadCurrentEntry() {
-        //Check if the position is less than size of all entries
-        if (mCurrentElement < mAllEntries.size()) {
-            return mAllEntries.get(mCurrentElement);
-        } else {
-            return null;
-        }
+        return mAllEntries.get(mCurrentElement);
     }
 
     private synchronized void actionPause() {
@@ -572,8 +567,6 @@ public class SmilPlayer implements Runnable {
                     if (isReloadAction()) {
                         actionReload();
                         entry = reloadCurrentEntry();
-                        if (entry == null)
-                            return;
                         if (isPausedState()) {
                             mAction = SmilPlayerAction.PAUSE;
                         }
