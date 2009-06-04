@@ -809,12 +809,9 @@ public class ComposeMessageActivity extends Activity
             // mRecipientsEditor having its TextWatcher fire and refreshing
             // mRecipientList with its stale contents.
             if (!isRecipientsEditorVisible()) {
-                IllegalStateException e = new IllegalStateException(
-                        "afterTextChanged called with invisible mRecipientsEditor");
-                // Make sure the crash is uploaded to the service so we
-                // can see if this is happening in the field.
-                Log.e(TAG, "RecipientsWatcher called incorrectly", e);
-                throw e;
+                Log.e(TAG, "RecipientsWatcher called incorrectly");
+                // just return if the RecipientsEditor is not visible
+                return;
             }
 
             // Refresh our local copy of the recipient list.
