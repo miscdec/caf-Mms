@@ -625,15 +625,17 @@ public class ComposeMessageActivity extends Activity
                 mTextCounter.setVisibility(View.GONE);
             }
             initMmsComponents();
+            if (mSlideshow != null) {
             CharSequence mmsText = mSlideshow.get(0).getText().getText();
             // Show or hide the counter as necessary
             updateCounter(mmsText, 0, 0, mmsText.length());
-        } else {
-            uninitMmsComponents();
-            // Show or hide the counter as necessary
-            updateCounter(mMsgText, 0, 0, mMsgText.length());
+            updateSendButtonState();
+            return;
+            }
         }
-
+        uninitMmsComponents();
+        // Show or hide the counter as necessary
+        updateCounter(mMsgText, 0, 0, mMsgText.length());
         updateSendButtonState();
     }
 
