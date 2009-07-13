@@ -82,12 +82,24 @@ public class SmsReceiverService extends Service {
         Sms.BODY,       //3
 
     };
+    private static final int MSG_RADIO_ERROR = 1;
+    private static final int MSG_FDN_ERROR = 2;
 
     public Handler mToastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
+           switch(msg.what) {
+           case MSG_RADIO_ERROR:
+              Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
                     Toast.LENGTH_SHORT).show();
+              break;
+           case MSG_FDN_ERROR:
+              Toast.makeText(SmsReceiverService.this, getString(R.string.fdn_blocked),
+                    Toast.LENGTH_SHORT).show();
+              break;
+           default :
+              break;
+           }
         }
     };
 
@@ -235,8 +247,13 @@ public class SmsReceiverService extends Service {
         } else if ((mResultCode == SmsManager.RESULT_ERROR_RADIO_OFF) ||
                 (mResultCode == SmsManager.RESULT_ERROR_NO_SERVICE)) {
             Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_QUEUED);
-            mToastHandler.sendEmptyMessage(1);
-        } else {
+            mToastHandler.sendMessageDelayed(mToastHandler
+                                 .obtainMessage(MSG_RADIO_ERROR),1);
+        } else if (mResultCode == SmsManager.RESULT_ERROR_FDN_FAILURE) {
+           mToastHandler.sendMessageDelayed(mToastHandler
+                                 .obtainMessage(MSG_FDN_ERROR),1);
+        }
+        else {
             Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_FAILED);
             MessagingNotification.notifySendFailed(getApplicationContext(), true);
             sendFirstQueuedMessage();
