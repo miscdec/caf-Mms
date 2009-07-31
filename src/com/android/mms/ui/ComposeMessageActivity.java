@@ -2443,10 +2443,12 @@ public class ComposeMessageActivity extends Activity
             Uri uri = (Uri)extras.getParcelable(Intent.EXTRA_STREAM);
             if (uri != null) {
                 convertMessage(true);
-                if (intent.getType().startsWith("image/")) {
-                    addImage(uri);
-                } else if (intent.getType().startsWith("video/")) {
-                    addVideo(uri);
+                if (mSlideshow != null) {
+                    if (intent.getType().startsWith("image/")) {
+                        addImage(uri);
+                    } else if (intent.getType().startsWith("video/")) {
+                        addVideo(uri);
+                    }
                 }
             }
             return true;
