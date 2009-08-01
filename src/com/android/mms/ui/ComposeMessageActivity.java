@@ -656,7 +656,7 @@ public class ComposeMessageActivity extends Activity
         updateState(whichState, set);
 
         // With MMS disabled, LENGTH_REQUIRES_MMS is a no-op.
-        if (MmsConfig.DISABLE_MMS) {
+        if (!MmsConfig.getMmsEnabled()) {
             whichState &= ~LENGTH_REQUIRES_MMS;
         }
 
@@ -674,7 +674,7 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
-        if (MmsConfig.DISABLE_MMS && toMms) {
+        if (!MmsConfig.getMmsEnabled() && toMms) {
             throw new IllegalStateException(
                     "Message converted to MMS with DISABLE_MMS set");
         }
@@ -1978,7 +1978,7 @@ public class ComposeMessageActivity extends Activity
                     R.drawable.ic_menu_contact);
         }
 
-        if (!MmsConfig.DISABLE_MMS) {
+        if (MmsConfig.getMmsEnabled()) {
             if (!isSubjectEditorVisible()) {
                 menu.add(0, MENU_ADD_SUBJECT, 0, R.string.add_subject).setIcon(
                         com.android.internal.R.drawable.ic_menu_edit);
