@@ -353,7 +353,19 @@ public class SmsReceiverService extends Service {
     private Uri insertMessage(Context context, SmsMessage[] msgs, int error) {
         // Build the helper classes to parse the messages.
         SmsMessage sms = msgs[0];
+        int protocolIdentifier = sms.getProtocolIdentifier();
+        int TYPE_ZERO_MSG = 0x40;
 
+        //Type Zero messages indicated by TP_PID field set to value 0x40,
+        //should not be Displayed/Stored/Notified. They should only be
+        //acknowledged which is done in the frameworks. For CDMA,
+        //getProtocolIdentifier() always returns zero, hence this code will
+        //not be executed.
+        if (protocolIdentifier == TYPE_ZERO_MSG) {
+            Log.i(TAG, "TP_PID " + protocolIdentifier +
+                  ",Received Type0 Message, Ignoring It");
+            return null;
+        }
         if (sms.getMessageClass() == SmsMessage.MessageClass.CLASS_0) {
             displayClassZeroMessage(context, sms);
             return null;
