@@ -68,6 +68,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.content.ActivityNotFoundException;
 
 import java.io.IOException;
 import java.util.Map;
@@ -357,7 +358,11 @@ public class MessageListItem extends LinearLayout implements
             Intent intent = new Intent(Intent.ACTION_VIEW, uri);
             intent.putExtra(Browser.EXTRA_APPLICATION_ID, mContext.getPackageName());
 
-            mContext.startActivity(intent);
+            try {
+                mContext.startActivity(intent);
+            } catch (ActivityNotFoundException e) {
+                // ignore
+            }
         } else {
             final java.util.ArrayList<String> urls = MessageUtils.extractUris(spans);
 

@@ -124,6 +124,7 @@ import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.ActivityNotFoundException;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -1307,7 +1308,20 @@ public class ComposeMessageActivity extends Activity
                     Toast.makeText(ComposeMessageActivity.this, resId, Toast.LENGTH_SHORT).show();
                     return true;
                 }
-
+                case MENU_SEND_EMAIL: {
+                    try {
+                        startActivity(item.getIntent());
+                    } catch (ActivityNotFoundException e) {
+                        new AlertDialog.Builder(ComposeMessageActivity.this)
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setTitle(R.string.cannot_send_email)
+                            .setMessage(R.string.configure_email_account)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .setCancelable(true)
+                            .show();
+                    }
+                    return true;
+                }
                 default:
                     return false;
             }

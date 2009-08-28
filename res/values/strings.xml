@@ -107,6 +107,10 @@
     <string name="copy_message_text">Copy message text</string>
     <!-- Header for context menu on an individual message -->
     <string name="message_options">Message options</string>
+    <!-- Error message displayed when the email account is not configured -->
+    <string name="configure_email_account"> Configure an email account </string>
+    <!-- Title of dialog box displayed when sending email failed -->
+    <string name="cannot_send_email">Cannot send email</string>
 
     <!-- Button text on edit slide screen indicating the user wants to finish editing that slide -->
     <string name="done">Done</string>
