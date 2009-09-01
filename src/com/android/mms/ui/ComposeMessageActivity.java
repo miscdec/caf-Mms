@@ -290,6 +290,7 @@ public class ComposeMessageActivity extends Activity
     private String mSubject;                // MMS subject
     private AttachmentEditor mAttachmentEditor;
     private PduPersister mPersister;
+    private Thread mUpdateSendNotificationThread;
 
     private AlertDialog mSmileyDialog;
     
@@ -1731,12 +1732,13 @@ public class ComposeMessageActivity extends Activity
     private void updateSendFailedNotification() {
         // updateSendFailedNotificationForThread makes a database call, so do the work off
         // of the ui thread.
-        new Thread(new Runnable() {
+        mUpdateSendNotificationThread = new Thread(new Runnable() {
             public void run() {
                 MessagingNotification.updateSendFailedNotificationForThread(
                         ComposeMessageActivity.this, mThreadId);
             }
-        }).run();
+        });
+        mUpdateSendNotificationThread.start();
     }
 
     @Override
@@ -1826,6 +1828,14 @@ public class ComposeMessageActivity extends Activity
             android.os.Debug.stopMethodTracing();
         }
         
+        if (mUpdateSendNotificationThread != null) {
+            try {
+                mUpdateSendNotificationThread.join();
+            } catch (InterruptedException ex) {
+                // ignore
+            }
+            mUpdateSendNotificationThread = null;
+        }
         super.onDestroy();
     }
 
