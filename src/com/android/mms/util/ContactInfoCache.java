@@ -300,20 +300,22 @@ public class ContactInfoCache {
                 mContactInfoSelectionArgs,
                 null);
 
-        try {
-            if (cursor.moveToFirst()) {
-                entry.phoneLabel = cursor.getString(PHONE_LABEL_COLUMN);
-                entry.name = cursor.getString(CONTACT_NAME_COLUMN);
-                entry.person_id = cursor.getLong(CONTACT_ID_COLUMN);
-                entry.presenceResId = getPresenceIconResourceId(
-                        cursor.getInt(CONTACT_PRESENCE_COLUMN));
-                if (LOCAL_DEBUG) {
-                    log("queryContactInfoByNumber: name=" + entry.name + ", number=" + number +
-                            ", presence=" + entry.presenceResId);
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    entry.phoneLabel = cursor.getString(PHONE_LABEL_COLUMN);
+                    entry.name = cursor.getString(CONTACT_NAME_COLUMN);
+                    entry.person_id = cursor.getLong(CONTACT_ID_COLUMN);
+                    entry.presenceResId = getPresenceIconResourceId(
+                            cursor.getInt(CONTACT_PRESENCE_COLUMN));
+                    if (LOCAL_DEBUG) {
+                        log("queryContactInfoByNumber: name=" + entry.name + ", number=" + number +
+                                ", presence=" + entry.presenceResId);
+                    }
                 }
+            } finally {
+                cursor.close();
             }
-        } finally {
-            cursor.close();
         }
 
         return entry;
