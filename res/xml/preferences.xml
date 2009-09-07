@@ -66,4 +66,11 @@
                         android:title="@string/pref_title_notification_vibrate"
                         android:summary="@string/pref_summary_notification_vibrate" />
   </PreferenceCategory>
+  <PreferenceCategory android:title="@string/pref_recipients_suggestion_settings_title">
+    <CheckBoxPreference android:layout="?android:attr/preferenceLayoutChild"
+                        android:key="pref_key_suggest_mobile"
+                        android:defaultValue="false"
+                        android:title="@string/pref_title_recipients_suggestion_use_mobile"
+                        android:summary="@string/pref_summary_recipients_suggestion_use_mobile" />
+  </PreferenceCategory>
 </PreferenceScreen>

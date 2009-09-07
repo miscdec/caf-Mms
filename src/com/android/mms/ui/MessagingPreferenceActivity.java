@@ -58,6 +58,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
     public static final String NOTIFICATION_RINGTONE    = "pref_key_ringtone";
     public static final String AUTO_RETRIEVAL           = "pref_key_mms_auto_retrieval";
     public static final String RETRIEVAL_DURING_ROAMING = "pref_key_mms_retrieval_during_roaming";
+    public static final String SUGGEST_FROM_MOBILE      = "pref_key_suggest_mobile";
 
     // Menu entries
     private static final int MENU_RESTORE_DEFAULTS    = 1;

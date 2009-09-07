@@ -295,6 +295,8 @@
     <string name="pref_mms_settings_title">MMS settings</string>
     <!-- Settings screen, section heading for SMS-specific settings -->
     <string name="pref_sms_settings_title">SMS settings</string>
+    <!-- Settings screen, section heading for recipients suggestion -->
+    <string name="pref_recipients_suggestion_settings_title">Recipients Suggestion setting</string>
 
     <!-- Settings item description for entering SIM card message screen -->
     <string name="pref_summary_manage_sim_messages">Manage messages stored on your SIM card</string>
@@ -331,6 +333,10 @@
     <string name="pref_title_mms_retrieval_during_roaming">Roaming auto-retrieve</string>
     <!-- Settings item description for boolean MMS auto-retrieve while roaming option -->
     <string name="pref_summary_mms_retrieval_during_roaming">Automatically retrieve messages while roaming</string>
+    <!-- Settings item for boolean option to retrieve phone suggestions from mobile -->
+    <string name="pref_title_recipients_suggestion_use_mobile">Use mobile</string>
+    <!-- Settings item description for boolean use mobile option -->
+    <string name="pref_summary_recipients_suggestion_use_mobile">Only get phone suggestion from mobile</string>
 
     <!-- Label prepended to recipient's name in Undelivered Messages screen -->
     <string name="to_label">"To "</string>

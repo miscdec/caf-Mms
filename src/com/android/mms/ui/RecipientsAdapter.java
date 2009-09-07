@@ -23,10 +23,14 @@ import com.google.android.mms.util.SqliteWrapper;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+
 import com.android.internal.database.ArrayListCursor;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MergeCursor;
+import android.preference.PreferenceManager;
 import android.provider.Contacts;
 import android.provider.Contacts.ContactMethods;
 import android.provider.Contacts.Phones;
@@ -155,8 +159,12 @@ public class RecipientsAdapter extends ResourceCursorAdapter {
             s.append(filterLastName);
             s.append(") OR (REPLACE(REPLACE(REPLACE(REPLACE(number, ' ', ''), '(', ''), ')', ''), '-', '') LIKE ");
             s.append(filter);
-            s.append(")) AND type = ");
-            s.append(Phones.TYPE_MOBILE);
+            s.append("))");
+            if (PreferenceManager.getDefaultSharedPreferences(mContext).getBoolean(
+                    MessagingPreferenceActivity.SUGGEST_FROM_MOBILE, false)) {
+                s.append(" AND type = ");
+                s.append(Phones.TYPE_MOBILE);
+            }
             wherePhone = s.toString();
         }
 
