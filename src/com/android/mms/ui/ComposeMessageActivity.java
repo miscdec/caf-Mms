@@ -2104,8 +2104,13 @@ public class ComposeMessageActivity extends Activity
         switch (item.getItemId()) {
             case MENU_ADD_SUBJECT:
                 convertMessageIfNeeded(HAS_SUBJECT, true);
-                showSubjectEditor();
-                mSubjectTextEditor.requestFocus();
+                // When there is an MMS exception while getting the slideShow, all the MMS
+                // components will be uninitialized and the message is converted to SMS
+                // Check the state of message before showing the subject editor
+                if (mMessageState != 0) {
+                    showSubjectEditor();
+                    mSubjectTextEditor.requestFocus();
+                }
                 break;
             case MENU_ADD_ATTACHMENT:
                 // Launch the add-attachment list dialog
