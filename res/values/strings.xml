@@ -551,6 +551,9 @@
          while sending. -->
     <string name="message_queued">Currently unable to send your message. It will be sent when the service becomes available.</string>
 
+    <!-- dialog error message when FDN is blocked. -->
+    <string name="fdn_blocked">Operation barred - Fixed dialing numbers only.</string>
+
     <!-- Download Manager -->
     <!-- When an error occurs downloading a new message and a subject isn't available, substitute
          this default subject. -->

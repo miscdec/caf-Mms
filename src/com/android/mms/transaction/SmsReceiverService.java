@@ -81,12 +81,24 @@ public class SmsReceiverService extends Service {
         Sms.BODY,       //3
 
     };
+    private static final int MSG_RADIO_ERROR = 1;
+    private static final int MSG_FDN_ERROR = 2;
 
     public Handler mToastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
-                    Toast.LENGTH_SHORT).show();
+            switch(msg.what) {
+                case MSG_RADIO_ERROR:
+                    Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
+                            Toast.LENGTH_SHORT).show();
+                    break;
+                case MSG_FDN_ERROR:
+                    Toast.makeText(SmsReceiverService.this, getString(R.string.fdn_blocked),
+                            Toast.LENGTH_SHORT).show();
+                    break;
+                default :
+                    break;
+            }
         }
     };
 
@@ -256,7 +268,9 @@ public class SmsReceiverService extends Service {
                 Log.v(TAG, "handleSmsSent: no service, queuing message w/ uri: " + uri);
             }
             Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_QUEUED);
-            mToastHandler.sendEmptyMessage(1);
+            mToastHandler.sendEmptyMessage(MSG_RADIO_ERROR);
+        } else if (mResultCode == SmsManager.RESULT_ERROR_FDN_FAILURE) {
+            mToastHandler.sendEmptyMessage(MSG_FDN_ERROR);
         } else {
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "handleSmsSent msg failed uri: " + uri);
