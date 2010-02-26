@@ -59,8 +59,13 @@ public class ContactInfoCache {
     private static final String SEPARATOR = ";";
 
     // query params for caller id lookup
+    // TODO this query uses non-public API. Figure out a way to expose this functionality
     private static final String CALLER_ID_SELECTION = "PHONE_NUMBERS_EQUAL(" + Phone.NUMBER
-            + ",?) AND " + Data.MIMETYPE + "='" + Phone.CONTENT_ITEM_TYPE + "'";
+            + ",?) AND " + Data.MIMETYPE + "='" + Phone.CONTENT_ITEM_TYPE + "'"
+            + " AND " + Data.RAW_CONTACT_ID + " IN "
+                    + "(SELECT raw_contact_id "
+                    + " FROM phone_lookup"
+                    + " WHERE normalized_number GLOB('+*'))";
 
     // Utilizing private API
     private static final Uri PHONES_WITH_PRESENCE_URI = Data.CONTENT_URI;
@@ -101,16 +106,8 @@ public class ContactInfoCache {
 
     private final Context mContext;
 
-    private String[] mContactInfoSelectionArgs = new String[1];
-
     // cached contact info
     private final HashMap<String, CacheEntry> mCache = new HashMap<String, CacheEntry>();
-
-    // for background cache rebuilding
-    private Thread mCacheRebuilder = null;
-    private Object mCacheRebuildLock = new Object();
-    private boolean mPhoneCacheInvalidated = false;
-    private boolean mEmailCacheInvalidated = false;
 
     /**
      * CacheEntry stores the caller id or email lookup info.
@@ -289,13 +286,19 @@ public class ContactInfoCache {
 
         //if (LOCAL_DEBUG) log("queryContactInfoByNumber: number=" + number);
 
-        mContactInfoSelectionArgs[0] = number;
+        String contactInfoSelectionArgs[] = new String[1];
+        contactInfoSelectionArgs[0] = number;
 
+        // We need to include the phone number in the selection string itself rather then
+        // selection arguments, because SQLite needs to see the exact pattern of GLOB
+        // to generate the correct query plan
+        String selection = CALLER_ID_SELECTION.replace("+",
+                PhoneNumberUtils.toCallerIDMinMatch(number));
         Cursor cursor = mContext.getContentResolver().query(
                 PHONES_WITH_PRESENCE_URI,
                 CALLER_ID_PROJECTION,
-                CALLER_ID_SELECTION,
-                mContactInfoSelectionArgs,
+                selection,
+                contactInfoSelectionArgs,
                 null);
 
         if (cursor == null) {
@@ -466,13 +469,14 @@ public class ContactInfoCache {
     private CacheEntry queryEmailDisplayName(String email) {
         CacheEntry entry = new CacheEntry();
 
-        mContactInfoSelectionArgs[0] = email;
+        String contactInfoSelectionArgs[] = new String[1];
+        contactInfoSelectionArgs[0] = email;
 
         Cursor cursor = SqliteWrapper.query(mContext, mContext.getContentResolver(),
                 EMAIL_WITH_PRESENCE_URI,
                 EMAIL_PROJECTION,
                 EMAIL_SELECTION,
-                mContactInfoSelectionArgs,
+                contactInfoSelectionArgs,
                 null);
 
         if (cursor != null) {
