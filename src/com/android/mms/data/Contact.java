@@ -117,7 +117,12 @@ public class Contact {
         Contact contact = Cache.get(number);
         if (contact == null) {
             contact = new Contact(number);
-            Cache.put(contact);
+            try {
+                Cache.put(contact);
+            } catch (IllegalStateException e) {
+                LogTag.error("Tried to add duplicate Contact to Cache");
+                e.printStackTrace();
+            }
         }
         if (contact.mIsStale) {
             asyncUpdateContact(contact, canBlock);
