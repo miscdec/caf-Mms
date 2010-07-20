@@ -47,8 +47,9 @@ public class MessageStatusReceiver extends BroadcastReceiver {
 
             Uri messageUri = intent.getData();
             byte[] pdu = (byte[]) intent.getExtra("pdu");
+            int encoding = intent.getIntExtra("encoding", -1);
 
-            boolean isStatusMessage = updateMessageStatus(context, messageUri, pdu);
+            boolean isStatusMessage = updateMessageStatus(context, messageUri, pdu, encoding);
 
             // Called on the UI thread so don't block.
             MessagingNotification.nonBlockingUpdateNewMessageIndicator(context,
@@ -56,7 +57,7 @@ public class MessageStatusReceiver extends BroadcastReceiver {
        }
     }
 
-    private boolean updateMessageStatus(Context context, Uri messageUri, byte[] pdu) {
+    private boolean updateMessageStatus(Context context, Uri messageUri, byte[] pdu, int encoding) {
         // Create a "status/#" URL and use it to update the
         // message's status in the database.
         boolean isStatusReport = false;
@@ -67,7 +68,12 @@ public class MessageStatusReceiver extends BroadcastReceiver {
                 int messageId = cursor.getInt(0);
 
                 Uri updateUri = ContentUris.withAppendedId(STATUS_URI, messageId);
-                SmsMessage message = SmsMessage.createFromPdu(pdu);
+                SmsMessage message;
+                if (-1 != encoding) {
+                    message = SmsMessage.createFromPdu(pdu, encoding);
+                } else {
+                    message = SmsMessage.createFromPdu(pdu);
+                }
                 int status = message.getStatus();
                 isStatusReport = message.isStatusReportMessage();
                 ContentValues contentValues = new ContentValues(1);
