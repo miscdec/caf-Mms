@@ -25,6 +25,9 @@ import android.content.Context;
 import android.content.res.XmlResourceParser;
 import android.util.Config;
 import android.util.Log;
+import com.android.internal.telephony.PhoneFactory;
+
+import android.telephony.TelephonyManager;
 
 public class MmsConfig {
     private static final String TAG = "MmsConfig";
@@ -36,6 +39,10 @@ public class MmsConfig {
 
     private static final int MAX_IMAGE_HEIGHT = 480;
     private static final int MAX_IMAGE_WIDTH = 640;
+
+    public static final int DEFAULT_SUB = 0;
+    public static final int SMS_SUB  = 1;
+    public static final int MMS_SUB  = 2;
 
     /**
      * Whether to hide MMS functionality from the user (i.e. SMS only).
@@ -61,6 +68,8 @@ public class MmsConfig {
     private static boolean mNotifyWapMMSC = false;
     private static boolean mAllowAttachAudio = true;
 
+    private static Context mContext;
+
     // This is the max amount of storage multiplied by mMaxMessageSize that we
     // allow of unsent messages before blocking the user from sending any more
     // MMS's.
@@ -76,6 +85,7 @@ public class MmsConfig {
             Log.v(TAG, "MmsConfig.init()");
         }
 
+        mContext = context;
         loadMmsSettings(context);
     }
 
@@ -206,7 +216,7 @@ public class MmsConfig {
             ;
         }
     }
-    
+
     private static void loadMmsSettings(Context context) {
         XmlResourceParser parser = context.getResources().getXml(R.xml.mms_config);
 
@@ -318,4 +328,14 @@ public class MmsConfig {
         }
     }
 
+    /**
+     * Get the subscription to be used for sending SMS/MMS.
+     * @param type, indicates SMS/MMS for which the subscription need to be
+     * fetched.
+     * @return returns the subscription to be used for given type, returns -1
+     * incase unable to get the subscription.
+     */
+    public static int getSubscription(int type) {
+        return PhoneFactory.getSMSSubscription(mContext);
+    }
 }

@@ -1,5 +1,6 @@
  /*
  * Copyright (C) 2009 The Android Open Source Project
+ * Copyright (C) 2010, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +61,8 @@ import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.SendReq;
+
+import android.telephony.TelephonyManager;
 
 /**
  * Contains all state related to a message being edited by the user.
@@ -1021,7 +1024,16 @@ public class WorkingMessage {
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
             LogTag.debug("sendSmsWorker sending message");
         }
-        MessageSender sender = new SmsMessageSender(mContext, dests, msgText, threadId);
+        MessageSender sender;
+
+        // runtime check for dsds
+        if (TelephonyManager.isDsdsEnabled()){
+            sender = new SmsMessageSender(mContext, dests, msgText, threadId,
+                   MmsConfig.getSubscription(MmsConfig.SMS_SUB));
+        } else {
+            sender = new SmsMessageSender(mContext, dests, msgText, threadId);
+        }
+
         try {
             sender.sendMessage(threadId);
 

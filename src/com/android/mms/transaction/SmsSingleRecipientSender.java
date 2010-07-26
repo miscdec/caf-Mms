@@ -17,6 +17,8 @@ import com.google.android.mms.MmsException;
 import android.provider.Telephony.Sms;
 import com.android.mms.ui.MessageUtils;
 
+import android.telephony.TelephonyManager;
+
 public class SmsSingleRecipientSender extends SmsMessageSender {
 
     private final boolean mRequestDeliveryReport;
@@ -26,6 +28,15 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
     public SmsSingleRecipientSender(Context context, String dest, String msgText, long threadId,
             boolean requestDeliveryReport, Uri uri) {
         super(context, null, msgText, threadId);
+        mRequestDeliveryReport = requestDeliveryReport;
+        mDest = dest;
+        mUri = uri;
+    }
+
+    // Constructor with subscription parameter.  Used for DSDS.
+    public SmsSingleRecipientSender(Context context, String dest, String msgText, long threadId,
+            boolean requestDeliveryReport, Uri uri, int subscription) {
+        super(context, null, msgText, threadId, subscription);
         mRequestDeliveryReport = requestDeliveryReport;
         mDest = dest;
         mUri = uri;
@@ -95,7 +106,13 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
 
         }
         try {
-            smsManager.sendMultipartTextMessage(mDest, mServiceCenter, messages, sentIntents, deliveryIntents);
+            // Runtime check for dsds
+            if (TelephonyManager.isDsdsEnabled()){
+                smsManager.sendMultipartTextMessage(mDest, mServiceCenter, messages, sentIntents, deliveryIntents,
+                                mSubscription);
+            } else {
+                smsManager.sendMultipartTextMessage(mDest, mServiceCenter, messages, sentIntents, deliveryIntents);
+            }
         } catch (Exception ex) {
             throw new MmsException("SmsMessageSender.sendMessage: caught " + ex +
                     " from SmsManager.sendTextMessage()");

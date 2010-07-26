@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
+ * Copyright (C) 2010, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,6 +60,9 @@ import android.widget.Toast;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.R;
 import com.android.mms.LogTag;
+
+import com.android.mms.MmsConfig;
+import android.telephony.TelephonyManager;
 
 /**
  * This service essentially plays the role of a "worker thread", allowing us to store
@@ -224,10 +228,18 @@ public class SmsReceiverService extends Service {
 
                     int msgId = c.getInt(SEND_COLUMN_ID);
                     Uri msgUri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgId);
+                    SmsMessageSender sender;
 
-                    SmsMessageSender sender = new SmsSingleRecipientSender(this,
-                            address, msgText, threadId, status == Sms.STATUS_PENDING,
-                            msgUri);
+                    // Runtime check for dsds
+                    if (TelephonyManager.isDsdsEnabled()){
+                        sender = new SmsSingleRecipientSender(this,
+                                address, msgText, threadId, status == Sms.STATUS_PENDING,
+                                msgUri, MmsConfig.getSubscription(MmsConfig.SMS_SUB));
+                    } else {
+                        sender = new SmsSingleRecipientSender(this,
+                                address, msgText, threadId, status == Sms.STATUS_PENDING,
+                                msgUri);
+                    }
 
                     if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                         Log.v(TAG, "sendFirstQueuedMessage " + msgUri +
@@ -399,12 +411,30 @@ public class SmsReceiverService extends Service {
         ContentResolver resolver = context.getContentResolver();
         String originatingAddress = sms.getOriginatingAddress();
         int protocolIdentifier = sms.getProtocolIdentifier();
-        String selection =
-                Sms.ADDRESS + " = ? AND " +
-                Sms.PROTOCOL + " = ?";
-        String[] selectionArgs = new String[] {
-            originatingAddress, Integer.toString(protocolIdentifier)
-        };
+        String selection;
+        String[] selectionArgs;
+
+        // Runtime check for dsds
+        if (TelephonyManager.isDsdsEnabled()){
+            Log.v(TAG, " SmsReceiverService: replaceMessage: dsds enabled:");
+            selection = Sms.ADDRESS + " = ? AND " +
+                        Sms.PROTOCOL + " = ? AND" +
+                        Sms.PHONE_ID +  " = ? ";
+            selectionArgs = new String[] {
+                    originatingAddress,
+                    Integer.toString(protocolIdentifier),
+                    Integer.toString(sms.phone_id)
+                };
+        } else {
+            Log.v(TAG, " SmsReceiverService: replaceMessage: dsds not enabled:");
+            selection = Sms.ADDRESS + " = ? AND " +
+                        Sms.PROTOCOL + " = ?";
+            selectionArgs = new String[] {
+                    originatingAddress,
+                    Integer.toString(protocolIdentifier)
+                };
+        }
+
 
         Cursor cursor = SqliteWrapper.query(context, resolver, Inbox.CONTENT_URI,
                             REPLACE_PROJECTION, selection, selectionArgs, null);
@@ -433,6 +463,11 @@ public class SmsReceiverService extends Service {
         // Store the message in the content provider.
         ContentValues values = extractContentValues(sms);
         values.put(Sms.ERROR_CODE, error);
+        // Runtime check for dsds
+        if (TelephonyManager.isDsdsEnabled()){
+            values.put(Sms.PHONE_ID, sms.phone_id);
+        }
+
         int pduCount = msgs.length;
 
         if (pduCount == 1) {
