@@ -89,7 +89,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                 sentIntents.add(PendingIntent.getBroadcast(
                     mContext, 1, intent, 0));
             } else {
-                 sentIntents.add(PendingIntent.getBroadcast(
+                sentIntents.add(PendingIntent.getBroadcast(
                     mContext, 0, intent, 0));
             }
 
