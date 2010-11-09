@@ -71,6 +71,7 @@ import android.telephony.TelephonyManager;
  */
 public class SmsReceiverService extends Service {
     private static final String TAG = "SmsReceiverService";
+    private final String SUBSCRIPTION = "SUBSCRIPTION";
 
     private ServiceHandler mServiceHandler;
     private Looper mServiceLooper;
@@ -198,7 +199,10 @@ public class SmsReceiverService extends Service {
     private void handleServiceStateChanged(Intent intent) {
         // If service just returned, start sending out the queued messages
         ServiceState serviceState = ServiceState.newFromBundle(intent.getExtras());
-        if (serviceState.getState() == ServiceState.STATE_IN_SERVICE) {
+        int subscription = intent.getIntExtra(SUBSCRIPTION, 0);
+        int prefSubscription = MmsConfig.getSubscription(MmsConfig.SMS_SUB);
+        if (serviceState.getState() == ServiceState.STATE_IN_SERVICE &&
+            subscription == prefSubscription) {
             sendFirstQueuedMessage();
         }
     }
