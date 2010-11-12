@@ -25,7 +25,7 @@ import android.content.Context;
 import android.content.res.XmlResourceParser;
 import android.util.Config;
 import android.util.Log;
-import com.android.internal.telephony.PhoneFactory;
+import android.telephony.SmsManager;
 
 import android.telephony.TelephonyManager;
 
@@ -332,10 +332,9 @@ public class MmsConfig {
      * Get the subscription to be used for sending SMS/MMS.
      * @param type, indicates SMS/MMS for which the subscription need to be
      * fetched.
-     * @return returns the subscription to be used for given type, returns -1
-     * incase unable to get the subscription.
+     * @return the subscription to be used for given type.
      */
     public static int getSubscription(int type) {
-        return PhoneFactory.getSMSSubscription(mContext);
+        return SmsManager.getDefault().getPreferredSmsSubscription();
     }
 }
