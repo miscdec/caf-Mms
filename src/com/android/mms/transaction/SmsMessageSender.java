@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010-2011, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +41,7 @@ public class SmsMessageSender implements MessageSender {
     protected final String mServiceCenter;
     protected final long mThreadId;
     protected long mTimestamp;
+    protected int mSubscription;
 
     // Default preference values
     private static final boolean DEFAULT_DELIVERY_REPORT_MODE  = false;
@@ -52,7 +54,8 @@ public class SmsMessageSender implements MessageSender {
     private static final int COLUMN_REPLY_PATH_PRESENT = 0;
     private static final int COLUMN_SERVICE_CENTER     = 1;
 
-    public SmsMessageSender(Context context, String[] dests, String msgText, long threadId) {
+    public SmsMessageSender(Context context, String[] dests,
+                 String msgText, long threadId, int subscription) {
         mContext = context;
         mMessageText = msgText;
         if (dests != null) {
@@ -66,11 +69,12 @@ public class SmsMessageSender implements MessageSender {
         mTimestamp = System.currentTimeMillis();
         mThreadId = threadId;
         mServiceCenter = getOutgoingServiceCenter(mThreadId);
+        mSubscription = subscription;
     }
 
     public boolean sendMessage(long token) throws MmsException {
         // In order to send the message one by one, instead of sending now, the message will split,
-        // and be put into the queue along with each destinations 
+        // and be put into the queue along with each destinations
         return queueMessage(token);
     }
 
@@ -87,12 +91,13 @@ public class SmsMessageSender implements MessageSender {
 
         for (int i = 0; i < mNumberOfDests; i++) {
             try {
-                Sms.addMessageToUri(mContext.getContentResolver(), 
+                log("updating Database with sub = " + mSubscription);
+                Sms.addMessageToUri(mContext.getContentResolver(),
                         Uri.parse("content://sms/queued"), mDests[i],
                         mMessageText, null, mTimestamp,
                         true /* read */,
                         requestDeliveryReport,
-                        mThreadId);
+                        mThreadId, mSubscription);
             } catch (SQLiteException e) {
                 SqliteWrapper.checkSQLiteException(mContext, e);
             }

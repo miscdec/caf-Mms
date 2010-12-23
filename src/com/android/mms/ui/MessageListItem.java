@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010-2011, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -181,8 +182,8 @@ public class MessageListItem extends LinearLayout implements
                                 + String.valueOf((msgItem.mMessageSize + 1023) / 1024)
                                 + mContext.getString(R.string.kilobyte);
 
-        mBodyTextView.setText(formatMessage(msgItem, msgItem.mContact, null, msgItem.mSubject,
-                                            msgSizeText + "\n" + msgItem.mTimestamp,
+        mBodyTextView.setText(formatMessage(msgItem, msgItem.mContact, null, msgItem.mSubscription,
+                                            msgItem.mSubject, msgSizeText + "\n" + msgItem.mTimestamp,
                                             msgItem.mHighlight, msgItem.mTextContentType));
 
         int state = DownloadManager.getInstance().getState(msgItem.mMessageUri);
@@ -262,8 +263,9 @@ public class MessageListItem extends LinearLayout implements
         CharSequence formattedMessage = msgItem.getCachedFormattedMessage();
         if (formattedMessage == null) {
             formattedMessage = formatMessage(msgItem, msgItem.mContact, msgItem.mBody,
-                                             msgItem.mSubject, msgItem.mTimestamp,
-                                             msgItem.mHighlight, msgItem.mTextContentType);
+                                             msgItem.mSubscription, msgItem.mSubject,
+                                             msgItem.mTimestamp, msgItem.mHighlight,
+                                             msgItem.mTextContentType);
         }
         mBodyTextView.setText(formattedMessage);
 
@@ -359,13 +361,18 @@ public class MessageListItem extends LinearLayout implements
     ForegroundColorSpan mColorSpan = null;  // set in ctor
 
     private CharSequence formatMessage(MessageItem msgItem, String contact, String body,
-                                       String subject, String timestamp, Pattern highlight,
-                                       String contentType) {
+                                       int subId, String subject, String timestamp,
+                                       Pattern highlight, String contentType) {
         CharSequence template = mContext.getResources().getText(R.string.name_colon);
         SpannableStringBuilder buf =
             new SpannableStringBuilder(TextUtils.replace(template,
                 new String[] { "%s" },
                 new CharSequence[] { contact }));
+
+       if (TelephonyManager.isMultiSimEnabled()) {
+           buf.append( (subId == 0) ? "SUB1:" : "SUB2:");
+           buf.append("\n");
+       }
 
         boolean hasSubject = !TextUtils.isEmpty(subject);
         if (hasSubject) {
