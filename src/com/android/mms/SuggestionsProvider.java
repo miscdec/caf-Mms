@@ -146,6 +146,8 @@ public class SuggestionsProvider extends android.content.ContentProvider {
                     int startOffset  = offsets[j+2];
                     int length       = offsets[j+3];
                     int endOffset = startOffset + length;
+                    if (endOffset>message.length()-1 || startOffset<0)
+                        continue;
                     String candidate = message.substring(startOffset, endOffset);
                     String key = candidate.toLowerCase();
                     if (got.contains(key)) {
