@@ -215,6 +215,8 @@ public class ComposeMessageActivity extends Activity
 
     private static final String EXIT_ECM_RESULT = "exit_ecm_result";
 
+    private static final String PIXEL_FORMAT_JPEG = "jpeg";
+
     private ContentResolver mContentResolver;
 
     private BackgroundQueryHandler mBackgroundQueryHandler;
@@ -2540,9 +2542,19 @@ public class ComposeMessageActivity extends Activity
                 // create a file based uri and pass to addImage(). We want to read the JPEG
                 // data directly from file (using UriImage) instead of decoding it into a Bitmap,
                 // which takes up too much memory and could easily lead to OOM.
-                File file = new File(Mms.ScrapSpace.SCRAP_FILE_PATH);
-                Uri uri = Uri.fromFile(file);
-                addImage(uri, false);
+                File file;
+                String pictureFormat = data.getStringExtra("picFormat");
+                if (PIXEL_FORMAT_JPEG.equalsIgnoreCase(pictureFormat)) {
+                     file = new File(Mms.ScrapSpace.SCRAP_FILE_PATH);
+                     Uri uri = Uri.fromFile(file);
+                     addImage(uri, false);
+                } else {
+                     // Pop up a message for unsupported format i.e, RAW
+                     if (Log.isLoggable(LogTag.APP, Log.DEBUG)) {
+                          log("Raw format is not supported through MMS");
+                     }
+                     handleAddAttachmentError(WorkingMessage.UNKNOWN_ERROR, R.string.type_picture);
+                }
                 break;
             }
 
