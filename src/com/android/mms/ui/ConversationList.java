@@ -328,10 +328,6 @@ public class ConversationList extends ListActivity
 
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
-        if (LOCAL_LOGV) {
-            Log.v(TAG, "onListItemClick: position=" + position + ", id=" + id);
-        }
-
         if (position == 0) {
             createNewMessage();
         } else {
@@ -345,6 +341,10 @@ public class ConversationList extends ListActivity
             Cursor cursor  = (Cursor) getListView().getItemAtPosition(position);
             Conversation conv = Conversation.from(this, cursor);
             long tid = conv.getThreadId();
+
+            if (LogTag.VERBOSE) {
+                Log.d(TAG, "onListItemClick: pos=" + position + ", view=" + v + ", tid=" + tid);
+            }
 
             openThread(tid);
         }
