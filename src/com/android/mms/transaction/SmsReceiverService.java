@@ -413,7 +413,7 @@ public class SmsReceiverService extends Service {
             Log.v(TAG, " SmsReceiverService: replaceMessage:");
         }
         selection = Sms.ADDRESS + " = ? AND " +
-                    Sms.PROTOCOL + " = ? AND" +
+                    Sms.PROTOCOL + " = ? AND " +
                     Sms.SUB_ID +  " = ? ";
         selectionArgs = new String[] {
                 originatingAddress, Integer.toString(protocolIdentifier),
