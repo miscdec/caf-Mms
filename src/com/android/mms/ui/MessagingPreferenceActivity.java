@@ -60,6 +60,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
     public static final String AUTO_RETRIEVAL           = "pref_key_mms_auto_retrieval";
     public static final String RETRIEVAL_DURING_ROAMING = "pref_key_mms_retrieval_during_roaming";
     public static final String AUTO_DELETE              = "pref_key_auto_delete";
+    public static final String GSM_UMTS_CB              = "pref_key_gsm_umts_cb_sms";
 
     // Menu entries
     private static final int MENU_RESTORE_DEFAULTS    = 1;
@@ -71,10 +72,12 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
     private Preference mMmsReadReportPref;
     private Preference mManageSimPref;
     private Preference mClearHistoryPref;
+    private Preference mGsmUmtsCbPref;
     private ListPreference mVibrateWhenPref;
     private Recycler mSmsRecycler;
     private Recycler mMmsRecycler;
     private static final int CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG = 3;
+    public static final String SUBSCRIPTION = "SUBSCRIPTION_ID";
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -93,6 +96,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
         mMmsLimitPref = findPreference("pref_key_mms_delete_limit");
         mClearHistoryPref = findPreference("pref_key_mms_clear_history");
         mVibrateWhenPref = (ListPreference) findPreference(NOTIFICATION_VIBRATE_WHEN);
+        mGsmUmtsCbPref = findPreference(GSM_UMTS_CB);
 
         if (!MmsApp.getApplication().getTelephonyManager().hasIccCard()) {
             // No SIM card, remove the SIM-related prefs
@@ -204,6 +208,12 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
                     R.string.pref_title_mms_delete).show();
         } else if (preference == mManageSimPref) {
             startActivity(new Intent(this, ManageSimMessages.class));
+        } else if (preference == mGsmUmtsCbPref) {
+            if (!TelephonyManager.isMultiSimEnabled()) {
+                startActivity(new Intent(this, GsmUmtsCellBroadcastSms.class));
+            } else {
+                startActivity(new Intent(this, SelectSubscription.class));
+            }
         } else if (preference == mClearHistoryPref) {
             showDialog(CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG);
             return true;
