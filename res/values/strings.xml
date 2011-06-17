@@ -765,5 +765,19 @@
 
     <string name="label_mms_push">MMS Push</string>
     <string name="desc_mms_push">Pushes MMS from outbox to the network</string>
+
+    <!-- GSM/UMTS Cell broadcast SMS strings -->
+    <string name="cell_broadcast_sms_title">Cell Broadcast</string>
+    <string name="gsm_umts_cell_broadcast_sms_title">GSM/UMTS Cell Broadcast</string>
+    <string name="gsm_umts_cell_broadcast_sms_summary">Configure GSM/UMTS CB Messages</string>
+    <string name="cb_sms_settings">Cell Broadcast SMS settings</string>
+    <string name="area_info_msgs">Area Info Msgs(ID 50)</string>
+    <string name="area_info_msgs_enabled">Enabled</string>
+    <string name="area_info_msgs_disabled">Disabled</string>
+
+    <!-- Subscription selection strings -->
+    <string name="select_subscription_title">Select Subscription</string>
+    <string name="subscription1_title">Subscription 1</string>
+    <string name="subscription2_title">Subscription 2</string>
 </resources>
 
