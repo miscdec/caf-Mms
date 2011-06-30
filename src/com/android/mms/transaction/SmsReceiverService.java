@@ -24,7 +24,6 @@ import static android.provider.Telephony.Sms.Intents.CB_SMS_RECEIVED_ACTION;
 
 import com.android.mms.data.Contact;
 import com.android.mms.ui.ClassZeroActivity;
-import com.android.mms.ui.GsmUmtsCellBroadcastSms;
 import com.android.mms.util.Recycler;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.google.android.mms.MmsException;
@@ -368,7 +367,7 @@ public class SmsReceiverService extends Service {
         }
 
         int msgId = msgs[0].getMessageIdentifier();
-        if (!GsmUmtsCellBroadcastSms.isMsgIdSupported(msgId)) {
+        if (!GsmBroadcastConfigurator.isMsgIdSupported(msgId)) {
             Log.w(TAG, "Unsupported SMS CB message recevied, ID: " + msgId);
             return;
         }
