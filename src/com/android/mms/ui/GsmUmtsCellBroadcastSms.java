@@ -1,23 +1,36 @@
 /*
- * Copyright (C) 2009 The Android Open Source Project
  * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials provided
+ *       with the distribution.
+ *     * Neither the name of Code Aurora Forum, Inc. nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 package com.android.mms.ui;
 
 import com.android.mms.R;
+import com.android.mms.transaction.GsmBroadcastConfigurator;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -28,38 +41,44 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import android.telephony.SmsManager;
 import android.util.Log;
+import android.widget.Toast;
 
 public class GsmUmtsCellBroadcastSms extends PreferenceActivity {
     // debug data
     private static final String LOG_TAG = "GsmUmtsCellBroadcastSms";
 
-    // Message IDs.
-    private static final int AREA_INFO_MSG_ID = 50;
-    private static final int [] supportedMsgIds = {AREA_INFO_MSG_ID};
-
     // String keys for preference lookup
     private static final String AREA_INFO_PREFERENCE_KEY = "area_info_msgs_key";
-
-    // String keys for shared preference lookup
-    private static final String SP_FILE_NAME = "GsmUmtsSharedPref";
-    private static final String AREA_INFO_ENABLED = "area_info_enabled";
 
     // Preference instance variables.
     private CheckBoxPreference mAreaInfoPreference;
 
     // Instance variables
-    boolean mAreaInfoEnabled = false;
     private int mSubscription = 0;
 
     @Override
     public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen,
             Preference preference) {
         if (preference == mAreaInfoPreference) {
-            Log.d(LOG_TAG, "onPreferenceTreeClick: AreaInfo - " + mAreaInfoPreference.isChecked());
+            boolean state = mAreaInfoPreference.isChecked();
+            Log.d(LOG_TAG, "onPreferenceTreeClick: AreaInfo - " + state);
+            GsmBroadcastConfigurator gbc = GsmBroadcastConfigurator.getInstance(this);
+            if (!gbc.switchService(mAreaInfoPreference.isChecked(), mSubscription)) {
+                displayErrorToast(state);
+                // Since swithService failed, reset the state of the
+                // preference.
+                mAreaInfoPreference.setChecked(!state);
+            }
             return true;
         }
 
         return false;
+    }
+
+    void displayErrorToast(boolean state) {
+        String msg = state ? "Enabling " : "Disabling ";
+        msg = msg + "Msg_Id 50 on sub" + mSubscription + " failed." + " Try after some time";
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
     public void onCreate(Bundle icicle) {
@@ -70,54 +89,18 @@ public class GsmUmtsCellBroadcastSms extends PreferenceActivity {
         mSubscription = getIntent().getIntExtra(MessagingPreferenceActivity.SUBSCRIPTION, 0);
         Log.d(LOG_TAG, "onCreate: mSubscription is: " + mSubscription);
 
-        String spKey = AREA_INFO_ENABLED + mSubscription;
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        enableOrDisableCbMsg(AREA_INFO_MSG_ID, sp.getBoolean(spKey, false));
-        Log.d(LOG_TAG, "onCreate, mAreaInfoEnabled, spKey values : " + mAreaInfoEnabled
-              + ", " + spKey);
-        mAreaInfoPreference.setChecked(mAreaInfoEnabled);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
+        GsmBroadcastConfigurator gbc = GsmBroadcastConfigurator.getInstance(this);
+        mAreaInfoPreference.setChecked(gbc.getMessageStatus(mSubscription));
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-
-        enableOrDisableCbMsg(AREA_INFO_MSG_ID, mAreaInfoPreference.isChecked());
-
-        String spKey = AREA_INFO_ENABLED + mSubscription;
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        SharedPreferences.Editor spe = sp.edit();
-        spe.putBoolean(spKey, mAreaInfoPreference.isChecked());
-        spe.commit();
-    }
-
-    public void enableOrDisableCbMsg(int msgId, boolean enable) {
-        if (mAreaInfoEnabled != enable) {
-            mAreaInfoEnabled = enable;
-            SmsManager sm = SmsManager.getDefault();
-            if (enable) {
-                sm.enableCellBroadcastOnSubscription(msgId, mSubscription);
-            } else {
-                sm.disableCellBroadcastOnSubscription(msgId, mSubscription);
-            }
-       }
-    }
-
-    public static boolean isMsgIdSupported(int msgId) {
-        int length = supportedMsgIds.length;
-
-        for (int i = 0; i < length; i++) {
-            if(msgId == supportedMsgIds[i]) {
-               return true;
-            }
-        }
-
-        return false;
     }
 }
