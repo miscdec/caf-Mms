@@ -20,7 +20,7 @@ package com.android.mms.transaction;
 
 import static android.content.Intent.ACTION_BOOT_COMPLETED;
 import static android.provider.Telephony.Sms.Intents.SMS_RECEIVED_ACTION;
-import static android.provider.Telephony.Sms.Intents.CB_SMS_RECEIVED_ACTION;
+import static android.provider.Telephony.Sms.Intents.SMS_CB_RECEIVED_ACTION;
 
 import com.android.mms.data.Contact;
 import com.android.mms.ui.ClassZeroActivity;
@@ -175,7 +175,7 @@ public class SmsReceiverService extends Service {
                     handleSmsSent(intent, error);
                 } else if (SMS_RECEIVED_ACTION.equals(action)) {
                     handleSmsReceived(intent, error);
-                } else if (CB_SMS_RECEIVED_ACTION.equals(action)) {
+                } else if (SMS_CB_RECEIVED_ACTION.equals(action)) {
                     handleCbSmsReceived(intent, error);
                 } else if (ACTION_BOOT_COMPLETED.equals(action)) {
                     handleBootCompleted();
