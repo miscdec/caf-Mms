@@ -51,7 +51,7 @@ public class SmsReceiver extends BroadcastReceiver {
         // means someone has tried to spoof the message by delivering it outside the normal
         // permission-checked route, so we just ignore it.
         if (!privileged && (intent.getAction().equals(Intents.SMS_RECEIVED_ACTION)
-                || intent.getAction().equals(Intents.CB_SMS_RECEIVED_ACTION))) {
+                || intent.getAction().equals(Intents.SMS_CB_RECEIVED_ACTION))) {
             return;
         }
 

@@ -22,7 +22,7 @@ import android.content.Intent;
 
 /**
  * This class exists specifically to allow us to require permissions checks on SMS_RECEIVED
- * and CB_SMS_RECEIVED broadcasts that are not applicable to other kinds of broadcast messages
+ * and SMS_CB_RECEIVED broadcasts that are not applicable to other kinds of broadcast messages
  * handled by the SmsReceiver base class.
  */
 public class PrivilegedSmsReceiver extends SmsReceiver {
