@@ -70,23 +70,19 @@ public class GsmBroadcastConfigurator {
         return sInstance;
     }
 
-    public boolean switchService(boolean newStateIsOn, int subscription) {
+    public void switchService(boolean newStateIsOn, int subscription) {
         boolean ret = true;
 
         if (mConfig[subscription][0] != newStateIsOn) {
-            ret = smsManagerSwitchService(newStateIsOn, subscription);
-            if (ret) {
-                mConfig[subscription][0] = newStateIsOn;
+            smsManagerSwitchService(newStateIsOn, subscription);
+            mConfig[subscription][0] = newStateIsOn;
 
-                SharedPreferences sp = mC.getSharedPreferences(SP_FILE_NAME, 0);
-                SharedPreferences.Editor spe = sp.edit();
-                String spKey = SP_KEY + subscription;
-                spe.putBoolean(spKey, newStateIsOn);
-                spe.commit();
-            }
+            SharedPreferences sp = mC.getSharedPreferences(SP_FILE_NAME, 0);
+            SharedPreferences.Editor spe = sp.edit();
+            String spKey = SP_KEY + subscription;
+            spe.putBoolean(spKey, newStateIsOn);
+            spe.commit();
         }
-
-        return ret;
     }
 
     private boolean smsManagerSwitchService(boolean newStateIsOn, int subscription) {
@@ -101,10 +97,7 @@ public class GsmBroadcastConfigurator {
     public void configStoredValue(int subscription) {
         // If the message is enabled in the previous power cycle configure it.
         if (mConfig[subscription][0]) {
-            if (!smsManagerSwitchService(mConfig[subscription][0], subscription)) {
-                // If enabling message fails reset the status.
-                mConfig[subscription][0] = false;
-            }
+            smsManagerSwitchService(mConfig[subscription][0], subscription);
         }
     }
 

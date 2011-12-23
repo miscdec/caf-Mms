@@ -20,6 +20,7 @@
 
         <CheckBoxPreference android:key="area_info_msgs_key"
             android:title="@string/area_info_msgs"
+            android:persistent="false"
             android:summaryOn="@string/area_info_msgs_enabled"
             android:summaryOff="@string/area_info_msgs_disabled"/>
 

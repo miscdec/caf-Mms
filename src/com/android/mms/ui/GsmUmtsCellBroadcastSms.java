@@ -63,12 +63,7 @@ public class GsmUmtsCellBroadcastSms extends PreferenceActivity {
             boolean state = mAreaInfoPreference.isChecked();
             Log.d(LOG_TAG, "onPreferenceTreeClick: AreaInfo - " + state);
             GsmBroadcastConfigurator gbc = GsmBroadcastConfigurator.getInstance(this);
-            if (!gbc.switchService(mAreaInfoPreference.isChecked(), mSubscription)) {
-                displayErrorToast(state);
-                // Since swithService failed, reset the state of the
-                // preference.
-                mAreaInfoPreference.setChecked(!state);
-            }
+            gbc.switchService(mAreaInfoPreference.isChecked(), mSubscription);
             return true;
         }
 
