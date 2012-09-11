@@ -47,6 +47,7 @@ import android.database.DatabaseUtils;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -257,8 +258,13 @@ public class TransactionService extends Service implements Observer {
             Log.v(TAG, "    networkAvailable=" + !noNetwork);
         }
 
-        if (ACTION_ONALARM.equals(intent.getAction()) || (intent.getExtras() == null)) {
+        Bundle extras = intent.getExtras();
+        if ((ACTION_ONALARM.equals(intent.getAction()) || (extras == null))
+                || ((extras != null) && !extras.containsKey("uri"))) {
 
+            //We hit here when either the Retrymanager triggered us or there is
+            //send operation in which case uri is not set. For rest of the
+            //cases(MT MMS) we hit "else" case.
 
             // Scan database to find all pending operations.
             Cursor cursor = PduPersister.getPduPersister(this).getPendingMessages(
@@ -329,7 +335,9 @@ public class TransactionService extends Service implements Observer {
                                     break;
                                 }
 
-                                txnRequestsMap.add(new TxnRequest(serviceId, -1));
+                                int requestedSub = intent.getIntExtra(Mms.SUB_ID, -1);
+                                Log.d(TAG, "RequestedSubId = "+requestedSub);
+                                txnRequestsMap.add(new TxnRequest(serviceId, requestedSub));
 
                                 TransactionBundle args = new TransactionBundle(
                                         transactionType, uri.toString());
