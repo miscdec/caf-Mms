@@ -183,9 +183,7 @@ public class SelectMmsSubscription extends Service {
                     com.android.mms.transaction.TransactionService.class);
             Bundle tempBundle = startUpIntent.getExtras();
 
-            if (tempBundle.containsKey("uri")) {
-                notificationIntent.putExtras(tempBundle); //copy all extras
-            }
+            notificationIntent.putExtras(tempBundle); //copy all extras
 
             PendingIntent contentIntent = PendingIntent.getService(mContext, 0,
                     notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -197,6 +195,17 @@ public class SelectMmsSubscription extends Service {
 
         }
 
+        void sleep(int ms) {
+            try {
+                Log.d(TAG, "Sleeping for "+ms+"(ms)...");
+                Thread.currentThread().sleep(ms);
+                Log.d(TAG, "Sleeping...Done!");
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+        }
 
         private int switchSubscriptionTo(int sub) {
             TelephonyManager tmgr = (TelephonyManager)
@@ -208,20 +217,26 @@ public class SelectMmsSubscription extends Service {
                 int result = (mtmgr.setPreferredDataSubscription(sub))? 1: 0;
                 if (result == 1) { //Success.
                     Log.d(TAG, "Subscription switch done.");
+                    sleep(1000);
+
+                    while(!isNetworkAvailable()) {
+                        Log.d(TAG, "isNetworkAvailable = false, sleep..");
+                        sleep(1000);
+                    }
                 }
                 return result;
-            } else { //TODO: remove, emulator changes.
-                try {
-                    Log.d(TAG, "Sleeping...");
-                    Thread.currentThread().sleep(5000);
-                    Log.d(TAG, "Sleeping...Done!");
-                } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
             }
             return 1;
         }
+
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connMgr = (ConnectivityManager) getSystemService(
+                Context.CONNECTIVITY_SERVICE);
+        NetworkInfo ni = connMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
+
+        return (ni == null ? false : ni.isAvailable());
 
     }
 
@@ -233,9 +248,7 @@ public class SelectMmsSubscription extends Service {
         //required. The purpose is served, clean up the intent and forward it to
         //TransactionService.
         Bundle tempBundle = startUpIntent.getExtras();
-        if (tempBundle.containsKey("uri")) {
-            svc.putExtras(tempBundle); //copy all extras
-        }
+        svc.putExtras(tempBundle); //copy all extras
         mContext.startService(svc);
     }
 
