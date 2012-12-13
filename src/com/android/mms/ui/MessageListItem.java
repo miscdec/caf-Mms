@@ -75,6 +75,7 @@ import com.android.mms.transaction.TransactionBundle;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.ItemLoadedCallback;
+import com.android.mms.util.MultiSimUtility;
 import com.android.mms.util.SmileyParser;
 import com.android.mms.util.ThumbnailManager.ImageLoaded;
 import com.google.android.mms.ContentType;
@@ -250,11 +251,14 @@ public class MessageListItem extends LinearLayout implements
                         intent.putExtra(TransactionBundle.URI, mMessageItem.mMessageUri.toString());
                         intent.putExtra(TransactionBundle.TRANSACTION_TYPE,
                                 Transaction.RETRIEVE_TRANSACTION);
+                        intent.putExtra(Mms.SUB_ID, mMessageItem.mSubscription); //destination subId
+                        intent.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
+                                MultiSimUtility.getCurrentDataSubscription(mContext));
+
                         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                             Log.d(TAG, "Download button pressed for sub=" + mMessageItem.mSubscription);
-                            intent.putExtra(Mms.SUB_ID, mMessageItem.mSubscription);
-
                             Log.d(TAG, "Manual download is always silent transaction");
+
                             Intent silentIntent = new Intent(mContext,
                                     com.android.mms.ui.SelectMmsSubscription.class);
                             silentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
