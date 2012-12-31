@@ -434,7 +434,7 @@ public class TransactionService extends Service implements Observer {
     }
 
     private static boolean isTransientFailure(int type) {
-        return (type < MmsSms.ERR_TYPE_GENERIC_PERMANENT) && (type > MmsSms.NO_ERROR);
+        return (type < MmsSms.ERR_TYPE_GENERIC_PERMANENT) && (type >= MmsSms.NO_ERROR);
     }
 
     private boolean isNetworkAvailable() {
