@@ -71,6 +71,10 @@ public class SelectMmsSubscription extends Service {
             if (getCurrentSubcription() != params[0]) {
                 return switchSubscriptionTo(params[0]);
             }
+            do {
+                Log.d(TAG, "isNetworkAvailable = false, sleep..");
+                sleep(1000);
+            } while(!isNetworkAvailable());
             return -1; //no change.
         }
 
