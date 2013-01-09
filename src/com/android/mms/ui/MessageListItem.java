@@ -521,7 +521,8 @@ public class MessageListItem extends LinearLayout implements
         SpannableStringBuilder buf = new SpannableStringBuilder();
 
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            buf.append( (subId == 0) ? "SUB1:" : "SUB2:");
+            int subscription = subId + 1;
+            buf.append("SUB" + subscription + ":");
             buf.append("\n");
         }
 
