@@ -56,6 +56,7 @@ public class PushReceiver extends BroadcastReceiver {
     private static final String TAG = "PushReceiver";
     private static final boolean DEBUG = false;
     private static final boolean LOCAL_LOGV = false;
+    private final String SUBSCRIPTION_KEY = "subscription";
 
     private class ReceivePushTask extends AsyncTask<Intent,Void,Void> {
         private Context mContext;
@@ -119,6 +120,10 @@ public class PushReceiver extends BroadcastReceiver {
                         }
 
                         if (!isDuplicateNotification(mContext, nInd)) {
+                            int subId = intent.getIntExtra(SUBSCRIPTION_KEY, 0);
+                            ContentValues values = new ContentValues(1);
+                            values.put(Mms.SUB_ID, subId);
+
                             // Save the pdu. If we can start downloading the real pdu immediately,
                             // don't allow persist() to create a thread for the notificationInd
                             // because it causes UI jank.
@@ -127,6 +132,7 @@ public class PushReceiver extends BroadcastReceiver {
                                     MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
                                     null);
 
+                            SqliteWrapper.update(mContext, cr, uri, values, null, null);
                             // Start service to finish the notification transaction.
                             Intent svc = new Intent(mContext, TransactionService.class);
                             svc.putExtra(TransactionBundle.URI, uri.toString());
