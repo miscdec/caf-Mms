@@ -84,6 +84,7 @@ import android.provider.MediaStore.Video;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsMessage;
 import android.text.Editable;
@@ -264,6 +265,8 @@ public class ComposeMessageActivity extends Activity
     private EditText mTextEditor;           // Text editor to type your message into
     private TextView mTextCounter;          // Shows the number of characters used in text editor
     private TextView mSendButtonMms;        // Press to send mms
+    private TextView mSendButtonMms2;        // Press to send mms
+    static public int subSelected = 0;
     private ImageButton mSendButtonSms;     // Press to send sms
     private EditText mSubjectTextEditor;    // Text editor for MMS subject
 
@@ -2518,9 +2521,16 @@ public class ComposeMessageActivity extends Activity
         if (isMms) {
             showButton = mSendButtonMms;
             hideButton = mSendButtonSms;
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                mSendButtonMms2.setVisibility(View.VISIBLE);
+            } else {
+                mSendButtonMms2.setVisibility(View.GONE);
+            }
         } else {
             showButton = mSendButtonSms;
             hideButton = mSendButtonMms;
+            mSendButtonMms2.setVisibility(View.GONE);
+
         }
         showButton.setVisibility(View.VISIBLE);
         hideButton.setVisibility(View.GONE);
@@ -3353,7 +3363,12 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     public void onClick(View v) {
-        if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
+        if ((v == mSendButtonSms || v == mSendButtonMms || v ==mSendButtonMms2) && isPreparedForSending()) {
+            if (v == mSendButtonMms) {
+                subSelected = 0;
+            } else if (v == mSendButtonMms2) {
+                subSelected = 1;
+            }
             confirmSendMessageIfNeeded();
         } else if ((v == mRecipientsPicker)) {
             launchMultiplePhonePicker();
@@ -3504,8 +3519,13 @@ public class ComposeMessageActivity extends Activity
                 new LengthFilter(MmsConfig.getMaxTextLimit())});
         mTextCounter = (TextView) findViewById(R.id.text_counter);
         mSendButtonMms = (TextView) findViewById(R.id.send_button_mms);
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            mSendButtonMms.setText(R.string.mms1);
+        }
+        mSendButtonMms2 = (TextView) findViewById(R.id.send_button_mms2);
         mSendButtonSms = (ImageButton) findViewById(R.id.send_button_sms);
         mSendButtonMms.setOnClickListener(this);
+        mSendButtonMms2.setOnClickListener(this);
         mSendButtonSms.setOnClickListener(this);
         mTopPanel = findViewById(R.id.recipients_subject_linear);
         mTopPanel.setFocusable(false);
