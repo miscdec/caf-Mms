@@ -19,6 +19,7 @@ package com.android.mms.transaction;
 
 import com.android.mms.R;
 import com.android.mms.LogTag;
+import com.android.mms.util.MultiSimUtility;
 import com.android.mms.util.RateController;
 import com.google.android.mms.pdu.GenericPdu;
 import com.google.android.mms.pdu.NotificationInd;
@@ -188,16 +189,19 @@ public class TransactionService extends Service implements Observer {
 
     class TxnRequest {
         int serviceId;
-        int requestedSubId;
+        int destSub;
+        int originSub;
         int anyRequestFailed = 0; //1 == error with atleast one transaction for current sub
 
-        TxnRequest(int srvId, int reqSubId) {
+        TxnRequest(int srvId, int destSub, int originSub) {
             this.serviceId = srvId;
-            this.requestedSubId = reqSubId;
+            this.destSub = destSub;
+            this.originSub = originSub;
         }
 
         public String toString() {
-            return "TxnRequest=[ServiceId="+serviceId+", reqeustedSubId="+requestedSubId+", anyRequestFailed="+anyRequestFailed+"]";
+            return "TxnRequest=[ServiceId="+serviceId+", destSub="+destSub+", originSub="+originSub+
+                ", anyRequestFailed="+anyRequestFailed+"]";
         }
 
     };
@@ -222,19 +226,6 @@ public class TransactionService extends Service implements Observer {
         }
         return subId;
 
-    }
-
-    private int getCurrentSubcription() {
-        TelephonyManager tmgr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            MSimTelephonyManager mtmgr = (MSimTelephonyManager)
-                getSystemService (Context.MSIM_TELEPHONY_SERVICE);
-            return mtmgr.getPreferredDataSubscription();
-
-        } else {
-            return 0;
-        }
     }
 
     @Override
@@ -330,14 +321,30 @@ public class TransactionService extends Service implements Observer {
                                 int subId = getSubIdFromDb(uri);
                                 Log.d(TAG, "SubId from DB= "+subId);
 
-                                if(subId != getCurrentSubcription()) {
-                                    Log.d(TAG, "This MMS transaction can not be done on current sub. Ignore it. uri="+uri);
+                                if(subId != MultiSimUtility.getCurrentDataSubscription
+                                        (getApplicationContext())) {
+                                    Log.d(TAG, "This MMS transaction can not be done"+
+                                         "on current sub. Ignore it. uri="+uri);
                                     break;
                                 }
 
-                                int requestedSub = intent.getIntExtra(Mms.SUB_ID, -1);
-                                Log.d(TAG, "RequestedSubId = "+requestedSub);
-                                txnRequestsMap.add(new TxnRequest(serviceId, requestedSub));
+                                int destSub = intent.getIntExtra(Mms.SUB_ID, -1);
+                                int originSub = intent.getIntExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
+
+                                Log.d(TAG, "Destination Sub = "+destSub);
+                                Log.d(TAG, "Origin Sub = "+originSub);
+
+                                if(destSub == -1 && originSub == -1) {
+                                    //This is the case for retry attempt by
+                                    //ACTION_ALARM. As per design requirement.
+                                    //We don't auto switch in background
+                                    //retries. Hence setting the destination and
+                                    //origin to the subId as present in DB.
+                                    destSub = subId;
+                                    originSub = subId;
+                                    Log.d(TAG, "Overriding dest and origin with DB subid = "+subId);
+                                }
+                                txnRequestsMap.add(new TxnRequest(serviceId, destSub, originSub));
 
                                 TransactionBundle args = new TransactionBundle(
                                         transactionType, uri.toString());
@@ -362,13 +369,17 @@ public class TransactionService extends Service implements Observer {
                 Log.v(TAG, "onNewIntent: launch transaction...");
             }
             String uriStr = intent.getStringExtra("uri");
-            int requestedSub = intent.getIntExtra(Mms.SUB_ID, -1);
+            int destSub = intent.getIntExtra(Mms.SUB_ID, -1);
+            int originSub = intent.getIntExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
+
             Uri uri = Uri.parse(uriStr);
             int subId = getSubIdFromDb(uri);
-            Log.d(TAG, "SubId from DB= "+subId);
-            Log.d(TAG, "RequestedSubId = "+requestedSub);
 
-            txnRequestsMap.add(new TxnRequest(serviceId, requestedSub));
+            Log.d(TAG, "SubId from DB= "+subId);
+            Log.d(TAG, "Destination Sub = "+destSub);
+            Log.d(TAG, "Origin Sub = "+originSub);
+
+            txnRequestsMap.add(new TxnRequest(serviceId, destSub, originSub));
             // For launching NotificationTransaction and test purpose.
             TransactionBundle args = new TransactionBundle(intent.getExtras());
             launchTransaction(serviceId, args, noNetwork);
@@ -379,7 +390,7 @@ public class TransactionService extends Service implements Observer {
         Log.d(TAG, "removeNotification, startId=" + startId);
         for (TxnRequest req : txnRequestsMap ) {
             if (req.serviceId == startId) {
-                if (req.requestedSubId == -1) {
+                if (req.destSub == -1) {
                     Log.d(TAG, "Notification cleanup not required since subId is -1");
                     return;
                 }
@@ -391,7 +402,7 @@ public class TransactionService extends Service implements Observer {
                     String ns = Context.NOTIFICATION_SERVICE;
                     NotificationManager mNotificationManager = (NotificationManager)
                             getApplicationContext().getSystemService(ns);
-                    mNotificationManager.cancel(req.requestedSubId);
+                    mNotificationManager.cancel(req.destSub);
 
                     boolean isSilent = true; //default, silent enabled.
                     if ("prompt".equals(
@@ -400,14 +411,15 @@ public class TransactionService extends Service implements Observer {
                     }
 
                     if (isSilent) {
-                        int nextSub = (req.requestedSubId ==1) ?0:1;
+                        int nextSub = req.originSub;
                         Log.d(TAG, "MMS silent transaction finished for sub="+nextSub);
                         Intent silentIntent = new Intent(getApplicationContext(),
                                 com.android.mms.ui.SelectMmsSubscription.class);
                         silentIntent.putExtra(Mms.SUB_ID, nextSub);
+                        /*since it is trigger_switch_only, origin is irrelevant.*/
+                        silentIntent.putExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
                         silentIntent.putExtra("TRIGGER_SWITCH_ONLY", 1);
                         getApplicationContext().startService(silentIntent);
-
                     }
                 }
             }
@@ -434,7 +446,7 @@ public class TransactionService extends Service implements Observer {
     }
 
     private static boolean isTransientFailure(int type) {
-        return (type < MmsSms.ERR_TYPE_GENERIC_PERMANENT) && (type > MmsSms.NO_ERROR);
+        return (type < MmsSms.ERR_TYPE_GENERIC_PERMANENT) && (type >= MmsSms.NO_ERROR);
     }
 
     private boolean isNetworkAvailable() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  * Not a Contribution, Apache license notifications and license are retained for attribution purposes only.
  * Copyright (C) 2009 The Android Open Source Project
  *
@@ -19,6 +19,7 @@
 package com.android.mms.ui;
 
 import com.android.mms.R;
+import com.android.mms.util.MultiSimUtility;
 import com.android.internal.telephony.MSimConstants;
 
 import android.app.PendingIntent;
@@ -47,7 +48,8 @@ public class SelectMmsSubscription extends Service {
 
     private Context mContext;
     private Intent startUpIntent;
-    private int requestedSub =0;
+    private int originSub =0; //origin sub id
+    private int destSub =0; //destination sub id
     private int triggerSwitchOnly = 0;
     private SwitchSubscriptionTask switchSubscriptionTask;;
 
@@ -68,7 +70,7 @@ public class SelectMmsSubscription extends Service {
             Log.d(TAG, "doInBackground(), Thread="+
                     Thread.currentThread().getName());
 
-            if (getCurrentSubcription() != params[0]) {
+            if (MultiSimUtility.getCurrentDataSubscription(mContext) != params[0]) {
                 return switchSubscriptionTo(params[0]);
             }
             return -1; //no change.
@@ -81,10 +83,7 @@ public class SelectMmsSubscription extends Service {
 
 
                 if (result == -1) {
-                    Log.d(TAG, "No DDS switch required. set requestedSubid=-1");
-                    Bundle tempBundle = startUpIntent.getExtras();
-                    tempBundle.putInt(Mms.SUB_ID, -1);
-                    startUpIntent.putExtras(tempBundle);
+                    Log.d(TAG, "No DDS switch required.");
                 } else {
 
                     String status = "Data subscription switch "+((result ==1)? "was success.": "failed.");
@@ -130,7 +129,7 @@ public class SelectMmsSubscription extends Service {
             NotificationManager mNotificationManager = (NotificationManager)
                     mContext.getSystemService(ns);
             mNotificationManager.cancel("ABORT", 2); //ID=2, abort notification
-            mNotificationManager.cancel(getOtherSub(requestedSub));
+            mNotificationManager.cancel(originSub);
 
         }
 
@@ -148,7 +147,10 @@ public class SelectMmsSubscription extends Service {
 
             Intent src = new Intent();
             src.putExtra("TRIGGER_SWITCH_ONLY", 1);
-            src.putExtra(Mms.SUB_ID, getOtherSub(requestedSub));
+            src.putExtra(Mms.SUB_ID, originSub); /* since it is abort, we want to switch
+                                                 to where we came from.*/
+            src.putExtra(MultiSimUtility.ORIGIN_SUB_ID, -1); /* since it is trigger_switch_only,
+                                                 origin is irrelevant.*/
 
             Intent notificationIntent = new Intent(mContext,
                     com.android.mms.ui.SelectMmsSubscription.class);
@@ -160,10 +162,6 @@ public class SelectMmsSubscription extends Service {
 
             mNotificationManager.notify("ABORT", 2, notification); //ID=2 for the abort.
 
-        }
-
-        private int getOtherSub(int sub) {
-            return (sub == 0)? 1 : 0;
         }
 
         private void showNotificationMmsInProgress() {
@@ -191,7 +189,7 @@ public class SelectMmsSubscription extends Service {
             notification.setLatestEventInfo(mContext, mContext.getString(R.string.progress_mms),
                     mContext.getString(R.string.progress_mms_text), contentIntent);
 
-            mNotificationManager.notify(requestedSub, notification);
+            mNotificationManager.notify(destSub, notification);
 
         }
 
@@ -250,6 +248,7 @@ public class SelectMmsSubscription extends Service {
         Bundle tempBundle = startUpIntent.getExtras();
         svc.putExtras(tempBundle); //copy all extras
         mContext.startService(svc);
+
     }
 
     private class ConnectivityBroadcastReceiver extends BroadcastReceiver {
@@ -300,7 +299,7 @@ public class SelectMmsSubscription extends Service {
         String ns = Context.NOTIFICATION_SERVICE;
         NotificationManager mNotificationManager = (NotificationManager)
                 mContext.getSystemService(ns);
-        mNotificationManager.cancel(requestedSub);
+        mNotificationManager.cancel(destSub);
 
     }
 
@@ -330,15 +329,17 @@ public class SelectMmsSubscription extends Service {
 
         startUpIntent = intent;
 
-        requestedSub = startUpIntent.getIntExtra(Mms.SUB_ID, 0);
+        destSub = startUpIntent.getIntExtra(Mms.SUB_ID, 0);
+        originSub = startUpIntent.getIntExtra(MultiSimUtility.ORIGIN_SUB_ID, 0);
         triggerSwitchOnly =startUpIntent.getIntExtra("TRIGGER_SWITCH_ONLY", 0);
 
-        Log.d(TAG, "Requested sub = "+requestedSub);
+        Log.d(TAG, "Origin sub = "+originSub);
+        Log.d(TAG, "Destination sub = "+destSub);
         Log.d(TAG, "triggerSwitchOnly = "+triggerSwitchOnly);
 
 
         switchSubscriptionTask = new SwitchSubscriptionTask();
-        switchSubscriptionTask.execute(requestedSub);
+        switchSubscriptionTask.execute(destSub);
         return Service.START_NOT_STICKY;
     }
 
@@ -352,21 +353,5 @@ public class SelectMmsSubscription extends Service {
         }
         super.onDestroy();
     }
-
-
-    private int getCurrentSubcription() {
-        TelephonyManager tmgr = (TelephonyManager)
-                getSystemService(Context.TELEPHONY_SERVICE);
-
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            MSimTelephonyManager mtmgr = (MSimTelephonyManager)
-                getSystemService (Context.MSIM_TELEPHONY_SERVICE);
-            return mtmgr.getPreferredDataSubscription();
-
-        } else {
-            return 0;
-        }
-    }
-
 
 }

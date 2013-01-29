@@ -163,6 +163,7 @@
     <!-- Text to appear directly below the "Send" text on the MMS send button in case of DSDS. -->
     <string name="mms1">MMS1</string>
     <string name="mms2">MMS2</string>
+    <string name="mms3">MMS3</string>
 
     <!-- Menu item in conversation screen for returning to the conversation list -->
     <string name="all_threads">All threads</string>
@@ -792,6 +793,7 @@
     <string name="select_subscription_title">Select Subscription</string>
     <string name="subscription1_title">Subscription 1</string>
     <string name="subscription2_title">Subscription 2</string>
+    <string name="subscription3_title">Subscription 3</string>
 
     <string name="pending_mms_title">Pending MMS on other subscription.</string>
     <string name="pending_mms">Messaging: One or more MMS are pending.</string>

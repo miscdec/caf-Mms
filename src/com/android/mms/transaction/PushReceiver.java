@@ -18,6 +18,7 @@
 package com.android.mms.transaction;
 
 import com.android.mms.R;
+import com.android.mms.util.MultiSimUtility;
 import static android.provider.Telephony.Sms.Intents.WAP_PUSH_RECEIVED_ACTION;
 import static com.google.android.mms.pdu.PduHeaders.MESSAGE_TYPE_DELIVERY_IND;
 import static com.google.android.mms.pdu.PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND;
@@ -182,7 +183,9 @@ public class PushReceiver extends BroadcastReceiver {
                             svc.putExtra(TransactionBundle.URI, uri.toString());
                             svc.putExtra(TransactionBundle.TRANSACTION_TYPE,
                                     Transaction.NOTIFICATION_TRANSACTION);
-                            svc.putExtra(Mms.SUB_ID, subId);
+                            svc.putExtra(Mms.SUB_ID, subId); //destination sub id
+                            svc.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
+                                    MultiSimUtility.getCurrentDataSubscription(mContext));
 
                             if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                                 boolean isSilent = true; //default, silent enabled.
@@ -205,7 +208,6 @@ public class PushReceiver extends BroadcastReceiver {
                                     triggerPendingOperation(svc, subId);
                                 }
                             } else {
-                                svc.putExtra(Mms.SUB_ID, -1);
                                 mContext.startService(svc);
                             }
 
@@ -233,24 +235,10 @@ public class PushReceiver extends BroadcastReceiver {
         }
     }
 
-    private int getCurrentSubscription() {
-        TelephonyManager tmgr = (TelephonyManager)
-                mContext.getSystemService(Context.TELEPHONY_SERVICE);
-
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            MSimTelephonyManager mtmgr = (MSimTelephonyManager)
-                mContext.getSystemService (Context.MSIM_TELEPHONY_SERVICE);
-            return mtmgr.getPreferredDataSubscription();
-
-        } else {
-            return 0;
-        }
-    }
-
     private void triggerPendingOperation(Intent intent, int subId) {
         Log.d(TAG, "triggerPendingOperation(), SubId="+subId+", Intent="+intent);
 
-            if (getCurrentSubscription() != subId) {
+            if (MultiSimUtility.getCurrentDataSubscription(mContext) != subId) {
                 Log.d(TAG, "triggerPendingOperation(), Current subscription is different.");
 
 
