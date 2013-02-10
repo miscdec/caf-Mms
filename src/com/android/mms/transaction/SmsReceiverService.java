@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
- * Copyright (C) 2010-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (C) 2010-2012, The Linux Foundation. All rights reserved.
  * Not a Contribution, Apache license notifications and license are retained
  * for attribution purposes only
  *
