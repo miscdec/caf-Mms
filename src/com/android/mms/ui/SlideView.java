@@ -44,7 +44,10 @@ import android.widget.VideoView;
 
 import com.android.mms.R;
 import com.android.mms.layout.LayoutManager;
+import android.widget.FrameLayout;
 
+import java.io.InputStream;
+import android.content.ContentResolver;
 /**
  * A basic view to show the contents of a slide.
  */
@@ -57,6 +60,7 @@ public class SlideView extends AbsoluteLayout implements
     private static final int AUDIO_INFO_HEIGHT = 82;
 
     private View mAudioInfoView;
+    private Uri mGifUri = null;
     private ImageView mImageView;
     private VideoView mVideoView;
     private ScrollView mScrollText;
@@ -103,32 +107,199 @@ public class SlideView extends AbsoluteLayout implements
         super(context, attrs);
     }
 
-    public void setImage(String name, Bitmap bitmap) {
+    public void setImage(String name, Bitmap bitmap) {   
+        if(null == name && null == bitmap){
+            removeView(mImageView);
+            if (mImageView != null)
+            {
+                if (mImageView instanceof GIFView)
+                {
+                    ((GIFView)mImageView).freeMemory();            
+                }
+            }
+            mImageView = null;
+        }
+        
+        if (mImageView != null && mImageView instanceof GIFView){
+            int position = indexOfChild(mImageView);
+            removeView(mImageView);
+            ((GIFView)mImageView).freeMemory();            
+            mImageView = null;
+            mImageView = new ImageView(mContext);
+            addView(mImageView, position, new LayoutParams(
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT,0,0));
+        }
+        
         if (mImageView == null) {
             mImageView = new ImageView(mContext);
-            mImageView.setPadding(0, 5, 0, 5);
             addView(mImageView, new LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 0, 0));
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT,0,0));
             if (DEBUG) {
-                mImageView.setBackgroundColor(0xFFFF0000);
+                //mImageView.setBackgroundColor(0xFFFF0000);
             }
         }
-        try {
-            if (null == bitmap) {
-                bitmap = BitmapFactory.decodeResource(getResources(),
-                        R.drawable.ic_missing_thumbnail_picture);
-            }
-            mImageView.setVisibility(View.VISIBLE);
-            mImageView.setImageBitmap(bitmap);
-        } catch (java.lang.OutOfMemoryError e) {
-            Log.e(TAG, "setImage: out of memory: ", e);
+
+        if (null == bitmap) {
+            bitmap = BitmapFactory.decodeResource(getResources(),
+                    R.drawable.ic_missing_thumbnail_picture);
         }
+        mImageView.setImageBitmap(bitmap);
+        //mShowAsImage = true;
+    }  
+
+    public boolean setGIF(Uri uri, Bitmap bitmap) {
+        if (bitmap == null || !isGif(uri))
+        {
+            Log.v(TAG,"z153 uri = " + uri);
+            return false;
+        }
+/*Start of  zhuzhongwei 2011.4.28*/
+        int imageHeight = bitmap.getHeight();
+        int imageWidth = bitmap.getWidth();        
+        int newWidth = LayoutManager.getInstance().getLayoutParameters().getWidth();
+        int screenWidth  = newWidth;
+        int newHeight = LayoutManager.getInstance().getLayoutParameters().getHeight();   
+        int screenHeight = newHeight;
+        Log.v(TAG,"z170 screenWidth = " + screenWidth
+            + ";screenHeight = " + screenHeight);
+
+        if (newWidth < imageWidth)
+        {
+            if (newHeight < imageHeight)
+            {
+                //h big, w big;                            
+                Log.v(TAG,"z167 h big, w big");
+                if (imageHeight*screenWidth > imageWidth*screenHeight)
+                {
+                   //too height                
+                   newWidth = (imageWidth * newHeight)/imageHeight;    
+                   Log.v(TAG,"z173 h big, w big");                
+                }
+                else
+                {
+                    newHeight = (imageHeight * newWidth)/imageWidth;                   
+                }
+            }
+            else
+            {
+                //h small, w big;
+                newHeight = (imageHeight * newWidth)/imageWidth;
+            }           
+        }
+        else if (newHeight < imageHeight)
+        {
+            //h big, w small;        
+            newWidth = (imageWidth * newHeight)/imageHeight;   
+        }
+        else
+        {
+            newHeight = imageHeight;
+        }
+        Log.v(TAG,"z191 newHeight = " + newHeight
+            + ";newWidth = " + newWidth
+            + ";screenWidth = " + screenWidth);            
+/*End   of  zhuzhongwei 2011.4.28*/
+        
+        if (mImageView != null 
+            && (mImageView instanceof GIFView)
+            && mGifUri != null && mGifUri == uri)
+        {
+            if (!mImageView.isShown())
+            {
+                mImageView.setVisibility(View.VISIBLE);
+                if (((GIFView)mImageView).restartGif())
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                return true;
+            }
+            Log.v(TAG,"z160 gif is same.");        
+            //return true;
+        }
+        mGifUri = uri;
+        if (mImageView == null) {
+            mImageView = new GIFView(mContext);
+            /*
+            addView(mImageView, new LayoutParams(
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+                    */
+            addView(mImageView, new LayoutParams(
+                    screenWidth, newHeight,0,0));                    
+            if (DEBUG) 
+            {
+                //mImageView.setBackgroundColor(0xFFFF0000);
+            }
+        } else if (mImageView != null){
+            int position = indexOfChild(mImageView);
+            removeView(mImageView);
+            if (mImageView instanceof GIFView)
+            {
+                ((GIFView)mImageView).freeMemory();
+            }
+            mImageView = null;
+            mImageView = new GIFView(mContext);
+            addView(mImageView, position, new LayoutParams(
+                        screenWidth, newHeight,0,0));
+
+        }
+        return ((GIFView)mImageView).setDrawable(uri);
     }
 
+    private boolean isGif(Uri uri)
+    {
+        InputStream input = null;
+        ContentResolver cr = mContext.getContentResolver();        
+        try 
+        {
+            input = cr.openInputStream(uri);
+            return isGifHeader(input);
+
+        } catch (IOException e) {
+        } finally {
+            if (null != input) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    
+                }
+            }
+        }
+        return false;
+    }
+
+	private boolean isGifHeader(InputStream input) {
+		String id = "";
+		try {
+    		for (int i = 0; i < 6; i++) {		
+    			id += (char) input.read();
+    		}
+		}				
+        catch (Exception e) {
+            Log.v(TAG,"z218 e = " + e);
+            return false;
+		}		
+		Log.v(TAG,"z209 id = " + id);
+		if (!id.startsWith("GIF")) {
+			return false;
+		}
+		return true;
+	}
+
     public void setImageRegion(int left, int top, int width, int height) {
-        // Ignore any requirement of layout change once we are in MMS conformance mode.
-        if (mImageView != null && !mConformanceMode) {
-            mImageView.setLayoutParams(new LayoutParams(width, height, left, top));
+        if (mImageView != null) {
+            int W = LayoutManager.getInstance().getLayoutParameters().getWidth();
+            int H = LayoutManager.getInstance().getLayoutParameters().getHeight();
+
+            if (mImageView instanceof GIFView){
+				return;
+                
+            } else{
+                mImageView.setScrollY(-7);
+                mImageView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT,0,0));
+            }
         }
     }
 
