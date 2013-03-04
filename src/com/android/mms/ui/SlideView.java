@@ -51,7 +51,7 @@ import android.content.ContentResolver;
 /**
  * A basic view to show the contents of a slide.
  */
-public class SlideView extends AbsoluteLayout implements
+public class SlideView extends LinearLayout implements
         AdaptableSlideViewInterface {
     private static final String TAG = "SlideView";
     private static final boolean DEBUG = false;
@@ -127,13 +127,13 @@ public class SlideView extends AbsoluteLayout implements
             mImageView = null;
             mImageView = new ImageView(mContext);
             addView(mImageView, position, new LayoutParams(
-                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT,0,0));
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         }
         
         if (mImageView == null) {
             mImageView = new ImageView(mContext);
             addView(mImageView, new LayoutParams(
-                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT,0,0));
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             if (DEBUG) {
                 //mImageView.setBackgroundColor(0xFFFF0000);
             }
@@ -227,7 +227,7 @@ public class SlideView extends AbsoluteLayout implements
                     LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
                     */
             addView(mImageView, new LayoutParams(
-                    screenWidth, newHeight,0,0));                    
+                    screenWidth, newHeight));                    
             if (DEBUG) 
             {
                 //mImageView.setBackgroundColor(0xFFFF0000);
@@ -242,7 +242,7 @@ public class SlideView extends AbsoluteLayout implements
             mImageView = null;
             mImageView = new GIFView(mContext);
             addView(mImageView, position, new LayoutParams(
-                        screenWidth, newHeight,0,0));
+                        screenWidth, newHeight));
 
         }
         return ((GIFView)mImageView).setDrawable(uri);
@@ -298,7 +298,7 @@ public class SlideView extends AbsoluteLayout implements
                 
             } else{
                 mImageView.setScrollY(-7);
-                mImageView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT,0,0));
+                mImageView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             }
         }
     }
@@ -311,7 +311,7 @@ public class SlideView extends AbsoluteLayout implements
         if (mVideoView == null) {
             mVideoView = new VideoView(mContext);
             addView(mVideoView, new LayoutParams(
-                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0, 0));
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             if (DEBUG) {
                 mVideoView.setBackgroundColor(0xFFFF0000);
             }
@@ -338,8 +338,7 @@ public class SlideView extends AbsoluteLayout implements
                         AUDIO_INFO_HEIGHT));
             } else {
                 addView(mAudioInfoView, new LayoutParams(
-                        LayoutParams.MATCH_PARENT, AUDIO_INFO_HEIGHT,
-                        0, getHeight() - AUDIO_INFO_HEIGHT));
+                        LayoutParams.MATCH_PARENT, AUDIO_INFO_HEIGHT+20));
                 if (DEBUG) {
                     mAudioInfoView.setBackgroundColor(0xFFFF0000);
                 }
@@ -402,7 +401,7 @@ public class SlideView extends AbsoluteLayout implements
                 mScrollText = new ScrollView(mContext);
                 mScrollText.setScrollBarStyle(SCROLLBARS_OUTSIDE_INSET);
                 addView(mScrollText, new LayoutParams(
-                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0, 0));
+                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
                 if (DEBUG) {
                     mScrollText.setBackgroundColor(0xFF00FF00);
                 }
@@ -423,13 +422,13 @@ public class SlideView extends AbsoluteLayout implements
     public void setTextRegion(int left, int top, int width, int height) {
         // Ignore any requirement of layout change once we are in MMS conformance mode.
         if (mScrollText != null && !mConformanceMode) {
-            mScrollText.setLayoutParams(new LayoutParams(width, height, left, top));
+            mScrollText.setLayoutParams(new LayoutParams(width, height));
         }
     }
 
     public void setVideoRegion(int left, int top, int width, int height) {
         if (mVideoView != null && !mConformanceMode) {
-            mVideoView.setLayoutParams(new LayoutParams(width, height, left, top));
+            mVideoView.setLayoutParams(new LayoutParams(width, height));
         }
     }
 
@@ -564,7 +563,7 @@ public class SlideView extends AbsoluteLayout implements
         if (mScrollViewPort != null) {
             mScrollViewPort.scrollTo(0, 0);
             mScrollViewPort.setLayoutParams(
-                    new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 0, 0));
+                    new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         }
 
     }
