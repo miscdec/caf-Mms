@@ -87,6 +87,7 @@
     <string name="delete_thread">Delete thread</string>
     <!-- Context menu item on an individual message for forwarding it to another recipient -->
     <string name="menu_forward">Forward</string>
+    <string name="menu_resend">Resend</string>
     <!-- Text of a button appearing for MMS messages that have not yet been downloaded, causing the message
          to be downloaded (imperative verb) -->
     <string name="download">Download</string>
@@ -793,6 +794,61 @@
     <string name="progress_mms_title">MMS transaction on other sub in progress</string>
     <string name="progress_mms">Messaging: MMS in progress...</string>
     <string name="progress_mms_text ">Touch to retry again</string>
-
+    <string name="confirm_delete_selected_messages">The selected messages will be deleted.</string>
+    <string name="confirm_copy_selected_messages">The selected messages will be copyed.</string>
+    
+    <string name="batch_operate">Batch operation</string>
+    <string name="copy_to_phone_success">Message saved</string>
+    <string name="copy_to_phone_fail">Unable to save message</string>
+    <string name="copy_failure_full">Can not copy the message because the sms storage of card is full.</string>                    
+    <string name="copy_success_full">Copy successfully. The sms storage of card is full.</string>   
+    <!-- Menu item to send message to the  extract number in NumberContextMenuActivity  -->
+    <string name="menu_send_message">Send message</string>
+    <!-- Menu item to call the  extract number after editting in NumberContextMenuActivity  -->
+    <string name="menu_edit_call">Edit before calling</string>
+    <!-- Menu item to save the  extract number in NumberContextMenuActivity  -->
+    <string name="menu_save_to_contact">Add to contacts</string>
+    <!-- Menu item to connect the extract url in WwwContextMenuActivity  -->
+    <string name="menu_connect_url">Connect</string>  
+    <!-- Menu item to add the extract url to boomark in WwwContextMenuActivity  -->
+    <string name="menu_add_to_label">Save to bookmark</string>  
+    <string name="loadurlinfo_str">Load the URL?</string>  
+    <!-- Delete confirmation dialog title -->
+    <string name="confirm_copy_dialog_title">Copy?</string>
+    <!--add for toast when deleting -->
+    <string name="deleting_title">Deleting...</string>      
+    <!-- Show SIM capacity -->
+    <string name="show_icc_sms_capacity">Capacity</string>
+    <string name="icc_sms_used">Used :  </string>
+    <string name="icc_sms_total">Total :  </string>
+    <string name="get_icc_sms_capacity_failed">Get SIM capacity failed.</string>
+    <!-- menu item of mailboxmessagecontent -->
+    <string name="menu_load_push">Load</string>   
+    <string name="menu_delete_msg">Delete</string>
+    <string name="menu_reply">Reply</string>
+    <string name="menu_copy_to">Copy</string>
+    <!-- toast for send result -->
+    <string name="send_failure">Sending failed!</string>
+    <string name="send_success">Send successfully!</string>
+    <!-- title of mailboxmessagecontent -->
+    <string name="message_detail">Message detail</string>
+    <string name="select_messages">Select messages</string>
+    <string name="no_message">No messages</string>
+    <string name="operate_failure">Operate unsuccessfully!</string>
+    <string name="operate_success">Operate successfully!</string>
+    <string name="change_mode">Change mode</string>
+    <string name="sim_capacity">SIM capacity</string>
+    <string name="sim_card">SIM card</string>
+    <!-- Spinner item of box type in mailbox-mode -->
+    <string name="box_type_select">Select box type</string>
+    <string name="type_inbox">Inbox</string>
+    <string name="type_sent">Sent</string>
+    <string name="type_outbox">Outbox</string>
+    <string name="type_draft">Drafts</string>
+    <!-- Spinner item of slot type in mailbox-mode -->
+    <string name="slot_type_select">Select slot</string>
+    <string name="type_all">All</string>
+    <string name="type_slot1">Card1</string>
+    <string name="type_slot2">Card2</string>
 </resources>
 

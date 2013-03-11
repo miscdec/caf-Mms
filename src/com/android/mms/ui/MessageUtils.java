@@ -43,6 +43,7 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.provider.Telephony.Threads;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
@@ -74,6 +75,8 @@ import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
+import android.telephony.MSimTelephonyManager;
+import android.telephony.TelephonyManager;
 
 /**
  * An utility class for managing messages.
@@ -86,6 +89,17 @@ public class MessageUtils {
     private static final String TAG = LogTag.TAG;
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
+    // add the defination of subscription for DSDS product 
+    public static final int CARD_SUB1 = 0;
+    public static final int CARD_SUB2 = 1;
+    // add for getting the read status when copy messages to sim card
+    public static final int MESSAGE_READ = 1;
+    public static final int MESSAGE_UNREAD = 0;
+    // add for obtaining icc uri when copying messages to card
+    public static final Uri ICC_URI = Uri.parse("content://sms/icc");
+    // add for getting result whether icc card is full or will full when copying to card
+    public static final String COPY_SUCCESS_FULL = "content://sms/sim/full/success";
+    public static final String COPY_FAILURE_FULL = "content://sms/sim/full/failure";
 
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
@@ -846,6 +860,107 @@ public class MessageUtils {
     }
 
     /**
+      * @parameter recipientIds space-separated list of ids
+      */
+    public static String getRecipientsByIds(Context context, String recipientIds,
+                                            boolean allowQuery) {
+        String value = sRecipientAddress.get(recipientIds);
+        if (value != null) {
+            return value;
+        }
+        if (!TextUtils.isEmpty(recipientIds)) {
+            StringBuilder addressBuf = extractIdsToAddresses(
+                    context, recipientIds, allowQuery);
+            if (addressBuf == null) {
+                // temporary error?  Don't memoize.
+                return "";
+            }
+            value = addressBuf.toString();
+        } else {
+            value = "";
+        }
+        sRecipientAddress.put(recipientIds, value);
+        return value;
+    }
+
+    private static StringBuilder extractIdsToAddresses(Context context, String recipients,
+                                                       boolean allowQuery) {
+        StringBuilder addressBuf = new StringBuilder();
+        String[] recipientIds = recipients.split(" ");
+        boolean firstItem = true;
+        for (String recipientId : recipientIds) {
+            String value = sRecipientAddress.get(recipientId);
+
+            if (value == null) {
+                if (!allowQuery) {
+                    // when allowQuery is false, if any value from sRecipientAddress.get() is null,
+                    // return null for the whole thing. We don't want to stick partial result
+                    // into sRecipientAddress for multiple recipient ids.
+                    return null;
+                }
+
+                Uri uri = Uri.parse("content://mms-sms/canonical-address/" + recipientId);
+                Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
+                                               uri, null, null, null, null);
+                if (c != null) {
+                    try {
+                        if (c.moveToFirst()) {
+                            value = c.getString(0);
+                            sRecipientAddress.put(recipientId, value);
+                        }
+                    } finally {
+                        c.close();
+                    }
+                }
+            }
+            if (value == null) {
+                continue;
+            }
+            if (firstItem) {
+                firstItem = false;
+            } else {
+                addressBuf.append(";");
+            }
+            addressBuf.append(value);
+        }
+
+        return (addressBuf.length() == 0) ? null : addressBuf;
+    }
+
+    public static String getAddressByThreadId(Context context, long threadId)
+    {
+        String[] projection = new String[] { Threads.RECIPIENT_IDS };
+
+        Uri.Builder builder = Threads.CONTENT_URI.buildUpon();
+        builder.appendQueryParameter("simple", "true");
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                                            builder.build(), projection,
+                                            Threads._ID + "=" + threadId, null, null);
+
+        if (cursor != null)
+        {
+            try
+            {
+                
+                if ((cursor.getCount() == 1) && cursor.moveToFirst())
+                {
+                    String address = getRecipientsByIds(context,
+                                                        cursor.getString(0), true /* allow query */);
+                    if (!TextUtils.isEmpty(address))
+                    {
+                        return address;
+                    }
+                }
+            }
+            finally
+            {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
+    /**
      * Play/view the message attachments.
      * TOOD: We need to save the draft before launching another activity to view the attachments.
      *       This is hacky though since we will do saveDraft twice and slow down the UI.
@@ -1015,6 +1130,47 @@ public class MessageUtils {
 
         // it's not a valid MMS address, return null
         return null;
+    }
+
+    /**
+      * Return whether it has card in according slot
+      *-the input subscription is 0 or 1
+      *-It is only used in DSDS 
+      */
+    public static boolean isHasCard(int subscription)
+    {
+        boolean hasCard = false;
+        if(isMultiSimEnabledMms())
+        {
+            MSimTelephonyManager msimTelephonyManager = MSimTelephonyManager.getDefault();
+            hasCard = msimTelephonyManager.hasIccCard(subscription);
+        }
+        else
+        {
+            TelephonyManager telephonyManager = TelephonyManager.getDefault();
+            if(subscription == telephonyManager.getDefaultSubscription())
+            {
+                hasCard = telephonyManager.hasIccCard();
+            }
+        }
+
+        return hasCard;
+
+    }
+
+     /**
+      * Return whether it has card no matter in DSDS or not
+      */
+    public static boolean isHasCard()
+    { 
+        return TelephonyManager.getDefault().hasIccCard();
+    }
+
+    /**
+      * Decide whether the current product  is DSDS in MMS
+      */
+    public static boolean isMultiSimEnabledMms(){
+        return MSimTelephonyManager.getDefault().isMultiSimEnabled();
     }
 
     private static void log(String msg) {

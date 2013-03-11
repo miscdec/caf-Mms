@@ -49,6 +49,7 @@
     <string name="undelivered_sms_dialog_body" msgid="4203703285563450868">"无法发送此短信。"</string>
     <string name="delete_thread" msgid="757258847736632791">"删除会话"</string>
     <string name="menu_forward" msgid="9026858380050046756">"转发"</string>
+    <string name="menu_resend">"重新发送"</string>
     <string name="download" msgid="4488877642230207631">"下载"</string>
     <string name="downloading" msgid="1779557575565350637">"正在下载"</string>
     <string name="inline_subject" msgid="4057621785274119260">"&lt;主题：<xliff:g id="SUBJECT">%s</xliff:g>&gt;"</string>
@@ -342,4 +343,60 @@
     <string name="notification_separator" msgid="2334673105226536422">"  "</string>
     <string name="enumeration_comma" msgid="213598026698964628">"、 "</string>
     <string name="message_timestamp_format" msgid="4188999027493614617">"<xliff:g id="STRING_0">%1$s</xliff:g> - <xliff:g id="STRING_1">%2$s</xliff:g>"</string>
+    
+    <string name="confirm_delete_selected_messages">选中的信息将被删除</string>
+    <string name="confirm_copy_dialog_title" msgid="2187213750475782725">"要复制吗？"</string>
+    <string name="confirm_copy_selected_messages">选中的信息将被复制</string>
+    
+    <string name="batch_operate">批量操作</string>
+    <string name="copy_to_phone_success">保存成功</string>
+    <string name="copy_to_phone_fail">无法保存</string>
+    <string name="copy_failure_full">复制失败，卡已满！</string>                    
+    <string name="copy_success_full">复制成功，卡已满！</string>   
+    <!-- Menu item to send message to the  extract number in NumberContextMenuActivity  -->
+    <string name="menu_send_message">发送信息</string>
+    <!-- Menu item to call the  extract number after editting in NumberContextMenuActivity  -->
+    <string name="menu_edit_call">编辑后呼叫</string>
+    <!-- Menu item to save the  extract number in NumberContextMenuActivity  -->
+    <string name="menu_save_to_contact">添加到通讯录</string>
+    <!-- Menu item to connect the extract url in WwwContextMenuActivity  -->
+    <string name="menu_connect_url">连接</string>  
+    <!-- Menu item to add the extract url to boomark in WwwContextMenuActivity  -->
+    <string name="menu_add_to_label">保存到书签</string>  
+    <string name="loadurlinfo_str">加载此URL？</string>  
+    <!--add for toast when deleting -->
+    <string name="deleting_title">正在删除...</string>    
+    <!-- Show SIM capacity -->
+    <string name="show_icc_sms_capacity">容量</string>
+    <string name="icc_sms_used">已用:  </string>
+    <string name="icc_sms_total">容量:  </string>
+    <string name="get_icc_sms_capacity_failed">获取卡容量失败！</string>
+    <!-- menu item of mailboxmessagecontent -->
+    <string name="menu_load_push">载入</string>   
+    <string name="menu_delete_msg">删除</string>
+    <string name="menu_reply">回复</string>
+    <string name="menu_copy_to">复制</string>
+    <!-- toast for send result -->
+    <string name="send_failure">发送失败！</string>
+    <string name="send_success">发送成功！</string>
+    <!-- title of mailboxmessagecontent -->
+    <string name="message_detail">信息详情</string>
+    <string name="select_messages">选择信息</string>
+    <string name="no_message">无信息</string>
+    <string name="operate_failure">操作失败！</string>
+    <string name="operate_success">操作成功！</string>
+    <string name="change_mode">切换模式</string>
+    <string name="sim_capacity">卡容量</string>
+    <string name="sim_card">SIM卡</string>
+    <!-- Spinner item of box type in mailbox-mode -->
+    <string name="box_type_select">选择信箱</string>
+    <string name="type_inbox">收件箱</string>
+    <string name="type_sent">已发信息</string>
+    <string name="type_outbox">发件箱</string>
+    <string name="type_draft">草稿</string>
+    <!-- Spinner item of slot type in mailbox-mode -->
+    <string name="slot_type_select">选择卡槽</string>
+    <string name="type_all">全部</string>
+    <string name="type_slot1">卡1</string>
+    <string name="type_slot2">卡2</string>
 </resources>

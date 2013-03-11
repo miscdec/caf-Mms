@@ -137,12 +137,27 @@ public class MessageListItem extends LinearLayout implements
         super.onFinishInflate();
 
         mBodyTextView = (TextView) findViewById(R.id.text_view);
+        mBodyTextView.setTelUrl("tels:");
+        mBodyTextView.setWebUrl("www_custom:");
         mDateView = (TextView) findViewById(R.id.date_view);
         mLockedIndicator = (ImageView) findViewById(R.id.locked_indicator);
         mDeliveredIndicator = (ImageView) findViewById(R.id.delivered_indicator);
         mDetailsIndicator = (ImageView) findViewById(R.id.details_indicator);
         mAvatar = (QuickContactDivot) findViewById(R.id.avatar);
         mMessageBlock = findViewById(R.id.message_block);
+    }
+
+    // add for setting the background according to whether the item is selected
+    public void markAsSelected(boolean selected)
+    {
+        if(selected)
+        {
+            mMessageBlock.setBackgroundResource(R.drawable.list_selected_holo_light);
+        }
+        else
+        {
+            mMessageBlock.setBackgroundResource(R.drawable.listitem_background);
+        }
     }
 
     public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position) {
@@ -300,6 +315,28 @@ public class MessageListItem extends LinearLayout implements
                 mAvatar.assignContactUri(Profile.CONTENT_URI);
             } else {
                 if (contact.existsInDatabase()) {
+                    mAvatar.assignContactUri(contact.getUri());
+                } else {
+                    mAvatar.assignContactFromPhone(contact.getNumber(), true);
+                }
+            }
+        } else {
+            avatarDrawable = sDefaultContactImage;
+        }
+        mAvatar.setImageDrawable(avatarDrawable);
+    }
+
+    // Add this fuction for ManagerSimMessages to update Contact icon
+    public void updateAvatarView(Context context, String addr, boolean isSelf) {
+        Drawable avatarDrawable;
+        if (isSelf || !TextUtils.isEmpty(addr)) {
+            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
+            avatarDrawable = contact.getAvatar(context, sDefaultContactImage);
+
+            if (isSelf) {
+                mAvatar.assignContactUri(Profile.CONTENT_URI);
+            } else {
+                if (contact.existsInDatabase(context)) {
                     mAvatar.assignContactUri(contact.getUri());
                 } else {
                     mAvatar.assignContactFromPhone(contact.getNumber(), true);

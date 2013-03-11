@@ -295,6 +295,28 @@ public class Contact {
         return (mPersonId > 0);
     }
 
+    // define this fuction for save sim cantact delay, then check it is in database or not
+    public synchronized boolean existsInDatabase(Context context) {
+        Cursor cursor = null;
+
+        try {
+            cursor = context.getContentResolver().query(ContactsCache.PHONES_WITH_PRESENCE_URI,
+                    ContactsCache.CALLER_ID_PROJECTION, Phone.NUMBER + " = ?", new String[] {
+                        mNumber
+                    }, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                mPersonId = cursor.getLong(ContactsCache.CONTACT_ID_COLUMN);
+            } else {
+                mPersonId = 0;
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return (mPersonId > 0);
+    }
+	
     public static void addListener(UpdateListener l) {
         synchronized (mListeners) {
             mListeners.add(l);
