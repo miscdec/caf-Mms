@@ -21,14 +21,18 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -69,6 +73,11 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     public static final String RETRIEVAL_DURING_ROAMING = "pref_key_mms_retrieval_during_roaming";
     public static final String AUTO_DELETE              = "pref_key_auto_delete";
     public static final String GROUP_MMS_MODE           = "pref_key_mms_group_mms";
+
+    // AirPlane mode flag
+    private final static int AIR_PLANE_MODE_CHANGED = 1;
+    private final static int AIR_PLANE_MODE_ENABLE = 2;
+    private final static int AIR_PLANE_MODE_DISABLE = 3;
 
     // Menu entries
     private static final int MENU_RESTORE_DEFAULTS    = 1;
@@ -383,4 +392,56 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 groupMmsPrefOn &&
                 !TextUtils.isEmpty(MessageUtils.getLocalNumber());
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        registerReceiver(mAirPlaneModeReceiver, filter);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        // unregister the AirPlane mode monitor Receiver
+        unregisterReceiver(mAirPlaneModeReceiver);
+    };
+
+    // Add this BroadcastReceiver to Monitor the AirPlane mode changed
+    BroadcastReceiver mAirPlaneModeReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (null != intent && Intent.ACTION_AIRPLANE_MODE_CHANGED.equals(
+                        intent.getAction())) {
+                boolean enabled = intent.getBooleanExtra("state", false);
+                Message msg = new Message();
+                msg.what = AIR_PLANE_MODE_CHANGED;
+                msg.arg1 = (enabled ? AIR_PLANE_MODE_ENABLE : AIR_PLANE_MODE_DISABLE);
+                mAirPlaneModeHandler.sendMessage(msg);
+            }
+        }
+    };
+
+    // Add this handler to update the ui when AirPlane mode changed
+    Handler mAirPlaneModeHandler = new Handler() {
+        public void handleMessage(android.os.Message msg) {
+            super.handleMessage(msg);
+            if (msg.what == AIR_PLANE_MODE_CHANGED) {
+                PreferenceCategory smsCategory =
+                        (PreferenceCategory) findPreference("pref_key_sms_settings");
+                if (msg.arg1 == AIR_PLANE_MODE_ENABLE) {
+                    // is AirPlaneMode, remove the SIM-related prefs
+                    smsCategory.removePreference(mManageSimPref);
+                } else {
+                    // Not AirPlaneMode, add the SIM-related prefs
+                    smsCategory.addPreference(mManageSimPref);
+                }
+            }
+        };
+    };
+
 }
