@@ -165,6 +165,7 @@ public class ManageSimMessages extends Activity
     }
 
     private void refreshMessageList() {
+        Log.d(TAG, "refreshMessagelist");
         updateState(SHOW_BUSY);
         if (mCursor != null) {
             stopManagingCursor(mCursor);
@@ -230,6 +231,7 @@ public class ManageSimMessages extends Activity
     }
 
     private void registerSimChangeObserver() {
+        Log.d(TAG, "registerSimChangeObserver");
         mContentResolver.registerContentObserver(
                 ICC_URI, true, simChangeObserver);
     }
@@ -273,11 +275,14 @@ public class ManageSimMessages extends Activity
         if (cursor != null) {
             if (cursor.moveToFirst()) {
                 int count = cursor.getCount();
-
+                mContentResolver.unregisterContentObserver(simChangeObserver);
+                Log.d(TAG, "deleteAllFromSim:  unregisterForSimChangeObserver");
                 for (int i = 0; i < count; ++i) {
                     deleteFromSim(cursor);
                     cursor.moveToNext();
                 }
+                refreshMessageList();
+                registerSimChangeObserver();
             }
         }
     }
