@@ -100,7 +100,8 @@ public class MessageUtils {
     // add for getting result whether icc card is full or will full when copying to card
     public static final String COPY_SUCCESS_FULL = "content://sms/sim/full/success";
     public static final String COPY_FAILURE_FULL = "content://sms/sim/full/failure";
-
+    public static final String MULTI_SEL_KEY = "com.android.contacts.MULTI_SEL_KEY";
+    public static int MAX_RECIPIENT = 100;
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
     // display names.
