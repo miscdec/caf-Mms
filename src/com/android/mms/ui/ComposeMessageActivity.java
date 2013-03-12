@@ -109,6 +109,7 @@ import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
 import android.view.ViewStub;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
@@ -529,6 +530,20 @@ public class ComposeMessageActivity extends Activity
                 return true;
             }
             return false;
+        }
+    };
+
+    // If the message list is not empty, user add message subject
+    // and edit it, then click the next button, the message list
+    // will get the focus. So we always let the mTextEditor get
+    // the focus when user click next button at this moment.
+    private final TextView.OnEditorActionListener mSubjectActionListener = new TextView.OnEditorActionListener() {
+        @Override
+        public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+            if (actionId == EditorInfo.IME_ACTION_NEXT) {
+                mTextEditor.requestFocus();
+            }
+            return true;
         }
     };
 
@@ -1913,6 +1928,7 @@ public class ComposeMessageActivity extends Activity
         }
 
         mSubjectTextEditor.setOnKeyListener(show ? mSubjectKeyListener : null);
+        mSubjectTextEditor.setOnEditorActionListener(show ? mSubjectActionListener : null);
 
         if (show) {
             mSubjectTextEditor.addTextChangedListener(mSubjectEditorWatcher);
