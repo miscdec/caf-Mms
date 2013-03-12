@@ -4304,9 +4304,10 @@ public class ComposeMessageActivity extends Activity
 
                     String smiley = (String)item.get("text");
                     if (mSubjectTextEditor != null && mSubjectTextEditor.hasFocus()) {
-                        mSubjectTextEditor.append(smiley);
+                        mSubjectTextEditor.getText().insert(
+                                mSubjectTextEditor.getSelectionStart(), smiley);
                     } else {
-                        mTextEditor.append(smiley);
+                        mTextEditor.getText().insert(mTextEditor.getSelectionStart(), smiley);
                     }
 
                     dialog.dismiss();
