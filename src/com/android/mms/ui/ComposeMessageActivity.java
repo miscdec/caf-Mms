@@ -2442,6 +2442,15 @@ public class ComposeMessageActivity extends Activity
         // activity will cause an empty draft to be deleted.
         if (!mWorkingMessage.isWorthSaving()) {
             exit.run();
+            mWorkingMessage.discard();
+            new Thread() {
+                @Override
+                public void run() {
+
+                    // Remove the obsolete threads in database.
+                    getContentResolver().delete(android.provider.Telephony.Threads.OBSOLETE_THREADS_URI,null,null);
+                }
+            }.start();
             return;
         }
 
