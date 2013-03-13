@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 /*
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -275,6 +275,8 @@
     <string name="message_failed_body" msgid="3421296112073915245">"請輕觸以重新檢視訊息，然後再試一次。"</string>
     <string name="download_later" msgid="5531365714424360903">"目前無法下載，請稍後再試。"</string>
     <string name="select_audio" msgid="3528161449756771832">"選擇音訊"</string>
+    <string name="system_audio_item">"系統音訊"</string>
+    <string name="external_audio_item">"外部存儲的音訊"</string>
     <string name="copy_to_sdcard" msgid="757028609638184856">"儲存附件"</string>
     <string name="copy_to_sdcard_success" msgid="7948625615155992014">"已儲存附件。"</string>
     <string name="copy_to_sdcard_fail" msgid="4944606369631916737">"無法儲存附件。"</string>
