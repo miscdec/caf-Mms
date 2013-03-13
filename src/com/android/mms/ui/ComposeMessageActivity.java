@@ -348,6 +348,8 @@ public class ComposeMessageActivity extends Activity
     public final static String THREAD_ID = "thread_id";
     private final static String RECIPIENTS = "recipients";
 
+    private boolean isLocked = false;
+
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
         Thread current = Thread.currentThread();
@@ -4184,6 +4186,7 @@ public class ComposeMessageActivity extends Activity
                     return;
 
                 case ConversationList.HAVE_LOCKED_MESSAGES_TOKEN:
+                    isLocked = (cursor != null && cursor.getCount() > 0);
                     @SuppressWarnings("unchecked")
                     ArrayList<Long> threadIds = (ArrayList<Long>)cookie;
                     ConversationList.confirmDeleteThreadDialog(
@@ -4257,6 +4260,12 @@ public class ComposeMessageActivity extends Activity
             // If we're deleting the whole conversation, throw away
             // our current working message and bail.
             if (token == ConversationList.DELETE_CONVERSATION_TOKEN) {
+                if (isLocked && !ConversationList.getExitDialogueSign()) {
+                    isLocked = false;
+                    startMsgListQuery(MESSAGE_LIST_QUERY_AFTER_DELETE_TOKEN);
+                    return;
+                }
+                ConversationList.setExitDialogueSign();
                 ContactList recipients = mConversation.getRecipients();
                 mWorkingMessage.discard();
 
