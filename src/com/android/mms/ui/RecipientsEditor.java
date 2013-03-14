@@ -45,6 +45,11 @@ import com.android.ex.chips.RecipientEditTextView;
 import com.android.mms.MmsConfig;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
+import android.util.Log;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import com.android.mms.util.ContactInfoCache;
 
 /**
  * Provide UI for editing the recipients of multi-media messages.
@@ -70,7 +75,7 @@ public class RecipientsEditor extends RecipientEditTextView {
     public RecipientsEditor(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        mTokenizer = new RecipientsEditorTokenizer();
+        mTokenizer = new RecipientsEditorTokenizer(context, this);
         setTokenizer(mTokenizer);
 
         mInternalValidator = new AddressValidator();
@@ -123,15 +128,6 @@ public class RecipientsEditor extends RecipientEditTextView {
                 mAffected = null;
             }
         });
-    }
-
-    @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        super.onItemClick(parent, view, position, id);
-
-        if (mOnSelectChipRunnable != null) {
-            mOnSelectChipRunnable.run();
-        }
     }
 
     public void setOnSelectChipRunnable(Runnable onSelectChipRunnable) {
@@ -247,7 +243,12 @@ public class RecipientsEditor extends RecipientEditTextView {
         return s;
     }
 
+    public ContactList getContactList(){
+        return mTokenizer.getContactList();
+    }
     public void populate(ContactList list) {
+        SpannableStringBuilder sb = new SpannableStringBuilder();
+
         // Very tricky bug. In the recipient editor, we always leave a trailing
         // comma to make it easy for users to add additional recipients. When a
         // user types (or chooses from the dropdown) a new contact Mms has never
@@ -266,17 +267,11 @@ public class RecipientsEditor extends RecipientEditTextView {
         // and deletes chars into an address chosen from the suggestions, it'll cause
         // the number annotation to get deleted and the whole address (name + number) will
         // be used as the number.
-        if (list.size() == 0) {
-            // The base class RecipientEditTextView will ignore empty text. That's why we need
-            // this special case.
-            setText(null);
-        } else {
-            for (Contact c : list) {
-                // Calling setText to set the recipients won't create chips,
-                // but calling append() will.
-                append(contactToToken(c) + ",");
-            }
+        for (Contact c : list) {
+            sb.append(contactToToken(c)).append(", ");
         }
+
+        setText(sb);
     }
 
     private int pointToPosition(int x, int y) {
@@ -327,6 +322,35 @@ public class RecipientsEditor extends RecipientEditTextView {
             }
         }
         return null;
+    }
+    private static Contact getContactAt(Spanned sp, int start, int end, Context context) {
+        Annotation[] a = sp.getSpans(start, end, Annotation.class);
+        String person_id = getAnnotation(a, "person_id");
+        String name = getAnnotation(a, "name");
+        String label = getAnnotation(a, "label");
+        String number = getAnnotation(a, "number");
+
+        Contact r = new Contact();
+
+        r.setName(name);
+        r.setLabel(label);
+        r.setNumber(TextUtils.isEmpty(number) ? TextUtils.substring(sp, start, end) : number);
+        
+        if (TextUtils.isEmpty(r.getName()) && Mms.isEmailAddress(r.getNumber())) {
+            ContactInfoCache cache = ContactInfoCache.getInstance();
+            r.setName(cache.getContactName(r.getNumber()));
+        }
+
+        
+        r.setNameAndNumber(Contact.formatNameAndNumber(r.getName(), r.getNumber(),null));
+        
+        if (person_id.length() > 0) {
+            r.setPersonId(Long.parseLong(person_id));
+        } else {
+            r.setPersonId(-1);
+        }
+
+        return r;
     }
 
     private static String getNumberAt(Spanned sp, int start, int end, Context context) {
@@ -383,8 +407,19 @@ public class RecipientsEditor extends RecipientEditTextView {
 
     private class RecipientsEditorTokenizer
             implements MultiAutoCompleteTextView.Tokenizer {
+        private final MultiAutoCompleteTextView mList;
+        private final Context mContext;
 
-        @Override
+        RecipientsEditorTokenizer(Context context, MultiAutoCompleteTextView list) {
+            mList = list;
+            mContext = context;
+        }
+
+        /**
+         * Returns the start of the token that ends at offset
+         * <code>cursor</code> within <code>text</code>.
+         * It is a method from the MultiAutoCompleteTextView.Tokenizer interface.
+         */
         public int findTokenStart(CharSequence text, int cursor) {
             int i = cursor;
             char c;
@@ -447,8 +482,42 @@ public class RecipientsEditor extends RecipientEditTextView {
             }
         }
 
+    public ContactList getContactList() {
+            Spanned sp = mList.getText();
+            int len = sp.length();
+            ContactList rl = new ContactList();
+            
+            int start = 0;
+            int i = 0;
+            while (i < len + 1) {
+                if ((i == len) || (sp.charAt(i) == ',')) {
+                    if (i > start) {
+                        Contact r = getContactAt(sp, start, i, mContext);
+                        rl.add(r);
+
+                        int spanLen = getSpanLength(sp, start, i, mContext);
+                        if (spanLen > i) {
+                            i = spanLen;
+                        }                                               
+                    }
+
+                    i++;
+
+                    while ((i < len) && (sp.charAt(i) == ' ')) {
+                        i++;
+                    }
+
+                    start = i;
+                } else {
+                    i++;
+                }
+            }
+
+            return rl;
+        }
+
         public List<String> getNumbers() {
-            Spanned sp = RecipientsEditor.this.getText();
+            Spanned sp = mList.getText();
             int len = sp.length();
             List<String> list = new ArrayList<String>();
 
@@ -458,13 +527,13 @@ public class RecipientsEditor extends RecipientEditTextView {
                 char c;
                 if ((i == len) || ((c = sp.charAt(i)) == ',') || (c == ';')) {
                     if (i > start) {
-                        list.add(getNumberAt(sp, start, i, getContext()));
+                        list.add(getNumberAt(sp, start, i, mContext));
 
                         // calculate the recipients total length. This is so if the name contains
                         // commas or semis, we'll skip over the whole name to the next
                         // recipient, rather than parsing this single name into multiple
                         // recipients.
-                        int spanLen = getSpanLength(sp, start, i, getContext());
+                        int spanLen = getSpanLength(sp, start, i, mContext);
                         if (spanLen > i) {
                             i = spanLen;
                         }

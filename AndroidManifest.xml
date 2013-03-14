@@ -41,6 +41,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INSTALL_DRM" />
     <uses-permission android:name="android.permission.WRITE_APN_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
 
     <application android:name="MmsApp"
             android:label="@string/app_label"
@@ -329,6 +330,15 @@
             <meta-data android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
         </activity>
+        <activity android:name=".ui.ContactGroup"
+            android:label="@string/app_label"
+            android:configChanges="orientation|screenSize">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>    
+        
 
         <meta-data android:name="android.app.default_searchable"
             android:value=".ui.SearchActivity" />
@@ -384,6 +394,15 @@
                  android:permission="android.permission.BIND_REMOTEVIEWS"
                  android:exported="false" />
 
+        <activity android:name=".ui.MultiPickContactsActivity"
+                  android:windowSoftInputMode="stateHidden|adjustResize"
+                  android:configChanges="orientation|keyboardHidden|screenSize" >
+            <intent-filter>
+                <action android:name="com.android.contacts.action.GET_MULTIPLE_PHONES" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/phone_v2"/>
+            </intent-filter>
+        </activity>
 
     </application>
 </manifest>

@@ -242,9 +242,9 @@ public class ManageSimMessagesMultiSelect extends Activity
             copyToPhoneMemory(c);
         }
 
-            Toast.makeText(ManageSimMessagesMultiSelect.this, getString(R.string.operate_success),
-                Toast.LENGTH_LONG).show();
-            finish();
+        Toast.makeText(ManageSimMessagesMultiSelect.this, getString(R.string.operate_success),
+            Toast.LENGTH_LONG).show();
+        finish();
     }
 
     private String getUriStrByCursor(Cursor cursor)

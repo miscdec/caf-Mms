@@ -371,12 +371,12 @@ public class MailBoxMessageList extends ListActivity
         else if (smsType == Sms.MESSAGE_TYPE_INBOX)
         {
             fromtoLabel = this.getString(R.string.from_label);
-            sendLabel = this.getString(R.string.sent_label);
+            sendLabel = this.getString(R.string.received_label);
         }
         else
         {
             fromtoLabel = this.getString(R.string.to_address_label);
-            sendLabel = this.getString(R.string.received_label);
+            sendLabel = this.getString(R.string.sent_label);
         }
 
         Uri msgUri = Uri.parse(msgUriStr);

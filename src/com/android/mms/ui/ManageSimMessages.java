@@ -432,9 +432,9 @@ public class ManageSimMessages extends Activity
             // if native uri is exists, saved success and toast copy success
             // if native uri is null, saved fail and toast copy fail
             if (uri != null) {
-                Toast.makeText(this, R.string.copy_to_phone_success, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.operate_success, Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, R.string.copy_to_phone_fail, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.operate_failure, Toast.LENGTH_SHORT).show();
             }
 
             // Make sure this thread isn't over the limits in message count
