@@ -241,7 +241,7 @@ public class MailBoxMessageList extends ListActivity
     }
     
     public boolean onSearchRequested() {
-        // if comes into multiChoiceMode,do not continue to enter search mode.
+        // if comes into multiChoiceMode,do not continue to enter search mode ;
         if (mSearchItem != null && !mMultiChoiceMode) {
             mSearchItem.expandActionView();
         }
