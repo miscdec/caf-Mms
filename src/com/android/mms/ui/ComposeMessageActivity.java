@@ -85,6 +85,8 @@ import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.telephony.MSimTelephonyManager;
+import android.telephony.MSimSmsManager;
+import android.telephony.SmsManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsMessage;
 import android.text.Editable;
@@ -151,6 +153,8 @@ import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.SendReq;
+import android.text.format.Time;
+
 
 /**
  * This is the main UI for:
@@ -217,6 +221,9 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_SAVE_RINGTONE         = 30;
     private static final int MENU_PREFERENCES           = 31;
     private static final int MENU_GROUP_PARTICIPANTS    = 32;
+    private static final int MENU_COPY_TO_SIM           = 33;
+
+    private static final int SHOW_COPY_TOAST = 1;
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
 
@@ -341,7 +348,28 @@ public class ComposeMessageActivity extends Activity
     // keys for extras and icicles
     public final static String THREAD_ID = "thread_id";
     private final static String RECIPIENTS = "recipients";
+   
+    // handler for handle copy mms to sim with toast.
+    private Handler CopyToSimWithToastHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+        int resId = 0;
+            switch (msg.what){
+                case SHOW_COPY_TOAST:
+                {                                    
+                    String toastStr = (String) msg.obj;
+                    Toast.makeText(ComposeMessageActivity.this, toastStr, 
+                                    Toast.LENGTH_LONG).show();
 
+                    break; 
+                }
+                
+                default:
+                     break;
+            }
+        }
+    };
+    
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
         Thread current = Thread.currentThread();
@@ -1041,7 +1069,11 @@ public class ComposeMessageActivity extends Activity
             if (!isCursorValid()) {
                 return;
             }
+            
             Cursor cursor = mMsgListAdapter.getCursor();
+            AdapterView.AdapterContextMenuInfo menuinfo = (AdapterView.AdapterContextMenuInfo) menuInfo;
+            cursor = (Cursor)mMsgListAdapter.getItem((int) menuinfo.position);
+        
             String type = cursor.getString(COLUMN_MSG_TYPE);
             long msgId = cursor.getLong(COLUMN_ID);
 
@@ -1071,6 +1103,12 @@ public class ComposeMessageActivity extends Activity
 
                 menu.add(0, MENU_COPY_MESSAGE_TEXT, 0, R.string.copy_message_text)
                 .setOnMenuItemClickListener(l);
+
+                if (MessageUtils.getActivatedIccCardCount() > 0)
+                {
+                    menu.add(0, MENU_COPY_TO_SIM, 0, R.string.menu_copy_to)
+                    .setOnMenuItemClickListener(l);
+                }
             }
 
             addCallAndContactMenuItems(menu, l, msgItem);
@@ -1299,6 +1337,20 @@ public class ComposeMessageActivity extends Activity
                 return false;
             }
 
+            AdapterView.AdapterContextMenuInfo info;
+            try {
+                 info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+            } catch (ClassCastException exception) {
+                Log.e(TAG, "Bad menuInfo.", exception);
+                return false;
+            }
+
+            final Cursor cursor = (Cursor) mMsgListAdapter.getItem(info.position);
+            String type = cursor.getString(COLUMN_MSG_TYPE);
+            long msgId = cursor.getLong(COLUMN_ID);
+            MessageItem msgItem = mMsgListAdapter.getCachedMessageItem(type, msgId, cursor);
+            mMsgItem = msgItem;
+            
             switch (item.getItemId()) {
                 case MENU_EDIT_MESSAGE:
                     editMessageItem(mMsgItem);
@@ -1308,7 +1360,23 @@ public class ComposeMessageActivity extends Activity
                 case MENU_COPY_MESSAGE_TEXT:
                     copyToClipboard(mMsgItem.mBody);
                     return true;
-
+                    
+                case MENU_COPY_TO_SIM: {
+                     if (MessageUtils.getActivatedIccCardCount() > 1) {
+                        String[] items = new String[] {getString(R.string.type_slot1), getString(R.string.type_slot2)};
+                        CopyToSimSelectListener listener = new CopyToSimSelectListener(mMsgItem);
+                        new AlertDialog.Builder(ComposeMessageActivity.this)
+                            .setTitle(R.string.menu_copy_to)
+                            .setPositiveButton(android.R.string.ok, listener)
+                            .setSingleChoiceItems(items, 0, listener)
+                            .setCancelable(true)
+                            .show();
+                    } else {
+                        new Thread(new CopyToSimThread(mMsgItem)).start();
+                    }
+                    return true;
+                }
+                                
                 case MENU_FORWARD_MESSAGE:
                     forwardMessage(mMsgItem);
                     return true;
@@ -1361,6 +1429,127 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private class CopyToSimSelectListener implements DialogInterface.OnClickListener {
+        private MessageItem msgItem;
+        private int subscription;
+
+        public CopyToSimSelectListener(MessageItem msgItem) {
+            super();
+            this.msgItem = msgItem;
+        }
+
+        public void onClick(DialogInterface dialog, int which) {
+            if (which >= 0) {
+                subscription = which;
+            } else if (which == DialogInterface.BUTTON_POSITIVE) {
+                new Thread(new CopyToSimThread(msgItem,subscription)).start();
+            }
+        }
+    }
+        
+    //Thread for CopyToSim
+    private class CopyToSimThread extends Thread {
+        private MessageItem msgItem;
+        private int subscription;
+        public CopyToSimThread(MessageItem msgItem) {
+            this.msgItem = msgItem;
+            this.subscription = MessageUtils.SUB_INVALID;
+        }
+
+        public CopyToSimThread(MessageItem msgItem, int subscription) {
+            this.msgItem = msgItem;
+            this.subscription = subscription;
+        }
+
+        @Override
+        public void run() {
+            copyToSim(msgItem, subscription);
+        }
+    }
+
+    private void copyToSim(MessageItem msgItem, int subscription) {
+        int boxId = msgItem.mBoxId;
+        String address = msgItem.mAddress;
+        String text = msgItem.mBody;
+        long timestamp = msgItem.mDate != 0 ? msgItem.mDate : System.currentTimeMillis();
+        Time then = new Time();
+        then.set(timestamp);
+        byte[] datepdu = formatDateToPduGSM(then);
+
+        ArrayList<String> messages = SmsManager.getDefault().divideMessage(text);
+        final int messageCount = messages.size();
+
+        Message msg = CopyToSimWithToastHandler.obtainMessage();
+        msg.what = SHOW_COPY_TOAST;
+        msg.obj = getString(R.string.operate_success);
+        
+        for (int j = 0; j < messageCount; j++)
+        {
+            String content = messages.get(j);
+            if (TextUtils.isEmpty(content))
+            {
+                if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                    Log.e(TAG, "copyToSim : Copy error for empty content!");
+                }
+                continue;
+            }
+            ContentValues values = new ContentValues(5);
+            values.put(Sms.DATE, timestamp);
+            values.put(Sms.BODY, content);
+            values.put(Sms.TYPE, boxId);
+            values.put(Sms.ADDRESS, address);
+            values.put(Sms.READ, MessageUtils.MESSAGE_READ);
+            values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
+            Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+            
+            Uri retUri = SqliteWrapper.insert(ComposeMessageActivity.this, getContentResolver(),
+                                              uriStr, values);
+            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
+                    + ", retUri = " + retUri.toString());
+            }
+            
+            if (retUri == null)
+            {
+                msg.obj = getString(R.string.operate_failure);
+                break;
+            }
+            else if (MessageUtils.COPY_SUCCESS_FULL.equals(retUri.toString()))
+            {
+                msg.obj = getString(R.string.copy_success_full);
+                break;
+            }
+            else if (MessageUtils.COPY_FAILURE_FULL.equals(retUri.toString()))
+            {
+                msg.obj = getString(R.string.copy_failure_full);
+                break;
+            }
+        }
+        
+        msg.sendToTarget();
+    }
+
+    private byte[] formatDateToPduGSM(Time then)
+    {
+        byte tArr[];
+        tArr = new byte[7];
+
+        tArr[0] = (byte)((then.year > 2000)?(then.year - 2000):(then.year - 1900));
+        tArr[1] = (byte)(then.month + 1);
+        tArr[2] = (byte)then.monthDay;
+        tArr[3] = (byte)then.hour;
+        tArr[4] = (byte)then.minute;
+        tArr[5] = (byte)then.second;
+        tArr[6] = (byte)0x00;
+        for (int i = 0; i < 7; i++)
+        {
+            tArr[i] = (byte) ((((tArr[i]/10)%10) & 0x0F)
+                              | (((tArr[i]%10) & 0x0F)<<4));
+        }
+
+        return tArr;
+    }  
+    
     private void lockMessage(MessageItem msgItem, boolean locked) {
         Uri uri;
         if ("sms".equals(msgItem.mType)) {
@@ -3602,7 +3791,7 @@ public class ComposeMessageActivity extends Activity
             : Pattern.compile("\\b" + Pattern.quote(highlightString), Pattern.CASE_INSENSITIVE);
 
         // Initialize the list adapter with a null cursor.
-        mMsgListAdapter = new MessageListAdapter(this, null, mMsgListView, true, highlight);
+        mMsgListAdapter = new MessageListAdapter(this, null, mMsgListView, true, highlight, false);
         mMsgListAdapter.setOnDataSetChangedListener(mDataSetChangedListener);
         mMsgListAdapter.setMsgListItemHandler(mMessageListItemHandler);
         mMsgListView.setAdapter(mMsgListAdapter);

@@ -240,7 +240,7 @@ public class ManageSimMessagesMultiSelect extends Activity
                 return;
             }
             copyToPhoneMemory(c);
-            }
+        }
 
             Toast.makeText(ManageSimMessagesMultiSelect.this, getString(R.string.operate_success),
                 Toast.LENGTH_LONG).show();
@@ -425,7 +425,7 @@ public class ManageSimMessagesMultiSelect extends Activity
                     //   mListAdapter.setOnDataSetChangedListener(mDataSetChangedListener);
                     // See ComposeMessageActivity for an example.
                     mMsgListAdapter = new MessageListAdapter(
-                            ManageSimMessagesMultiSelect.this, mCursor, mMsgListView, false, null);
+                            ManageSimMessagesMultiSelect.this, mCursor, mMsgListView, false, null, true);
                     mMsgListView.setAdapter(mMsgListAdapter);
                     mMsgListView.setVisibility(View.VISIBLE);
                     mMessage.setVisibility(View.GONE);

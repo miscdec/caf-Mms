@@ -110,6 +110,7 @@ public class MessageListItem extends LinearLayout implements
     private int mPosition;      // for debugging
     private ImageLoadedCallback mImageLoadedCallback;
     private boolean mMultiRecipients;
+    private boolean mSimFlag;  // add for showing address only in SIM card list item
 
     public MessageListItem(Context context) {
         super(context);
@@ -168,7 +169,8 @@ public class MessageListItem extends LinearLayout implements
         }
         boolean sameItem = mMessageItem != null && mMessageItem.mMsgId == msgItem.mMsgId;
         mMessageItem = msgItem;
-
+        mSimFlag = mMessageItem.mSimFlag;
+        
         mPosition = position;
         mMultiRecipients = convHasMultiRecipients;
 
@@ -611,12 +613,19 @@ public class MessageListItem extends LinearLayout implements
             }
         }
 
+        if(mSimFlag)
+        {
+            buf.append("\n");
+            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
+        }
+        
         if (highlight != null) {
             Matcher m = highlight.matcher(buf.toString());
             while (m.find()) {
                 buf.setSpan(new StyleSpan(Typeface.BOLD), m.start(), m.end(), 0);
             }
         }
+        
         return buf;
     }
 
@@ -703,15 +712,25 @@ public class MessageListItem extends LinearLayout implements
                             tv.setCompoundDrawables(d, null, null, null);
                         }
                         final String telPrefix = "tel:";
-                        if (url.startsWith(telPrefix)) {
-                            if ((mDefaultCountryIso == null) || mDefaultCountryIso.isEmpty()) {
-                                url = url.substring(telPrefix.length());
+                        // If prefix string is "mailto" then translate it.
+                        final String mailPrefix = "mailto:";
+                        if(url != null)
+                        {
+                            if (url.startsWith(telPrefix)) {
+                                if ((mDefaultCountryIso == null) || mDefaultCountryIso.isEmpty()) {
+                                    url = url.substring(telPrefix.length());
+                                }
+                                else {
+                                    url = PhoneNumberUtils.formatNumber(
+                                            url.substring(telPrefix.length()), mDefaultCountryIso);
+                                }
                             }
-                            else {
-                                url = PhoneNumberUtils.formatNumber(
-                                        url.substring(telPrefix.length()), mDefaultCountryIso);
+                            else if (url.startsWith(mailPrefix)) {
+                                    url = mContext.getResources().getString(R.string.mail_to) +
+                                                url.substring(mailPrefix.length());
                             }
                         }
+
                         tv.setText(url);
                     } catch (android.content.pm.PackageManager.NameNotFoundException ex) {
                         // it's ok if we're unable to set the drawable for this view - the user

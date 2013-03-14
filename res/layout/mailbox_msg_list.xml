@@ -21,15 +21,15 @@
     android:background="?android:attr/activatedBackgroundIndicator"
     android:paddingRight="10dip" > 
     <LinearLayout android:layout_width="wrap_content"
-		android:orientation="vertical"
-		android:gravity="center_vertical"
-		android:layout_height="match_parent">
-		<!--
-	    <ImageView android:id="@+id/icon"
+        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:layout_height="match_parent">
+        <!--
+            <ImageView android:id="@+id/icon"
             android:layout_alignParentLeft="true"
             android:layout_centerVertical="true"	
-	        android:layout_width="wrap_content" 
-	        android:layout_height="wrap_content"   
+            android:layout_width="wrap_content" 
+            android:layout_height="wrap_content"   
             android:src="@drawable/ic_contact_picture"/>
             -->
         <android.widget.QuickContactBadge
@@ -38,58 +38,58 @@
             android:layout_centerVertical="true"
             style="?android:attr/quickContactBadgeStyleWindowLarge" />
     </LinearLayout>
-	<LinearLayout android:layout_width="wrap_content"
-		android:orientation="vertical"
-		android:gravity="center_vertical"	
-		android:layout_weight="1" 		
-		android:layout_height="match_parent">
-	    <LinearLayout
-	        android:id="@+id/line1"
-	        android:layout_width="match_parent"
-	        android:layout_height="wrap_content"
-			android:gravity="center_vertical"        
-	        android:orientation="horizontal">
-	        <TextView android:id="@+id/TextName" 
-    	        android:layout_centerVertical="true" 
-    	        android:textAppearance="?android:attr/textAppearanceMedium" 
-    	        android:paddingLeft="5dip"
-    	        android:gravity="center_vertical"
-    	        android:maxWidth="100px"
-    	        android:layout_width="wrap_content" 
-    	        android:layout_height="wrap_content" 
-    	        android:singleLine="true"/>
-	        <TextView android:layout_height="wrap_content" 
-	            android:id="@+id/MsgAddress" 
-    	        android:gravity="center_vertical" 
-    	        android:layout_width="wrap_content" 
-    	        android:layout_marginLeft="10px"
-    	        android:singleLine="true"
-    	        android:layout_weight="1"/>
-	    </LinearLayout>      
-	    <LinearLayout
-	        android:id="@+id/line2"
-	        android:layout_width="match_parent"
-	        android:layout_height="wrap_content"
-    		android:gravity="center_vertical"
-	        android:paddingBottom ="8dip"   
-	        android:orientation="horizontal">        
-	        <TextView android:id="@+id/MsgBody" 
-		        android:layout_height="wrap_content" 
-		        android:layout_width="0dip" 
-		        android:paddingLeft="5dip"
-		        android:layout_weight="1" 
-		        android:singleLine="true"/>
-	        <TextView android:layout_width="wrap_content" 
-		        android:layout_height="wrap_content" 
-		        android:paddingLeft="5dip"
-		        android:layout_marginRight="8dip" 		        
-		        android:id="@+id/TextViewDate"/>
-	        <ImageView android:id="@+id/imageViewLock" 
-		        android:layout_width="32px"
-		        android:layout_height="32px" 
-		        android:layout_marginRight="2dip"
-		        android:src="@drawable/ic_lock_message_sms"  
-		        android:visibility="gone"/>
+    <LinearLayout android:layout_width="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:layout_weight="1"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:id="@+id/line1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"        
+            android:orientation="horizontal">
+            <TextView android:id="@+id/TextName" 
+                android:layout_centerVertical="true" 
+                android:textAppearance="?android:attr/textAppearanceMedium" 
+                android:paddingLeft="5dip"
+                android:gravity="center_vertical"
+                android:maxWidth="100px"
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:singleLine="true"/>
+            <TextView android:layout_height="wrap_content" 
+                android:id="@+id/MsgAddress" 
+                android:gravity="center_vertical" 
+                android:layout_width="wrap_content" 
+                android:layout_marginLeft="10px"
+                android:singleLine="true"
+                android:layout_weight="1"/>
         </LinearLayout>      
-	</LinearLayout>
+        <LinearLayout
+            android:id="@+id/line2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:paddingBottom ="8dip"   
+            android:orientation="horizontal">        
+            <TextView android:id="@+id/MsgBody" 
+                android:layout_height="wrap_content" 
+                android:layout_width="0dip" 
+                android:paddingLeft="5dip"
+                android:layout_weight="1" 
+                android:singleLine="true"/>
+            <TextView android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:paddingLeft="5dip"
+                android:layout_marginRight="8dip"        
+                android:id="@+id/TextViewDate"/>
+            <ImageView android:id="@+id/imageViewLock" 
+                android:layout_width="32px"
+                android:layout_height="32px" 
+                android:layout_marginRight="2dip"
+                android:src="@drawable/ic_lock_message_sms"  
+                android:visibility="gone"/>
+        </LinearLayout>      
+    </LinearLayout>
 </LinearLayout>

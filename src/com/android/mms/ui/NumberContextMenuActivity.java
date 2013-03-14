@@ -41,6 +41,7 @@ import android.widget.CursorAdapter;
 import android.util.Log;
 import android.provider.Telephony.Sms;
 import android.content.DialogInterface;
+import android.os.Looper;
 
 import android.os.Handler;
 import android.os.Message;
@@ -124,7 +125,7 @@ public class NumberContextMenuActivity extends ListActivity
     {
         Uri uri = intent.getData();
         mNumber = uri.getSchemeSpecificPart();
-        if(MessageUtils.isHasCard(TelephonyManager.getDefault().getDefaultSubscription()))
+        if(MessageUtils.isHasCard())
         {
             showMenuWithCall();
         }
@@ -149,10 +150,66 @@ public class NumberContextMenuActivity extends ListActivity
 
     private void call()
     {
-        Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + mNumber));
-        startActivity(dialIntent);
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            if(MessageUtils.getActivatedIccCardCount() > 1)
+            {
+                showCallSelectDialog();
+            }
+            else
+            {
+                if(MessageUtils.isIccCardActivated(MessageUtils.SUB1))
+                {
+                    MessageUtils.dialRecipient(this, mNumber, MessageUtils.SUB1);
+                }
+                else if(MessageUtils.isIccCardActivated(MessageUtils.SUB2))
+                {
+                    MessageUtils.dialRecipient(this, mNumber, MessageUtils.SUB2);
+                }
+            }
+        }
+        else
+        {
+            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + mNumber));
+            startActivity(dialIntent);
+        }
     }
 
+    private void showCallSelectDialog(){
+        final String[] texts = new String[] {getString(R.string.type_slot1), getString(R.string.type_slot2)};
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.menu_call));
+        builder.setCancelable(true);
+        builder.setItems(texts, new DialogInterface.OnClickListener()
+        {
+            public final void onClick(DialogInterface dialog, int which)
+            {
+                if (which == 0)
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         MessageUtils.dialRecipient(NumberContextMenuActivity.this, mNumber, MessageUtils.SUB1);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                else
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         MessageUtils.dialRecipient(NumberContextMenuActivity.this, mNumber, MessageUtils.SUB2);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();    
+    }
+    
     private void editCall()
     {
         Intent editCallIntent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + mNumber));

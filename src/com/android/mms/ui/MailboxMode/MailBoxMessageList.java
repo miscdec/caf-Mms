@@ -343,7 +343,6 @@ public class MailBoxMessageList extends ListActivity
         Long date = c.getLong(COLUMN_SMS_DATE);
         Long dateSent = c.getLong(COLUMN_SMS_DATE_SENT);
         String dateStr = MessageUtils.formatTimeStampString(this, date, true);
-
         
         String msgid = c.getString(COLUMN_ID);
         String msgUriStr = "content://" + type + "/" + msgid;
@@ -549,7 +548,7 @@ public class MailBoxMessageList extends ListActivity
     }
     
     private void startAsyncQuery()
-    {         
+    {   
         try
         {
             synchronized (mCursorLock)
@@ -562,15 +561,15 @@ public class MailBoxMessageList extends ListActivity
                 String selStr = null;
                 if (mQuerySlotType == TYPE_SLOT_ONE)
                 {
-                    selStr = "sub_id = " + MessageUtils.CARD_SUB1;
+                    selStr = "sub_id = " + MessageUtils.SUB1;
                 }
                 else if (mQuerySlotType == TYPE_SLOT_TWO)
                 {
-                    selStr = "sub_id = " + MessageUtils.CARD_SUB2;
+                    selStr = "sub_id = " + MessageUtils.SUB2;
                 }
                 mMailboxUri = MAILBOX_URI + mQueryBoxType;
                 if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {                     
-                Log.d(TAG,"startAsyncQuery : mMailboxUri = " + mMailboxUri);
+                    Log.d(TAG,"startAsyncQuery : mMailboxUri = " + mMailboxUri);
                 }
 
                 mQueryHandler.startQuery(MESSAGE_LIST_QUERY_TOKEN, 0, 

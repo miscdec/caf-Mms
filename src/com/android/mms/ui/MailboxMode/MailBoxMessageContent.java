@@ -138,7 +138,7 @@ public class MailBoxMessageContent extends Activity
     private String  mTitle; 
     private boolean mLock = false;
     
-    private int mSubID = MessageUtils.CARD_SUB1;
+    private int mSubID = MessageUtils.SUB_INVALID;
     private ArrayList<String> m_AllIdList = null;    
     private String mMsgUriStr = null;
     private Cursor mCursor = null;
@@ -147,7 +147,8 @@ public class MailBoxMessageContent extends Activity
     private TextView mFromTextView;
     private TextView mTimeTextView;  
     private TextView mTimeDetailTextView;    
-    private TextView mNumberView;  
+    private TextView mNumberView;   
+    private TextView mSlotTypeView; 
 
     private static final int MENU_CALL_RECIPIENT    = Menu.FIRST;
     private static final int MENU_DELETE            = Menu.FIRST + 1;
@@ -167,7 +168,6 @@ public class MailBoxMessageContent extends Activity
     private static final int SHOW_TOAST              = 3;
 
     ProgressDialog mProgressDialog = null; 
-    private TextView mSimNameView; 
     private SetReadThread mSetReadThread = null;//new SetReadThread();
     private ContentResolver mContentResolver;
     private static final String[] SMS_LOCK_PROJECTION = { Sms._ID, Sms.LOCKED };
@@ -241,10 +241,13 @@ public class MailBoxMessageContent extends Activity
             return true;
         }
 
-        menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
-            .setIcon(R.drawable.ic_menu_call)
-            .setTitle(R.string.menu_call)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        if(MessageUtils.isHasCard())
+        {
+            menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
+                .setIcon(R.drawable.ic_menu_call)
+                .setTitle(R.string.menu_call)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
 
         if (mMsgType == Sms.MESSAGE_TYPE_INBOX)
         {
@@ -271,7 +274,7 @@ public class MailBoxMessageContent extends Activity
         }            
 
 
-        if (MessageUtils.isHasCard(TelephonyManager.getDefault().getDefaultSubscription()) &&
+        if (MessageUtils.isHasCard() &&
             (mMailboxId == Sms.MESSAGE_TYPE_INBOX
                 || mMailboxId == Sms.MESSAGE_TYPE_DRAFT
                 || mMailboxId == Sms.MESSAGE_TYPE_SENT))
@@ -304,7 +307,28 @@ public class MailBoxMessageContent extends Activity
         switch(item.getItemId())
         {
             case MENU_CALL_RECIPIENT:
-                dialRecipient();
+                if(MessageUtils.isMultiSimEnabledMms())
+                {
+                    if(MessageUtils.getActivatedIccCardCount() > 1)
+                    {
+                        showCallSelectDialog();
+                    }
+                    else
+                    {
+                        if(MessageUtils.isIccCardActivated(MessageUtils.SUB1))
+                        {
+                            MessageUtils.dialRecipient(this, mMsgFromto, MessageUtils.SUB1);
+                        }
+                        else if(MessageUtils.isIccCardActivated(MessageUtils.SUB2))
+                        {
+                            MessageUtils.dialRecipient(this, mMsgFromto, MessageUtils.SUB2);
+                        }                         
+                    }
+                }
+                else
+                {
+                    MessageUtils.dialRecipient(this, mMsgFromto, MessageUtils.SUB_INVALID);
+                }
                 break;
             case MENU_DELETE:
                 delete();
@@ -316,7 +340,28 @@ public class MailBoxMessageContent extends Activity
                 reply();
                 break;
             case MENU_COPY:
-                copy();
+                if(MessageUtils.isMultiSimEnabledMms())
+                {
+                    if(MessageUtils.getActivatedIccCardCount() > 1)
+                    {
+                        showCopySelectDialog();
+                    }
+                    else
+                    {
+                        if(MessageUtils.isIccCardActivated(MessageUtils.SUB1))
+                        {
+                            copy(MessageUtils.SUB1);
+                        }
+                        else if(MessageUtils.isIccCardActivated(MessageUtils.SUB2))
+                        {
+                            copy(MessageUtils.SUB2);
+                        }                         
+                    }                  
+                }
+                else
+                {
+                    copy(MessageUtils.SUB_INVALID);
+                }
                 break;
             case MENU_LOCK:
                 lockUnlockMessage();
@@ -358,13 +403,76 @@ public class MailBoxMessageContent extends Activity
         builder.show();
     }
 
-    private void dialRecipient() {
-        if (!Mms.isEmailAddress(mMsgFromto)) {
-            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + mMsgFromto));
-            this.startActivity(dialIntent);
-        }
+    private void showCopySelectDialog(){
+        final String[] texts = new String[] {getString(R.string.type_slot1), getString(R.string.type_slot2)};
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.menu_copy_to));
+        builder.setCancelable(true);
+        builder.setItems(texts, new DialogInterface.OnClickListener()
+        {
+            public final void onClick(DialogInterface dialog, int which)
+            {
+                if (which == 0)
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         copy(MessageUtils.SUB1);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                else
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         copy(MessageUtils.SUB2);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();    
     }
 
+    private void showCallSelectDialog(){
+        final String[] texts = new String[] {getString(R.string.type_slot1), getString(R.string.type_slot2)};
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.menu_call));
+        builder.setCancelable(true);
+        builder.setItems(texts, new DialogInterface.OnClickListener()
+        {
+            public final void onClick(DialogInterface dialog, int which)
+            {
+                if (which == 0)
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         MessageUtils.dialRecipient(MailBoxMessageContent.this, mMsgFromto, MessageUtils.SUB1);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                else
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         MessageUtils.dialRecipient(MailBoxMessageContent.this, mMsgFromto, MessageUtils.SUB2);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();    
+    }
+    
     public void saveToContact()
     {    
         String address = mMsgFromto;
@@ -396,13 +504,13 @@ public class MailBoxMessageContent extends Activity
         confirmDeleteDialog(l, mLock);
     }
 
-    private void copy()
+    private void copy(int subscription)
     {
-        copyToCard(mDateLongFormat, mMsgText, mMsgFromto, mMailboxId, MessageUtils.MESSAGE_READ);
+        copyToCard(mDateLongFormat, mMsgText, mMsgFromto, mMailboxId, MessageUtils.MESSAGE_READ, subscription);
     }
-
+        
     private void copyToCard(final Long date, String body, final String address,
-                                       final int boxId, final int read)
+                                       final int boxId, final int read, final int subscription)
     {
         SmsManager smsManager = SmsManager.getDefault();
         final ArrayList<String> messages = smsManager.divideMessage(body);
@@ -420,21 +528,26 @@ public class MailBoxMessageContent extends Activity
                         if (TextUtils.isEmpty(content))
                         {
                             if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-                            Log.e(TAG, "copyToCard : Copy error for empty content!");
+                                Log.e(TAG, "copyToCard : Copy error for empty content!");
                             }
                             continue;
                         }
-                        ContentValues values = new ContentValues(5);
+                        ContentValues values = new ContentValues(6);
                         values.put(Sms.DATE, date);
                         values.put(Sms.BODY, content);
                         values.put(Sms.TYPE, boxId);
                         values.put(Sms.ADDRESS, address);
                         values.put(Sms.READ, read);
-                        Uri uriStr = MessageUtils.ICC_URI;
-
+                        values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
+                        Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+                        
                         Uri retUri = SqliteWrapper.insert(MailBoxMessageContent.this, getContentResolver(),
                                                           uriStr, values);
-
+                        if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                            Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
+                                + ", retUri = " + retUri.toString());
+                        }
+                        
                         if (retUri == null)
                         {
                             msg.obj = getString(R.string.operate_failure);
@@ -580,7 +693,7 @@ public class MailBoxMessageContent extends Activity
         mNumberView.setTelUrl("tels:"); 
         mTimeTextView = (TextView) findViewById(R.id.TextViewTime);
         mTimeDetailTextView = (TextView) findViewById(R.id.TextViewTimeDetail);  
-        mSimNameView = (TextView) findViewById(R.id.TextViewSimName);
+        mSlotTypeView = (TextView) findViewById(R.id.TextViewSlotType);
 
         if (null != intent.getAction())
         {
@@ -649,7 +762,7 @@ public class MailBoxMessageContent extends Activity
             mRead = intent.getIntExtra("sms_read", 0);
             mMailboxId = intent.getIntExtra("mailboxId", 1);
             mLock = intent.getIntExtra("sms_locked", 0) == 0 ? false : true; 
-            mSubID = intent.getIntExtra("sms_subid", MessageUtils.CARD_SUB1);
+            mSubID = intent.getIntExtra("sms_subid", MessageUtils.SUB_INVALID);
             mMsgTime= MessageUtils.formatTimeStampString(this, mDateLongFormat);
             mMsgType = intent.getIntExtra("sms_type", Sms.MESSAGE_TYPE_INBOX);           
 
@@ -660,7 +773,14 @@ public class MailBoxMessageContent extends Activity
         mNumberView.setText(mMsgFromto);   
         mFromTextView.setText(mFromtoLabel); 
         mTimeTextView.setText(mSendLabel);
-        mTimeDetailTextView.setText(mMsgTime);
+        mTimeDetailTextView.setText(mMsgTime);  
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            mSlotTypeView.setVisibility(View.VISIBLE);
+            mSlotTypeView.setText(mSubID == 0 ? getString(R.string.slot_type, getString(R.string.type_slot1))
+                : getString(R.string.slot_type, getString(R.string.type_slot2)));
+        }
+
 
         if (!TextUtils.isEmpty(mDisplayName) && !mDisplayName.equals(mMsgFromto))
         {

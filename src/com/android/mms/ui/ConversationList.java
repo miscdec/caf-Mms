@@ -431,7 +431,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             }
         }
         */
-        if (!MessageUtils.isHasCard()){
+        if (!MessageUtils.isIccCardActivated()){
             item = menu.findItem(R.id.action_sim_card);
             if (item != null) {
                 item.setVisible(false);

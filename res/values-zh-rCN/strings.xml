@@ -365,7 +365,9 @@
     <string name="menu_add_to_label">保存到书签</string>  
     <string name="loadurlinfo_str">加载此URL？</string>  
     <!--add for toast when deleting -->
-    <string name="deleting_title">正在删除...</string>    
+    <string name="deleting_title">正在删除...</string>  
+    <!--add for showing slot type in MailBoxMessageContent -->
+    <string name="slot_type">卡槽 : %s</string>    
     <!-- Show SIM capacity -->
     <string name="show_icc_sms_capacity">容量</string>
     <string name="icc_sms_used">已用:  </string>

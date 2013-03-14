@@ -76,7 +76,10 @@ import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
 import android.telephony.MSimTelephonyManager;
+import android.telephony.MSimSmsManager;
 import android.telephony.TelephonyManager;
+import com.android.internal.telephony.MSimConstants;
+
 
 /**
  * An utility class for managing messages.
@@ -89,14 +92,21 @@ public class MessageUtils {
     private static final String TAG = LogTag.TAG;
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
-    // add the defination of subscription for DSDS product 
-    public static final int CARD_SUB1 = 0;
-    public static final int CARD_SUB2 = 1;
+    
+    // add the defination of subscription 
+    public static final int SUB_INVALID = -1;  //  for single card product
+    public static final int SUB1 = 0;  // for DSDS product of slot one
+    public static final int SUB2 = 1;  // for DSDS product of slot two
+    public static final String SUB_KEY  = MSimConstants.SUBSCRIPTION_KEY; /* subscription */ 
     // add for getting the read status when copy messages to sim card
     public static final int MESSAGE_READ = 1;
     public static final int MESSAGE_UNREAD = 0;
+    
     // add for obtaining icc uri when copying messages to card
     public static final Uri ICC_URI = Uri.parse("content://sms/icc");
+    public static final Uri ICC1_URI = Uri.parse("content://sms/icc1");
+    public static final Uri ICC2_URI = Uri.parse("content://sms/icc2");
+    
     // add for getting result whether icc card is full or will full when copying to card
     public static final String COPY_SUCCESS_FULL = "content://sms/sim/full/success";
     public static final String COPY_FAILURE_FULL = "content://sms/sim/full/failure";
@@ -1132,7 +1142,61 @@ public class MessageUtils {
         return null;
     }
 
-    /**
+    
+    public static void dialRecipient(Context context, String address, int subscription) {
+        if (!Mms.isEmailAddress(address)) {           
+            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + address));
+            if(isMultiSimEnabledMms())
+            {
+                dialIntent.putExtra(SUB_KEY, subscription);
+            }
+            context.startActivity(dialIntent);
+        }
+    }
+
+     /**
+      * Return the activated card number
+      */
+    public static int getActivatedIccCardCount() {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        int count = 0;
+        for (int i = 0; i < tm.getPhoneCount(); i++) {
+            // Because the status of slot1/2 will return SIM_STATE_UNKNOWN under airplane mode.
+            // So we add check about SIM_STATE_UNKNOWN.
+            if ((tm.getSimState(i) != TelephonyManager.SIM_STATE_ABSENT) &&
+                    (tm.getSimState(i) != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState(i) != TelephonyManager.SIM_STATE_UNKNOWN)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+     /**
+      * Return whether the card is activated according to Subscription
+      * used for DSDS
+      */
+    public static boolean isIccCardActivated(int subscription) {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        
+        return (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_ABSENT) &&
+                    (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_UNKNOWN);
+    }
+
+     /**
+      * Return whether the card is activated 
+      * used for single card product
+      */
+    public static boolean isIccCardActivated() {
+        TelephonyManager tm = TelephonyManager.getDefault();
+        
+        return (tm.getSimState() != TelephonyManager.SIM_STATE_ABSENT) &&
+                    (tm.getSimState() != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState() != TelephonyManager.SIM_STATE_UNKNOWN);
+    }
+     
+     /**
       * Return whether it has card in according slot
       *-the input subscription is 0 or 1
       *-It is only used in DSDS 
@@ -1173,6 +1237,27 @@ public class MessageUtils {
         return MSimTelephonyManager.getDefault().isMultiSimEnabled();
     }
 
+    /**
+      * Return the default subscription for single card product
+      */
+    public static int getDefaultSubscription(){
+        return MSimSmsManager.getDefault().getPreferredSmsSubscription();
+    }
+
+    /**
+      * Return the icc uri according to subscription
+      */
+    public static Uri getIccUriBySubscription(int subscription) {
+        switch (subscription) {
+            case MSimConstants.SUB1:
+                return ICC1_URI;
+            case MSimConstants.SUB2:
+                return ICC2_URI;
+            default:
+                return ICC_URI;
+        }
+    }
+    
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);
     }

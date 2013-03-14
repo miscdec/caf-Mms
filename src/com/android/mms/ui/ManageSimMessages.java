@@ -133,7 +133,7 @@ public class ManageSimMessages extends Activity
         super.onCreate(icicle);
 
         int subscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY, SUB_INVALID);
-        mIccUri = getIccUriBySubscription(subscription);
+        mIccUri = MessageUtils.getIccUriBySubscription(subscription);
 
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
@@ -165,17 +165,6 @@ public class ManageSimMessages extends Activity
         startQuery();
     }
 
-    private Uri getIccUriBySubscription(int subscription) {
-        switch (subscription) {
-            case MSimConstants.SUB1:
-                return ICC1_URI;
-            case MSimConstants.SUB2:
-                return ICC2_URI;
-            default:
-                return ICC_URI;
-        }
-    }
-
     private class QueryHandler extends AsyncQueryHandler {
         private final ManageSimMessages mParent;
 
@@ -199,7 +188,7 @@ public class ManageSimMessages extends Activity
                     //   mListAdapter.setOnDataSetChangedListener(mDataSetChangedListener);
                     // See ComposeMessageActivity for an example.
                     mListAdapter = new MessageListAdapter(
-                            mParent, mCursor, mSimList, false, null);
+                            mParent, mCursor, mSimList, false, null, true);
                     mSimList.setAdapter(mListAdapter);
                     mSimList.setOnCreateContextMenuListener(mParent);
                     mSimList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -458,7 +447,7 @@ public class ManageSimMessages extends Activity
     private boolean isIncomingMessage(Cursor cursor) {
         int messageStatus = cursor.getInt(
                 cursor.getColumnIndexOrThrow("status"));
-
+            
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
     }

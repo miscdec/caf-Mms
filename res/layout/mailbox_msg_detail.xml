@@ -33,16 +33,16 @@
                         android:paddingRight="20dip" 
                         android:paddingLeft="20dip"/>
                 </LinearLayout>
-		        <ImageView android:id="@+id/titleDivider"
-        	        android:layout_width="match_parent"
-            	    android:layout_height="1dip"
-    	            android:gravity="fill_horizontal"
-                    android:scaleType="fitXY"	           
+                <ImageView android:id="@+id/titleDivider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dip"
+                    android:gravity="fill_horizontal"
+                    android:scaleType="fitXY"   
                     android:background="#cccccc"
                     android:paddingLeft="15dip"
                     android:paddingRight="15dip"
-            	    android:layout_marginTop="10dip"
-            	    android:layout_marginBottom="10dip"/>               	
+                    android:layout_marginTop="10dip"
+                    android:layout_marginBottom="10dip"/> 
                 <LinearLayout 
                     android:layout_height="wrap_content" 
                     android:layout_width="match_parent" 
@@ -63,7 +63,7 @@
                             <LinearLayout 
                                 android:layout_width="wrap_content" 
                                 android:layout_height="wrap_content" 
-    	                        android:layout_gravity="center_vertical"                            
+                                android:layout_gravity="center_vertical"                            
                                 android:orientation="horizontal">
                                 <TextView 
                                     android:layout_height="wrap_content" 
@@ -85,18 +85,10 @@
                                     >
                                 </TextView>
                             </LinearLayout>     
- 				            <TextView 
-                                    android:layout_height="wrap_content" 
-                                    android:textAppearance="?android:attr/textAppearanceMedium" 
-                                    android:id="@+id/TextViewSimName" 
-                                    android:textSize="18dip"
-                                    android:textColor="#000000"
-                                    android:layout_width="wrap_content">
-                            </TextView> 
                             <LinearLayout 
                             android:layout_width="wrap_content" 
                             android:layout_height="wrap_content" 
-	                        android:layout_gravity="center_vertical"
+                            android:layout_gravity="center_vertical"
                             android:orientation="horizontal">
                                 <TextView 
                                     android:layout_height="wrap_content" 
@@ -116,7 +108,16 @@
                                     android:layout_width="wrap_content" 
                                     >
                                 </TextView>
-                            </LinearLayout>                            
+                            </LinearLayout> 
+                            <TextView 
+                                    android:layout_height="wrap_content" 
+                                    android:textAppearance="?android:attr/textAppearanceMedium" 
+                                    android:id="@+id/TextViewSlotType" 
+                                    android:textSize="18dip"
+                                    android:textColor="#000000"
+                                    android:layout_width="wrap_content"
+                                    android:visibility="gone">
+                            </TextView> 
                         </LinearLayout>
                     </FrameLayout>
                 </LinearLayout>        

@@ -54,6 +54,8 @@ import android.telephony.SmsMessage;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
+import android.database.sqlite.SQLiteException;
+import com.android.mms.ui.MessageUtils;
 
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
@@ -397,6 +399,34 @@ public class SmsReceiverService extends Service {
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
                 this, MessagingNotification.THREAD_ALL, false);
+
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            handleIccAbsent(MessageUtils.SUB1);
+            handleIccAbsent(MessageUtils.SUB2);
+        }
+        else
+        {
+            handleIccAbsent(MessageUtils.SUB_INVALID);
+        }
+        
+    }
+
+    private void handleIccAbsent(int subscription) 
+    {    
+        Uri iccUri = MessageUtils.getIccUriBySubscription(subscription);          
+        
+        try 
+        {
+            SqliteWrapper.delete(this, getContentResolver(), iccUri, null, null);
+        }
+        catch (SQLiteException e) 
+        {
+            SqliteWrapper.checkSQLiteException(this, e);
+        }  
+        
+        ContentResolver resolver = getContentResolver();        
+        resolver.notifyChange(iccUri, null);
     }
 
     /**

@@ -316,7 +316,7 @@ public class Contact {
         }
         return (mPersonId > 0);
     }
-	
+
     public static void addListener(UpdateListener l) {
         synchronized (mListeners) {
             mListeners.add(l);

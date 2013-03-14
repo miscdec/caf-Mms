@@ -90,6 +90,8 @@ import android.provider.ContactsContract.Intents;
 import android.content.Intent;
 import android.widget.QuickContactBadge;
 import com.android.mms.data.Contact;
+import com.android.mms.LogTag;
+import android.os.Handler;
 
 import android.content.res.Resources;
 import android.util.SparseBooleanArray;
@@ -101,6 +103,7 @@ import android.text.style.TextAppearanceSpan;
 import android.graphics.Typeface;
 
 public class MailBoxMessageListAdapter extends CursorAdapter
+    implements Contact.UpdateListener
 {
     private LayoutInflater mInflater;
     private static final String TAG = "MailBoxMessageListAdapter";
@@ -108,12 +111,20 @@ public class MailBoxMessageListAdapter extends CursorAdapter
     private OnListContentChangedListener mListChangedListener;
     private final LinkedHashMap<String, BoxMessageItem> mMessageItemCache;
     private static final int CACHE_SIZE = 50;
-
     private static final StyleSpan STYLE_BOLD = new StyleSpan(Typeface.BOLD);
+    
+    // For posting UI update Runnables from other threads:
+    private Handler mHandler = new Handler();
     private ActivityCanPaused mMailBoxMessageList;
     private ListView mListView;
     QuickContactBadge mAvatarView;
+    TextView mAddressView;
+    TextView mNameView;
+    TextView mBodyView;
+    TextView mDateView;
+    ImageView mImageViewLock;
     private String mAddress;
+    private String mName;
     private int mScreenWidth;
     
     public MailBoxMessageListAdapter(Context context,
@@ -180,6 +191,19 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         mAvatarView.setVisibility(View.VISIBLE);
     }
 
+    public void onUpdate(Contact updated) {
+        if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
+            Log.v(TAG, "onUpdate: " + this + " contact: " + updated);
+        }
+        mHandler.post(new Runnable() {
+            public void run() {
+                updateAvatarView();
+                mName = Contact.get(mAddress, true).getName();
+                formatNameView(mAddress, mName);
+            }
+        });
+    }
+    
     public View newView(Context context, Cursor cursor, ViewGroup parent)
     {
         /* FIXME: this is called 3+x times too many by the ListView */
@@ -194,6 +218,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter
 
     public void bindView(View view, Context context, Cursor cursor)
     {
+        cleanItemCache();
         final String type = cursor.getString(COLUMN_MSG_TYPE);
         final long msgId = cursor.getLong(COLUMN_ID);
         final String mstrMsgId = cursor.getString(COLUMN_ID);
@@ -216,7 +241,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         long date = 0;
         Drawable sendTypeIcon = null;
         int isLocked = 0;
-        int subID = MessageUtils.CARD_SUB1;
+        int subID = MessageUtils.SUB_INVALID;
         int msgBox = Sms.MESSAGE_TYPE_INBOX;
         boolean isUnread=false;  
 
@@ -237,6 +262,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         else if (type.equals("mms"))
         {        
             final int mmsRead = cursor.getInt(COLUMN_MMS_READ);
+            subID = cursor.getInt(COLUMN_MMS_SUB_ID);
             int messageType = cursor.getInt(COLUMN_MMS_MESSAGE_TYPE);
             msgBox = cursor.getInt(COLUMN_MMS_MESSAGE_BOX);
             isLocked = cursor.getInt(COLUMN_MMS_LOCKED);
@@ -295,14 +321,21 @@ public class MailBoxMessageListAdapter extends CursorAdapter
             view.setBackgroundDrawable(background);
         }
 
-        TextView address = (TextView) view.findViewById(R.id.MsgAddress);
-        TextView name = (TextView) view.findViewById(R.id.TextName);
-        TextView body = (TextView) view.findViewById(R.id.MsgBody);
-        TextView dateView = (TextView) view.findViewById(R.id.TextViewDate);
-        ImageView imageViewLock = (ImageView) view.findViewById(R.id.imageViewLock);
+        mBodyView = (TextView) view.findViewById(R.id.MsgBody);
+        mDateView = (TextView) view.findViewById(R.id.TextViewDate);
+        mImageViewLock = (ImageView) view.findViewById(R.id.imageViewLock);
+        mAddressView = (TextView) view.findViewById(R.id.MsgAddress);
+        mNameView = (TextView) view.findViewById(R.id.TextName);
         mAvatarView = (QuickContactBadge) view.findViewById(R.id.avatar);
         mAddress = addr;
+        mName = nameContact;
         updateAvatarView();
+        formatNameView(mAddress, mName);
+        
+        if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
+            Log.v(TAG, "bind: contacts.addListeners " + this);
+        }
+        Contact.addListener(this);
 
         if (type.equals("mms"))
         {
@@ -312,41 +345,45 @@ public class MailBoxMessageListAdapter extends CursorAdapter
 
         if (isLocked == 1)
         {
-            imageViewLock.setVisibility(View.VISIBLE);
+            mImageViewLock.setVisibility(View.VISIBLE);
         }
         else
         {
-            imageViewLock.setVisibility(View.GONE);
+            mImageViewLock.setVisibility(View.GONE);
         }
         
-        dateView.setText(dateStr);
-
-        if (TextUtils.isEmpty(nameContact) || nameContact.equals(addr))
-        {
-            name.setText(addr);
-            name.setMaxWidth(mScreenWidth/2);
-            name.setMinWidth(mScreenWidth/2);
-            address.setText("");
-        }
-        else
-        {
-            name.setText(nameContact);
-            name.setMaxWidth(130);
-            name.setMinWidth(100);
-            address.setVisibility(View.VISIBLE);
-            address.setText(addr);
-        }
+        mDateView.setText(dateStr);
+        
         if(bodyStr != null && bodyStr.length() > 120)
         {
             String bodyPart = bodyStr.substring(0,120) + "...";
-            body.setText(bodyPart);
+            mBodyView.setText(bodyPart);
         }
         else
         {
-            body.setText(bodyStr);
+            mBodyView.setText(bodyStr);
         }
     }
 
+    public void formatNameView(String address, String name)
+    {
+        if (TextUtils.isEmpty(name) || name.equals(address))
+        {
+            mNameView.setText(address);
+            mNameView.setMaxWidth(mScreenWidth/2);
+            mNameView.setMinWidth(mScreenWidth/2);
+            mAddressView.setText("");
+        }
+        else
+        {
+            mNameView.setText(name);
+            mNameView.setMaxWidth(130);
+            mNameView.setMinWidth(100);
+            mAddressView.setVisibility(View.VISIBLE);
+            mAddressView.setText(address);
+        }
+    }
+        
     public void cleanItemCache()
     {
         mMessageItemCache.clear();
