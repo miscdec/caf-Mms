@@ -53,9 +53,6 @@ public class SelectMmsSubscription extends Service {
     private int triggerSwitchOnly = 0;
     private SwitchSubscriptionTask switchSubscriptionTask;;
 
-    private boolean flagOkToStartTransactionService = false;
-    private ConnectivityBroadcastReceiver mReceiver;
-
     public class SwitchSubscriptionTask extends AsyncTask<Integer, Void, Integer> {
 
 
@@ -109,16 +106,12 @@ public class SelectMmsSubscription extends Service {
                     } else {
                         //Switch was real and it succeeded, start transaction
                         //service with all UI hoopla
-                        flagOkToStartTransactionService = true; //if PDP is up, transactionService can be started.
-                        //TODO: may be in future, we should have a timeout for
-                        //PDP up event. Upon expiration trigger transaction
-                        //service(if not done already). It should work for the cases where
-                        //second SIM does not have default propfile set. This is not the
-                        //bullet-proof method but should work most of the time.
-                        registerForPdpUp();
                         removeStatusBarNotification();
                         showNotificationMmsInProgress();
                         showNotificationAbortAndSwitchBack();
+                        Log.d(TAG, "Starting transaction service without waiting for PdpUp");
+                        triggerTransactionService();
+                        stopSelf();
                     }
                 }
             }
@@ -251,48 +244,6 @@ public class SelectMmsSubscription extends Service {
 
     }
 
-    private class ConnectivityBroadcastReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            Log.d(TAG, "ConnectivityBroadcastReceiver.onReceive() action: " + action);
-
-            if (!action.equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
-                return;
-            }
-
-            boolean noConnectivity =
-                intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false);
-
-            NetworkInfo networkInfo = (NetworkInfo)
-                intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
-
-            Log.d(TAG, "Handle ConnectivityBroadcastReceiver.onReceive(): " + networkInfo);
-
-            // Check availability of the mobile network.
-            if ((networkInfo == null) || (networkInfo.getType() !=
-                        ConnectivityManager.TYPE_MOBILE)) {
-                Log.d(TAG, "   type is not TYPE_MOBILE, bail");
-                return;
-            }
-
-            if (!networkInfo.isConnected()) {
-                Log.d(TAG, "   TYPE_MOBILE not connected, bail");
-                return;
-            }
-
-            Log.d(TAG, "TYPE_MOBILE is available and connected.");
-
-            // TYPE_MOBILE is available and connected.
-            if (flagOkToStartTransactionService == true) {
-                triggerTransactionService();
-                flagOkToStartTransactionService = false;
-                //finish();
-                stopSelf();
-            }
-        }
-    };
-
 
     private void removeStatusBarNotification() {
         Log.d(TAG, "removeStatusBarNotification");
@@ -301,14 +252,6 @@ public class SelectMmsSubscription extends Service {
                 mContext.getSystemService(ns);
         mNotificationManager.cancel(destSub);
 
-    }
-
-    void registerForPdpUp() {
-        mReceiver = new ConnectivityBroadcastReceiver();
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-        Log.d(TAG, "registerReceiver");
-        registerReceiver(mReceiver, intentFilter);
     }
 
 
@@ -347,10 +290,6 @@ public class SelectMmsSubscription extends Service {
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy()");
-        if (mReceiver != null) {
-            Log.d(TAG, "onDestroy(): UnregisterReceiver.");
-            unregisterReceiver(mReceiver);
-        }
         super.onDestroy();
     }
 
