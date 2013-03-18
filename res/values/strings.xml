@@ -578,7 +578,7 @@
     <!-- Menu title to delete a selected messaged from the SIM card. -->
     <string name="sim_delete">Delete</string>
     <!-- Title of screen displaying messages on SIM card -->
-    <string name="sim_manage_messages_title">Text messages on SIM card</string>
+    <string name="sim_manage_messages_title">Text messages on <xliff:g id="card">%s</xliff:g></string>
     <!-- Context menu item but currently commented out in 1.0. -->
     <string name="sim_view">View</string>
     <!-- Message that appears on the "SMS messges on SIM card" screen when there are no messages on the SIM card -->

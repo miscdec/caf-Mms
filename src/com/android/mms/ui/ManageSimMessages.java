@@ -97,6 +97,7 @@ public class ManageSimMessages extends Activity
     
     private int mState;
     private Uri mIccUri;
+    private int mSubscription; // add for DSDS
     private ContentResolver mContentResolver;
     private Cursor mCursor = null;
     private ListView mSimList;
@@ -132,8 +133,8 @@ public class ManageSimMessages extends Activity
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
-        int subscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY, SUB_INVALID);
-        mIccUri = MessageUtils.getIccUriBySubscription(subscription);
+        mSubscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY, SUB_INVALID);
+        mIccUri = MessageUtils.getIccUriBySubscription(mSubscription);
 
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
@@ -581,6 +582,20 @@ public class ManageSimMessages extends Activity
         builder.show();
     }
 
+    /**
+      * Return the slot type according to subscription
+      */
+    public String getSlotStringBySubscription(int subscription) {
+        switch (subscription) {
+            case MSimConstants.SUB1:
+                return getString(R.string.type_slot1);
+            case MSimConstants.SUB2:
+                return getString(R.string.type_slot2);
+            default:
+                return getString(R.string.sim_card);
+        }
+    }
+        
     private void updateState(int state) {
         if (mState == state) {
             return;
@@ -590,15 +605,15 @@ public class ManageSimMessages extends Activity
         switch (state) {
             case SHOW_LIST:
                 mSimList.setVisibility(View.VISIBLE);
-                mMessage.setVisibility(View.GONE);
-                setTitle(getString(R.string.sim_manage_messages_title));
+                mMessage.setVisibility(View.GONE);  
+                setTitle(getString(R.string.sim_manage_messages_title, getSlotStringBySubscription(mSubscription)));
                 setProgressBarIndeterminateVisibility(false);
                 mSimList.requestFocus();
                 break;
             case SHOW_EMPTY:
                 mSimList.setVisibility(View.GONE);
                 mMessage.setVisibility(View.VISIBLE);
-                setTitle(getString(R.string.sim_manage_messages_title));
+                setTitle(getString(R.string.sim_manage_messages_title, getSlotStringBySubscription(mSubscription)));
                 setProgressBarIndeterminateVisibility(false);
                 break;
             case SHOW_BUSY:

@@ -26,6 +26,9 @@ import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
 import android.preference.PreferenceActivity;
+import android.app.ActionBar;
+import android.view.Menu;
+import android.view.MenuItem;
 
 import android.util.Log;
 
@@ -75,6 +78,9 @@ public class SelectSubscription extends PreferenceActivity {
         addPreferencesFromResource(R.xml.select_subscription);
         mSubscription1Pref = findPreference(KEY_SUBSCRIPTION1);
         mSubscription2Pref = findPreference(KEY_SUBSCRIPTION2);
+
+        ActionBar actionBar = getActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
     }
 
     @Override
@@ -90,4 +96,18 @@ public class SelectSubscription extends PreferenceActivity {
     protected void onPause() {
         super.onPause();
     }
+        
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                // The user clicked on the Messaging icon in the action bar. Take them back from
+                // wherever they came from
+                finish();
+                break;
+        }
+
+        return true;
+    }
+    
 }

@@ -229,7 +229,7 @@
     <string name="sim_copy_to_phone_memory" product="tablet" msgid="3721000641648594602">"复制到平板电脑内存"</string>
     <string name="sim_copy_to_phone_memory" product="default" msgid="5895767417844881971">"复制到手机内存"</string>
     <string name="sim_delete" msgid="610790510655316922">"删除"</string>
-    <string name="sim_manage_messages_title" msgid="3989147182100584333">"SIM 卡上的短信"</string>
+    <string name="sim_manage_messages_title" msgid="3989147182100584333">"<xliff:g id="card">%s</xliff:g>上的短信"</string>
     <string name="sim_view" msgid="1997173541766393706">"查看"</string>
     <string name="sim_empty" msgid="2356766833071636297">"SIM 卡中无短信。"</string>
     <string name="delivery_header_title" msgid="5361719578869045764">"报告"</string>
@@ -349,6 +349,10 @@
     <string name="enumeration_comma" msgid="213598026698964628">"、 "</string>
     <string name="message_timestamp_format" msgid="4188999027493614617">"<xliff:g id="STRING_0">%1$s</xliff:g> - <xliff:g id="STRING_1">%2$s</xliff:g>"</string>
     
+    <!-- Subscription selection strings -->
+    <string name="select_subscription_title">"选择卡槽"</string>
+    <string name="subscription1_title">"卡1"</string>
+    <string name="subscription2_title">"卡2"</string>    
     <string name="confirm_delete_selected_messages">选中的信息将被删除</string>
     <string name="confirm_copy_dialog_title" msgid="2187213750475782725">"要复制吗？"</string>
     <string name="confirm_copy_selected_messages">选中的信息将被复制</string>

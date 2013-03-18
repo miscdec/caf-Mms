@@ -1380,7 +1380,15 @@ public class ComposeMessageActivity extends Activity
                             .setCancelable(true)
                             .show();
                     } else {
-                        new Thread(new CopyToSimThread(mMsgItem)).start();
+                        if(MessageUtils.isMultiSimEnabledMms())
+                        {
+                           new Thread(new CopyToSimThread(mMsgItem, 
+                                MessageUtils.isIccCardActivated(MessageUtils.SUB1) ? MessageUtils.SUB1 : MessageUtils.SUB2)).start();
+                        }
+                        else
+                        {
+                            new Thread(new CopyToSimThread(mMsgItem)).start();
+                        }
                     }
                     return true;
                 }
@@ -2529,6 +2537,7 @@ public class ComposeMessageActivity extends Activity
 
         // Cleanup the BroadcastReceiver.
         unregisterReceiver(mHttpProgressReceiver);
+        unregisterReceiver(mGetRecipientsReceiver);
     }
 
     @Override
