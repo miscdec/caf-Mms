@@ -75,6 +75,7 @@ import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
+import android.provider.Settings;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.MSimSmsManager;
 import android.telephony.TelephonyManager;
@@ -1245,6 +1246,25 @@ public class MessageUtils {
         return MSimSmsManager.getDefault().getPreferredSmsSubscription();
     }
 
+    public static String getMultiSimName(Context context, int subscription) {
+        String name = Settings.System.getString(context.getContentResolver(),
+            Settings.System.MULTI_SIM_NAME[subscription]);
+        if(name == null)
+        {
+            if(isMultiSimEnabledMms())
+            {
+                name = subscription == MessageUtils.SUB1 ? context.getString(R.string.type_slot1) 
+                    : context.getString(R.string.type_slot2);
+            }
+            else 
+            {
+                name = context.getString(R.string.sim_card);
+            }
+        }
+
+        return name;
+    }
+        
     /**
       * Return the icc uri according to subscription
       */

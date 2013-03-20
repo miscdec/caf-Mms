@@ -404,11 +404,14 @@ public class MailBoxMessageContent extends Activity
     }
 
     private void showCopySelectDialog(){
-        final String[] texts = new String[] {getString(R.string.type_slot1), getString(R.string.type_slot2)};
+        String[] items = new String[MessageUtils.getActivatedIccCardCount()];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = MessageUtils.getMultiSimName(this, i);
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.menu_copy_to));
         builder.setCancelable(true);
-        builder.setItems(texts, new DialogInterface.OnClickListener()
+        builder.setItems(items, new DialogInterface.OnClickListener()
         {
             public final void onClick(DialogInterface dialog, int which)
             {
@@ -439,11 +442,14 @@ public class MailBoxMessageContent extends Activity
     }
 
     private void showCallSelectDialog(){
-        final String[] texts = new String[] {getString(R.string.type_slot1), getString(R.string.type_slot2)};
+        String[] items = new String[MessageUtils.getActivatedIccCardCount()];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = MessageUtils.getMultiSimName(this, i);
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.menu_call));
         builder.setCancelable(true);
-        builder.setItems(texts, new DialogInterface.OnClickListener()
+        builder.setItems(items, new DialogInterface.OnClickListener()
         {
             public final void onClick(DialogInterface dialog, int which)
             {
@@ -777,8 +783,7 @@ public class MailBoxMessageContent extends Activity
         if(MessageUtils.isMultiSimEnabledMms())
         {
             mSlotTypeView.setVisibility(View.VISIBLE);
-            mSlotTypeView.setText(mSubID == 0 ? getString(R.string.slot_type, getString(R.string.type_slot1))
-                : getString(R.string.slot_type, getString(R.string.type_slot2)));
+            mSlotTypeView.setText(getString(R.string.slot_type, MessageUtils.getMultiSimName(this, mSubID)));
         }
 
 

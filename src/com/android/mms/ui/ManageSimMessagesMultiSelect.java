@@ -84,7 +84,6 @@ public class ManageSimMessagesMultiSelect extends Activity
 {
     private static final String TAG = "ManageSimMessagesMultiSelect";
 
-    private static final Uri ICC_URI = Uri.parse("content://sms/icc");
     private static final int MESSAGE_LIST_QUERY_TOKEN = 9527;
     private Cursor mCursor;
     private ListView mMsgListView;
@@ -97,12 +96,16 @@ public class ManageSimMessagesMultiSelect extends Activity
     private ImageView mSelectedAll;
     private boolean mHasSelectAll = false;    
     PowerManager.WakeLock mWakeLock;
+    private int mSubscription; // add for DSDS
+    private Uri mIccUri;
     ArrayList<Integer> mSelectedPositions = new ArrayList<Integer>();
     ArrayList<String> mSelectedUris = new ArrayList<String>();
     
     private static final int MENU_DELETE_SELECT = 0;
     private static final int MENU_COPY_SELECT   = 1;    
-       
+    private static final int SUB_INVALID = -1;
+    private static final int SUB1 = 0;
+    private static final int SUB2 = 1;  
     private int ACTION_NONE = 0;
     private int ACTION_COPY = 1;
     private int ACTION_DELETE = 2;
@@ -113,6 +116,9 @@ public class ManageSimMessagesMultiSelect extends Activity
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         setContentView(R.layout.sim_list);
+        
+        mSubscription = getIntent().getIntExtra(MessageUtils.SUB_KEY, SUB_INVALID);
+        mIccUri = MessageUtils.getIccUriBySubscription(mSubscription);
 
         mMsgListView = (ListView) findViewById(R.id.messages);
         mMessage = (TextView) findViewById(R.id.empty_message);
@@ -251,7 +257,7 @@ public class ManageSimMessagesMultiSelect extends Activity
     {
         String messageIndexString =
                 cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
-        Uri simUri = ICC_URI.buildUpon().appendPath(messageIndexString).build();
+        Uri simUri = mIccUri.buildUpon().appendPath(messageIndexString).build();
 
         return simUri.toString();
     }
@@ -311,7 +317,7 @@ public class ManageSimMessagesMultiSelect extends Activity
             mMessage.setVisibility(View.GONE);
             setTitle(getString(R.string.refreshing));
             setProgressBarIndeterminateVisibility(true);
-            mBackgroundQueryHandler.startQuery(0, null, ICC_URI, null, null, null, null);
+            mBackgroundQueryHandler.startQuery(0, null, mIccUri, null, null, null, null);
         } catch (SQLiteException e) {
             SqliteWrapper.checkSQLiteException(this, e);
         }

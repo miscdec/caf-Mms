@@ -123,6 +123,8 @@ public class MailBoxMessageListAdapter extends CursorAdapter
     TextView mBodyView;
     TextView mDateView;
     ImageView mImageViewLock;
+    private int mSubscription = MessageUtils.SUB_INVALID;
+    private String mMsgType;  // "sms" or "mms"
     private String mAddress;
     private String mName;
     private int mScreenWidth;
@@ -177,9 +179,26 @@ public class MailBoxMessageListAdapter extends CursorAdapter
     private void updateAvatarView() {
         Drawable avatarDrawable;
         Drawable sDefaultContactImage = mContext.getResources().getDrawable(R.drawable.ic_contact_picture);
-
+        Drawable sDefaultContactImageMms = mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms);
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            sDefaultContactImage = (mSubscription == MessageUtils.SUB1) ? 
+                mContext.getResources().getDrawable(R.drawable.ic_contact_picture_card1) : 
+                mContext.getResources().getDrawable(R.drawable.ic_contact_picture_card2);
+            sDefaultContactImageMms = (mSubscription == MessageUtils.SUB1) ? 
+                mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms_card1) : 
+                mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms_card2);
+        }
+        
         Contact contact = Contact.get(mAddress, true);
-        avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
+        if(mMsgType.equals("mms"))
+        {
+            avatarDrawable = sDefaultContactImageMms;
+        }
+        else
+        {
+            avatarDrawable = sDefaultContactImage;
+        }
 
         if (contact.existsInDatabase()) {
             mAvatarView.assignContactUri(contact.getUri());
@@ -218,20 +237,25 @@ public class MailBoxMessageListAdapter extends CursorAdapter
 
     public void bindView(View view, Context context, Cursor cursor)
     {
+        if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
+            Log.v(TAG, "bind: contacts.addListeners " + this);
+        }
+        Contact.addListener(this);
         cleanItemCache();
-        final String type = cursor.getString(COLUMN_MSG_TYPE);
-        final long msgId = cursor.getLong(COLUMN_ID);
-        final String mstrMsgId = cursor.getString(COLUMN_ID);
         
+        final String type = cursor.getString(COLUMN_MSG_TYPE);
+        mMsgType = type;
+        final long msgId = cursor.getLong(COLUMN_ID);
+        final String mstrMsgId = cursor.getString(COLUMN_ID);       
         final long threadId = cursor.getLong(COLUMN_THREAD_ID);
         String tmp = "";
+        
         if (null != cursor.getString(COLUMN_MMS_SUBJECT))
         {
             tmp = new EncodedStringValue(cursor.getInt(COLUMN_MMS_SUBJECT_CHARSET), 
                 PduPersister.getBytes(cursor.getString(COLUMN_MMS_SUBJECT))).getString();
         }
-        final String subject = context.getString(R.string.forward_prefix) + tmp;
-        
+        final String subject = context.getString(R.string.forward_prefix) + tmp;       
         String addr = "";
         String bodyStr = "";
         String nameContact = "";
@@ -241,7 +265,6 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         long date = 0;
         Drawable sendTypeIcon = null;
         int isLocked = 0;
-        int subID = MessageUtils.SUB_INVALID;
         int msgBox = Sms.MESSAGE_TYPE_INBOX;
         boolean isUnread=false;  
 
@@ -252,7 +275,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter
             msgBox = item.mSmsType;
             int smsRead = item.mRead;
             isUnread=(smsRead == 0 ? true : false);
-            subID = item.mSubID;
+            mSubscription = item.mSubID;
             addr = item.mAddress;
             isLocked = item.mLocked;
             bodyStr = item.mBody;
@@ -262,7 +285,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         else if (type.equals("mms"))
         {        
             final int mmsRead = cursor.getInt(COLUMN_MMS_READ);
-            subID = cursor.getInt(COLUMN_MMS_SUB_ID);
+            mSubscription = cursor.getInt(COLUMN_MMS_SUB_ID);
             int messageType = cursor.getInt(COLUMN_MMS_MESSAGE_TYPE);
             msgBox = cursor.getInt(COLUMN_MMS_MESSAGE_BOX);
             isLocked = cursor.getInt(COLUMN_MMS_LOCKED);
@@ -329,20 +352,9 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         mAvatarView = (QuickContactBadge) view.findViewById(R.id.avatar);
         mAddress = addr;
         mName = nameContact;
-        updateAvatarView();
         formatNameView(mAddress, mName);
+        updateAvatarView();
         
-        if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
-            Log.v(TAG, "bind: contacts.addListeners " + this);
-        }
-        Contact.addListener(this);
-
-        if (type.equals("mms"))
-        {
-             mAvatarView.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms));
-             mAvatarView.setVisibility(View.VISIBLE);
-        }
-
         if (isLocked == 1)
         {
             mImageViewLock.setVisibility(View.VISIBLE);

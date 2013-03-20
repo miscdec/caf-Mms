@@ -20,7 +20,7 @@
 package com.android.mms.ui;
 
 import com.android.mms.R;
-import android.app.ListActivity;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -80,14 +80,14 @@ import android.telephony.TelephonyManager;
  * avoiding calls to findViewById() every time getView() is invoked.
  */
 
-public class NumberContextMenuActivity extends ListActivity
+public class NumberContextMenuActivity extends Activity
 {
+    private static final String TAG = "NumberContextMenuActivity";
     private static final int MENU_CALL            = Menu.FIRST;
     private static final int MENU_EDIT_TO_CALL    = Menu.FIRST + 1;
     private static final int MENU_ADD_TO_CONTACTS = Menu.FIRST + 2;
     private static final int MENU_SEND_MESSAGE    = Menu.FIRST + 3;
 
-    private ListView mListView;
     private String mNumber = "";
     private AlertDialog mMenuDialog = null;
 
@@ -96,9 +96,6 @@ public class NumberContextMenuActivity extends ListActivity
     {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);        
-        setContentView(R.layout.single_list);
-        mListView = getListView();
-        LayoutInflater inflater = LayoutInflater.from(this);
        
         initUi(getIntent());
     }
@@ -137,6 +134,12 @@ public class NumberContextMenuActivity extends ListActivity
     }
 
     @Override
+    protected void onResume()
+    {
+        super.onResume();
+    } 
+
+    @Override
     protected void onPause()
     {
         super.onPause();
@@ -148,6 +151,13 @@ public class NumberContextMenuActivity extends ListActivity
         super.onStop();
     }
 
+    
+    @Override
+    protected void onDestroy()
+    {
+        super.onDestroy();
+    }
+    
     private void call()
     {
         if(MessageUtils.isMultiSimEnabledMms())
@@ -176,11 +186,14 @@ public class NumberContextMenuActivity extends ListActivity
     }
 
     private void showCallSelectDialog(){
-        final String[] texts = new String[] {getString(R.string.type_slot1), getString(R.string.type_slot2)};
+        String[] items = new String[MessageUtils.getActivatedIccCardCount()];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = MessageUtils.getMultiSimName(this, i);
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.menu_call));
         builder.setCancelable(true);
-        builder.setItems(texts, new DialogInterface.OnClickListener()
+        builder.setItems(items, new DialogInterface.OnClickListener()
         {
             public final void onClick(DialogInterface dialog, int which)
             {
@@ -193,6 +206,7 @@ public class NumberContextMenuActivity extends ListActivity
                          Looper.loop();
                         }
                     }).start();
+                    NumberContextMenuActivity.this.finish();
                 }
                 else
                 {
@@ -203,13 +217,19 @@ public class NumberContextMenuActivity extends ListActivity
                          Looper.loop();
                         }
                     }).start();
+                    NumberContextMenuActivity.this.finish();
                 }
-                dialog.dismiss();
             }
         });
-        builder.show();    
+        builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            public void onCancel(DialogInterface dialog) {
+                NumberContextMenuActivity.this.finish();
+            }
+        });  
+        builder.show();
+        
     }
-    
+
     private void editCall()
     {
         Intent editCallIntent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + mNumber));
@@ -235,19 +255,7 @@ public class NumberContextMenuActivity extends ListActivity
         sendIntent.putExtra("exit_on_sent", true);
         this.startActivity(sendIntent);
     }
-
-    @Override
-    protected void onDestroy()
-    {
-        super.onDestroy();
-    }
-
-    @Override
-    protected void onResume()
-    {
-        super.onResume();
-    } 
-
+    
     private void showMenu()
     {
         final String[] texts = new String[] {
@@ -268,7 +276,7 @@ public class NumberContextMenuActivity extends ListActivity
                 {
                     addToContact();
                 }  
-                             
+                dialog.dismiss(); 
                 NumberContextMenuActivity.this.finish();
              }
             }
@@ -300,6 +308,7 @@ public class NumberContextMenuActivity extends ListActivity
                 if (which == 0)
                 {
                     sendMessage();
+                    NumberContextMenuActivity.this.finish();
                 }
                 else if (which == 1)
                 {
@@ -308,13 +317,13 @@ public class NumberContextMenuActivity extends ListActivity
                 else if (which == 2)
                 {
                     editCall();
+                    NumberContextMenuActivity.this.finish();
                 }
                 else if (which == 3)
                 {
                     addToContact();
+                    NumberContextMenuActivity.this.finish();
                 }
-                             
-                NumberContextMenuActivity.this.finish();
              }
             }
         );
@@ -326,5 +335,6 @@ public class NumberContextMenuActivity extends ListActivity
         builder.setCancelable(true);
         mMenuDialog = builder.create();
         mMenuDialog.show();
-    }    
+    }  
+    
 }

@@ -372,7 +372,7 @@ public class MessageListItem extends LinearLayout implements
         if (!sameItem || haveLoadedPdu) {
             boolean isSelf = Sms.isOutgoingFolder(mMessageItem.mBoxId);
             String addr = isSelf ? null : mMessageItem.mAddress;
-            updateAvatarView(addr, isSelf);
+            updateAvatarView(addr, false);
         }
 
         // Get and/or lazily set the formatted message from/on the
@@ -584,8 +584,9 @@ public class MessageListItem extends LinearLayout implements
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
 
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            buf.append( (subId == 0) ? "SUB1:" : "SUB2:");
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !mSimFlag) {
+            buf.append(MessageUtils.getMultiSimName(mContext , subId));
+            buf.append(":");       
             buf.append("\n");
         }
 
@@ -714,6 +715,7 @@ public class MessageListItem extends LinearLayout implements
                         final String telPrefix = "tel:";
                         // If prefix string is "mailto" then translate it.
                         final String mailPrefix = "mailto:";
+                        
                         if(url != null)
                         {
                             if (url.startsWith(telPrefix)) {
@@ -726,8 +728,8 @@ public class MessageListItem extends LinearLayout implements
                                 }
                             }
                             else if (url.startsWith(mailPrefix)) {
-                                    url = mContext.getResources().getString(R.string.mail_to) +
-                                                url.substring(mailPrefix.length());
+                                url = mContext.getResources().getString(R.string.mail_to) +
+                                            url.substring(mailPrefix.length());
                             }
                         }
 

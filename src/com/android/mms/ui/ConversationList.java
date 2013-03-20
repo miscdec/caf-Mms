@@ -431,7 +431,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             }
         }
         */
-        if (!MessageUtils.isIccCardActivated()){
+        if (!MessageUtils.isHasCard()){
             item = menu.findItem(R.id.action_sim_card);
             if (item != null) {
                 item.setVisible(false);
@@ -472,15 +472,25 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             case R.id.action_change_mode:
                 Intent modeIntent = new Intent(this, MailBoxMessageList.class);
                 startActivityIfNeeded(modeIntent, -1);
-                break;	
+                break;
             case R.id.action_sim_card:
                 if (!MessageUtils.isMultiSimEnabledMms()) {
                     startActivity(new Intent(this, ManageSimMessages.class));
                 } else {
-                    Intent subIntent = new Intent(this, SelectSubscription.class);
-                    subIntent.putExtra(SelectSubscription.PACKAGE, "com.android.mms");
-                    subIntent.putExtra(SelectSubscription.TARGET_CLASS, "com.android.mms.ui.ManageSimMessages");
-                    startActivity(subIntent);
+                    if(MessageUtils.getActivatedIccCardCount() > 1)
+                    {
+                        Intent subIntent = new Intent(this, SelectSubscription.class);
+                        subIntent.putExtra(SelectSubscription.PACKAGE, "com.android.mms");
+                        subIntent.putExtra(SelectSubscription.TARGET_CLASS, "com.android.mms.ui.ManageSimMessages");
+                        startActivity(subIntent);
+                    }
+                    else
+                    {
+                        Intent simintent = new Intent(this, ManageSimMessages.class);
+                        simintent.putExtra(MessageUtils.SUB_KEY,
+                            MessageUtils.isIccCardActivated(MessageUtils.SUB1) ? MessageUtils.SUB1 : MessageUtils.SUB2);
+                        startActivity(simintent);
+                    }
                 }
                 break;
             case R.id.action_debug_dump:

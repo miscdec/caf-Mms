@@ -20,7 +20,7 @@
 package com.android.mms.ui;
 
 import com.android.mms.R;
-import android.app.ListActivity;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -78,13 +78,12 @@ import android.content.DialogInterface.OnClickListener;
  * avoiding calls to findViewById() every time getView() is invoked.
  */
 
-public class WwwContextMenuActivity extends ListActivity
+public class WwwContextMenuActivity extends Activity
 {
     private static final int MENU_LOAD_URL       = Menu.FIRST;
     private static final int MENU_SAVE_TO_LABEL  = Menu.FIRST + 1;
     private static final Uri BOOKMARKS_URI = Uri.parse("content://browser/bookmarks");  
 
-    private ListView mListView;
     private String mUrlString = "";
     private AlertDialog mMenuDialog = null;
     
@@ -93,9 +92,7 @@ public class WwwContextMenuActivity extends ListActivity
     {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);        
-        setContentView(R.layout.single_list);
-        mListView = getListView();
-        LayoutInflater inflater = LayoutInflater.from(this);
+
         initUi(getIntent());
     }
     @Override
@@ -161,7 +158,8 @@ public class WwwContextMenuActivity extends ListActivity
                 WwwContextMenuActivity.this.finish();
             }
         });            
-        builder.show();        
+        builder.show();
+        
     }
 
     private void loadUrl(String url)

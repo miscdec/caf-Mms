@@ -531,7 +531,7 @@ public class ManageSimMessages extends Activity
                 int total = -1;
                 if(MessageUtils.isMultiSimEnabledMms())
                 {
-                    total = MSimSmsManager.getDefault().getSmsCapCountOnIcc(MSimTelephonyManager.getDefault().getDefaultSubscription());
+                    total = MSimSmsManager.getDefault().getSmsCapCountOnIcc(mSubscription);
                 }
                 else
                 {
@@ -555,9 +555,19 @@ public class ManageSimMessages extends Activity
                             .setMessage(message)
                             .setCancelable(true)
                             .show();
-                break;	
+                break;
             case OPTION_MENU_MUTIL_SELECT:
-                startActivity(new Intent(this, ManageSimMessagesMultiSelect.class));
+                if(MessageUtils.isMultiSimEnabledMms())
+                {
+                    Intent intent = new Intent(this, ManageSimMessagesMultiSelect.class);
+                    intent.putExtra(MessageUtils.SUB_KEY, mSubscription);
+                    startActivity(intent);
+                }
+                else
+                {
+                    startActivity(new Intent(this, ManageSimMessagesMultiSelect.class));
+                }
+
                 break;
             case android.R.id.home:
                 // The user clicked on the Messaging icon in the action bar. Take them back from
