@@ -549,7 +549,7 @@ public class MailBoxMessageContent extends Activity
                         
                         Uri retUri = SqliteWrapper.insert(MailBoxMessageContent.this, getContentResolver(),
                                                           uriStr, values);
-                        if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                        if (uriStr != null && retUri != null) {
                             Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
                                 + ", retUri = " + retUri.toString());
                         }

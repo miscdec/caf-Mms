@@ -28,6 +28,7 @@ import static com.android.mms.ui.MessageListAdapter.COLUMN_SUB_ID;
 import static com.android.mms.ui.MessageListAdapter.PROJECTION;
 
 import com.qrd.plugin.feature_query.FeatureQuery;
+import com.qualcomm.internal.telephony.MSimPhoneFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -73,6 +74,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.Parcelable;
 import android.os.SystemProperties;
@@ -165,7 +167,7 @@ import com.google.android.mms.pdu.SendReq;
 import android.text.format.Time;
 import java.util.Set;
 import java.util.Iterator;
-import com.qualcomm.internal.telephony.MSimPhoneFactory;
+
 
 /**
  * This is the main UI for:
@@ -284,7 +286,7 @@ public class ComposeMessageActivity extends Activity
     private EditText mTextEditor;           // Text editor to type your message into
     private TextView mTextCounter;          // Shows the number of characters used in text editor
     private TextView mSendButtonMms;        // Press to send mms
-    static public int subSelected = 0;
+    //static private int subSelected = 0;                // no more used in DSDS , see WorkingMessage.mCurrentConvSub
     private ImageButton mSendButtonSms;     // Press to send sms
     private EditText mSubjectTextEditor;    // Text editor for MMS subject
 
@@ -1563,17 +1565,7 @@ public class ComposeMessageActivity extends Activity
                     
                 case MENU_COPY_TO_SIM: {
                      if (MessageUtils.getActivatedIccCardCount() > 1) {
-                        String[] items = new String[MSimTelephonyManager.getDefault().getPhoneCount()];
-                        for (int i = 0; i < items.length; i++) {
-                            items[i] = MessageUtils.getMultiSimName(ComposeMessageActivity.this, i);
-                        }
-                        CopyToSimSelectListener listener = new CopyToSimSelectListener(mMsgItem);
-                        new AlertDialog.Builder(ComposeMessageActivity.this)
-                            .setTitle(R.string.menu_copy_to)
-                            .setPositiveButton(android.R.string.ok, listener)
-                            .setSingleChoiceItems(items, 0, listener)
-                            .setCancelable(true)
-                            .show();
+                        showCopySelectDialog(mMsgItem);       
                     } else {
                         if(MessageUtils.isMultiSimEnabledMms())
                         {
@@ -1640,21 +1632,44 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
-    private class CopyToSimSelectListener implements DialogInterface.OnClickListener {
-        private MessageItem msgItem;
+    private void showCopySelectDialog(final MessageItem msgItem){
+        String[] items = new String[MessageUtils.getActivatedIccCardCount()];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = MessageUtils.getMultiSimName(this, i);
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.menu_copy_to));
+        builder.setCancelable(true);
+        builder.setItems(items, new DialogInterface.OnClickListener()
+        {
+            public final void onClick(DialogInterface dialog, int which)
+            {
+                if (which == 0)
+                {
+                    new Thread(new CopyToSimThread(msgItem, MessageUtils.SUB1)).start();
+                }
+                else
+                {
+                    new Thread(new CopyToSimThread(msgItem, MessageUtils.SUB2)).start();
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();    
+    }
+    
+        
+    //Thread for DialRecipientThread
+    private class DialRecipientThread extends Thread {
         private int subscription;
-
-        public CopyToSimSelectListener(MessageItem msgItem) {
-            super();
-            this.msgItem = msgItem;
+        
+        public DialRecipientThread(int subscription) {
+            this.subscription = subscription;
         }
 
-        public void onClick(DialogInterface dialog, int which) {
-            if (which >= 0) {
-                subscription = which;
-            } else if (which == DialogInterface.BUTTON_POSITIVE) {
-                new Thread(new CopyToSimThread(msgItem,subscription)).start();
-            }
+        @Override
+        public void run() {
+            MessageUtils.dialRecipient(ComposeMessageActivity.this, getRecipients().get(0).getNumber(),subscription);
         }
     }
         
@@ -1712,14 +1727,15 @@ public class ComposeMessageActivity extends Activity
             values.put(Sms.READ, MessageUtils.MESSAGE_READ);
             values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
             Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
-            
+
             Uri retUri = SqliteWrapper.insert(ComposeMessageActivity.this, getContentResolver(),
                                               uriStr, values);
-            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+            
+            if (uriStr != null && retUri != null) {
                 Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
                     + ", retUri = " + retUri.toString());
             }
-            
+           
             if (retUri == null)
             {
                 msg.obj = getString(R.string.operate_failure);
@@ -3207,7 +3223,28 @@ public class ComposeMessageActivity extends Activity
                 });
                 break;
             case MENU_CALL_RECIPIENT:
-                dialRecipient();
+                if(MessageUtils.isMultiSimEnabledMms())
+                {
+                    if(MessageUtils.getActivatedIccCardCount() > 1)
+                    {
+                        showCallSelectDialog();
+                    }
+                    else
+                    {
+                        if(MessageUtils.isIccCardActivated(MessageUtils.SUB1))
+                        {
+                            MessageUtils.dialRecipient(this, getRecipients().get(0).getNumber(), MessageUtils.SUB1);
+                        }
+                        else if(MessageUtils.isIccCardActivated(MessageUtils.SUB2))
+                        {
+                            MessageUtils.dialRecipient(this, getRecipients().get(0).getNumber(), MessageUtils.SUB2);
+                        }                         
+                    }
+                }
+                else
+                {
+                    MessageUtils.dialRecipient(this, getRecipients().get(0).getNumber(), MessageUtils.SUB_INVALID);
+                }
                 break;
             case MENU_INSERT_SMILEY:
                 showSmileyDialog();
@@ -3249,6 +3286,44 @@ public class ComposeMessageActivity extends Activity
         return true;
     }
 
+    private void showCallSelectDialog(){
+        String[] items = new String[MessageUtils.getActivatedIccCardCount()];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = MessageUtils.getMultiSimName(this, i);
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.menu_call));
+        builder.setCancelable(true);
+        builder.setItems(items, new DialogInterface.OnClickListener()
+        {
+            public final void onClick(DialogInterface dialog, int which)
+            {
+                if (which == 0)
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         MessageUtils.dialRecipient(ComposeMessageActivity.this, getRecipients().get(0).getNumber(), MessageUtils.SUB1);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                else
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         MessageUtils.dialRecipient(ComposeMessageActivity.this, getRecipients().get(0).getNumber(), MessageUtils.SUB2);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();    
+    }
+        
     private void confirmDeleteThread(long threadId) {
         Conversation.startQueryHaveLockedMessages(mBackgroundQueryHandler,
                 threadId, ConversationList.HAVE_LOCKED_MESSAGES_TOKEN);

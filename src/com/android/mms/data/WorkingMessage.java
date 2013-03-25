@@ -164,7 +164,7 @@ public class WorkingMessage {
     };
 
     private static final int MMS_MESSAGE_SIZE_INDEX  = 1;
-    private int mCurrentConvSub = -1;
+    public static int mCurrentConvSub = -1;
 
     /**
      * Callback interface for communicating important state changes back to
@@ -1347,7 +1347,7 @@ public class WorkingMessage {
         String[] dests = TextUtils.split(semiSepRecipients, ";");
         if (LogTag.VERBOSE || Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
             Log.d(LogTag.TRANSACTION, "sendSmsWorker sending message: recipients=" +
-                    semiSepRecipients + ", threadId=" + threadId);
+                    semiSepRecipients + ", threadId=" + threadId + ", mCurrentConvSub="+ mCurrentConvSub);
         }
         MessageSender sender;
 
@@ -1417,7 +1417,7 @@ public class WorkingMessage {
                 values.put(Mms.THREAD_ID, threadId);
                 values.put(Mms.MESSAGE_TYPE, PduHeaders.MESSAGE_TYPE_SEND_REQ);
                 // Write subid to Table.pdu,so that MessageItem always get correct subid.
-                values.put(Mms.SUB_ID, ComposeMessageActivity.subSelected);
+                values.put(Mms.SUB_ID, mCurrentConvSub);
 
                 if (textOnly) {
                     values.put(Mms.TEXT_ONLY, 1);
@@ -1487,7 +1487,7 @@ public class WorkingMessage {
         }
 
         ContentValues values = new ContentValues(1);
-        values.put(Mms.SUB_ID, ComposeMessageActivity.subSelected);
+        values.put(Mms.SUB_ID, mCurrentConvSub);
 
         SqliteWrapper.update(mActivity, mContentResolver, mmsUri, values, null, null);
 
@@ -1852,7 +1852,7 @@ public class WorkingMessage {
     public void setCurrentConvSub(int subscription) {
         mCurrentConvSub = subscription;
     }
-    
+
     /*
      * Ensure the thread id in conversation if needed, when we try to save a draft with a orphaned
      * one.
