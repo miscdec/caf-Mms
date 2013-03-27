@@ -38,6 +38,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.Window;
 
+import com.android.internal.telephony.MSimConstants;
 import com.android.mms.R;
 import com.android.mms.transaction.MessagingNotification;
 
@@ -106,7 +107,11 @@ public class ClassZeroActivity extends Activity {
 
         byte[] pdu = getIntent().getByteArrayExtra("pdu");
         String format = getIntent().getStringExtra("format");
+        int subId = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY, 0);
         mMessage = SmsMessage.createFromPdu(pdu, format);
+        // SmsMessage sets sub id from intent to specify which sim
+        // card received this message.
+        mMessage.setSubId(subId);
         CharSequence messageChars = mMessage.getMessageBody();
         String message = messageChars.toString();
         if (TextUtils.isEmpty(message)) {
@@ -198,6 +203,8 @@ public class ClassZeroActivity extends Activity {
             values.put(Inbox.SUBJECT, sms.getPseudoSubject());
         }
         values.put(Inbox.REPLY_PATH_PRESENT, sms.isReplyPathPresent() ? 1 : 0);
+        // Use the sub id to specify who received this message.
+        values.put(Inbox.SUB_ID, sms.getSubId());
         values.put(Inbox.SERVICE_CENTER, sms.getServiceCenterAddress());
         return values;
     }

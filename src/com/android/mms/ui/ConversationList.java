@@ -58,6 +58,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
@@ -66,7 +67,7 @@ import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
-
+import com.android.mms.MmsApp;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
@@ -79,6 +80,7 @@ import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.pdu.PduHeaders;
+import com.qrd.plugin.feature_query.FeatureQuery;
 
 /**
  * This activity provides a list view of existing conversations.
@@ -420,6 +422,21 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (item != null) {
             item.setVisible(mListAdapter.getCount() > 0);
         }
+
+        if (!FeatureQuery.FEATURE_MMS_SHOW_MAILBOX_MODE){
+            item = menu.findItem(R.id.action_change_mode);
+            if (item != null) {
+                item.setVisible(false);
+            }
+        }
+
+        if (!MessageUtils.isHasCard()){
+            item = menu.findItem(R.id.action_sim_card);
+            if (item != null) {
+                item.setVisible(false);
+            }
+        }
+
         if (!LogTag.DEBUG_DUMP) {
             item = menu.findItem(R.id.action_debug_dump);
             if (item != null) {
@@ -450,6 +467,30 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             case R.id.action_settings:
                 Intent intent = new Intent(this, MessagingPreferenceActivity.class);
                 startActivityIfNeeded(intent, -1);
+                break;
+            case R.id.action_change_mode:
+                Intent modeIntent = new Intent(this, MailBoxMessageList.class);
+                startActivityIfNeeded(modeIntent, -1);
+                break;
+            case R.id.action_sim_card:
+                if (!MessageUtils.isMultiSimEnabledMms()) {
+                    startActivity(new Intent(this, ManageSimMessages.class));
+                } else {
+                    if(MessageUtils.getActivatedIccCardCount() > 1)
+                    {
+                        Intent subIntent = new Intent(this, SelectSubscription.class);
+                        subIntent.putExtra(SelectSubscription.PACKAGE, "com.android.mms");
+                        subIntent.putExtra(SelectSubscription.TARGET_CLASS, "com.android.mms.ui.ManageSimMessages");
+                        startActivity(subIntent);
+                    }
+                    else
+                    {
+                        Intent simintent = new Intent(this, ManageSimMessages.class);
+                        simintent.putExtra(MessageUtils.SUB_KEY,
+                            MessageUtils.isIccCardActivated(MessageUtils.SUB1) ? MessageUtils.SUB1 : MessageUtils.SUB2);
+                        startActivity(simintent);
+                    }
+                }
                 break;
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
@@ -876,9 +917,29 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     }
 
+    public void CheckAll() {
+        int count = getListView().getCount();
+
+        for (int i = 0; i < count; i++) {
+            getListView().setItemChecked(i, true);
+        }
+        mListAdapter.notifyDataSetChanged();
+    }
+
+    public void unCheckAll() {
+        int count = getListView().getCount();
+
+        for (int i = 0; i < count; i++) {
+            getListView().setItemChecked(i, false);
+        }
+        mListAdapter.notifyDataSetChanged();
+    }
+
     private class ModeCallback implements ListView.MultiChoiceModeListener {
         private View mMultiSelectActionBarView;
         private TextView mSelectedConvCount;
+        private ImageView mSelectedAll; 
+        private boolean mHasSelectAll = false;
         private HashSet<Long> mSelectedThreadIds;
 
         @Override
@@ -897,6 +958,25 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mode.setCustomView(mMultiSelectActionBarView);
             ((TextView)mMultiSelectActionBarView.findViewById(R.id.title))
                 .setText(R.string.select_conversations);
+
+            mSelectedAll = (ImageView)mMultiSelectActionBarView.findViewById(R.id.selecte_all);
+            mSelectedAll.setImageResource(R.drawable.ic_menu_select_all);           
+            mSelectedAll.setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) {                       
+                        if(mHasSelectAll)
+                        {
+                            mHasSelectAll = false;
+                            unCheckAll();
+                            mSelectedAll.setImageResource(R.drawable.ic_menu_select_all);
+                        }
+                        else
+                        {
+                            mHasSelectAll = true;
+                            CheckAll();
+                            mSelectedAll.setImageResource(R.drawable.ic_menu_unselect_all);
+                        }
+                    }
+                });    
             return true;
         }
 

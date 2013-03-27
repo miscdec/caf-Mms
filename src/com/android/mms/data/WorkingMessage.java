@@ -78,6 +78,10 @@ import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.SendReq;
 
+import android.telephony.MSimTelephonyManager;
+import android.telephony.MSimSmsManager;
+import android.telephony.TelephonyManager;
+
 /**
  * Contains all state related to a message being edited by the user.
  */
@@ -160,6 +164,7 @@ public class WorkingMessage {
     };
 
     private static final int MMS_MESSAGE_SIZE_INDEX  = 1;
+    public static int mCurrentConvSub = -1;
 
     /**
      * Callback interface for communicating important state changes back to
@@ -299,6 +304,10 @@ public class WorkingMessage {
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) LogTag.debug("loadDraft %s", conv);
 
         final WorkingMessage msg = createEmpty(activity);
+
+        // set conversation to mWorkingMessage,
+        // or the conversation of WorkingMessage will be default value null.
+        msg.setConversation(conv);
         if (conv.getThreadId() <= 0) {
             if (onDraftLoaded != null) {
                 onDraftLoaded.run();
@@ -851,6 +860,7 @@ public class WorkingMessage {
             mHasMmsDraft = true;
         } finally {
             DraftCache.getInstance().setSavingDraft(false);
+             updateWidget();
         }
         return mMessageUri;
     }
@@ -905,6 +915,9 @@ public class WorkingMessage {
                 mMessageUri = null;
             }
         }
+
+        // Update state of the draft cache.
+        mConversation.setDraftState(true);
     }
 
     synchronized public void discard() {
@@ -924,6 +937,9 @@ public class WorkingMessage {
         // Delete any associated drafts if there are any.
         if (mHasMmsDraft) {
             asyncDeleteDraftMmsMessage(mConversation);
+            // Remove cache
+            removeThumbnailsFromCache(mSlideshow);
+            updateWidget();
         }
         if (mHasSmsDraft) {
             asyncDeleteDraftSmsMessage(mConversation);
@@ -1322,18 +1338,20 @@ public class WorkingMessage {
 
         // Be paranoid and clean any draft SMS up.
         deleteDraftSmsMessage(threadId);
+
+        // if convert one Mms Draft to Sms and send it,so need delete Mms Draft.
+        deleteDraftMmsMessage(threadId);
     }
 
     private void sendSmsWorker(String msgText, String semiSepRecipients, long threadId) {
         String[] dests = TextUtils.split(semiSepRecipients, ";");
         if (LogTag.VERBOSE || Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
             Log.d(LogTag.TRANSACTION, "sendSmsWorker sending message: recipients=" +
-                    semiSepRecipients + ", threadId=" + threadId);
+                    semiSepRecipients + ", threadId=" + threadId + ", mCurrentConvSub="+ mCurrentConvSub);
         }
         MessageSender sender;
 
-        sender = new SmsMessageSender(mActivity, dests, msgText, threadId,
-               MSimSmsManager.getDefault().getPreferredSmsSubscription());
+        sender = new SmsMessageSender(mActivity, dests, msgText, threadId, mCurrentConvSub);
 
         try {
             sender.sendMessage(threadId);
@@ -1398,6 +1416,9 @@ public class WorkingMessage {
                 values.put(Mms.MESSAGE_BOX, Mms.MESSAGE_BOX_OUTBOX);
                 values.put(Mms.THREAD_ID, threadId);
                 values.put(Mms.MESSAGE_TYPE, PduHeaders.MESSAGE_TYPE_SEND_REQ);
+                // Write subid to Table.pdu,so that MessageItem always get correct subid.
+                values.put(Mms.SUB_ID, mCurrentConvSub);
+
                 if (textOnly) {
                     values.put(Mms.TEXT_ONLY, 1);
                 }
@@ -1466,11 +1487,8 @@ public class WorkingMessage {
         }
 
         ContentValues values = new ContentValues(1);
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            values.put(Mms.SUB_ID, ComposeMessageActivity.subSelected);
-        } else {
-           values.put(Mms.SUB_ID, MSimTelephonyManager.getDefault().getPreferredDataSubscription());
-        }
+        values.put(Mms.SUB_ID, mCurrentConvSub);
+
         SqliteWrapper.update(mActivity, mContentResolver, mmsUri, values, null, null);
 
         MessageSender sender = new MmsMessageSender(mActivity, mmsUri,
@@ -1633,6 +1651,7 @@ public class WorkingMessage {
                     asyncDeleteDraftSmsMessage(conv);
                 } finally {
                     DraftCache.getInstance().setSavingDraft(false);
+				    updateWidget();
                     closePreOpenedFiles(preOpenedFiles);
                 }
             }
@@ -1759,6 +1778,7 @@ public class WorkingMessage {
                     updateDraftSmsMessage(conv, contents);
                 } finally {
                     DraftCache.getInstance().setSavingDraft(false);
+                    updateWidget();
                 }
             }
         }, "WorkingMessage.asyncUpdateDraftSmsMessage").start();
@@ -1775,13 +1795,15 @@ public class WorkingMessage {
             return;
         }
 
-        ContentValues values = new ContentValues(3);
+        ContentValues values = new ContentValues(4);
         values.put(Sms.THREAD_ID, threadId);
         values.put(Sms.BODY, contents);
         values.put(Sms.TYPE, Sms.MESSAGE_TYPE_DRAFT);
+        values.put(Sms.ADDRESS, conv.getRecipients().serialize());
         SqliteWrapper.insert(mActivity, mContentResolver, Sms.CONTENT_URI, values);
         asyncDeleteDraftMmsMessage(conv);
         mMessageUri = null;
+        updateWidget();
     }
 
     private void asyncDelete(final Uri uri, final String selection, final String[] selectionArgs) {
@@ -1792,6 +1814,7 @@ public class WorkingMessage {
             @Override
             public void run() {
                 SqliteWrapper.delete(mActivity, mContentResolver, uri, selection, selectionArgs);
+                updateWidget();
             }
         }, "WorkingMessage.asyncDelete").start();
     }
@@ -1812,6 +1835,10 @@ public class WorkingMessage {
                 SMS_DRAFT_WHERE, null);
     }
 
+    private void deleteDraftMmsMessage(long threadId) {
+        SqliteWrapper.delete(mActivity, mContentResolver,Mms.Draft.CONTENT_URI,Mms.THREAD_ID + " = " +threadId, null);
+    }
+
     private void asyncDeleteDraftMmsMessage(Conversation conv) {
         mHasMmsDraft = false;
 
@@ -1822,7 +1849,11 @@ public class WorkingMessage {
         asyncDelete(Mms.Draft.CONTENT_URI, where, null);
     }
 
-    /**
+    public void setCurrentConvSub(int subscription) {
+        mCurrentConvSub = subscription;
+    }
+
+    /*
      * Ensure the thread id in conversation if needed, when we try to save a draft with a orphaned
      * one.
      * @param conv The conversation we are in.
@@ -1841,5 +1872,9 @@ public class WorkingMessage {
         if (!conv.getRecipients().isEmpty()) {
             conv.ensureThreadId();
         }
+    }
+    
+    private void updateWidget() {
+        MmsWidgetProvider.notifyDatasetChanged(mActivity);
     }
 }

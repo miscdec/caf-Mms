@@ -54,6 +54,10 @@ import android.telephony.SmsMessage;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
+import android.database.sqlite.SQLiteException;
+import com.android.mms.ui.MessageUtils;
+import com.android.internal.telephony.MSimConstants;
+import com.android.internal.telephony.IccCardConstants;
 
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
@@ -95,6 +99,7 @@ public class SmsReceiverService extends Service {
         Sms.ADDRESS,    //2
         Sms.BODY,       //3
         Sms.STATUS,     //4
+        Sms.SUB_ID,     //5
 
     };
 
@@ -106,6 +111,7 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_ADDRESS    = 2;
     private static final int SEND_COLUMN_BODY       = 3;
     private static final int SEND_COLUMN_STATUS     = 4;
+    private static final int SEND_COLUMN_SUB_ID     = 5;
 
     private int mResultCode;
 
@@ -192,6 +198,7 @@ public class SmsReceiverService extends Service {
         public void handleMessage(Message msg) {
             int serviceId = msg.arg1;
             Intent intent = (Intent)msg.obj;
+
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "handleMessage serviceId: " + serviceId + " intent: " + intent);
             }
@@ -213,8 +220,19 @@ public class SmsReceiverService extends Service {
                 } else if (TelephonyIntents.ACTION_SERVICE_STATE_CHANGED.equals(action)) {
                     handleServiceStateChanged(intent);
                 } else if (ACTION_SEND_MESSAGE.endsWith(action)) {
-                    handleSendMessage();
-                }
+                    handleSendMessage(intent);
+                } else if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
+                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, 0);
+                    String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                    
+                    Log.d(TAG, "ACTION_SIM_STATE_CHANGED : stateExtra= " + stateExtra + ",subscription= " + subscription);
+                    if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)) {
+                        handleIccAbsent(subscription);
+                    }
+                    else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+                        queryIccSms(subscription);
+                    }
+                  }
             }
             // NOTE: We MUST not call stopSelf() directly, since we need to
             // make sure the wake lock acquired by AlertReceiver is released.
@@ -222,6 +240,20 @@ public class SmsReceiverService extends Service {
         }
     }
 
+    private void queryIccSms(int subscription)
+    {
+        Uri iccUri = MessageUtils.getIccUriBySubscription(subscription); 
+        
+        try 
+        {
+            SqliteWrapper.query(this, getContentResolver(), iccUri, null, null, null, null);
+        } 
+        catch (SQLiteException e) 
+        {
+            SqliteWrapper.checkSQLiteException(this, e);
+        }
+    }
+    
     private void handleServiceStateChanged(Intent intent) {
         // If service just returned, start sending out the queued messages
         ServiceState serviceState = ServiceState.newFromBundle(intent.getExtras());
@@ -236,19 +268,30 @@ public class SmsReceiverService extends Service {
         }
     }
 
-    private void handleSendMessage() {
+    private void handleSendMessage(Intent intent) {
         if (!mSending) {
-            sendFirstQueuedMessage();
+            if (MessageUtils.isMultiSimEnabledMms()) {
+                sendFirstQueuedMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0)); //Todo 
+            } else {
+                sendFirstQueuedMessage();
+            }
+
         }
     }
 
     public synchronized void sendFirstQueuedMessage() {
+        //sendFirstQueuedMessage(MSimSmsManager.getDefault().getPreferredSmsSubscription());
+        sendFirstQueuedMessage(MessageUtils.SUB_INVALID);
+    }
+
+    public synchronized void sendFirstQueuedMessage(int subscription) {
         boolean success = true;
         // get all the queued messages from the database
         final Uri uri = Uri.parse("content://sms/queued");
         ContentResolver resolver = getContentResolver();
+        String where = Sms.SUB_ID + "=" + subscription;
         Cursor c = SqliteWrapper.query(this, resolver, uri,
-                        SEND_PROJECTION, null, null, "date ASC");   // date ASC so we send out in
+                        SEND_PROJECTION, where, null, "date ASC");  // date ASC so we send out in
                                                                     // same order the user tried
                                                                     // to send messages.
         if (c != null) {
@@ -262,10 +305,9 @@ public class SmsReceiverService extends Service {
                     int msgId = c.getInt(SEND_COLUMN_ID);
                     Uri msgUri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgId);
                     SmsMessageSender sender;
-
                     sender = new SmsSingleRecipientSender(this,
                             address, msgText, threadId, status == Sms.STATUS_PENDING,
-                            msgUri, MSimSmsManager.getDefault().getPreferredSmsSubscription());
+                            msgUri, subscription);
 
                     if (LogTag.DEBUG_SEND ||
                             LogTag.VERBOSE ||
@@ -284,6 +326,9 @@ public class SmsReceiverService extends Service {
                         mSending = false;
                         messageFailedToSend(msgUri, SmsManager.RESULT_ERROR_GENERIC_FAILURE);
                         success = false;
+                        // Current message send was failed(have some
+                        // exceptions), need send next one.
+                        sendNextMessage(subscription);
                     }
                 }
             } finally {
@@ -315,8 +360,9 @@ public class SmsReceiverService extends Service {
             if (!Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_SENT, error)) {
                 Log.e(TAG, "handleSmsSent: failed to move message " + uri + " to sent folder");
             }
+            // Current message sent out, send next one if necessary.
             if (sendNextMsg) {
-                sendFirstQueuedMessage();
+                sendNextMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0));
             }
 
             // Update the notification for failed messages since they may be deleted.
@@ -347,9 +393,8 @@ public class SmsReceiverService extends Service {
             });
         } else {
             messageFailedToSend(uri, error);
-            if (sendNextMsg) {
-                sendFirstQueuedMessage();
-            }
+            // Current message send failed, need send next one.
+            sendNextMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0));
         }
     }
 
@@ -359,6 +404,20 @@ public class SmsReceiverService extends Service {
         }
         Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_FAILED, error);
         MessagingNotification.notifySendFailed(getApplicationContext(), true);
+    }
+
+    /**
+     * Send the next message on the message queue.
+     *
+     * @param subscription Indicate send the message from which slot.
+     */
+    private void sendNextMessage(int subscription) {
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            sendFirstQueuedMessage(subscription);
+        } else {
+            sendFirstQueuedMessage();
+        }
+
     }
 
     private void handleSmsReceived(Intent intent, int error) {
@@ -392,11 +451,44 @@ public class SmsReceiverService extends Service {
         }
 
         // Send any queued messages that were waiting from before the reboot.
-        sendFirstQueuedMessage();
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            sendFirstQueuedMessage(MSimConstants.SUB1);
+            sendFirstQueuedMessage(MSimConstants.SUB2);
+        } else {
+            sendFirstQueuedMessage();
+        }
 
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
                 this, MessagingNotification.THREAD_ALL, false);
+
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            handleIccAbsent(MessageUtils.SUB1);
+            handleIccAbsent(MessageUtils.SUB2);
+        }
+        else
+        {
+            handleIccAbsent(MessageUtils.SUB_INVALID);
+        }
+        
+    }
+
+    private void handleIccAbsent(int subscription) 
+    {    
+        Uri iccUri = MessageUtils.getIccUriBySubscription(subscription);          
+
+        try 
+        {
+            SqliteWrapper.delete(this, getContentResolver(), iccUri, null, null);
+        }
+        catch (SQLiteException e) 
+        {
+            SqliteWrapper.checkSQLiteException(this, e);
+        }  
+        
+        ContentResolver resolver = getContentResolver();        
+        resolver.notifyChange(iccUri, null);
     }
 
     /**
@@ -646,6 +738,7 @@ public class SmsReceiverService extends Service {
         Intent smsDialogIntent = new Intent(context, ClassZeroActivity.class)
                 .putExtra("pdu", sms.getPdu())
                 .putExtra("format", format)
+                .putExtra(MSimConstants.SUBSCRIPTION_KEY, sms.getSubId())
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                           | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
 

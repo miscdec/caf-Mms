@@ -48,6 +48,7 @@ import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.Recycler;
+import com.qrd.plugin.feature_query.FeatureQuery;
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -143,7 +144,9 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     }
 
     private void setMessagePreferences() {
-        if (!MmsApp.getApplication().getTelephonyManager().hasIccCard()) {
+        //if (!MmsApp.getApplication().getTelephonyManager().hasIccCard()) {
+        //remove this preference for menu item of SIM card is added in conversation list view and mailbox list view
+        if(true){
             // No SIM card, remove the SIM-related prefs
             PreferenceCategory smsCategory =
                 (PreferenceCategory)findPreference("pref_key_sms_settings");

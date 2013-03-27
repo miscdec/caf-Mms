@@ -61,7 +61,100 @@
 
     <!-- Subject to display in the conversation list if there is no subject -->
     <string name="no_subject_view">(No subject)</string>
+    <string name="execute_menu">OK</string>    
+    <!-- Heading of the Join Contact screen -->
+    <string name="titleJoinContactDataWith">Join contacts</string>
+    <string name="contactsList">Contacts</string>
+    <string name="recentCalls_empty">Call log is empty.</string>
+    <string name="private_num">Private number</string>
+    <string name="payphone">Pay phone</string>
+    <string name="voicemail">Voicemail</string>
+    <string name="recentCalls_delete_multi_select">Delete selected</string>
+    <string name="recentCalls_delete_confirm">OK</string>
+    <string name="recentCalls_delete_deselect_all">Cancel</string>
+    <string name="recentCalls_delete_select_all">All</string>
+    <string name="recentCalls_default_view">Default view</string>
+    <string name="recentCalls_category">Category</string>
+    <string name="recentCalls_deleteAll">Delete call log</string>
+    <string name="alert_dialog_ok">OK</string>
+    <string name="alert_dialog_cancel">Cancel</string>
+    <string name="delete_confirm_message">Delete?</string>
+    <string name="clear_all_log_confirm_title">Delete call log</string>
+    <string name="multi_delete_confirm_title">Delete selected</string>
+    <string name="recentCalls_callNumber">Call</string>
+    <string name="menu_viewContact">View contact</string>
+    <string name="recentCalls_editNumberBeforeCall">Edit before calling</string>
+    <string name="menu_sendTextMessage">Send message</string>
+    <string name="recentCalls_addToContact">Add to contacts</string>
+    <string name="recentCalls_removeFromRecentList">Delete</string>
+    <string name="delete_item_by_number">Delete by number</string>
+    <string name="delete_item_confirm_title">Delete</string>
+    <string name="delete_by_number_confirm_title">Delete by number</string>
+    <string name="delete_cancel">Canceled ! </string>
+    <string name="loading">Loading, please wait!</string>
+    <string name="notice">Notice</string> 
+    <string name="category_received">Received calls(<xliff:g id="received_num">%s</xliff:g>)</string>
+    <string name="category_dialed">Outgoing calls(<xliff:g id="dialed_num">%s</xliff:g>)</string>
+    <string name="category_missed">Missed calls(<xliff:g id="missed_num">%s</xliff:g>)</string>
+    <string name="synchronizing_from_contacts">Synchronizing with Contacts, please wait!</string>
+        <!-- Menu item that joins an aggregate with another aggregate -->
+    <string name="menu_joinAggregate">Join</string>
 
+    <!-- Menu item to toggle the tabs that show where the contact data comes from. -->
+    <string name="menu_showSources">Show sources</string>
+    <string name="menu_hideSources">Hide sources</string>
+    <string name="noContacts">No contacts.</string>
+    <string name="searchHint">Search contacts</string>
+    <string name="search_settings_description">Names of your contacts</string>
+    <string name="starredList">Starred</string>
+    <string name="frequentList">Frequent</string>
+    <string name="memory_card">Card</string>
+
+    <string name="operation_success">Done!</string>
+    <string name="operation_cancel">Canceled !</string>
+    <string name="operation_failure">Failed !</string>
+    <string name="operation_nospace">No space !</string>
+    <string name="operation_deleting">Deleting ...</string>
+    <string name="operation_copying">Copying ...</string>
+    <string name="confirm_operate">The selected items will be operated! </string>
+    <string name="confirm_title_delete">Delete </string>
+    <string name="confirm_delete_select">The selected items will be deleted!</string>
+    <string name="confirm_delete">The item will be deleted! </string>
+    <string name="confirm_title_copytophone">Copy to phone </string>
+    <string name="confirm_copytophone">The selected items will be copied to phone! </string>
+    <string name="confirm_title_copytouim">Copy to Uim </string>
+    <string name="confirm_copytouim">The selected items will be copied to Uim! </string>
+    <string name="confirm_title_copytosim">Copy to Sim </string>
+    <string name="confirm_copytosim">The selected items will be copied to Sim! </string>
+    <string name="add_slideshows">Slideshows</string>
+    <string name="wrong_file_type">Wrong file type</string>
+    <string name="close_wifi_first">Wlan is open.Please close wlan first</string>
+    <string name="edit_attachement">Edit attachment</string>
+    <string name="add_file">Add file</string>
+    <string name="export_mms">Export MMS</string>
+
+    <string name="messageShortcutActivityTitle">Choose a number to message</string>
+    <string name="callShortcutActivityTitle">Choose a number to call</string>
+    <string name="shortcutActivityTitle">Choose a contact shortcut</string>
+    <string name="usimLoading">Loading from Card, please wait!</string> 
+    <string name="pickerNewContactHeader">Create new contact</string>
+    <string name="menu_selectok">Ok</string>
+    <string name="menu_selectall">All</string>
+    <string name="menu_clearall">Cancel</string>
+    <string name="menu_keypad">Keypad</string>
+
+    <string name="menu_creatContact">Create</string>
+    <string name="menu_deleteContacts">Delete</string>
+    <string name="menu_backup">Backup</string>
+    <string name="menu_more">More</string>  
+    <string name="view_setting_title">Select contact view</string>
+    <string name="view_setting_all">All</string>
+    <string name="view_setting_phone">Phone</string>
+    <string name="no_select_message">No messages be selected.</string>        
+    <string name="operation_exceed">Max items exceed! Max count is: <xliff:g id="max_num">%s</xliff:g>.</string>
+    <string name="operation_operating">Operating ...</string>
+    <string name="no_select">No selected items! </string>
+    <string name="key_empty">Please input the keyword</string>    
     <!-- Name of the local user when displaying sender of an outgoing message (personal pronoun) -->
     <string name="messagelist_sender_self">Me</string>
     <!-- Context menu item on an individual message for viewing an attached slideshow -->
@@ -74,8 +167,22 @@
     <string name="delete_message">Delete</string>
     <!-- Time and date a message is due to expire -->
     <string name="expire_on">"Expires: <xliff:g id="date">%s</xliff:g>"</string>
+    <!-- Time and date a message was sent -->
+    <string name="sent_on">"Sent: <xliff:g id="date">%s</xliff:g>"</string>
+    <!-- Time and date a message was received -->
+    <string name="received_on">"Received: <xliff:g id="date">%s</xliff:g>"</string>
     <!-- Abbreviation for "kilobyte" -->
     <string name="kilobyte">KB</string>
+    <string name="partners">Partners</string>
+    <string name="vip">VIP</string>
+    <string name="classmates">Classmates</string>
+    <string name="friends">Friends</string>
+    <string name="colleagues">Colleagues</string>
+    <string name="family">Family</string>
+    <string name="select_group">Groups</string>
+    <string name="add_recipients_title">Add Recipients</string>
+    <string name="max_recipient">The max of the recipient is 100.</string>  
+    <string name="select_group_title">Groups</string>
 
     <!-- Dialog box title brought up when warning the user that a message could not be delivered -->
     <string name="undelivered_msg_dialog_title">Undelivered message</string>
@@ -87,6 +194,7 @@
     <string name="delete_thread">Delete thread</string>
     <!-- Context menu item on an individual message for forwarding it to another recipient -->
     <string name="menu_forward">Forward</string>
+    <string name="menu_resend">Resend</string>
     <!-- Text of a button appearing for MMS messages that have not yet been downloaded, causing the message
          to be downloaded (imperative verb) -->
     <string name="download">Download</string>
@@ -470,7 +578,7 @@
     <!-- Menu title to delete a selected messaged from the SIM card. -->
     <string name="sim_delete">Delete</string>
     <!-- Title of screen displaying messages on SIM card -->
-    <string name="sim_manage_messages_title">Text messages on SIM card</string>
+    <string name="sim_manage_messages_title">Text messages on <xliff:g id="card">%s</xliff:g></string>
     <!-- Context menu item but currently commented out in 1.0. -->
     <string name="sim_view">View</string>
     <!-- Message that appears on the "SMS messges on SIM card" screen when there are no messages on the SIM card -->
@@ -793,6 +901,69 @@
     <string name="progress_mms_title">MMS transaction on other sub in progress</string>
     <string name="progress_mms">Messaging: MMS in progress...</string>
     <string name="progress_mms_text ">Touch to retry again</string>
-
+    <string name="confirm_delete_selected_messages">The selected messages will be deleted.</string>
+    <string name="confirm_copy_selected_messages">The selected messages will be copyed.</string>
+    
+    <string name="mail_to">mailto:</string>
+    <string name="batch_operate">Batch operation</string>
+    <string name="copy_to_phone_success">Message saved</string>
+    <string name="copy_to_phone_fail">Unable to save message</string>
+    <string name="copy_failure_full">Can not copy the message because the sms storage of card is full.</string>                    
+    <string name="copy_success_full">Copy successfully. The sms storage of card is full.</string>   
+    <!-- Menu item to send message to the  extract number in NumberContextMenuActivity  -->
+    <string name="menu_send_message">Send message</string>
+    <!-- Menu item to call the  extract number after editting in NumberContextMenuActivity  -->
+    <string name="menu_edit_call">Edit before calling</string>
+    <!-- Menu item to save the  extract number in NumberContextMenuActivity  -->
+    <string name="menu_save_to_contact">Add to contacts</string>
+    <!-- Menu item to connect the extract url in WwwContextMenuActivity  -->
+    <string name="menu_connect_url">Connect</string>  
+    <!-- Menu item to add the extract url to boomark in WwwContextMenuActivity  -->
+    <string name="menu_add_to_label">Save to bookmark</string>  
+    <string name="loadurlinfo_str">Load the URL?</string>  
+    <!-- Delete confirmation dialog title -->
+    <string name="confirm_copy_dialog_title">Copy?</string>
+    <!--add for toast when deleting -->
+    <string name="deleting_title">Deleting...</string>     
+    <!--add for showing slot type in MailBoxMessageContent -->
+    <string name="slot_type">Slot : %s</string>  
+    <!-- Show SIM capacity -->
+    <string name="show_icc_sms_capacity">Capacity</string>
+    <string name="icc_sms_used">Used :  </string>
+    <string name="icc_sms_total">Total :  </string>
+    <string name="get_icc_sms_capacity_failed">Get SIM capacity failed.</string>
+    <!-- menu item of mailboxmessagecontent -->
+    <string name="menu_load_push">Load</string>   
+    <string name="menu_delete_msg">Delete</string>
+    <string name="menu_reply">Reply</string>
+    <string name="menu_copy_to">Copy</string>
+    <!-- toast for send result -->
+    <string name="send_failure">Sending failed!</string>
+    <string name="send_success">Send successfully!</string>
+    <!-- title of mailboxmessagecontent -->
+    <string name="message_detail">Message detail</string>
+    <string name="select_messages">Select messages</string>
+    <string name="no_message">No messages</string>
+    <string name="operate_failure">Operate unsuccessfully!</string>
+    <string name="operate_success">Operate successfully!</string>
+    <string name="change_mode">Change mode</string>
+    <string name="sim_capacity">SIM capacity</string>
+    <string name="sim_card">SIM card</string>
+    <!-- Spinner item of box type in mailbox-mode -->
+    <string name="box_type_select">Select box type</string>
+    <string name="type_inbox">Inbox</string>
+    <string name="type_sent">Sent</string>
+    <string name="type_outbox">Outbox</string>
+    <string name="type_draft">Drafts</string>
+    <!-- Spinner item of slot type in mailbox-mode -->
+    <string name="slot_type_select">Select slot</string>
+    <string name="type_all">All</string>
+    <string name="type_slot1">Card1</string>
+    <string name="type_slot2">Card2</string>
+    <!-- Gray hint displayed in the search field in Contacts when empty -->
+    <string name="search_bar_hint">Search contacts</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="select_all">All</string>
 </resources>
 

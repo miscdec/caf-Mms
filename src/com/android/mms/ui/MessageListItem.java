@@ -110,6 +110,7 @@ public class MessageListItem extends LinearLayout implements
     private int mPosition;      // for debugging
     private ImageLoadedCallback mImageLoadedCallback;
     private boolean mMultiRecipients;
+    private boolean mSimFlag;  // add for showing address only in SIM card list item
 
     public MessageListItem(Context context) {
         super(context);
@@ -137,12 +138,27 @@ public class MessageListItem extends LinearLayout implements
         super.onFinishInflate();
 
         mBodyTextView = (TextView) findViewById(R.id.text_view);
+        mBodyTextView.setTelUrl("tels:");
+        mBodyTextView.setWebUrl("www_custom:");
         mDateView = (TextView) findViewById(R.id.date_view);
         mLockedIndicator = (ImageView) findViewById(R.id.locked_indicator);
         mDeliveredIndicator = (ImageView) findViewById(R.id.delivered_indicator);
         mDetailsIndicator = (ImageView) findViewById(R.id.details_indicator);
         mAvatar = (QuickContactDivot) findViewById(R.id.avatar);
         mMessageBlock = findViewById(R.id.message_block);
+    }
+
+    // add for setting the background according to whether the item is selected
+    public void markAsSelected(boolean selected)
+    {
+        if(selected)
+        {
+            mMessageBlock.setBackgroundResource(R.drawable.list_selected_holo_light);
+        }
+        else
+        {
+            mMessageBlock.setBackgroundResource(R.drawable.listitem_background);
+        }
     }
 
     public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position) {
@@ -153,7 +169,8 @@ public class MessageListItem extends LinearLayout implements
         }
         boolean sameItem = mMessageItem != null && mMessageItem.mMsgId == msgItem.mMsgId;
         mMessageItem = msgItem;
-
+        mSimFlag = mMessageItem.mSimFlag;
+        
         mPosition = position;
         mMultiRecipients = convHasMultiRecipients;
 
@@ -206,7 +223,7 @@ public class MessageListItem extends LinearLayout implements
                                 + String.valueOf((mMessageItem.mMessageSize + 1023) / 1024)
                                 + mContext.getString(R.string.kilobyte);
 
-        mBodyTextView.setText(formatMessage(mMessageItem, null,
+        mBodyTextView.setTextExt(formatMessage(mMessageItem, null,
                                             mMessageItem.mSubscription,
                                             mMessageItem.mSubject,
                                             mMessageItem.mHighlight,
@@ -311,6 +328,28 @@ public class MessageListItem extends LinearLayout implements
         mAvatar.setImageDrawable(avatarDrawable);
     }
 
+    // Add this fuction for ManagerSimMessages to update Contact icon
+    public void updateAvatarView(Context context, String addr, boolean isSelf) {
+        Drawable avatarDrawable;
+        if (isSelf || !TextUtils.isEmpty(addr)) {
+            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
+            avatarDrawable = contact.getAvatar(context, sDefaultContactImage);
+
+            if (isSelf) {
+                mAvatar.assignContactUri(Profile.CONTENT_URI);
+            } else {
+                if (contact.existsInDatabase(context)) {
+                    mAvatar.assignContactUri(contact.getUri());
+                } else {
+                    mAvatar.assignContactFromPhone(contact.getNumber(), true);
+                }
+            }
+        } else {
+            avatarDrawable = sDefaultContactImage;
+        }
+        mAvatar.setImageDrawable(avatarDrawable);
+    }
+
     private void bindCommonMessage(final boolean sameItem) {
         if (mDownloadButton != null) {
             mDownloadButton.setVisibility(View.GONE);
@@ -351,7 +390,7 @@ public class MessageListItem extends LinearLayout implements
             mMessageItem.setCachedFormattedMessage(formattedMessage);
         }
         if (!sameItem || haveLoadedPdu) {
-            mBodyTextView.setText(formattedMessage);
+            mBodyTextView.setTextExt(formattedMessage);
         }
 
         // Debugging code to put the URI of the image attachment in the body of the list item.
@@ -369,7 +408,7 @@ public class MessageListItem extends LinearLayout implements
                     debugText = slide.getImage().getUri().toString();
                 }
             }
-            mBodyTextView.setText(mPosition + ": " + debugText);
+            mBodyTextView.setTextExt(mPosition + ": " + debugText);
         }
 
         // If we're in the process of sending a message (i.e. pending), then we show a "SENDING..."
@@ -545,8 +584,9 @@ public class MessageListItem extends LinearLayout implements
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
 
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            buf.append( (subId == 0) ? "SUB1:" : "SUB2:");
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !mSimFlag) {
+            buf.append(MessageUtils.getMultiSimName(mContext , subId));
+            buf.append(":");       
             buf.append("\n");
         }
 
@@ -574,12 +614,19 @@ public class MessageListItem extends LinearLayout implements
             }
         }
 
+        if(mSimFlag)
+        {
+            buf.append("\n");
+            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
+        }
+        
         if (highlight != null) {
             Matcher m = highlight.matcher(buf.toString());
             while (m.find()) {
                 buf.setSpan(new StyleSpan(Typeface.BOLD), m.start(), m.end(), 0);
             }
         }
+        
         return buf;
     }
 
@@ -666,15 +713,26 @@ public class MessageListItem extends LinearLayout implements
                             tv.setCompoundDrawables(d, null, null, null);
                         }
                         final String telPrefix = "tel:";
-                        if (url.startsWith(telPrefix)) {
-                            if ((mDefaultCountryIso == null) || mDefaultCountryIso.isEmpty()) {
-                                url = url.substring(telPrefix.length());
+                        // If prefix string is "mailto" then translate it.
+                        final String mailPrefix = "mailto:";
+                        
+                        if(url != null)
+                        {
+                            if (url.startsWith(telPrefix)) {
+                                if ((mDefaultCountryIso == null) || mDefaultCountryIso.isEmpty()) {
+                                    url = url.substring(telPrefix.length());
+                                }
+                                else {
+                                    url = PhoneNumberUtils.formatNumber(
+                                            url.substring(telPrefix.length()), mDefaultCountryIso);
+                                }
                             }
-                            else {
-                                url = PhoneNumberUtils.formatNumber(
-                                        url.substring(telPrefix.length()), mDefaultCountryIso);
+                            else if (url.startsWith(mailPrefix)) {
+                                url = mContext.getResources().getString(R.string.mail_to) +
+                                            url.substring(mailPrefix.length());
                             }
                         }
+
                         tv.setText(url);
                     } catch (android.content.pm.PackageManager.NameNotFoundException ex) {
                         // it's ok if we're unable to set the drawable for this view - the user

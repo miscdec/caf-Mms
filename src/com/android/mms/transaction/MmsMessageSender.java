@@ -31,6 +31,7 @@ import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 
 import com.android.mms.LogTag;
+import com.android.mms.data.WorkingMessage;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.util.SendingProgressTokenManager;
@@ -125,7 +126,7 @@ public class MmsMessageSender implements MessageSender {
         SendingProgressTokenManager.put(messageId, token);
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
             Intent intent = new Intent(mContext, TransactionService.class);
-            intent.putExtra(Mms.SUB_ID, ComposeMessageActivity.subSelected);
+            intent.putExtra(Mms.SUB_ID, WorkingMessage.mCurrentConvSub);
             Intent silentIntent = new Intent(mContext,
                     com.android.mms.ui.SelectMmsSubscription.class);
             silentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
