@@ -38,6 +38,7 @@
     <string name="has_draft" msgid="2487465595514636160">"草稿"</string>
     <string name="no_subject_view" msgid="7795086723069563537">"（无主题）"</string>
     <string name="messagelist_sender_self" msgid="3579016854116401602">"我"</string>
+    <string name="view_setting_phone">话机</string>
     <string name="view_slideshow" msgid="4990460971211388453">"观看幻灯片演示"</string>
     <string name="view_message_details" msgid="7613457646645796831">"查看详情"</string>
     <string name="view_delivery_report" msgid="8219095994071575215">"查看报告"</string>

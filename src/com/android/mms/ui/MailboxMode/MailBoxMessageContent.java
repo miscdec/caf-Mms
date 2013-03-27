@@ -214,16 +214,7 @@ public class MailBoxMessageContent extends Activity
     {
         super.onResume();
     }
-
-    private void refreshUi()
-    {
-        if (!TextUtils.isEmpty(mMsgFromto))
-        {
-            String address = mMsgFromto;
-            mNumberView.setText(mMsgFromto);                
-        }
-    }
-
+    
     @Override
     public boolean onSearchRequested() {
         return false;
@@ -408,6 +399,7 @@ public class MailBoxMessageContent extends Activity
         for (int i = 0; i < items.length; i++) {
             items[i] = MessageUtils.getMultiSimName(this, i);
         }
+        
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.menu_copy_to));
         builder.setCancelable(true);
@@ -576,6 +568,7 @@ public class MailBoxMessageContent extends Activity
             }).start();                  
         }
     }
+    
     private void reply()
     {
         Intent intent = new Intent(this, ComposeMessageActivity.class);
@@ -787,16 +780,16 @@ public class MailBoxMessageContent extends Activity
         }
 
 
-        if (!TextUtils.isEmpty(mDisplayName) && !mDisplayName.equals(mMsgFromto))
+        if (!TextUtils.isEmpty(mDisplayName) && !PhoneNumberUtils.stripSeparators(mDisplayName).equals(mMsgFromto))
         {
             mFromTextView.setText(mFromtoLabel);   
             String numberStr = mDisplayName + " <" + mMsgFromto + ">";
-            mNumberView.setText(numberStr);               
+            mNumberView.setTextExt(numberStr);               
         }
         else
         {
             mFromTextView.setText(mFromtoLabel);
-            mNumberView.setText(mMsgFromto);                
+            mNumberView.setTextExt(mMsgFromto);                
         }
 
         if (mRead == 0)

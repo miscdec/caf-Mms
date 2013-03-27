@@ -238,7 +238,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter
     public void bindView(View view, Context context, Cursor cursor)
     {
         if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
-            Log.v(TAG, "bind: contacts.addListeners " + this);
+            Log.v(TAG, "bindView: contacts.addListeners " + this);
         }
         Contact.addListener(this);
         cleanItemCache();

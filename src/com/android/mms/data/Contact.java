@@ -98,7 +98,7 @@ public class Contact {
         public void onUpdate(Contact updated);
     }
 
-	 public Contact() {
+	public Contact() {
         mName = "";
         mNumberIsModified = false;
         mLabel = "";

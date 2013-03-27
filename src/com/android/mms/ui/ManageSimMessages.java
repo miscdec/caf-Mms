@@ -20,15 +20,16 @@ package com.android.mms.ui;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import android.database.sqlite.SqliteWrapper;
+import com.android.mms.LogTag;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.util.Recycler;
-
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.AsyncQueryHandler;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.IntentFilter;
@@ -41,6 +42,7 @@ import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.CommonDataKinds.Email;
@@ -93,7 +95,8 @@ public class ManageSimMessages extends Activity
     private static final int SUB2 = 1;
     private static final int SHOW_LIST = 0;
     private static final int SHOW_EMPTY = 1;
-    private static final int SHOW_BUSY = 2;
+    private static final int SHOW_BUSY = 2;   
+    private static final int SHOW_TOAST = 1;
     
     private int mState;
     private Uri mIccUri;
@@ -165,7 +168,28 @@ public class ManageSimMessages extends Activity
         updateState(SHOW_BUSY);
         startQuery();
     }
+    
+    private Handler uihandler = new Handler()
+    {
+        @Override
+        public void handleMessage(Message msg)
+        {
+            switch (msg.what)
+            {
+                case SHOW_TOAST:
+                {                
+                    String toastStr = (String) msg.obj;
+                    Toast.makeText(ManageSimMessages.this, toastStr, 
+                                    Toast.LENGTH_LONG).show();
 
+                    break; 
+                }
+                default:
+                    break;
+            }
+        }
+    };
+    
     private class QueryHandler extends AsyncQueryHandler {
         private final ManageSimMessages mParent;
 
@@ -240,7 +264,7 @@ public class ManageSimMessages extends Activity
             return;
         }
         menu.add(0, MENU_COPY_TO_PHONE_MEMORY, 0,
-                 R.string.sim_copy_to_phone_memory);
+                 R.string.menu_copy_to);
         menu.add(0, MENU_DELETE_FROM_SIM, 0, R.string.sim_delete);
 
         Cursor cursor = mListAdapter.getCursor();
@@ -357,7 +381,21 @@ public class ManageSimMessages extends Activity
 
         switch (item.getItemId()) {
             case MENU_COPY_TO_PHONE_MEMORY:
-                copyToPhoneMemory(cursor);
+                if(MessageUtils.isMultiSimEnabledMms())
+                {
+                    if(MessageUtils.getActivatedIccCardCount() > 1)
+                    {
+                        showCopySelectDialog(cursor);
+                    }
+                    else
+                    {
+                        copyToPhoneMemory(cursor);                       
+                    }                  
+                }
+                else
+                {
+                    copyToPhoneMemory(cursor);
+                }
                 return true;
             case MENU_DELETE_FROM_SIM:
                 confirmDeleteDialog(new OnClickListener() {
@@ -380,6 +418,98 @@ public class ManageSimMessages extends Activity
         return super.onContextItemSelected(item);
     }
 
+    private void showCopySelectDialog(final Cursor cursor){
+        String targetCard = mSubscription == SUB1 ? MessageUtils.getMultiSimName(this, SUB2) : MessageUtils.getMultiSimName(this, SUB1);
+        String[] items = new String[] {getString(R.string.view_setting_phone), targetCard};
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.menu_copy_to));
+        builder.setCancelable(true);
+        builder.setItems(items, new DialogInterface.OnClickListener()
+        {
+            public final void onClick(DialogInterface dialog, int which)
+            {
+                if (which == 0)
+                {
+                     copyToPhoneMemory(cursor);
+                }
+                else
+                {
+                     copyToCard(cursor, mSubscription == SUB1 ? SUB2 : SUB1);
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();    
+    }
+
+    private void copyToCard(Cursor cursor, final int subscription)
+    {
+        final String address = cursor.getString(
+                cursor.getColumnIndexOrThrow("address"));
+        final String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
+        final Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
+        final int boxId = cursor.getInt(cursor.getColumnIndexOrThrow("type"));
+        
+        SmsManager smsManager = SmsManager.getDefault();
+        final ArrayList<String> messages = smsManager.divideMessage(body);
+        {
+            final int messageCount = messages.size();
+
+            new Thread(new Runnable() {
+                public void run() {
+                    Message msg = Message.obtain();
+                    msg.what = SHOW_TOAST;
+                    msg.obj = getString(R.string.operate_success);
+
+                    for (int j = 0; j < messageCount; j++)
+                    {
+                        String content = messages.get(j);
+                        if (TextUtils.isEmpty(content))
+                        {
+                            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                                Log.e(TAG, "copyToCard : Copy error for empty content!");
+                            }
+                            continue;
+                        }
+                        ContentValues values = new ContentValues(6);
+                        values.put(Sms.DATE, date);
+                        values.put(Sms.BODY, content);
+                        values.put(Sms.TYPE, boxId);
+                        values.put(Sms.ADDRESS, address);
+                        values.put(Sms.READ, MessageUtils.MESSAGE_READ);
+                        values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
+                        Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+                        
+                        Uri retUri = SqliteWrapper.insert(ManageSimMessages.this, getContentResolver(),
+                                                          uriStr, values);
+                        if (uriStr != null && retUri != null) {
+                            Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
+                                + ", retUri = " + retUri.toString());
+                        }
+                        
+                        if (retUri == null)
+                        {
+                            msg.obj = getString(R.string.operate_failure);
+                            break;
+                        }
+                        else if (MessageUtils.COPY_SUCCESS_FULL.equals(retUri.toString()))
+                        {
+                            msg.obj = getString(R.string.copy_success_full);
+                            break;
+                        }
+                        else if (MessageUtils.COPY_FAILURE_FULL.equals(retUri.toString()))
+                        {
+                            msg.obj = getString(R.string.copy_failure_full);
+                            break;
+                        }
+                    }
+                          
+                    uihandler.sendMessage(msg);
+                }
+            }).start();                  
+        }
+    }
+    
     private void forwardMessage(String smsBody) {
         Intent intent = new Intent(this, ComposeMessageActivity.class);
 
@@ -464,7 +594,7 @@ public class ManageSimMessages extends Activity
     private void deleteAllFromSim() {
         mIsDeleteAll = true;
         Cursor cursor = (Cursor) mListAdapter.getCursor();
-
+        
         if (cursor != null) {
             if (cursor.moveToFirst()) {
                 mContentResolver.unregisterContentObserver(simChangeObserver);

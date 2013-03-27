@@ -132,6 +132,7 @@ import android.os.IBinder;
 import com.android.mms.transaction.TransactionState;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
+import com.android.mms.data.Conversation;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
@@ -219,7 +220,6 @@ public class MailBoxMessageList extends ListActivity
         handleIntent(getIntent());
 
         String box = Integer.toString(mMailboxId);
-        //setTitle(R.string.app_label);
         mQueryHandler = new BoxMsgListQueryHandler(getContentResolver());
         LayoutInflater inflater =
                 (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -460,6 +460,9 @@ public class MailBoxMessageList extends ListActivity
         mHasPause = false;
         startAsyncQuery(); 
         getListView().invalidateViews();
+        if (!Conversation.loadingThreads()) {
+            Contact.invalidateCache();
+        }
     }
 
     @Override
