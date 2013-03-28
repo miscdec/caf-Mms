@@ -3558,20 +3558,21 @@ public class ComposeMessageActivity extends Activity
     private void processPickResult(final Intent data) {
         // The EXTRA_PHONE_URIS stores the phone's urls that were selected by user in the
         // multiple phone picker.
-        final Parcelable[] uris =
-            data.getParcelableArrayExtra(Intents.EXTRA_PHONE_URIS);
+        Bundle bundle = data.getExtras().getBundle("result");
+        final Set<String> keySet = bundle.keySet();
+        final int recipientCount = (keySet != null) ? keySet.size() : 0;
 
-        final int recipientCount = uris != null ? uris.length : 0;
-
+        // if total recipients count > recipientLimit,
+        // then forbid add reipients to RecipientsEditor
         final int recipientLimit = MmsConfig.getRecipientLimit();
-        if (recipientLimit != Integer.MAX_VALUE && recipientCount > recipientLimit) {
-            new AlertDialog.Builder(this)
-                    .setMessage(getString(R.string.too_many_recipients, recipientCount, recipientLimit))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .create().show();
-            return;
-        }
+        int totalRecipientsCount = 3;
 
+        processAddRecipients(keySet, recipientCount);
+    }
+
+    private void processAddRecipients(final Set<String> keySet, final int newPickRecipientsCount) {
+        // if process pick result that is pick recipients from Contacts
+//        mIsProcessPickedRecipients = true;
         final Handler handler = new Handler();
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setTitle(getText(R.string.pick_too_many_recipients));
@@ -3592,20 +3593,49 @@ public class ComposeMessageActivity extends Activity
         new Thread(new Runnable() {
             @Override
             public void run() {
+                Uri[] newuris = new Uri[newPickRecipientsCount];
                 final ContactList list;
                  try {
-                    list = ContactList.blockingGetByUris(uris);
+                    Iterator<String> it = keySet.iterator();
+                    int i = 0;
+                    while (it.hasNext()) {
+                        String id = it.next();
+                        newuris[i++] = ContentUris.withAppendedId(Phone.CONTENT_URI, Integer.parseInt(id));
+                        if (i == newPickRecipientsCount) {
+                            break;
+                        }
+                    }
+                    list = ContactList.blockingGetByUris(newuris);
                 } finally {
                     handler.removeCallbacks(showProgress);
-                    progressDialog.dismiss();
+                }
+                if (mRecipientsEditor != null) {
+                    ContactList exsitList = mRecipientsEditor.constructContactsFromInput(true);
+                    // Remove the repeat recipients.
+                    list.removeAll(exsitList);
+                    list.addAll(0, exsitList);
                 }
                 // TODO: there is already code to update the contact header widget and recipients
                 // editor if the contacts change. we can re-use that code.
                 final Runnable populateWorker = new Runnable() {
                     @Override
                     public void run() {
+                        // We must remove this listener before dealing with the contact list.
+                        // Because the listener will take a lot of time, this will cause an ANR.
+                        mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
                         mRecipientsEditor.populate(list);
-                        updateTitle(list);
+                       // mPickedRecipientsList = list;
+                        // When we finish dealing with the conatct list, the
+                        // RecipientsEditor will post the runnable "postHandlePendingChips"
+                        // to the message queue, then we add the TextChangedListener.
+                        // The mRecipientsWatcher will be call while UI thread deal
+                        // with the "postHandlePendingChips" runnable.
+                        mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
+
+                        // if process finished, then dismiss the progress dialog
+                        progressDialog.dismiss();
+
+                        // if populate finished, then recipients pick process end
                     }
                 };
                 handler.post(populateWorker);
@@ -3916,42 +3946,26 @@ public class ComposeMessageActivity extends Activity
 
     private void addRecipientsFromTab()
     {
-	    Intent intent = new Intent(this, ContactGroup.class);
-	    if (mRecipientsEditor == null)
-	    {
-	        return;
-	    }
-
-	    String[] numbers = mRecipientsEditor.getContactList().getNumbers(false);
-	    Log.d(TAG, " the init number length:" + numbers.length);
-	    if (numbers.length >= MessageUtils.MAX_RECIPIENT)
-	    {
-	        Toast.makeText(this, 
-	        R.string.max_recipient, Toast.LENGTH_SHORT).show();
-	        return; 
-	    }
-	    intent.putExtra("recipientscount", numbers.length);
-	    intent.putExtra("from_edit", true);
-	    startActivityForResult(intent, REQUEST_CODE_RECIPIENT_PICKER);
+    Intent intent = new Intent(this, ContactGroup.class);
+    if (mRecipientsEditor == null)
+    {
+        return;
     }
-	
+
+    String[] numbers = mRecipientsEditor.getContactList().getNumbers(false);
+    Log.d(TAG, " the init number length:" + numbers.length);
+    if (numbers.length >= MessageUtils.MAX_RECIPIENT)
+    {
+        Toast.makeText(this, 
+        R.string.max_recipient, Toast.LENGTH_SHORT).show();
+        return; 
+    }
+    intent.putExtra("recipientscount", numbers.length);
+    intent.putExtra("from_edit", true);
+    startActivityForResult(intent, REQUEST_CODE_RECIPIENT_PICKER);
+    }
     private void launchMultiplePhonePicker() {
-        Intent intent = new Intent(Intents.ACTION_GET_MULTIPLE_PHONES);
-        intent.addCategory("android.intent.category.DEFAULT");
-        intent.setType(Phone.CONTENT_TYPE);
-        // We have to wait for the constructing complete.
-        ContactList contacts = mRecipientsEditor.constructContactsFromInput(true);
-        int urisCount = 0;
-        Uri[] uris = new Uri[contacts.size()];
-        urisCount = 0;
-        for (Contact contact : contacts) {
-            if (Contact.CONTACT_METHOD_TYPE_PHONE == contact.getContactMethodType()) {
-                    uris[urisCount++] = contact.getPhoneUri();
-            }
-        }
-        if (urisCount > 0) {
-            intent.putExtra(Intents.EXTRA_PHONE_URIS, uris);
-        }
+        Intent intent = new Intent("com.android.contacts.action.MULTI_PICK",Contacts.CONTENT_URI);
         startActivityForResult(intent, REQUEST_CODE_PICK);
     }
 
