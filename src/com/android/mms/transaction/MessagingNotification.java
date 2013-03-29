@@ -1049,7 +1049,7 @@ public class MessagingNotification {
         buf.append(':').append(' ');
 
        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            buf.append( (subId == 0) ? "Sub1" : "Sub2");
+            buf.append( (subId == 0) ? MessageUtils.getMultiSimName(context, 0): MessageUtils.getMultiSimName(context, 1));
             buf.append("-");
        }
 

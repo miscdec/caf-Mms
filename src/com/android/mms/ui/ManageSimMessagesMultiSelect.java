@@ -45,6 +45,7 @@ import android.widget.TextView;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
+import com.android.mms.LogTag;
 import android.widget.ListView;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
@@ -98,6 +99,7 @@ public class ManageSimMessagesMultiSelect extends Activity
     PowerManager.WakeLock mWakeLock;
     private int mSubscription; // add for DSDS
     private Uri mIccUri;
+    private boolean mShowSuccessToast = true;
     ArrayList<Integer> mSelectedPositions = new ArrayList<Integer>();
     ArrayList<String> mSelectedUris = new ArrayList<String>();
     
@@ -109,6 +111,7 @@ public class ManageSimMessagesMultiSelect extends Activity
     private int ACTION_NONE = 0;
     private int ACTION_COPY = 1;
     private int ACTION_DELETE = 2;
+    private static final int SHOW_TOAST = 1;
     private int mAction = ACTION_NONE;
     
     @Override
@@ -131,6 +134,28 @@ public class ManageSimMessagesMultiSelect extends Activity
 
         startMsgListQuery();
     }
+
+    private Handler uihandler = new Handler()
+    {
+        @Override
+        public void handleMessage(Message msg)
+        {
+            switch (msg.what)
+            {
+                case SHOW_TOAST:
+                {                
+                    String toastStr = (String) msg.obj;
+                    Toast.makeText(ManageSimMessagesMultiSelect.this, toastStr, 
+                                    Toast.LENGTH_LONG).show();
+
+                    break; 
+                }
+                default:
+                    break;
+            }
+        }
+    };
+    
 
     @Override
     protected void onDestroy()
@@ -173,7 +198,7 @@ public class ManageSimMessagesMultiSelect extends Activity
 
     private void confirmMultiAction()
     {
-        SparseBooleanArray booleanArray = mMsgListView.getCheckedItemPositions();	
+        SparseBooleanArray booleanArray = mMsgListView.getCheckedItemPositions();
         int size = booleanArray.size();
 
         if(size > 0)
@@ -202,12 +227,62 @@ public class ManageSimMessagesMultiSelect extends Activity
         }
         else if(ACTION_COPY == mAction)
         {
-            confirmCopyDialog(l);
+            if(MessageUtils.isMultiSimEnabledMms())
+            {
+                if(MessageUtils.getActivatedIccCardCount() > 1)
+                {
+                    showCopySelectDialog();
+                }
+                else
+                {
+                    confirmCopyDialog(l);                     
+                }                  
+            }
+            else
+            {
+                confirmCopyDialog(l);
+            }          
         }
     }
 
+    private void showCopySelectDialog(){
+        String targetCard = mSubscription == SUB1 ? MessageUtils.getMultiSimName(this, SUB2) : MessageUtils.getMultiSimName(this, SUB1);
+        String[] items = new String[] {getString(R.string.view_setting_phone), targetCard};
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.menu_copy_to));
+        builder.setCancelable(true);
+        builder.setItems(items, new DialogInterface.OnClickListener()
+        {
+            public final void onClick(DialogInterface dialog, int which)
+            {
+                if (which == 0)
+                {
+                     confirmCopyDialog(new MultiMessagesListener(true));  // copy to phone memory 
+                }
+                else
+                {
+                     confirmCopyDialog(new MultiMessagesListener(false));  //copy to the other SIM card
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();    
+    }
+        
     private class MultiMessagesListener implements OnClickListener
     {
+        private boolean mIsCopyToPhone = true;
+
+        public MultiMessagesListener() 
+        {
+            //do nothing
+        }
+        
+        public MultiMessagesListener(boolean isCopyToPhone) 
+        {
+            mIsCopyToPhone = isCopyToPhone;
+        }
+                
         public void onClick(DialogInterface dialog, int whichButton)
         {
             if(ACTION_DELETE == mAction)
@@ -216,7 +291,7 @@ public class ManageSimMessagesMultiSelect extends Activity
             }
             else if(ACTION_COPY == mAction)
             {
-                copySelectedMessages(); 
+                copySelectedMessages(mIsCopyToPhone); 
             }
         }
     }
@@ -236,7 +311,7 @@ public class ManageSimMessagesMultiSelect extends Activity
         finish();
     }
 
-    private void copySelectedMessages()
+    private void copySelectedMessages(boolean isCopyToPhone)
     {
         for (Integer position : mSelectedPositions)
         { 
@@ -245,12 +320,30 @@ public class ManageSimMessagesMultiSelect extends Activity
             {
                 return;
             }
-            copyToPhoneMemory(c);
+            if(isCopyToPhone)
+            {
+                copyToPhoneMemory(c);
+            }
+            else
+            {
+                copyToCard(c, mSubscription == SUB1 ? SUB2 : SUB1);
+                if(!mShowSuccessToast)
+                {
+                    this.finish();
+                    return;
+                }
+            }
+        }
+        
+        if(mShowSuccessToast)
+        {
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_success);
+            uihandler.sendMessage(msg);
         }
 
-        Toast.makeText(ManageSimMessagesMultiSelect.this, getString(R.string.operate_success),
-            Toast.LENGTH_LONG).show();
-        finish();
+        this.finish();
     }
 
     private String getUriStrByCursor(Cursor cursor)
@@ -270,7 +363,6 @@ public class ManageSimMessagesMultiSelect extends Activity
         builder.setPositiveButton(R.string.yes, listener);
         builder.setNegativeButton(R.string.no, null);
         builder.setMessage(R.string.confirm_delete_selected_messages);
-
         builder.show();
     }
 
@@ -282,8 +374,79 @@ public class ManageSimMessagesMultiSelect extends Activity
         builder.setPositiveButton(R.string.yes, listener);
         builder.setNegativeButton(R.string.no, null);
         builder.setMessage(R.string.confirm_copy_selected_messages);
-
         builder.show();
+    }
+
+    private void copyToCard(Cursor cursor, final int subscription)
+    {
+        final String address = cursor.getString(
+                cursor.getColumnIndexOrThrow("address"));
+        final String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
+        final Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
+        final int boxId = cursor.getInt(cursor.getColumnIndexOrThrow("type"));
+        
+        SmsManager smsManager = SmsManager.getDefault();
+        final ArrayList<String> messages = smsManager.divideMessage(body);
+        {
+            final int messageCount = messages.size();
+
+            new Thread(new Runnable() {
+                public void run() {
+                    Message msg = Message.obtain();
+                    msg.what = SHOW_TOAST;
+                    msg.obj = getString(R.string.operate_success);
+
+                    for (int j = 0; j < messageCount; j++)
+                    {
+                        String content = messages.get(j);
+                        if (TextUtils.isEmpty(content))
+                        {
+                            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                                Log.e(TAG, "copyToCard : Copy error for empty content!");
+                            }
+                            continue;
+                        }
+                        ContentValues values = new ContentValues(6);
+                        values.put(Sms.DATE, date);
+                        values.put(Sms.BODY, content);
+                        values.put(Sms.TYPE, boxId);
+                        values.put(Sms.ADDRESS, address);
+                        values.put(Sms.READ, MessageUtils.MESSAGE_READ);
+                        values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
+                        Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+                        
+                        Uri retUri = SqliteWrapper.insert(ManageSimMessagesMultiSelect.this, getContentResolver(),
+                                                          uriStr, values);
+                        if (uriStr != null && retUri != null) {
+                            Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
+                                + ", retUri = " + retUri.toString());
+                        }
+                        
+                        if (retUri == null)
+                        {
+                            msg.obj = getString(R.string.operate_failure);
+                            uihandler.sendMessage(msg);
+                            mShowSuccessToast = false;
+                            break;
+                        }
+                        else if (MessageUtils.COPY_SUCCESS_FULL.equals(retUri.toString()))
+                        {
+                            msg.obj = getString(R.string.copy_success_full);
+                            uihandler.sendMessage(msg);
+                            mShowSuccessToast = false;
+                            break;
+                        }
+                        else if (MessageUtils.COPY_FAILURE_FULL.equals(retUri.toString()))
+                        {
+                            msg.obj = getString(R.string.copy_failure_full);
+                            uihandler.sendMessage(msg);
+                            mShowSuccessToast = false;
+                            break;
+                        }
+                    }
+                }
+            }).start();                  
+        }
     }
     
     private void copyToPhoneMemory(Cursor cursor) {
@@ -330,9 +493,9 @@ public class ManageSimMessagesMultiSelect extends Activity
         menu.add(0, MENU_DELETE_SELECT,  0, R.string.delete)
             .setIcon(R.drawable.ic_menu_trash_holo_dark)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        //menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
-        //    .setIcon(R.drawable.ic_menu_copy)
-        //    .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);  
+        menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
+            .setIcon(R.drawable.ic_menu_copy)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);  
     }
 
     private void setupActionBar()
