@@ -86,6 +86,7 @@ public class ManageSimMessagesMultiSelect extends Activity
     private static final String TAG = "ManageSimMessagesMultiSelect";
 
     private static final int MESSAGE_LIST_QUERY_TOKEN = 9527;
+    private static final int SHOW_SUCCESS_TOAST_TIMER = 2*1000;
     private Cursor mCursor;
     private ListView mMsgListView;
     private TextView mMessage;
@@ -145,9 +146,9 @@ public class ManageSimMessagesMultiSelect extends Activity
                 case SHOW_TOAST:
                 {                
                     String toastStr = (String) msg.obj;
+
                     Toast.makeText(ManageSimMessagesMultiSelect.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
-
                     break; 
                 }
                 default:
@@ -311,38 +312,41 @@ public class ManageSimMessagesMultiSelect extends Activity
         finish();
     }
 
-    private void copySelectedMessages(boolean isCopyToPhone)
+    private void copySelectedMessages(final boolean isCopyToPhone)
     {
-        for (Integer position : mSelectedPositions)
-        { 
-            Cursor c = (Cursor) mMsgListAdapter.getItem(position);
-            if (c == null)
-            {
-                return;
-            }
-            if(isCopyToPhone)
-            {
-                copyToPhoneMemory(c);
-            }
-            else
-            {
-                copyToCard(c, mSubscription == SUB1 ? SUB2 : SUB1);
-                if(!mShowSuccessToast)
+        new Thread(new Runnable() {
+            public void run() {
+                for (Integer position : mSelectedPositions)
+                { 
+                    Cursor c = (Cursor) mMsgListAdapter.getItem(position);
+                    if (c == null)
+                    {
+                        return;
+                    }
+                    if(isCopyToPhone)
+                    {
+                        copyToPhoneMemory(c);
+                    }
+                    else
+                    {
+                        copyToCard(c, mSubscription == SUB1 ? SUB2 : SUB1);
+                        if(!mShowSuccessToast)
+                        {
+                            return;
+                        }
+                    }
+                }
+                
+                if(mShowSuccessToast)
                 {
-                    this.finish();
-                    return;
+                    Message msg = Message.obtain();
+                    msg.what = SHOW_TOAST;
+                    msg.obj = getString(R.string.operate_success);
+                    uihandler.sendMessage(msg);
                 }
             }
-        }
-        
-        if(mShowSuccessToast)
-        {
-            Message msg = Message.obtain();
-            msg.what = SHOW_TOAST;
-            msg.obj = getString(R.string.operate_success);
-            uihandler.sendMessage(msg);
-        }
-
+        }).start();   
+       
         this.finish();
     }
 
@@ -377,75 +381,68 @@ public class ManageSimMessagesMultiSelect extends Activity
         builder.show();
     }
 
-    private void copyToCard(Cursor cursor, final int subscription)
+    private void copyToCard(Cursor cursor, int subscription)
     {
-        final String address = cursor.getString(
-                cursor.getColumnIndexOrThrow("address"));
+        final String address = cursor.getString(cursor.getColumnIndexOrThrow("address"));
         final String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
         final Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
         final int boxId = cursor.getInt(cursor.getColumnIndexOrThrow("type"));
         
         SmsManager smsManager = SmsManager.getDefault();
         final ArrayList<String> messages = smsManager.divideMessage(body);
+        final int messageCount = messages.size();
+
+        Message msg = Message.obtain();
+        msg.what = SHOW_TOAST;
+        msg.obj = getString(R.string.operate_success);
+
+        for (int j = 0; j < messageCount; j++)
         {
-            final int messageCount = messages.size();
-
-            new Thread(new Runnable() {
-                public void run() {
-                    Message msg = Message.obtain();
-                    msg.what = SHOW_TOAST;
-                    msg.obj = getString(R.string.operate_success);
-
-                    for (int j = 0; j < messageCount; j++)
-                    {
-                        String content = messages.get(j);
-                        if (TextUtils.isEmpty(content))
-                        {
-                            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-                                Log.e(TAG, "copyToCard : Copy error for empty content!");
-                            }
-                            continue;
-                        }
-                        ContentValues values = new ContentValues(6);
-                        values.put(Sms.DATE, date);
-                        values.put(Sms.BODY, content);
-                        values.put(Sms.TYPE, boxId);
-                        values.put(Sms.ADDRESS, address);
-                        values.put(Sms.READ, MessageUtils.MESSAGE_READ);
-                        values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
-                        Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
-                        
-                        Uri retUri = SqliteWrapper.insert(ManageSimMessagesMultiSelect.this, getContentResolver(),
-                                                          uriStr, values);
-                        if (uriStr != null && retUri != null) {
-                            Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
-                                + ", retUri = " + retUri.toString());
-                        }
-                        
-                        if (retUri == null)
-                        {
-                            msg.obj = getString(R.string.operate_failure);
-                            uihandler.sendMessage(msg);
-                            mShowSuccessToast = false;
-                            break;
-                        }
-                        else if (MessageUtils.COPY_SUCCESS_FULL.equals(retUri.toString()))
-                        {
-                            msg.obj = getString(R.string.copy_success_full);
-                            uihandler.sendMessage(msg);
-                            mShowSuccessToast = false;
-                            break;
-                        }
-                        else if (MessageUtils.COPY_FAILURE_FULL.equals(retUri.toString()))
-                        {
-                            msg.obj = getString(R.string.copy_failure_full);
-                            uihandler.sendMessage(msg);
-                            mShowSuccessToast = false;
-                            break;
-                        }
-                    }
+            String content = messages.get(j);
+            if (TextUtils.isEmpty(content))
+            {
+                if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                    Log.e(TAG, "copyToCard : Copy error for empty content!");
                 }
-            }).start();                  
+                continue;
+            }
+            ContentValues values = new ContentValues(6);
+            values.put(Sms.DATE, date);
+            values.put(Sms.BODY, content);
+            values.put(Sms.TYPE, boxId);
+            values.put(Sms.ADDRESS, address);
+            values.put(Sms.READ, MessageUtils.MESSAGE_READ);
+            values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
+            Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+            
+            Uri retUri = SqliteWrapper.insert(ManageSimMessagesMultiSelect.this, getContentResolver(),
+                                              uriStr, values);
+            if (uriStr != null && retUri != null) {
+                Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
+                    + ", retUri = " + retUri.toString());
+            }
+            
+            if (retUri == null)
+            {
+                msg.obj = getString(R.string.operate_failure);
+                uihandler.sendMessage(msg);
+                mShowSuccessToast = false;
+                break;
+            }
+            else if (MessageUtils.COPY_SUCCESS_FULL.equals(retUri.toString()))
+            {
+                msg.obj = getString(R.string.copy_success_full);
+                uihandler.sendMessage(msg);
+                mShowSuccessToast = false;
+                break;
+            }
+            else if (MessageUtils.COPY_FAILURE_FULL.equals(retUri.toString()))
+            {
+                msg.obj = getString(R.string.copy_failure_full);
+                uihandler.sendMessage(msg);
+                mShowSuccessToast = false;
+                break;
+            }
         }
     }
     

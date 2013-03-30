@@ -1113,34 +1113,37 @@ public class MailBoxMessageList extends ListActivity
         builder.show();
     }
 
-    private void copySelectedMessages(int subscription)
+    private void copySelectedMessages(final int subscription)
     {
-        for (Integer position : mSelectedPositions)
-        { 
-            Cursor c = (Cursor) mListAdapter.getItem(position);
-            if (c == null)
-            {
-                return;
+        new Thread(new Runnable() {
+            public void run() {            
+                for (Integer position : mSelectedPositions)
+                { 
+                    Cursor c = (Cursor) mListAdapter.getItem(position);
+                    if (c == null)
+                    {
+                        return;
+                    }
+
+                    copyToCard(c, subscription);
+                    if(!mShowSuccessToast)
+                    {
+                        return;
+                    }
+                }
+
+                if(mShowSuccessToast)
+                {
+                    Message msg = Message.obtain();
+                    msg.what = SHOW_TOAST;
+                    msg.obj = getString(R.string.operate_success);
+                    uihandler.sendMessage(msg);
+                }
             }
-
-            copyToCard(c, subscription);
-            if(!mShowSuccessToast)
-            {
-                return;
-            }
-        }
-
-        if(mShowSuccessToast)
-        {
-            Message msg = Message.obtain();
-            msg.what = SHOW_TOAST;
-            msg.obj = getString(R.string.operate_success);
-            uihandler.sendMessage(msg);
-        }
-
+        }).start();   
     }
 
-    private void copyToCard(Cursor cursor, final int subscription)
+    private void copyToCard(Cursor cursor, int subscription)
     {        
         final String type = cursor.getString(COLUMN_MSG_TYPE);
         if (type.equals("mms"))
@@ -1156,66 +1159,60 @@ public class MailBoxMessageList extends ListActivity
         
         SmsManager smsManager = SmsManager.getDefault();
         final ArrayList<String> messages = smsManager.divideMessage(body);
+        final int messageCount = messages.size();
+
+        Message msg = Message.obtain();
+        msg.what = SHOW_TOAST;
+        msg.obj = getString(R.string.operate_success);
+
+        for (int j = 0; j < messageCount; j++)
         {
-            final int messageCount = messages.size();
-
-            new Thread(new Runnable() {
-                public void run() {
-                    Message msg = Message.obtain();
-                    msg.what = SHOW_TOAST;
-                    msg.obj = getString(R.string.operate_success);
-
-                    for (int j = 0; j < messageCount; j++)
-                    {
-                        String content = messages.get(j);
-                        if (TextUtils.isEmpty(content))
-                        {
-                            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-                                Log.e(TAG, "copyToCard : Copy error for empty content!");
-                            }
-                            continue;
-                        }
-                        ContentValues values = new ContentValues(6);
-                        values.put(Sms.DATE, date);
-                        values.put(Sms.BODY, content);
-                        values.put(Sms.TYPE, boxId);
-                        values.put(Sms.ADDRESS, address);
-                        values.put(Sms.READ, MessageUtils.MESSAGE_READ);
-                        values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
-                        Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
-                        
-                        Uri retUri = SqliteWrapper.insert(MailBoxMessageList.this, getContentResolver(),
-                                                          uriStr, values);
-                        if (uriStr != null && retUri != null) {
-                            Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
-                                + ", retUri = " + retUri.toString());
-                        }
-                        
-                        if (retUri == null)
-                        {
-                            msg.obj = getString(R.string.operate_failure);
-                            uihandler.sendMessage(msg);
-                            mShowSuccessToast = false;
-                            break;
-                        }
-                        else if (MessageUtils.COPY_SUCCESS_FULL.equals(retUri.toString()))
-                        {
-                            msg.obj = getString(R.string.copy_success_full);
-                            uihandler.sendMessage(msg);
-                            mShowSuccessToast = false;
-                            break;
-                        }
-                        else if (MessageUtils.COPY_FAILURE_FULL.equals(retUri.toString()))
-                        {
-                            msg.obj = getString(R.string.copy_failure_full);
-                            uihandler.sendMessage(msg);
-                            mShowSuccessToast = false;
-                            break;
-                        }
-                    }
+            String content = messages.get(j);
+            if (TextUtils.isEmpty(content))
+            {
+                if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                    Log.e(TAG, "copyToCard : Copy error for empty content!");
                 }
-            }).start();                  
-        }
+                continue;
+            }
+            ContentValues values = new ContentValues(6);
+            values.put(Sms.DATE, date);
+            values.put(Sms.BODY, content);
+            values.put(Sms.TYPE, boxId);
+            values.put(Sms.ADDRESS, address);
+            values.put(Sms.READ, MessageUtils.MESSAGE_READ);
+            values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
+            Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+            
+            Uri retUri = SqliteWrapper.insert(MailBoxMessageList.this, getContentResolver(),
+                                              uriStr, values);
+            if (uriStr != null && retUri != null) {
+                Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString() 
+                    + ", retUri = " + retUri.toString());
+            }
+            
+            if (retUri == null)
+            {
+                msg.obj = getString(R.string.operate_failure);
+                uihandler.sendMessage(msg);
+                mShowSuccessToast = false;
+                break;
+            }
+            else if (MessageUtils.COPY_SUCCESS_FULL.equals(retUri.toString()))
+            {
+                msg.obj = getString(R.string.copy_success_full);
+                uihandler.sendMessage(msg);
+                mShowSuccessToast = false;
+                break;
+            }
+            else if (MessageUtils.COPY_FAILURE_FULL.equals(retUri.toString()))
+            {
+                msg.obj = getString(R.string.copy_failure_full);
+                uihandler.sendMessage(msg);
+                mShowSuccessToast = false;
+                break;
+            }
+        }            
     }
     
     private void deleteMessages(boolean deleteLocked)
