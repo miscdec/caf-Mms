@@ -27,13 +27,10 @@ import com.android.mms.layout.LayoutManager;
 public class GIFView extends ImageView implements GifAction{
 
     private static final String TAG = "GIFView";
-	
     private GifDecoder gifDecoder = null;
 
     private Bitmap currentImage = null;
-	
     private boolean isRun = false;
-	
     private boolean pause = true;
 
     private final int W;
@@ -46,14 +43,23 @@ public class GIFView extends ImageView implements GifAction{
     private DrawThread drawThread = null;
 
     Uri mUri;
-	
     public GIFView(Context context) {
         super(context);
-        Log.v(TAG,"z48 gifview constructor.");
+        Log.v(TAG," gifview constructor.");
         //W = 240;
         //H = 320;
-        W = LayoutManager.getInstance().getLayoutParameters().getWidth();
-        H = LayoutManager.getInstance().getLayoutParameters().getHeight();        
+        if(LayoutManager.getInstance().getLayoutParameters().getTypeDescription().equals("HVGA-P"))
+            {
+            W = 480;
+            H = 800;
+            }
+        else
+            {
+            W = 800;
+            H = 480;
+            }
+        //W = LayoutManager.getInstance().getLayoutParameters().getWidth();
+       // H = LayoutManager.getInstance().getLayoutParameters().getHeight();        
     }
 
     public boolean setDrawable(Uri uri){
@@ -92,13 +98,11 @@ public class GIFView extends ImageView implements GifAction{
 
         if (mSize > 260*1024)
         {
-            Log.v(TAG,"z89 GIF size too large mSize = " + mSize);
+            Log.v(TAG," GIF size too large mSize = " + mSize);
             return false;
         }
-		
         android.content.ContentResolver resolver = mContext.getContentResolver();
         Cursor c = resolver.query(uri, new String[]{"_data"}, null, null, null);
-		
         if ( c != null && 1 == c.getCount()){
             c.moveToFirst();        
             Log.v(TAG, "file=" + c.getString(0));
@@ -122,28 +126,28 @@ public class GIFView extends ImageView implements GifAction{
     }
     
     private void setGifDecoderImage(InputStream is){
-    	 if(gifDecoder != null){
+    if(gifDecoder != null){
             gifDecoder.free();
             gifDecoder= null;
-    	 }
-    	 gifDecoder = new GifDecoder(is, this);
-    	 gifDecoder.start();
+        }
+    gifDecoder = new GifDecoder(is, this);
+    gifDecoder.start();
     }
     
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (gifDecoder == null)
         {
-            Log.v(TAG,"z137 gifDecoder is null.");
-        	return;
-    	}
+            Log.v(TAG," gifDecoder is null.");
+            return;
+        }
         if (currentImage == null)
         {        
             currentImage = gifDecoder.getImage();
         }
         if (currentImage == null)
         {
-            Log.v(TAG,"z146 currentImage is null.");        
+            Log.v(TAG," currentImage is null.");        
             //setImageURI(mUri);
             return;
         }
@@ -155,7 +159,7 @@ public class GIFView extends ImageView implements GifAction{
         
         Rect sRect = null;        
         Rect dRect = null;
-        Log.v(TAG,"z146 W = " + W
+        Log.v(TAG," W = " + W
                 + "H = " + H
                 + "currentImage.getWidth() = " + currentImage.getWidth()
                 + "currentImage.getHeight() = " + currentImage.getHeight());
@@ -172,13 +176,13 @@ public class GIFView extends ImageView implements GifAction{
             if (newHeight < imageHeight)
             {
                 //h big, w big;                            
-                Log.v(TAG,"z170 h big, w big");
+                Log.v(TAG," h big, w big");
                 if (imageHeight*W > imageWidth*H)
                 {
                    //too height                
                    //newHeight = H/2;
                    newWidth = (imageWidth * newHeight)/imageHeight;    
-                   Log.v(TAG,"z176 h big, w big");                
+                   Log.v(TAG," h big, w big");                
                 }
                 else
                 {
@@ -215,7 +219,7 @@ public class GIFView extends ImageView implements GifAction{
     }
  
     public void parseOk(boolean parseStatus,int frameIndex){
-        Log.v(TAG,"z178 parseStatus = " + parseStatus
+        Log.v(TAG," parseStatus = " + parseStatus
                     + "frameIndex = " + frameIndex);        
         if(parseStatus){
             if(gifDecoder != null){
@@ -250,24 +254,23 @@ public class GIFView extends ImageView implements GifAction{
     }
 
     private Handler redrawHandler = new Handler(){
-    	public void handleMessage(Message msg) {
+        public void handleMessage(Message msg) {
            invalidate();
-    	}
+        }
     };
     
     private class DrawThread extends Thread{
         public boolean isStop = false;
         public void run(){
             if (gifDecoder == null || isStop == true){
-                Log.v(TAG,"z256 drawthread stop.");            
+                Log.v(TAG," drawthread stop.");            
                 return;
             }
-			
             while(isRun){
                 if(pause == false && isStop == false){
                     if(!isShown())
                     {
-                        Log.v(TAG,"z262 isShown false.getVisibility() = " + getVisibility());
+                        Log.v(TAG," isShown false.getVisibility() = " + getVisibility());
                         isRun = false;
                         pause = true;
                         break;
@@ -297,7 +300,7 @@ public class GIFView extends ImageView implements GifAction{
                     }
                     else
                     {
-                        Log.v(TAG,"z284 redrawHandler is null.");                    
+                        Log.v(TAG," redrawHandler is null.");                    
                         break;
                     }
                 } else{
@@ -315,7 +318,7 @@ public class GIFView extends ImageView implements GifAction{
         {
             return false;
         }
-        Log.v(TAG,"z314 gifDecoder.status = " 
+        Log.v(TAG," gifDecoder.status = " 
             + gifDecoder.getStatus());        
         int status = gifDecoder.getStatus();
         if (GifDecoder.STATUS_PARSING == status)
@@ -342,7 +345,7 @@ public class GIFView extends ImageView implements GifAction{
 
     public void freeMemory()
     {
-        Log.v(TAG,"z292 freeMemory");
+        Log.v(TAG," freeMemory");
         isRun = false;
         pause = true;
         if (drawThread != null)
