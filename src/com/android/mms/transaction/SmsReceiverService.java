@@ -631,10 +631,10 @@ public class SmsReceiverService extends Service {
 
     private Uri storeMessage(Context context, SmsMessage[] msgs, int error, int indexOnIcc) {
         SmsMessage sms = msgs[0];
-		
-	if (indexOnIcc > -1) {
-	    return storeMessageToIcc(indexOnIcc, context, sms);
-	}
+
+      if (indexOnIcc > -1) {
+          return storeMessageToIcc(indexOnIcc, context, sms);
+      }
 
         // Store the message in the content provider.
         ContentValues values = extractContentValues(sms);
@@ -704,8 +704,8 @@ public class SmsReceiverService extends Service {
 
     private Uri storeMessageToIcc(int index, Context context, SmsMessage sms)
     {    
-	Log.d(TAG,"storeMessageToIcc() index = " + index); 
-	int subId = MessageUtils.SUB_INVALID;
+       Log.d(TAG,"storeMessageToIcc() index = " + index); 
+       int subId = MessageUtils.SUB_INVALID;
         if (index < 0 || sms == null){
             return null;
         }
