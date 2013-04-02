@@ -222,10 +222,15 @@ public class SmsReceiverService extends Service {
                 } else if (ACTION_SEND_MESSAGE.endsWith(action)) {
                     handleSendMessage(intent);
                 } else if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
-                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, 0);
+                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
                     String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
                     
                     Log.d(TAG, "ACTION_SIM_STATE_CHANGED : stateExtra= " + stateExtra + ",subscription= " + subscription);
+                    if(!MessageUtils.isMultiSimEnabledMms())
+                    {
+                        subscription = MessageUtils.SUB_INVALID;
+                    }
+                    
                     if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)) {
                         handleIccAbsent(subscription);
                     }
@@ -243,14 +248,11 @@ public class SmsReceiverService extends Service {
     private void queryIccSms(int subscription)
     {
         Uri iccUri = MessageUtils.getIccUriBySubscription(subscription); 
-        
-        try 
+        Cursor cursor = SqliteWrapper.query(this, getContentResolver(), iccUri, null, null, null, null);;
+
+        if (cursor != null)
         {
-            SqliteWrapper.query(this, getContentResolver(), iccUri, null, null, null, null);
-        } 
-        catch (SQLiteException e) 
-        {
-            SqliteWrapper.checkSQLiteException(this, e);
+            cursor.close();
         }
     }
     
@@ -588,7 +590,7 @@ public class SmsReceiverService extends Service {
                     Sms.SUB_ID +  " = ? ";
         selectionArgs = new String[] {
                 originatingAddress, Integer.toString(protocolIdentifier),
-                Integer.toString(sms.getSubId())
+                Integer.toString(MessageUtils.isMultiSimEnabledMms() ? sms.getSubId() : MessageUtils.SUB_INVALID)
             };
 
         Cursor cursor = SqliteWrapper.query(context, resolver, Inbox.CONTENT_URI,
@@ -625,7 +627,7 @@ public class SmsReceiverService extends Service {
         // Store the message in the content provider.
         ContentValues values = extractContentValues(sms);
         values.put(Sms.ERROR_CODE, error);
-        values.put(Sms.SUB_ID, sms.getSubId());
+        values.put(Sms.SUB_ID, MessageUtils.isMultiSimEnabledMms() ? sms.getSubId() : MessageUtils.SUB_INVALID);
 
         int pduCount = msgs.length;
 

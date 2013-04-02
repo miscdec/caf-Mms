@@ -176,12 +176,14 @@ public class NumberContextMenuActivity extends Activity
                 {
                     MessageUtils.dialRecipient(this, mNumber, MessageUtils.SUB2);
                 }
+                NumberContextMenuActivity.this.finish();
             }
         }
         else
         {
             Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + mNumber));
             startActivity(dialIntent);
+            NumberContextMenuActivity.this.finish();
         }
     }
 

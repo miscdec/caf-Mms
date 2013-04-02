@@ -779,7 +779,7 @@ public class MailBoxMessageContent extends Activity
             mSlotTypeView.setText(getString(R.string.slot_type, MessageUtils.getMultiSimName(this, mSubID)));
         }
 
-
+        /*
         if (!TextUtils.isEmpty(mDisplayName) && !PhoneNumberUtils.stripSeparators(mDisplayName).equals(mMsgFromto))
         {
             mFromTextView.setText(mFromtoLabel);   
@@ -791,7 +791,10 @@ public class MailBoxMessageContent extends Activity
             mFromTextView.setText(mFromtoLabel);
             mNumberView.setTextExt(mMsgFromto);                
         }
-
+        */
+        mFromTextView.setText(mFromtoLabel);
+        mNumberView.setTextExt(mDisplayName); 
+      
         if (mRead == 0)
         {
             if (mSetReadThread == null)
