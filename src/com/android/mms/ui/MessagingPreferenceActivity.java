@@ -31,6 +31,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
+import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.Preference.OnPreferenceChangeListener;
 import android.preference.PreferenceActivity;
@@ -49,6 +50,13 @@ import com.android.mms.R;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.Recycler;
 import com.qrd.plugin.feature_query.FeatureQuery;
+import android.telephony.SmsManager;
+import android.telephony.MSimSmsManager;
+import android.content.BroadcastReceiver;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.util.Log;
+import android.widget.Toast;
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -86,9 +94,49 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private CheckBoxPreference mEnableNotificationsPref;
     private CheckBoxPreference mMmsAutoRetrievialPref;
     private RingtonePreference mRingtonePref;
+    private ListPreference mSmsStorePref; 
+    private EditTextPreference mSmsCenterPref;
+    private EditTextPreference mSmsCenterCard1Pref;
+    private EditTextPreference mSmsCenterCard2Pref;
+
     private Recycler mSmsRecycler;
     private Recycler mMmsRecycler;
     private static final int CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG = 3;
+    public static String s_smsCenter_sub1 = null;
+    public static String s_smsCenter_sub2 = null;
+    public static final String GET_GSM_SMS_CENTER_ACTION = "com.android.mms.GET_GSM_SMS_CENTER_OVER";
+    private boolean mShowToast = false;
+    
+
+    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(GET_GSM_SMS_CENTER_ACTION)) { 
+                String center = intent.getStringExtra("GSM_SMS_CENTER");
+                String subId = intent.getStringExtra(MessageUtils.SUB_KEY);
+                if (TextUtils.isEmpty(center)) {
+                    center = "";
+                }
+                if (center.indexOf(",") > 0) {
+                    String[] centerArr = center.split(",");
+                    center = centerArr[0];
+                    center = center.replace("\"", "");
+                }
+                if (MessageUtils.CARD_SUB1 == Integer.parseInt(subId)) {
+                    s_smsCenter_sub1 = center; 
+                    mSmsCenterPref.setSummary(s_smsCenter_sub1);
+                    mSmsCenterPref.setText(s_smsCenter_sub1);  
+                    mSmsCenterCard1Pref.setSummary(s_smsCenter_sub1);
+                    mSmsCenterCard1Pref.setText(s_smsCenter_sub1);
+                } else {
+                    s_smsCenter_sub2 = center; 
+                    mSmsCenterCard2Pref.setSummary(s_smsCenter_sub2);
+                    mSmsCenterCard2Pref.setText(s_smsCenter_sub2);
+                }           
+            }             
+        }
+    };
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -108,6 +156,13 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // we have to reload it whenever we resume.
         setEnabledNotificationsPref();
         registerListeners();
+        resume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();    
+        unregisterReceiver(mReceiver);
     }
 
     private void loadPrefs() {
@@ -126,13 +181,26 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mVibratePref = (CheckBoxPreference) findPreference(NOTIFICATION_VIBRATE);
         mRingtonePref = (RingtonePreference) findPreference(NOTIFICATION_RINGTONE);
 
+        mSmsStorePref = (ListPreference) findPreference("pref_key_sms_store"); 
+        mSmsCenterPref = (EditTextPreference) findPreference ("pref_key_sms_center");
+        mSmsCenterCard1Pref = (EditTextPreference) findPreference ("pref_key_sms_center_card1");
+        mSmsCenterCard2Pref = (EditTextPreference) findPreference ("pref_key_sms_center_card2");
+        
         setMessagePreferences();
     }
 
     private void restoreDefaultPreferences() {
+        unregisterReceiver(mReceiver);
         PreferenceManager.getDefaultSharedPreferences(this).edit().clear().apply();
         setPreferenceScreen(null);
         loadPrefs();
+        resume();
+        if (!MessageUtils.isMultiSimEnabledMms()) {
+            if (MessageUtils.isHasCard()) {
+                setPreferStore(MessageUtils.STORE_ME);
+            }   
+        } 
+        
 
         // NOTE: After restoring preferences, the auto delete function (i.e. message recycler)
         // will be turned off by default. However, we really want the default to be turned on.
@@ -187,6 +255,41 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             }
         }
 
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            PreferenceCategory storageOptions =
+                (PreferenceCategory)findPreference("pref_key_storage_settings");
+            PreferenceCategory smsCategory =
+                (PreferenceCategory)findPreference("pref_key_sms_settings");  
+            storageOptions.removePreference(mSmsStorePref);
+            smsCategory.removePreference(mSmsCenterPref);
+            
+            if (!MessageUtils.isHasCard(MessageUtils.CARD_SUB1)) {
+                smsCategory.removePreference(mSmsCenterCard1Pref);
+            } else {
+                setSmsCenterNumber(MessageUtils.CARD_SUB1);
+            }
+            if (!MessageUtils.isHasCard(MessageUtils.CARD_SUB2)) {
+                smsCategory.removePreference(mSmsCenterCard2Pref);
+            } else {
+                setSmsCenterNumber(MessageUtils.CARD_SUB2);
+            }
+        } else {
+            PreferenceCategory storageOptions =
+                (PreferenceCategory)findPreference("pref_key_storage_settings");
+            PreferenceCategory smsCategory =
+                (PreferenceCategory)findPreference("pref_key_sms_settings");  
+            smsCategory.removePreference(mSmsCenterCard1Pref);
+            smsCategory.removePreference(mSmsCenterCard2Pref);
+            
+            if (!MessageUtils.isHasCard()) {
+                storageOptions.removePreference(mSmsStorePref);
+                smsCategory.removePreference(mSmsCenterPref);
+            } else {
+                setSmsStoreSummary();
+                setSmsCenterNumber();
+            }
+        }
+        
         setEnabledNotificationsPref();
 
         // If needed, migrate vibration setting from the previous tri-state setting stored in
@@ -237,6 +340,174 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mMmsLimitPref.setSummary(
                 getString(R.string.pref_summary_delete_limit,
                         mMmsRecycler.getMessageLimit(this)));
+    }
+
+    private void setSmsStoreSummary() {
+        mSmsStorePref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                final String summary = newValue.toString();
+                int index = mSmsStorePref.findIndexOfValue(summary);
+                mSmsStorePref.setSummary(mSmsStorePref.getEntries()[index]);
+                mSmsStorePref.setValue(summary);
+                setPreferStore(Integer.parseInt(summary));
+                return true;
+            }
+        }); 
+        mSmsStorePref.setSummary(mSmsStorePref.getEntry());
+    }
+    
+    private void getSmsCenterNumber() {
+        String s_smsCenter = null;
+        s_smsCenter = s_smsCenter_sub1;
+        if (TextUtils.isEmpty(s_smsCenter)) {
+            SmsManager smsManager = SmsManager.getDefault();
+            smsManager.getGsmSmsCenter();
+            String title = "";
+            mSmsCenterPref.setSummary(title);
+        } else {
+            mSmsCenterPref.setSummary(s_smsCenter);
+            mSmsCenterPref.setText(s_smsCenter);
+        }       
+    }
+    
+    private void getSmsCenterNumber(int subscription) {
+        String s_smsCenter = null;
+        if (MessageUtils.CARD_SUB1 == subscription) {
+            s_smsCenter = s_smsCenter_sub1;
+            if (TextUtils.isEmpty(s_smsCenter)) {
+                MSimSmsManager smsManager = MSimSmsManager.getDefault();
+                smsManager.getGsmSmsCenter(subscription);   
+                String title = "";
+                mSmsCenterCard1Pref.setSummary(title);
+            } else {  
+                mSmsCenterCard1Pref.setSummary(s_smsCenter);
+                mSmsCenterCard1Pref.setText(s_smsCenter);
+            }
+        } else {
+            s_smsCenter = s_smsCenter_sub2;
+            if (TextUtils.isEmpty(s_smsCenter)) {
+                MSimSmsManager smsManager = MSimSmsManager.getDefault();
+                smsManager.getGsmSmsCenter(subscription);
+                String title = "";
+                mSmsCenterCard2Pref.setSummary(title);
+            } else {
+                mSmsCenterCard2Pref.setSummary(s_smsCenter);
+                mSmsCenterCard2Pref.setText(s_smsCenter);
+            }
+        }  
+    }
+
+    private void setSmsCenterNumber() {
+        mSmsCenterPref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                final String value = newValue.toString();
+                boolean result = setNumberResult(value);
+                if (result) {
+                    mSmsCenterPref.setSummary(value);
+                    s_smsCenter_sub1 = value; 
+                    Toast.makeText(MessagingPreferenceActivity.this,
+                        R.string.operate_success, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MessagingPreferenceActivity.this,
+                        R.string.operate_failure, Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            }
+        }); 
+        mSmsCenterPref.setSummary(mSmsCenterPref.getText());
+    }
+
+    private void setSmsCenterNumber(int subscription) {
+        if (MessageUtils.CARD_SUB1 == subscription){
+            mSmsCenterCard1Pref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    final String value = newValue.toString();
+                    boolean result = setNumberResult(value,MessageUtils.CARD_SUB1);
+                    if (result) {
+                        mSmsCenterCard1Pref.setSummary(value);
+                        s_smsCenter_sub1 = value; 
+                        Toast.makeText(MessagingPreferenceActivity.this,
+                            R.string.operate_success, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MessagingPreferenceActivity.this,
+                            R.string.operate_failure, Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
+                }
+            }); 
+            mSmsCenterCard1Pref.setSummary(mSmsCenterCard1Pref.getText());
+        } else {
+            mSmsCenterCard2Pref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    final String value = newValue.toString();
+                    boolean result = setNumberResult(value,MessageUtils.CARD_SUB2);
+                    if (result) {
+                        mSmsCenterCard2Pref.setSummary(value);
+                        s_smsCenter_sub2 = value; 
+                        Toast.makeText(MessagingPreferenceActivity.this,
+                            R.string.operate_success, Toast.LENGTH_SHORT).show();   
+                    } else {
+                        Toast.makeText(MessagingPreferenceActivity.this,
+                            R.string.operate_failure, Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
+                }
+            }); 
+            mSmsCenterCard2Pref.setSummary(mSmsCenterCard2Pref.getText());
+        }   
+    }
+
+    private boolean setNumberResult(String value) {
+        int numberType = 129;
+        if (value.startsWith("+")) {
+            numberType = 145;
+        }
+        String center = "\"" + value + "\"," + String.valueOf(numberType);
+        boolean result = false;
+        SmsManager smsManager = SmsManager.getDefault();
+        result = smsManager.setGsmSmsCenter(center); 
+        return result; 
+    }
+    
+    private boolean setNumberResult(String value,int subscription) {
+        int numberType = 129;
+        if (value.startsWith("+")) {
+            numberType = 145;
+        }
+        String center = "\"" + value + "\"," + String.valueOf(numberType);
+        boolean result = false;
+        MSimSmsManager smsManager = MSimSmsManager.getDefault();
+        result = smsManager.setGsmSmsCenter(center,subscription);
+        return result; 
+    }
+
+    public void resume() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(GET_GSM_SMS_CENTER_ACTION);
+        registerReceiver(mReceiver, filter);
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            if (MessageUtils.isHasCard(MessageUtils.CARD_SUB1)) {
+                getSmsCenterNumber(MessageUtils.CARD_SUB1);
+            }
+            if (MessageUtils.isHasCard(MessageUtils.CARD_SUB2)) {
+                getSmsCenterNumber(MessageUtils.CARD_SUB2);
+            }
+        } else {
+            if (MessageUtils.isHasCard()) {
+                getSmsCenterNumber();
+            }
+        }
+    }
+
+    private void setPreferStore(int store) {
+        SmsManager smsmanager = SmsManager.getDefault();
+        if (MessageUtils.isIccCardActivated()) {
+            if (store == MessageUtils.STORE_ME) {
+                smsmanager.setSmsPreStore(MessageUtils.STORE_ME,true);
+            } else if (store == MessageUtils.STORE_SM) {
+                smsmanager.setSmsPreStore(MessageUtils.STORE_SM,true);
+            }
+        }
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {

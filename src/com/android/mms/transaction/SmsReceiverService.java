@@ -92,6 +92,9 @@ public class SmsReceiverService extends Service {
     public static final String ACTION_SEND_MESSAGE =
         "com.android.mms.transaction.SEND_MESSAGE";
 
+    public static final String ICC_SMS_RECEIVED_ACTION =
+        "com.android.mms.transaction.ICC_SMS_RECEIVED";
+
     // This must match the column IDs below.
     private static final String[] SEND_PROJECTION = new String[] {
         Sms._ID,        //0
@@ -213,7 +216,8 @@ public class SmsReceiverService extends Service {
 
                 if (MESSAGE_SENT_ACTION.equals(intent.getAction())) {
                     handleSmsSent(intent, error);
-                } else if (SMS_RECEIVED_ACTION.equals(action)) {
+                } else if (SMS_RECEIVED_ACTION.equals(action)
+                        || ICC_SMS_RECEIVED_ACTION.equals(action)) {
                     handleSmsReceived(intent, error);
                 } else if (ACTION_BOOT_COMPLETED.equals(action)) {
                     handleBootCompleted();
@@ -425,17 +429,18 @@ public class SmsReceiverService extends Service {
     private void handleSmsReceived(Intent intent, int error) {
         SmsMessage[] msgs = Intents.getMessagesFromIntent(intent);
         String format = intent.getStringExtra("format");
-        Uri messageUri = insertMessage(this, msgs, error, format);
+        int indexOnIcc = intent.getIntExtra("index_on_icc", -1); 
+        Uri messageUri = insertMessage(this, msgs, error, format, indexOnIcc);
 
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
             SmsMessage sms = msgs[0];
             Log.v(TAG, "handleSmsReceived" + (sms.isReplace() ? "(replace)" : "") +
                     " messageUri: " + messageUri +
-                    ", address: " + sms.getOriginatingAddress() +
-                    ", body: " + sms.getMessageBody());
+                    ", address: " + sms.getOriginatingAddress()/* +
+                    ", body: " + sms.getMessageBody()*/);
         }
 
-        if (messageUri != null) {
+        if ((messageUri != null)&&(indexOnIcc<0)) {
             long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
             // Called off of the UI thread so ok to block.
             Log.d(TAG, "handleSmsReceived messageUri: " + messageUri + " threadId: " + threadId);
@@ -472,6 +477,7 @@ public class SmsReceiverService extends Service {
         else
         {
             handleIccAbsent(MessageUtils.SUB_INVALID);
+            MessageUtils.checkModifyPreStoreWhenBoot(this);
         }
         
     }
@@ -532,17 +538,21 @@ public class SmsReceiverService extends Service {
      * <code>Uri</code> of the thread containing this message
      * so that we can use it for notification.
      */
-    private Uri insertMessage(Context context, SmsMessage[] msgs, int error, String format) {
+    private Uri insertMessage(Context context, SmsMessage[] msgs, int error, String format, int indexOnIcc) {
         // Build the helper classes to parse the messages.
         SmsMessage sms = msgs[0];
 
-        if (sms.getMessageClass() == SmsMessage.MessageClass.CLASS_0) {
+        Log.d(TAG,"insertMessage() format is " + format + ", indexOnIcc = "+indexOnIcc);
+
+        if (sms != null && sms.getMessageClass() == SmsMessage.MessageClass.CLASS_0 && indexOnIcc < 0) {
             displayClassZeroMessage(context, sms, format);
             return null;
-        } else if (sms.isReplace()) {
-            return replaceMessage(context, msgs, error);
-        } else {
-            return storeMessage(context, msgs, error);
+        }
+        else if (sms != null && sms.isReplace() && indexOnIcc < 0) {
+            return replaceMessage(context, msgs, error, indexOnIcc);
+        }
+        else {
+            return storeMessage(context, msgs, error, indexOnIcc);
         }
     }
 
@@ -555,7 +565,7 @@ public class SmsReceiverService extends Service {
      *
      * See TS 23.040 9.2.3.9.
      */
-    private Uri replaceMessage(Context context, SmsMessage[] msgs, int error) {
+    private Uri replaceMessage(Context context, SmsMessage[] msgs, int error, int indexOnIcc) {
         SmsMessage sms = msgs[0];
         ContentValues values = extractContentValues(sms);
         values.put(Sms.ERROR_CODE, error);
@@ -611,7 +621,7 @@ public class SmsReceiverService extends Service {
                 cursor.close();
             }
         }
-        return storeMessage(context, msgs, error);
+        return storeMessage(context, msgs, error, indexOnIcc);
     }
 
     public static String replaceFormFeeds(String s) {
@@ -621,8 +631,12 @@ public class SmsReceiverService extends Service {
 
 //    private static int count = 0;
 
-    private Uri storeMessage(Context context, SmsMessage[] msgs, int error) {
+    private Uri storeMessage(Context context, SmsMessage[] msgs, int error, int indexOnIcc) {
         SmsMessage sms = msgs[0];
+		
+	if (indexOnIcc > -1) {
+	    return storeMessageToIcc(indexOnIcc, context, sms);
+	}
 
         // Store the message in the content provider.
         ContentValues values = extractContentValues(sms);
@@ -688,6 +702,56 @@ public class SmsReceiverService extends Service {
         MmsWidgetProvider.notifyDatasetChanged(context);
 
         return insertedUri;
+    }
+
+    private Uri storeMessageToIcc(int index, Context context, SmsMessage sms)
+    {    
+	Log.d(TAG,"storeMessageToIcc() index = " + index); 
+	int subId = MessageUtils.SUB_INVALID;
+        if (index < 0 || sms == null){
+            return null;
+        }
+        int statusOnIcc = SmsManager.STATUS_ON_ICC_UNREAD;
+        Uri uriStr = MessageUtils.ICC_URI;
+        if (MessageUtils.isMultiSimEnabledMms()){
+            subId = sms.getSubId();
+            if (MSimConstants.SUB2 == subId){
+                uriStr = MessageUtils.ICC2_URI;
+            } else {
+                uriStr = MessageUtils.ICC1_URI;
+                }
+        }
+
+        //Uri uri = ContentUris.withAppendedId(uriStr, index);
+        //Log.d(TAG, " uri = " + uri);
+        String address = sms.getDisplayOriginatingAddress();
+        ContentValues values = new ContentValues(16);
+        values.put("service_center_address", sms.getServiceCenterAddress());
+        values.put(Sms.ADDRESS, address);
+        values.put("message_class", String.valueOf(sms.getMessageClass()));        
+        String content = sms.getDisplayMessageBody();
+        if (content == null){
+            content = "";
+        }
+        
+        values.put(Sms.BODY, content);
+        values.put(Sms.DATE, sms.getTimestampMillis());
+        values.put(Sms.STATUS, Sms.STATUS_NONE);
+        values.put("index_on_icc", index);                
+        values.put("is_status_report", -1);        
+        values.put("transport_type", "sms");
+        values.put(Sms.TYPE, Sms.MESSAGE_TYPE_INBOX);
+        values.put("status_on_icc", statusOnIcc);
+        values.put(Sms.SUB_ID, subId);  
+        values.put(Sms.READ, MessageUtils.MESSAGE_UNREAD);
+        
+        /*if (!TextUtils.isEmpty(address)){
+            values.put(Sms.THREAD_ID, 
+                Conversation.getOrCreateThreadId(context, address));
+        }*/
+
+        ContentResolver resolver = context.getContentResolver();        
+        return SqliteWrapper.insert(context, resolver, uriStr, values);
     }
 
     /**
