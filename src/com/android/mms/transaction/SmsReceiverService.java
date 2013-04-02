@@ -434,11 +434,11 @@ public class SmsReceiverService extends Service {
             SmsMessage sms = msgs[0];
             Log.v(TAG, "handleSmsReceived" + (sms.isReplace() ? "(replace)" : "") +
                     " messageUri: " + messageUri +
-                    ", address: " + sms.getOriginatingAddress() +
-                    ", body: " + sms.getMessageBody());
+                    ", address: " + sms.getOriginatingAddress()/* +
+                    ", body: " + sms.getMessageBody()*/);
         }
 
-        if (messageUri != null) {
+        if ((messageUri != null)&&(indexOnIcc<0)) {
             long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
             // Called off of the UI thread so ok to block.
             Log.d(TAG, "handleSmsReceived messageUri: " + messageUri + " threadId: " + threadId);
@@ -704,18 +704,23 @@ public class SmsReceiverService extends Service {
     private Uri storeMessageToIcc(int index, Context context, SmsMessage sms)
     {    
 	Log.d(TAG,"storeMessageToIcc() index = " + index); 
-	int subId = sms.getSubId();
+	int subId = MessageUtils.SUB_INVALID;
         if (index < 0 || sms == null){
             return null;
         }
         int statusOnIcc = SmsManager.STATUS_ON_ICC_UNREAD;
-        Uri uriStr = MessageUtils.ICC1_URI;
-        if (MSimConstants.SUB2 == subId){
-            uriStr = MessageUtils.ICC2_URI;
+        Uri uriStr = MessageUtils.ICC_URI;
+        if (MessageUtils.isMultiSimEnabledMms()){
+            subId = sms.getSubId();
+            if (MSimConstants.SUB2 == subId){
+                uriStr = MessageUtils.ICC2_URI;
+            } else {
+                uriStr = MessageUtils.ICC1_URI;
+                }
         }
-        Uri uri = ContentUris.withAppendedId(uriStr, index);
 
-        Log.d(TAG, " uri = " + uri);
+        //Uri uri = ContentUris.withAppendedId(uriStr, index);
+        //Log.d(TAG, " uri = " + uri);
         String address = sms.getDisplayOriginatingAddress();
         ContentValues values = new ContentValues(16);
         values.put("service_center_address", sms.getServiceCenterAddress());
@@ -735,14 +740,15 @@ public class SmsReceiverService extends Service {
         values.put(Sms.TYPE, Sms.MESSAGE_TYPE_INBOX);
         values.put("status_on_icc", statusOnIcc);
         values.put(Sms.SUB_ID, subId);  
+        values.put(Sms.READ, MessageUtils.MESSAGE_UNREAD);
         
-        if (!TextUtils.isEmpty(address)){
+        /*if (!TextUtils.isEmpty(address)){
             values.put(Sms.THREAD_ID, 
                 Conversation.getOrCreateThreadId(context, address));
-        }
+        }*/
 
         ContentResolver resolver = context.getContentResolver();        
-        return SqliteWrapper.insert(context, resolver, uri, values);
+        return SqliteWrapper.insert(context, resolver, uriStr, values);
     }
 
     /**
