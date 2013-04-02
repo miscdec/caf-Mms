@@ -475,6 +475,7 @@ public class SmsReceiverService extends Service {
         else
         {
             handleIccAbsent(MessageUtils.SUB_INVALID);
+            MessageUtils.checkModifyPreStoreWhenBoot(this);
         }
         
     }

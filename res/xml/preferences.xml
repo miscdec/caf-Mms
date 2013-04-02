@@ -39,6 +39,12 @@
                       android:persistent="false"
                       android:summary="@string/pref_summary_delete_limit"
                       android:title="@string/pref_title_mms_delete" />
+    <ListPreference android:key="pref_key_sms_store"
+                      android:title="@string/pref_title_sms_store"
+                      android:defaultValue="1"
+                      android:dialogTitle="@string/pref_title_sms_store"
+                      android:entries="@array/entries_sms_store" 
+                      android:entryValues="@array/entries_sms_store_value"/>
   </PreferenceCategory>
   <PreferenceCategory android:title="@string/pref_sms_settings_title"
                       android:key="pref_key_sms_settings" >
@@ -49,6 +55,24 @@
     <Preference android:key="pref_key_manage_sim_messages"
                       android:summary="@string/pref_summary_manage_sim_messages"
                       android:title="@string/pref_title_manage_sim_messages" />
+    <EditTextPreference android:key="pref_key_sms_center"
+                      android:title="@string/pref_title_sms_center"
+                      android:dialogTitle="@string/pref_title_sms_center"
+                      android:maxLength="32"
+                      android:persistent="false"
+                      android:inputType="phone"/>
+    <EditTextPreference android:key="pref_key_sms_center_card1"
+                      android:title="@string/pref_title_sms_center_card1"
+                      android:dialogTitle="@string/pref_title_sms_center"
+                      android:maxLength="32"
+                      android:persistent="false"
+                      android:inputType="phone"/>
+    <EditTextPreference android:key="pref_key_sms_center_card2"
+                      android:title="@string/pref_title_sms_center_card2"
+                      android:dialogTitle="@string/pref_title_sms_center"
+                      android:maxLength="32"
+                      android:persistent="false"
+                      android:inputType="phone"/>
   </PreferenceCategory>
   <PreferenceCategory android:title="@string/pref_mms_settings_title"
                       android:key="pref_key_mms_settings">
