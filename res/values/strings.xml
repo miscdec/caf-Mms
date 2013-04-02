@@ -965,5 +965,14 @@
     <string name="btn_ok">OK</string>
     <string name="btn_cancel">Cancel</string>
     <string name="select_all">All</string>
+
+    <!-- Settings item description for storage and SMS center  -->
+    <string name="pref_title_sms_store">Preferred storage</string>    
+    <string name="pref_sms_store_phone">Phone</string> 
+    <string name="pref_sms_store_card">SIM card</string>  
+    <string name="pref_title_sms_center">Set SMS center</string> 
+    <string name="pref_title_sms_center_card1">Set Card1 SMS center</string> 
+    <string name="pref_title_sms_center_card2">Set Card2 SMS center</string> 
+    
 </resources>
 

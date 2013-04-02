@@ -32,6 +32,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
@@ -78,7 +79,9 @@ import com.google.android.mms.pdu.SendReq;
 import android.provider.Settings;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.MSimSmsManager;
+import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
+import android.preference.PreferenceManager;
 import com.android.internal.telephony.MSimConstants;
 
 
@@ -102,6 +105,11 @@ public class MessageUtils {
     // add for getting the read status when copy messages to sim card
     public static final int MESSAGE_READ = 1;
     public static final int MESSAGE_UNREAD = 0;
+
+    public static final int CARD_SUB1 = MSimConstants.SUB1; 
+    public static final int CARD_SUB2 = MSimConstants.SUB2; 
+    public static final int STORE_ME = 1;
+    public static final int STORE_SM = 2;
     
     // add for obtaining icc uri when copying messages to card
     public static final Uri ICC_URI = Uri.parse("content://sms/icc");
@@ -1276,6 +1284,26 @@ public class MessageUtils {
                 return ICC2_URI;
             default:
                 return ICC_URI;
+        }
+    }
+
+    public static int getCurSmsPreferStore(Context context){
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
+        int preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store", "1"));
+        return preferStore;
+    }
+    
+    public static void checkModifyPreStoreWhenBoot(Context context) {
+        if (!isIccCardActivated()) {
+            return;
+        }
+        SmsManager smsmanager = SmsManager.getDefault();
+        int curPreStore = getCurSmsPreferStore(context);
+
+        if (curPreStore == STORE_SM) {      
+            smsmanager.setSmsPreStore(STORE_SM, true);
+        } else {         
+            smsmanager.setSmsPreStore(STORE_ME, true);           
         }
     }
     

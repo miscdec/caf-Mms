@@ -885,7 +885,11 @@ public class MessagingNotification {
             taskStackBuilder.addNextIntent(mostRecentNotification.mClickIntent);
         }
         // Always have to set the small icon or the notification is ignored
-        noti.setSmallIcon(R.drawable.stat_notify_sms);
+        if (mostRecentNotification.mIsSms) {
+            noti.setSmallIcon(R.drawable.stat_notify_sms);
+        } else {
+            noti.setSmallIcon(R.drawable.stat_notify_mms);
+        }
 
         NotificationManager nm = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
