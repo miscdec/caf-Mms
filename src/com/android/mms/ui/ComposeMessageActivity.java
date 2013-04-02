@@ -28,7 +28,6 @@ import static com.android.mms.ui.MessageListAdapter.COLUMN_SUB_ID;
 import static com.android.mms.ui.MessageListAdapter.PROJECTION;
 
 import com.qrd.plugin.feature_query.FeatureQuery;
-import com.qualcomm.internal.telephony.MSimPhoneFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -832,14 +831,16 @@ public class ComposeMessageActivity extends Activity
     }
 
     private int getPreferredSubscription() {
-        int subscroption = ALWAY_ASK;
+        int subscription = ALWAY_ASK;
+
         try {
-            subscroption = MSimPhoneFactory.getSMSSubscription();
+            subscription = Settings.Global.getInt(this.getContentResolver(),
+                    Settings.Global.MULTI_SIM_SMS_SUBSCRIPTION); 
         } catch (Exception e) {
             Log.e(TAG, "MSimPhoneFactory.getSMSSubscription has exception!");
         }
 
-        return subscroption;
+        return subscription;
     }
 
     /*
@@ -4643,6 +4644,7 @@ public class ComposeMessageActivity extends Activity
                     // check consistency b/t mConversation & mWorkingMessage.mConversation
                     ComposeMessageActivity.this.sanityCheckConversation();
 
+                    /*
                     // Set last sub used in this conversation thread.
                     if (cursor.getCount() > 0) {
                         cursor.moveToLast();
@@ -4651,7 +4653,7 @@ public class ComposeMessageActivity extends Activity
                     } else {
                         mLastSubInConv = SUBSCRIPTION_ID_INVALID;
                     }
-
+                    */
                     int newSelectionPos = -1;
                     long targetMsgId = getIntent().getLongExtra("select_id", -1);
                     if (targetMsgId != -1) {

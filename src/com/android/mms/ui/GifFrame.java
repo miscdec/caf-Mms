@@ -7,7 +7,6 @@ public class GifFrame {
         image = im;
         delay = del;
     }
-	
     public Bitmap image;
     public int delay;
     public GifFrame nextFrame = null;
