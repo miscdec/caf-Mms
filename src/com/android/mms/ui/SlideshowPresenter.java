@@ -20,6 +20,7 @@ package com.android.mms.ui;
 import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
+import android.drm.mobile1.DrmException;
 
 import com.android.mms.model.AudioModel;
 import com.android.mms.model.ImageModel;
@@ -188,27 +189,32 @@ public class SlideshowPresenter extends Presenter {
      * @param r
      */
     protected void presentImage(SlideViewInterface view, ImageModel image,
-            RegionModel r, boolean dataChanged) {
-        int transformedWidth = transformWidth(r.getWidth());
-        int transformedHeight = transformWidth(r.getHeight());
-
-        if (LOCAL_LOGV) {
-            Log.v(TAG, "presentImage r.getWidth: " + r.getWidth()
-                    + ", r.getHeight: " + r.getHeight() +
-                    " transformedWidth: " + transformedWidth +
-                    " transformedHeight: " + transformedHeight);
-        }
-
-        if (dataChanged) {
-            view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
+            RegionModel r, boolean dataChanged){
+        if (dataChanged) {      
+            String ct = image.getContentType();
+            if (ct != null && ct.contains("gif") 
+                && view instanceof SlideView){
+                Log.v(TAG,"z280 setgif will be called.");
+                /*
+                MessageUtils.printMmsLog("z293 image.getBitmapWithDrmCheck() "
+                    + image.getBitmapWithDrmCheck().getHeight() + " "
+                    + image.getBitmapWithDrmCheck().getWidth());
+                    */
+                if (false == ((SlideView)view).setGIF(image.getUri(), image.getBitmap(r.getWidth(), r.getHeight()))){
+                    view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
+                }
+            }else{         
+                view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
+            }
+            //view.setImage(image.getSrc(), image.getBitmapWithDrmCheck());
         }
 
         if (view instanceof AdaptableSlideViewInterface) {
             ((AdaptableSlideViewInterface) view).setImageRegion(
                     transformWidth(r.getLeft()),
                     transformHeight(r.getTop()),
-                    transformedWidth,
-                    transformedHeight);
+                    transformWidth(r.getWidth()),
+                    transformHeight(r.getHeight()));
         }
         view.setImageRegionFit(r.getFit());
         view.setImageVisibility(image.isVisible());
