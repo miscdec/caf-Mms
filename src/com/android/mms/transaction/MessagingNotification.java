@@ -98,6 +98,7 @@ public class MessagingNotification {
     private static final boolean DEBUG = false;
 
     public static final int NOTIFICATION_ID = 123;
+	public static final int NOTIFICATION_ICC_ID = 124;
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
     /**
@@ -328,7 +329,7 @@ public class MessagingNotification {
         addSmsOnIccNotificationInfos(context, subId, notificationSet);
         Log.d(TAG, "blockingUpdateNewMessageOnIccIndicator:notificationSet="+notificationSet);
         if (notificationSet.isEmpty()) {
-            cancelNotification(context, NOTIFICATION_ID);
+            cancelNotification(context, NOTIFICATION_ICC_ID);
         } else {
             updateIccNotification(context, true, notificationSet);
         }
@@ -1309,7 +1310,7 @@ public class MessagingNotification {
             }
         }
 
-        nm.notify(NOTIFICATION_ID, notification);
+        nm.notify(NOTIFICATION_ICC_ID, notification);
     }
 
     protected static CharSequence buildTickerMessage(

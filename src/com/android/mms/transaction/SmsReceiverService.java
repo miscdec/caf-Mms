@@ -28,6 +28,7 @@ import java.util.GregorianCalendar;
 
 import android.app.Activity;
 import android.app.Service;
+import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -107,6 +108,7 @@ public class SmsReceiverService extends Service {
     };
 
     public Handler mToastHandler = new Handler();
+    private AsyncQueryHandler mQueryHandler = null;
 
     // This must match SEND_PROJECTION.
     private static final int SEND_COLUMN_ID         = 0;
@@ -116,6 +118,13 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_STATUS     = 4;
     private static final int SEND_COLUMN_SUB_ID     = 5;
 
+    static final int TOKEN_QUERY_ICC1  = 4097;
+    static final int TOKEN_QUERY_ICC2  = 4098;
+    static final int TOKEN_QUERY_ICC   = 4099;
+    static final int TOKEN_DELETE_ICC1 = 4100;
+    static final int TOKEN_DELETE_ICC2 = 4101;
+    static final int TOKEN_DELETE_ICC  = 4102;
+    
     private int mResultCode;
 
     @Override
@@ -130,6 +139,7 @@ public class SmsReceiverService extends Service {
         // main thread, which we don't want to block.
         HandlerThread thread = new HandlerThread(TAG, Process.THREAD_PRIORITY_BACKGROUND);
         thread.start();
+        mQueryHandler = new QueryHandler(getContentResolver());
 
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
@@ -188,6 +198,41 @@ public class SmsReceiverService extends Service {
         return null;
     }
 
+    private class QueryHandler extends AsyncQueryHandler {
+        public QueryHandler(ContentResolver cr) {
+            super(cr);
+        }
+
+        @Override
+        protected void onQueryComplete(int token, Object cookie,
+                                       Cursor cursor)
+        {
+            Log.d(TAG, "onQueryComplete: token = " + token + ";cursor = " + cursor);
+            if (cursor != null)
+            {
+                cursor.close();
+            }
+            switch(token) 
+            {
+                case TOKEN_QUERY_ICC1:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB1);
+                    return;
+                case TOKEN_QUERY_ICC2:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB2);
+                    return;
+                case TOKEN_QUERY_ICC:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB_INVALID);
+                    return;
+            }            
+        }
+        
+        @Override
+        protected void onDeleteComplete(int token, Object cookie, int result) 
+        {
+            return;
+        }         
+    }
+    
     private final class ServiceHandler extends Handler {
         public ServiceHandler(Looper looper) {
             super(looper);
@@ -239,6 +284,7 @@ public class SmsReceiverService extends Service {
                         handleIccAbsent(subscription);
                     }
                     else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(true);
                         queryIccSms(subscription);
                     }
                   }
@@ -252,11 +298,19 @@ public class SmsReceiverService extends Service {
     private void queryIccSms(int subscription)
     {
         Uri iccUri = MessageUtils.getIccUriBySubscription(subscription); 
-        Cursor cursor = SqliteWrapper.query(this, getContentResolver(), iccUri, null, null, null, null);;
-
-        if (cursor != null)
+        int tokenId = TOKEN_QUERY_ICC;
+        if(MessageUtils.isMultiSimEnabledMms())
         {
-            cursor.close();
+            tokenId = subscription == MessageUtils.SUB1 ? TOKEN_QUERY_ICC1 : TOKEN_QUERY_ICC2;
+        }
+        
+        try 
+        {
+            mQueryHandler.startQuery(tokenId, null, iccUri, null, null, null, null);
+        } 
+        catch (SQLiteException e) 
+        {
+            SqliteWrapper.checkSQLiteException(this, e);
         }
     }
     
@@ -489,10 +543,15 @@ public class SmsReceiverService extends Service {
     private void handleIccAbsent(int subscription) 
     {    
         Uri iccUri = MessageUtils.getIccUriBySubscription(subscription);          
-
+        int tokenId = TOKEN_DELETE_ICC;
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            tokenId = subscription == MessageUtils.SUB1 ? TOKEN_DELETE_ICC1: TOKEN_DELETE_ICC2;
+        }
+        
         try 
         {
-            SqliteWrapper.delete(this, getContentResolver(), iccUri, null, null);
+            mQueryHandler.startDelete(tokenId, null, iccUri, null, null);
         }
         catch (SQLiteException e) 
         {

@@ -110,6 +110,7 @@ public class MessageUtils {
     public static final int CARD_SUB2 = MSimConstants.SUB2; 
     public static final int STORE_ME = 1;
     public static final int STORE_SM = 2;
+    public static boolean sIsIccLoaded  = false;
     
     // add for obtaining icc uri when copying messages to card
     public static final Uri ICC_URI = Uri.parse("content://sms/icc");
@@ -1307,6 +1308,10 @@ public class MessageUtils {
         }
     }
     
+    public static void setIsIccLoaded(boolean isIccLoaded){
+        sIsIccLoaded = isIccLoaded;
+    }
+
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);
     }
