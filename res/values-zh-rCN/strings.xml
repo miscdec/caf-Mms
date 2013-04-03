@@ -388,6 +388,13 @@
     <string name="menu_delete_msg">删除</string>
     <string name="menu_reply">回复</string>
     <string name="menu_copy_to">复制</string>
+    <!-- menu item of slideshowactivity -->
+    <string name="reply_by_mms">通过彩信回复</string>
+    <string name="delete_lock_err">不能删除被锁定的信息！</string>                   
+    <string name="dialing">正在连接网络</string>
+    <string name="cancel">取消</string> 
+    <string name="copy_to_sdcard_direction_success">已保存到：</string>
+
     <!-- toast for send result -->
     <string name="send_failure">发送失败！</string>
     <string name="send_success">发送成功！</string>

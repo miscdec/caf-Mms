@@ -68,6 +68,35 @@ public class AddressUtils {
         return context.getString(R.string.hidden_sender_address);
     }
 
+    public static String getTo(Context context, Uri uri) {
+        String msgId = uri.getLastPathSegment();
+        Uri.Builder builder = Mms.CONTENT_URI.buildUpon();
+
+        builder.appendPath(msgId).appendPath("addr");
+
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                            builder.build(), new String[] {Addr.ADDRESS, Addr.CHARSET},
+                            Addr.TYPE + "=" + PduHeaders.TO, null, null);
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    String from = cursor.getString(0);
+
+                    if (!TextUtils.isEmpty(from)) {
+                        byte[] bytes = PduPersister.getBytes(from);
+                        int charset = cursor.getInt(1);
+                        return new EncodedStringValue(charset, bytes)
+                                .getString();
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
     /**
      * isPossiblePhoneNumberCanDoFileAccess does a more accurate test if the input is a
      * phone number, but it can do file access to load country prefixes and other info, so

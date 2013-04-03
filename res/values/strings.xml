@@ -937,6 +937,13 @@
     <string name="menu_delete_msg">Delete</string>
     <string name="menu_reply">Reply</string>
     <string name="menu_copy_to">Copy</string>
+    <!-- menu item of slideshowactivity -->
+    <string name="reply_by_mms">Reply via MMS</string>
+    <string name="delete_lock_err">Can not delete the locked message!</string>    
+    <string name="dialing">Connecting network</string>
+    <string name="cancel">Cancel</string>    
+    <string name="copy_to_sdcard_direction_success">Attachment copied to:</string>
+
     <!-- toast for send result -->
     <string name="send_failure">Sending failed!</string>
     <string name="send_success">Send successfully!</string>
