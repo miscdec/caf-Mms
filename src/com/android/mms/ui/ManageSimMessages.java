@@ -166,8 +166,18 @@ public class ManageSimMessages extends Activity
                 SIM_FULL_NOTIFICATION_ID);
 
         updateState(SHOW_BUSY);
+        setMessageRead(this);
         startQuery();
     }
+
+    private void setMessageRead(Context context)
+    {
+        Log.d(TAG, "setMessageRead : mSubscription="+mSubscription);
+        ContentValues values = new ContentValues(1);
+        values.put("status_on_icc", 1);
+        SqliteWrapper.update(context, getContentResolver(),
+            MessageUtils.getIccUriBySubscription(mSubscription), values, null, null);
+    }  
     
     private Handler uihandler = new Handler()
     {
@@ -236,6 +246,8 @@ public class ManageSimMessages extends Activity
             }
             // Show option menu when query complete.
             invalidateOptionsMenu();
+            Log.d(TAG, "onQueryComplete");
+            MessagingNotification.cancelNotification(ManageSimMessages.this, MessagingNotification.NOTIFICATION_ID);
         }
     }
 

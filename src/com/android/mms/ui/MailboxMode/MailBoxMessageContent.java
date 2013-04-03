@@ -117,6 +117,9 @@ import android.graphics.PorterDuff;
 import com.android.mms.data.Contact;
 import android.telephony.TelephonyManager;
 import android.os.AsyncTask;
+import android.view.ScaleGestureDetector;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 
 public class MailBoxMessageContent extends Activity 
 {
@@ -687,12 +690,16 @@ public class MailBoxMessageContent extends Activity
         mBodyTextView.setTextIsSelectable(true);
         mBodyTextView.setTelUrl("tels:");
         mBodyTextView.setWebUrl("www_custom:");
+        mScaleDetector = new ScaleGestureDetector(this, new MyScaleListener());
         mFromTextView = (TextView) findViewById(R.id.TextViewFrom);
         mNumberView = (TextView) findViewById(R.id.TextViewNumber); 
         mNumberView.setTelUrl("tels:"); 
         mTimeTextView = (TextView) findViewById(R.id.TextViewTime);
         mTimeDetailTextView = (TextView) findViewById(R.id.TextViewTimeDetail);  
         mSlotTypeView = (TextView) findViewById(R.id.TextViewSlotType);
+
+        mGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener(){ });
+        mGestureDetector.setOnDoubleTapListener(null); 
 
         if (null != intent.getAction())
         {
@@ -993,4 +1000,150 @@ public class MailBoxMessageContent extends Activity
     {
         super.onRestart();
     }    
+
+    /*Operations for gesture to scale the current text fontsize of content*/
+    private float mScaleFactor = 1;
+    private  ScaleGestureDetector mScaleDetector;
+    private  GestureDetector mGestureDetector;
+    private int mHandlerMsg = -1;
+    private final int ZOOMIN = 0;
+    private final int ZOOMOUT = 1;
+    private float mTextSize = 27;
+
+    private Handler mHandler = new Handler()
+    {
+        @Override
+        public void handleMessage(Message msg)
+        {
+            switch (msg.what)
+            {
+                case ZOOMIN:
+                    zoomIn();
+                    mBodyTextView.invalidate();
+                    break;
+                    
+                case ZOOMOUT:
+                    zoomOut();
+                    mBodyTextView.invalidate();
+                    break;
+                    
+                default:
+                    break;
+            }
+        }
+    };
+
+    private void zoomIn()
+    {
+        mTextSize = mTextSize + 9 <= 60 ? mTextSize + 9 : 60;
+        if (mTextSize >= 60)
+        {
+            mTextSize = 60;
+        }          
+        mBodyTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,mTextSize);
+        Log.d(TAG,"+++++++++++zoomin:" + mTextSize);
+    }
+
+    private void zoomOut()
+    {
+        mTextSize = mTextSize - 9 < 20 ? 20 : mTextSize - 9;
+        if (mTextSize <= 20)
+        {
+           mTextSize = 20;
+        }           
+        mBodyTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,mTextSize);      
+        Log.d(TAG,"+++++++++++zoomin:" + mTextSize);
+    }    
+
+    private class MyScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+        
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+        float scale = detector.getScaleFactor();
+            if(scale < 0.999999 || scale > 1.00001)
+            {
+                mScaleFactor = scale;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            Log.d(TAG,"+++++++++++++onScaleBegin+++++++++++++++++");
+            return true;
+        }
+
+        @Override
+        public void onScaleEnd(ScaleGestureDetector detector) {
+            float scale = detector.getScaleFactor();
+            if(mScaleFactor > 1.0)
+            {
+                mHandlerMsg = ZOOMIN;
+            }
+            else if(mScaleFactor < 1.0)
+            {
+                mHandlerMsg = ZOOMOUT;
+            }
+        }
+    }
+
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        mScaleDetector.onTouchEvent(ev);
+        final int action = ev.getAction();
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                mGestureDetector.onTouchEvent(ev);
+                return false;
+
+            case MotionEvent.ACTION_MOVE:
+               mGestureDetector.onTouchEvent(ev);
+               return false;
+
+            case MotionEvent.ACTION_UP:
+                mGestureDetector.onTouchEvent(ev); 
+                Message msg = Message.obtain();
+                msg.what = mHandlerMsg;
+                mHandler.sendMessage(msg);
+                mHandlerMsg = -1;
+                return false;
+        }
+        return true;
+    }
+
+    public boolean onTouchEvent(MotionEvent ev) {   
+        mScaleDetector.onTouchEvent(ev);
+        final int action = ev.getAction();
+    
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                mGestureDetector.onTouchEvent(ev);
+                return true;
+    
+            case MotionEvent.ACTION_MOVE:
+               mGestureDetector.onTouchEvent(ev);
+               return true;
+               
+            case MotionEvent.ACTION_UP:
+                mGestureDetector.onTouchEvent(ev); 
+                Message msg = Message.obtain();
+                msg.what = mHandlerMsg;
+                mHandler.sendMessage(msg);
+                mHandlerMsg = -1;
+                return true;
+    
+            case MotionEvent.ACTION_CANCEL:
+                
+                mGestureDetector.onTouchEvent(ev);
+                return true;
+                
+            default:
+                if (mGestureDetector.onTouchEvent(ev)) 
+                {
+                    return true;
+                }
+                
+           return true;
+        }
+    }
+
 }

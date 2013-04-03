@@ -74,6 +74,7 @@ import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.ConversationList;
+import com.android.mms.ui.ManageSimMessages;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.util.AddressUtils;
@@ -96,7 +97,7 @@ public class MessagingNotification {
     private static final String TAG = LogTag.APP;
     private static final boolean DEBUG = false;
 
-    private static final int NOTIFICATION_ID = 123;
+    public static final int NOTIFICATION_ID = 123;
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
     /**
@@ -112,6 +113,9 @@ public class MessagingNotification {
     // This must be consistent with the column constants below.
     private static final String[] SMS_STATUS_PROJECTION = new String[] {
         Sms.THREAD_ID, Sms.DATE, Sms.ADDRESS, Sms.SUBJECT, Sms.BODY, Sms.SUB_ID };
+
+    private static final String[] SMS_ICC_STATUS_PROJECTION = new String[] {
+        Sms.DATE, Sms.ADDRESS, Sms.BODY, Sms.SUB_ID };
 
     // These must be consistent with MMS_STATUS_PROJECTION and
     // SMS_STATUS_PROJECTION.
@@ -130,6 +134,10 @@ public class MessagingNotification {
     private static final String NEW_INCOMING_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
             + " AND " + Sms.SEEN + " = 0)";
+
+    private static final String NEW_INCOMING_ICC_SM_CONSTRAINT =
+            "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
+            + " AND status_on_icc = 3)";
 
     private static final String NEW_DELIVERY_SM_CONSTRAINT =
         "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_SENT
@@ -299,6 +307,37 @@ public class MessagingNotification {
             delivery.deliver(context, isStatusMessage);
         }
     }
+
+    public static void blockingUpdateNewMessageOnIccIndicator(Context context){
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            blockingUpdateNewMessageOnIccIndicator(context, MessageUtils.SUB1);
+            blockingUpdateNewMessageOnIccIndicator(context, MessageUtils.SUB2);
+        }
+        else
+        {
+            blockingUpdateNewMessageOnIccIndicator(context, MessageUtils.SUB_INVALID);
+        }
+    }
+
+    public static void blockingUpdateNewMessageOnIccIndicator(Context context, int subId) {
+       
+        SortedSet<NotificationInfo> notificationSet =
+                new TreeSet<NotificationInfo>(INFO_COMPARATOR);
+
+        addSmsOnIccNotificationInfos(context, subId, notificationSet);
+        Log.d(TAG, "blockingUpdateNewMessageOnIccIndicator:notificationSet="+notificationSet);
+        if (notificationSet.isEmpty()) {
+            cancelNotification(context, NOTIFICATION_ID);
+        } else {
+            updateIccNotification(context, true, notificationSet);
+        }
+        MmsSmsDeliveryInfo delivery = getSmsNewDeliveryInfo(context);
+        if (delivery != null) {
+            delivery.deliver(context, false);
+        }
+    }
+
 
     /**
      * Play the in-conversation notification sound (it's the regular notification sound, but
@@ -743,6 +782,48 @@ public class MessagingNotification {
         }
     }
 
+
+    private static final void addSmsOnIccNotificationInfos(
+            Context context, int subId, SortedSet<NotificationInfo> notificationSet) {
+        ContentResolver resolver = context.getContentResolver();
+        if(!MessageUtils.isMultiSimEnabledMms())
+        {
+            subId = MessageUtils.SUB_INVALID;
+        }
+        Cursor cursor = SqliteWrapper.query(context, resolver, MessageUtils.getIccUriBySubscription(subId),
+                            SMS_ICC_STATUS_PROJECTION, NEW_INCOMING_ICC_SM_CONSTRAINT,
+                            null, Sms.DATE + " desc");
+        
+        if (cursor == null) {
+            Log.d(TAG, "addSmsOnIccNotificationInfos:cursor = null");
+            return;
+        }
+        
+        try {
+            while (cursor.moveToNext()) {
+                String address = cursor.getString(COLUMN_SMS_ADDRESS);
+
+                Contact contact = Contact.get(address, false);
+                if (contact.getSendToVoicemail()) {
+                    // don't notify, skip this one
+                    continue;
+                }
+
+                String message = cursor.getString(COLUMN_SMS_BODY);
+                long timeMillis = cursor.getLong(COLUMN_DATE);
+
+                NotificationInfo info = getNewMessageOnIccNotificationInfo(context, true /* isSms */,
+                        address, message, null /* subject */,
+                        -1 /* threadId */, subId, timeMillis, null /* attachmentBitmap */,
+                        contact, WorkingMessage.TEXT);
+
+                notificationSet.add(info);
+            }
+        } finally {
+            cursor.close();
+        }
+    }
+
     private static final NotificationInfo getNewMessageNotificationInfo(
             Context context,
             boolean isSms,
@@ -771,6 +852,36 @@ public class MessagingNotification {
                 clickIntent, message, subject, ticker, timeMillis,
                 senderInfoName, attachmentBitmap, contact, attachmentType, threadId);
     }
+
+    private static final NotificationInfo getNewMessageOnIccNotificationInfo(
+            Context context,
+            boolean isSms,
+            String address,
+            String message,
+            String subject,
+            long threadId,
+            int subId,
+            long timeMillis,
+            Bitmap attachmentBitmap,
+            Contact contact,
+            int attachmentType) {
+        Intent clickIntent = new Intent(context, ManageSimMessages.class);
+        clickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        String senderInfo = buildTickerMessage(
+                context, address, null, null, subId).toString();
+        String senderInfoName = senderInfo.substring(
+                0, senderInfo.length());
+        CharSequence ticker = buildTickerMessage(
+                context, address, subject, message, subId);
+
+        return new NotificationInfo(isSms,
+                clickIntent, message, subject, ticker, timeMillis,
+                senderInfoName, attachmentBitmap, contact, attachmentType, threadId);
+    }
+
 
     public static void cancelNotification(Context context, int notificationId) {
         NotificationManager nm = (NotificationManager) context.getSystemService(
@@ -1036,6 +1147,165 @@ public class MessagingNotification {
                     Log.d(TAG, "updateNotification: multi messages," +
                             " showing inboxStyle notification");
                 }
+            }
+        }
+
+        nm.notify(NOTIFICATION_ID, notification);
+    }
+
+
+    private static void updateIccNotification(
+            Context context,
+            boolean isNew,
+            SortedSet<NotificationInfo> notificationSet) {
+        // If the user has turned off notifications in settings, don't do any notifying.
+        if (!MessagingPreferenceActivity.getNotificationEnabled(context)) {
+            if (DEBUG) {
+                Log.d(TAG, "updateIccNotification: notifications turned off in prefs, bailing");
+            }
+            return;
+        }
+
+        // Figure out what we've got -- whether all sms's, mms's, or a mixture of both.
+        final int messageCount = notificationSet.size();
+        NotificationInfo mostRecentNotification = notificationSet.first();
+
+        final Notification.Builder noti = new Notification.Builder(context)
+                .setWhen(mostRecentNotification.mTimeMillis);
+
+        if (isNew) {
+            noti.setTicker(mostRecentNotification.mTicker);
+        }
+        TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(context);
+
+        // If we have more than one unique thread, change the title (which would
+        // normally be the contact who sent the message) to a generic one that
+        // makes sense for multiple senders, and change the Intent to take the
+        // user to the conversation list instead of the specific thread.
+
+        // Cases:
+        //   1) single message from single thread - intent goes to ComposeMessageActivity
+        //   2) multiple messages from single thread - intent goes to ComposeMessageActivity
+        //   3) messages from multiple threads - intent goes to ConversationList
+
+        final Resources res = context.getResources();
+        String title = null;
+        Bitmap avatar = null;
+        Intent mainActivityIntent = new Intent(Intent.ACTION_VIEW);
+
+        mainActivityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        mainActivityIntent.setType("vnd.android-dir/icc-sms");
+        taskStackBuilder.addNextIntent(mainActivityIntent);
+        title = context.getString(R.string.message_count_notification, messageCount);
+     
+        // Always have to set the small icon or the notification is ignored
+        noti.setSmallIcon(R.drawable.stat_notify_sms);
+       
+        NotificationManager nm = (NotificationManager)
+                context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // Update the notification.
+        noti.setContentTitle(title)
+            .setContentIntent(
+                    taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT))
+            .addKind(Notification.KIND_MESSAGE)
+            .setPriority(Notification.PRIORITY_DEFAULT);     // TODO: set based on contact coming
+                                                             // from a favorite.
+
+        int defaults = 0;
+
+        if (isNew) {
+            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+
+            boolean vibrate = false;
+            if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE)) {
+                // The most recent change to the vibrate preference is to store a boolean
+                // value in NOTIFICATION_VIBRATE. If prefs contain that preference, use that
+                // first.
+                vibrate = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE,
+                        false);
+            } else if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN)) {
+                // This is to support the pre-JellyBean MR1.1 version of vibrate preferences
+                // when vibrate was a tri-state setting. As soon as the user opens the Messaging
+                // app's settings, it will migrate this setting from NOTIFICATION_VIBRATE_WHEN
+                // to the boolean value stored in NOTIFICATION_VIBRATE.
+                String vibrateWhen =
+                        sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN, null);
+                vibrate = "always".equals(vibrateWhen);
+            }
+            if (vibrate) {
+                defaults |= Notification.DEFAULT_VIBRATE;
+            }
+
+            String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
+                    null);
+            noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
+            Log.d(TAG, "updateIccNotification: new message, adding sound to the notification");
+        }
+
+        defaults |= Notification.DEFAULT_LIGHTS;
+
+        noti.setDefaults(defaults);
+
+        // set up delete intent
+        noti.setDeleteIntent(PendingIntent.getBroadcast(context, 0,
+                sNotificationOnDeleteIntent, 0));
+
+        final Notification notification;
+
+        if (messageCount == 1) {
+            // We've got a single message
+
+            // This sets the text for the collapsed form:
+            noti.setContentText(mostRecentNotification.formatBigMessage(context));
+
+            if (mostRecentNotification.mAttachmentBitmap != null) {
+                // The message has a picture, show that
+
+                notification = new Notification.BigPictureStyle(noti)
+                    .bigPicture(mostRecentNotification.mAttachmentBitmap)
+                    // This sets the text for the expanded picture form:
+                    .setSummaryText(mostRecentNotification.formatPictureMessage(context))
+                    .build();
+            } else {
+                // Show a single notification -- big style with the text of the whole message
+                notification = new Notification.BigTextStyle(noti)
+                    .bigText(mostRecentNotification.formatBigMessage(context))
+                    .build();
+            }
+            if (DEBUG) {
+                Log.d(TAG, "updateIccNotification: single message notification");
+            }
+        } else {
+            SpannableStringBuilder buf = new SpannableStringBuilder();
+            NotificationInfo infos[] =
+                    notificationSet.toArray(new NotificationInfo[messageCount]);
+            int len = infos.length;
+            for (int i = len - 1; i >= 0; i--) {
+                NotificationInfo info = infos[i];
+
+                buf.append(info.formatBigMessage(context));
+
+                if (i != 0) {
+                    buf.append('\n');
+                }
+            }
+
+            noti.setContentText(context.getString(R.string.message_count_notification,
+                    messageCount));
+
+            // Show a single notification -- big style with the text of all the messages
+            notification = new Notification.BigTextStyle(noti)
+                .bigText(buf)
+                // Forcibly show the last line, with the app's smallIcon in it, if we
+                // kicked the smallIcon out with an avatar bitmap
+                .setSummaryText((avatar == null) ? null : " ")
+                .build();
+            if (DEBUG) {
+                Log.d(TAG, "updateIccNotification: multi messages for single thread");
             }
         }
 
