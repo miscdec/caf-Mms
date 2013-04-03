@@ -431,9 +431,10 @@ public class SmsReceiverService extends Service {
         String format = intent.getStringExtra("format");
         int indexOnIcc = intent.getIntExtra("index_on_icc", -1); 
         Uri messageUri = insertMessage(this, msgs, error, format, indexOnIcc);
+        SmsMessage sms = msgs[0];
+        int subId = sms.getSubId();
 
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
-            SmsMessage sms = msgs[0];
             Log.v(TAG, "handleSmsReceived" + (sms.isReplace() ? "(replace)" : "") +
                     " messageUri: " + messageUri +
                     ", address: " + sms.getOriginatingAddress()/* +
@@ -445,6 +446,8 @@ public class SmsReceiverService extends Service {
             // Called off of the UI thread so ok to block.
             Log.d(TAG, "handleSmsReceived messageUri: " + messageUri + " threadId: " + threadId);
             MessagingNotification.blockingUpdateNewMessageIndicator(this, threadId, false);
+        } else if ((messageUri != null)&&(indexOnIcc>0)) {
+            MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this, subId);
         }
     }
 
@@ -467,7 +470,8 @@ public class SmsReceiverService extends Service {
 
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
-                this, MessagingNotification.THREAD_ALL, false);
+            this, MessagingNotification.THREAD_ALL, false);
+        MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this);
 
         if(MessageUtils.isMultiSimEnabledMms())
         {
