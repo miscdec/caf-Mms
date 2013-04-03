@@ -127,6 +127,12 @@ public class ManageSimMessages extends Activity
         @Override
         protected void onQueryComplete(
                 int token, Object cookie, Cursor cursor) {
+
+            if (mCursor != null && !mCursor.isClosed()) {
+                Log.d(TAG, "onQueryComplete: cursor is closed");
+                mCursor.close();
+            }
+
             mCursor = cursor;
             if (mCursor != null) {
                 if (!mCursor.moveToFirst()) {
@@ -146,7 +152,6 @@ public class ManageSimMessages extends Activity
                     mListAdapter.changeCursor(mCursor);
                     updateState(SHOW_LIST);
                 }
-                startManagingCursor(mCursor);
             } else {
                 // Let user know the SIM is empty
                 updateState(SHOW_EMPTY);
@@ -167,10 +172,6 @@ public class ManageSimMessages extends Activity
     private void refreshMessageList() {
         Log.d(TAG, "refreshMessagelist");
         updateState(SHOW_BUSY);
-        if (mCursor != null) {
-            stopManagingCursor(mCursor);
-            mCursor.close();
-        }
         startQuery();
     }
 
