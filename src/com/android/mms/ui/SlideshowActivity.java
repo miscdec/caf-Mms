@@ -53,6 +53,43 @@ import com.android.mms.model.RegionModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.SmilHelper;
 import com.google.android.mms.MmsException;
+import com.google.android.mms.util.SqliteWrapper;
+import android.database.Cursor;
+import android.widget.Toast;
+import android.view.MenuItem;
+import android.os.Message;
+import android.content.ContentValues;
+import android.provider.Telephony.Mms;
+import android.content.DialogInterface;
+import android.app.AlertDialog;
+import com.android.mms.util.AddressUtils;
+import android.content.Context;
+import android.view.Menu;
+import com.google.android.mms.pdu.PduPersister;
+import com.google.android.mms.pdu.GenericPdu;
+import com.google.android.mms.pdu.PduHeaders;
+import com.google.android.mms.pdu.EncodedStringValue;
+import android.os.Looper;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.Contacts;
+import android.text.TextUtils;
+import com.android.mms.LogTag;
+import com.android.mms.transaction.TransactionBundle;
+import com.android.mms.transaction.Transaction;
+import com.android.mms.transaction.TransactionService;
+import android.content.ContentUris;
+import android.app.ProgressDialog;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.File;
+import java.io.OutputStream;
+import android.os.StatFs;
+import com.google.android.mms.pdu.PduPart;
+import com.google.android.mms.pdu.PduBody;
+import android.os.Environment;
+import com.google.android.mms.ContentType;
 
 /**
  * Plays the given slideshow in full-screen mode with a common controller.
@@ -71,6 +108,30 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private SlideView mSlideView;
     private int mSlideCount;
+    private static final int MENU_REPLY             =  2;
+    private static final int MENU_REPLY_BY_MMS              =3;
+    private static final int MENU_RESEND              =4;
+    private static final int MENU_MMS_FORWARD                    = 5;
+    private static final int MENU_DELETE                    = 6;
+
+    private static final int MENU_TWO_CALL                 = 9;   
+    private static final int MENU_SAVE_TO_CONTACT          = 13; 
+    private static final int MENU_LOCK_UNLOCK_MMS          = 14; 
+    private static final int MENU_EDIT_CALL            = 17; 
+    private static final int MENU_DELIVERY_REPORT  =  20;       
+    private static final int MENU_ONE_CALL                 = 21;   
+    private static final int MENU_COPY_TO_SDCARD  = 22;  
+ 
+    private static final int SHOW_TOAST = 10;
+    private Uri mUri;
+    private GenericPdu mPdu;
+    private int mMailboxId                                 = -1;
+    String msgFromTo = null;
+    private int mMmsCurrentSize = 0;
+    private static SlideshowModel mSlideModel;
+    private static ProgressDialog mProgressDlg = null;
+    private static final String VCALENDAR               = "vCalendar";
+    private String direction = new String();
 
     /**
      * @return whether the Smil has MMS conformance layout.
@@ -162,19 +223,32 @@ public class SlideshowActivity extends Activity implements EventListener {
         Intent intent = getIntent();
         Uri msg = intent.getData();
         final SlideshowModel model;
+        mUri = msg;
 
         try {
             model = SlideshowModel.createFromMessageUri(this, msg);
+            mSlideModel = model;
             mSlideCount = model.size();
+            PduPersister p = PduPersister.getPduPersister(this);
+            mPdu = p.load(msg);
         } catch (MmsException e) {
             Log.e(TAG, "Cannot present the slide show.", e);
             finish();
             return;
         }
 
+        mMailboxId = getMmsMessageBoxID(this, mUri);
         mSlideView = (SlideView) findViewById(R.id.slide_view);
         PresenterFactory.getPresenter("SlideshowPresenter", this, mSlideView, model);
 
+        if (mMailboxId == Mms.MESSAGE_BOX_INBOX) {
+            msgFromTo = AddressUtils.getFrom(this, mUri);
+        }else if (Mms.MESSAGE_BOX_OUTBOX == mMailboxId || Mms.MESSAGE_BOX_SENT == mMailboxId) {
+            msgFromTo = AddressUtils.getTo(this, mUri);
+        }else {
+            Log.v(TAG,"   mmsEditCall  error draft box ");
+            msgFromTo = AddressUtils.getTo(this, mUri);
+        }
         mHandler.post(new Runnable() {
             private boolean isRotating() {
                 return mSmilPlayer.isPausedState()
@@ -291,24 +365,43 @@ public class SlideshowActivity extends Activity implements EventListener {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(mProgressDlg!=null)
+            mProgressDlg = null;
+        if (mSmilDoc != null) {
+            Log.v(TAG, "------removeEventListener------");
+            ((EventTarget) mSmilDoc).removeEventListener(
+                    SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT, this, false);
+        }
+        if ((null != mSmilPlayer)) {
+            if (isFinishing()) {
+                mSmilPlayer.stop();
+            } else {
+                mSmilPlayer.stopWhenReload();
+            }
+        }
+    }
+    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_VOLUME_DOWN:
             case KeyEvent.KEYCODE_VOLUME_UP:
-            case KeyEvent.KEYCODE_VOLUME_MUTE:
             case KeyEvent.KEYCODE_DPAD_UP:
             case KeyEvent.KEYCODE_DPAD_DOWN:
             case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_DPAD_RIGHT:
                 break;
+            case KeyEvent.KEYCODE_HEADSETHOOK:
+                return true;
             case KeyEvent.KEYCODE_BACK:
             case KeyEvent.KEYCODE_MENU:
-                if ((mSmilPlayer != null) &&
+                /*if ((mSmilPlayer != null) &&
                         (mSmilPlayer.isPausedState()
                         || mSmilPlayer.isPlayingState()
                         || mSmilPlayer.isPlayedState())) {
                     mSmilPlayer.stop();
-                }
+                }*/
                 break;
             default:
                 if ((mSmilPlayer != null) && (mMediaController != null)) {
@@ -389,5 +482,705 @@ public class SlideshowActivity extends Activity implements EventListener {
                 }
             }
         });
+    }
+
+
+
+
+    public static int getMmsMessageBoxID(Context context, Uri uri)
+    {
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                                            uri, new String[] {Mms.MESSAGE_BOX}, null, null, null);
+
+        if (cursor != null)
+        {
+            try
+            {
+                if (cursor.moveToFirst())
+                {
+                    return cursor.getInt(0);
+                }
+            }
+            finally
+            {
+                cursor.close();
+            }
+        }
+        return -1;
+    }
+
+
+    
+
+    private void initSendDlg(){
+        if (mProgressDlg != null){
+            return;
+        }
+       
+        //mProgressDlg = new ProgressDialog(this, "KB");
+        mProgressDlg = new ProgressDialog(this);
+        mProgressDlg.setTitle(getString(R.string.dialing));
+        //mProgressDlg.setMessage(body);
+        mProgressDlg.setIndeterminate(false);
+        mProgressDlg.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        mProgressDlg.setCancelable(false);
+        mProgressDlg.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.cancel), new DialogInterface.OnClickListener(){
+                            final public void onClick(DialogInterface dialog, int which){
+                                if ( mProgressDlg.isShowing() ){
+                                    mProgressDlg.dismiss();
+                                }
+                               // ServiceControl.getInstance().cancelMmsSending();                                    
+                            }
+                        });   
+    }
+
+    //sunzuohua ADD
+    private void reSendMms(){
+        Log.d("slideshowActivity","reSendMms");
+//        ServiceControl.getInstance().bindService();
+        mMmsCurrentSize = mSlideModel.getCurrentMessageSize();
+        if (0 == mMmsCurrentSize){
+            mMmsCurrentSize = 1;
+        }        
+        if(mProgressDlg!=null)
+        {
+            if (mProgressDlg.isShowing() ){
+                return ;
+            }
+        }
+        mProgressDlg = null;
+        initSendDlg();
+        mProgressDlg.setMax((mMmsCurrentSize + 2*1024)/1024); //kB   
+        mProgressDlg.setMessage(getString(R.string.message_size_label)
+                                 + String.valueOf((mMmsCurrentSize +2*1024) / 1024)
+                                 + getString(R.string.kilobyte));
+        mProgressDlg.show();
+        mProgressDlg.setTitle(getString(R.string.dialing));
+        mProgressDlg.setProgress(0);
+
+        Intent intent = new Intent(this, TransactionService.class);
+        intent.putExtra(TransactionBundle.URI, mUri.toString());
+        intent.putExtra(TransactionBundle.TRANSACTION_TYPE,
+                            Transaction.SEND_TRANSACTION);        
+        startService(intent);
+
+    }
+    private void forwardMms(){
+        Intent intent = new Intent(this,ComposeMessageActivity.class);
+
+        String tmp = null;
+        PduHeaders ph = mPdu.getPduHeaders();
+        EncodedStringValue ev = ph.getEncodedStringValue(PduHeaders.SUBJECT);
+
+        if ( null != ev ){
+            tmp = ev.getString();            
+        }
+        
+        String subject = getString(R.string.forward_prefix);
+
+        if ( null != tmp ){
+            subject = subject + tmp;
+        }
+
+        while(subject.getBytes().length > 40){
+            subject = subject.substring(0, subject.length() - 1);
+        }
+
+        
+        long msgId = ContentUris.parseId(mUri);   
+                            
+        Uri uri = ContentUris.withAppendedId(Mms.CONTENT_URI, msgId);
+
+        intent.putExtra("copythenforward", true);
+        intent.putExtra("forwarded_message", true);
+        intent.putExtra("msg_uri", uri);
+        intent.putExtra("subject", subject);
+        startActivity(intent);
+    }
+    private void addToContact()
+    {
+        if(msgFromTo == null){
+            return;
+        }
+        String address = msgFromTo;
+        if (TextUtils.isEmpty(address)) {
+            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                Log.v(TAG,"  saveToContact fail for null address! ");                     
+            }
+            return;
+        }
+
+        // address must be a single recipient
+        Intent intent = new Intent(Intent.ACTION_INSERT_OR_EDIT);
+        intent.setType(Contacts.CONTENT_ITEM_TYPE);
+        if (Mms.isEmailAddress(address)) {
+            intent.putExtra(ContactsContract.Intents.Insert.EMAIL, address);
+        } else {
+            intent.putExtra(ContactsContract.Intents.Insert.PHONE, address);
+            intent.putExtra(ContactsContract.Intents.Insert.PHONE_TYPE,
+            ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE);
+        }
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        this.startActivity(intent); 
+    }
+    public static void replyMessage(Context context, String number)
+    {
+
+        Intent intent = new Intent(context, ComposeMessageActivity.class);
+        Log.v(TAG, "__________number   ==  "+number);
+        intent.putExtra("address", number);
+        intent.putExtra("msg_reply", true);
+        intent.putExtra("exit_on_sent", true);        
+        context.startActivity(intent);
+    }
+    private class DeleteMessageListener implements DialogInterface.OnClickListener
+    {
+        public DeleteMessageListener()
+        {
+        }
+        public void onClick(DialogInterface dialog, int whichButton)
+        {
+            delete();
+        }
+    }
+
+    private void delete(){
+        SqliteWrapper.delete(this, getContentResolver(),
+                                    mUri, null, null);
+//        Toast.makeText(this, R.string.del_success, Toast.LENGTH_LONG).show();
+        finish();
+    }
+
+    private void confirmDeleteDialog(DialogInterface.OnClickListener listener)
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.confirm_dialog_title);
+        builder.setIcon(R.drawable.ic_sms_mms_not_delivered);
+        builder.setCancelable(true);
+        builder.setMessage(R.string.confirm_delete_message);
+        builder.setPositiveButton(R.string.yes, listener);
+        builder.setNegativeButton(R.string.no, null);
+        builder.show();
+    }
+    private Handler uihandler = new Handler()
+    {
+        @Override
+        public void handleMessage(Message msg)
+        {
+            switch (msg.what)
+            {
+                case SHOW_TOAST:
+                {
+                    String toastStr = (String) msg.obj;
+                    Toast.makeText(SlideshowActivity.this, toastStr, 
+                                    Toast.LENGTH_LONG).show();
+                    break; 
+                }
+                               
+            }
+        }
+    };
+
+    private void showCallSelectDialog(){
+        String[] items = new String[MessageUtils.getActivatedIccCardCount()];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = MessageUtils.getMultiSimName(this, i);
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.menu_call));
+        builder.setCancelable(true);
+        builder.setItems(items, new DialogInterface.OnClickListener()
+        {
+            public final void onClick(DialogInterface dialog, int which)
+            {
+                if (which == 0)
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         MessageUtils.dialRecipient(SlideshowActivity.this, msgFromTo, MessageUtils.SUB1);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                else
+                {
+                    new Thread(new Runnable() {
+                        public void run() {
+                         Looper.prepare();
+                         MessageUtils.dialRecipient(SlideshowActivity.this, msgFromTo, MessageUtils.SUB2);
+                         Looper.loop();
+                        }
+                    }).start();
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();    
+    }
+    /**
+     * Simple cache to prevent having to load the same PduBody again and again for the same uri.
+     */
+    private static class PduBodyCache {
+        private static PduBody mLastPduBody;
+        private static Uri mLastUri;
+    
+        static public PduBody getPduBody(Context context, Uri contentUri) {
+            if (contentUri.equals(mLastUri)) {
+                return mLastPduBody;
+            }
+            try {
+                mLastPduBody = SlideshowModel.getPduBody(context, contentUri);
+                mLastUri = contentUri;
+             } catch (MmsException e) {
+                 Log.e(TAG, e.getMessage(), e);
+                 return null;
+             }
+             return mLastPduBody;
+        }
+    };
+
+      
+      
+      
+      private boolean sdcardCanuse(){
+      
+       if(isSDCardExist()){
+           File mVcardDirectory = new File("/sdcard/"); 
+           StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
+           long blocks = fs.getAvailableBlocks();
+           long blockSize = fs.getBlockSize();
+           return (blocks*blockSize)>(50*1024);
+       }
+       return false;
+      }
+      
+      private final boolean isSDCardExist() {
+              boolean ret = true;
+              String status = Environment.getExternalStorageState();
+              if (status.equals(Environment.MEDIA_REMOVED) 
+                  ||status.equals(Environment.MEDIA_BAD_REMOVAL)
+                  ||status.equals(Environment.MEDIA_CHECKING)
+                  ||status.equals(Environment.MEDIA_SHARED)
+                  ||status.equals(Environment.MEDIA_UNMOUNTED)
+                  ||status.equals(Environment.MEDIA_NOFS)
+                  ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
+                  ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
+                  ret = false; 
+              }
+              return ret;
+          }  
+      
+      /**
+      check whether the part contains video media
+      */
+      private boolean isVideo(PduPart part){
+          String ct = new String(part.getContentType());
+      
+          //we only supervise the type of application/oct-stream
+          if (!ct.equals("application/oct-stream")
+              && !ct.equals("application/octet-stream")){
+              return false;
+          }
+          
+          //mp3|wav|aac|amr|mid|ogg
+          byte[] location = part.getContentLocation();
+                  
+          if (location == null) {
+              location = part.getName();
+          }
+          if (location == null) {
+              location = part.getFilename();
+          }
+      
+          if (location == null){
+              return false;
+          }
+      
+          String name = new String(location);
+      
+          //mp4|3gp|3gpp2|3gpp
+          if (name.contains(".mp4")
+              || name.contains(".3gp")
+              || name.contains(".3gpp2")
+              || name.contains(".3gpp")){
+              return true;
+          }
+      
+          return false;
+      }
+      
+      /**
+      check whether the part contains music media
+      */
+      private boolean isMusic(PduPart part){
+          String ct = new String(part.getContentType());
+      
+          //we only supervise the type of application/oct-stream
+          if (!ct.equals("application/oct-stream")
+              && !ct.equals("application/octet-stream")){
+              if(ct.contains("ogg"))
+                  return true;
+              return false;
+          }
+          
+          //mp3|wav|aac|amr|mid|ogg
+          byte[] location = part.getContentLocation();
+                  
+          if (location == null) {
+              location = part.getName();
+          }
+          if (location == null) {
+              location = part.getFilename();
+          }
+      
+          if (location == null){
+              return false;
+          }
+      
+          String name = new String(location);
+      
+          if (name.contains(".mp3")
+              || name.contains(".wav")
+              || name.contains(".aac")
+              || name.contains(".amr")
+              || name.contains(".mid")
+              || name.contains(".wma")
+              || name.contains(".ogg")){
+              Log.v(TAG,"is music");
+              return true;
+          }
+      
+          return false;
+      }
+      
+      
+      private File getUniqueDestination(String base, String extension) {
+          File file = new File(base + "." + extension);
+      
+          for (int i = 2; file.exists(); i++) {
+              file = new File(base + "_" + i + "." + extension);
+          }
+          return file;
+      }
+       private boolean copyPart(PduPart part, String fallback) {
+          Uri uri = part.getDataUri();
+          String dir;
+          String subPath;
+      
+          InputStream input = null;
+          FileOutputStream fout = null;
+          String mimeType = new String(part.getContentType());
+          try {
+              input = getContentResolver().openInputStream(uri);
+              if (input instanceof FileInputStream) {
+                  FileInputStream fin = (FileInputStream) input;
+      
+                  byte[] location = part.getName();
+                  if (location == null) {
+                      location = part.getFilename();
+                  }
+                  if (location == null) {
+                      location = part.getContentLocation();
+                  }
+      
+                  String fileName;
+                  if (location == null) {
+                      // Use fallback name.
+                      fileName = fallback;
+                  } else {
+                      fileName = new String(location);
+                  }
+      
+                    if(mimeType.startsWith("image")){
+                        subPath = "/Picture/";
+                    }else if(mimeType.startsWith("audio") || isMusic(part)){
+                        subPath = "/Audio/";
+                    }else if(mimeType.startsWith("video") || isVideo(part)){
+                        subPath = "/Video/";
+                    }else if(-1 != mimeType.indexOf(VCALENDAR)){
+                        subPath = "/Other/vCalendar/";
+                        final String dir_vcal_path="/sdcard/Other/vCalendar/";
+                        File dirFile=new File(dir_vcal_path);
+                        if(!dirFile.exists()){
+                            if(!dirFile.mkdirs()){
+                                return false;
+                            }
+                        }
+                    }else{
+                        subPath = "/Other/";
+                    }
+                    
+                   if(sdcardCanuse())
+                   
+                   dir = Environment.getExternalStorageDirectory() + "/"
+                              + Environment.DIRECTORY_DOWNLOADS  + "/";
+                   else
+                   {
+                       return false;
+                  
+                   }
+                  String extension;
+                  int index;
+                  if ((index = fileName.indexOf(".")) == -1) {
+                      String type = new String(part.getContentType());
+                      extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(type);
+                  } else {
+                      extension = fileName.substring(index + 1, fileName.length());
+                      fileName = fileName.substring(0, index);
+                  }
+      
+                  File file = getUniqueDestination(dir + fileName, extension);
+                  direction = file.getAbsolutePath();//dir + fileName;
+      
+                  // make sure the path is valid and directories created for this file.
+                  File parentFile = file.getParentFile();
+                  if (!parentFile.exists() && !parentFile.mkdirs()) {
+                      Log.e(TAG, "[MMS] copyPart: mkdirs for " + parentFile.getPath() + " failed!");
+                      return false;
+                  }
+      
+                  fout = new FileOutputStream(file);
+      
+                  byte[] buffer = new byte[8000];
+                  int size = 0;
+                  while ((size=fin.read(buffer)) != -1) {
+                      fout.write(buffer, 0, size);
+                  }
+      
+                  // Notify other applications listening to scanner events
+                  // that a media file has been added to the sd card
+                  sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                          Uri.fromFile(file)));
+              }
+          } catch (IOException e) {
+              // Ignore
+              Log.e(TAG, "IOException caught while opening or reading stream", e);
+              return false;
+          } finally {
+              if (null != input) {
+                  try {
+                      input.close();
+                  } catch (IOException e) {
+                      // Ignore
+                      Log.e(TAG, "IOException caught while closing stream", e);
+                      return false;
+                  }
+              }
+              if (null != fout) {
+                  try {
+                      fout.close();
+                  } catch (IOException e) {
+                      // Ignore
+                      Log.e(TAG, "IOException caught while closing stream", e);
+                      return false;
+                  }
+              }
+          }
+          return true;
+      }
+        private boolean copyMedia(Uri uri) {
+          boolean result = true;
+          PduBody body = PduBodyCache.getPduBody(this, uri);
+          if (body == null) {
+              return false;
+          }
+      
+          long msgId = getMmsMessageBoxID(this, uri);
+      
+          int partNum = body.getPartsNum();
+          for(int i = 0; i < partNum; i++) {
+              PduPart part = body.getPart(i);
+              String type = new String(part.getContentType());
+              
+      
+              if (ContentType.isImageType(type) || ContentType.isVideoType(type) ||
+                      ContentType.isAudioType(type)) {
+                  result &= copyPart(part, Long.toHexString(msgId));   // all parts have to be successful for a valid result.
+              }
+          }
+          return result;
+      }
+      /**
+       * Looks to see if there are any valid parts of the attachment that can be copied to a SD card.
+       * @param msgId
+       */
+      private boolean haveSomethingToCopyToSDCard(Uri uri) {
+          PduBody body = PduBodyCache.getPduBody(this, uri);
+          if (body == null) {
+              return false;
+          }
+      
+          boolean result = false;
+          int partNum = body.getPartsNum();
+          for(int i = 0; i < partNum; i++) {
+              PduPart part = body.getPart(i);
+              String type = new String(part.getContentType());
+      
+              Log.v(TAG,"[CMA] haveSomethingToCopyToSDCard: part[" + i + "] contentType=" + type);
+      
+              if (ContentType.isImageType(type) || ContentType.isVideoType(type) ||
+                      ContentType.isAudioType(type)) {
+                  result = true;
+                  break;
+              }
+          }
+          return result;
+      }
+
+      
+      @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+            menu.clear();
+            Cursor cursor = SqliteWrapper.query(this, this.getContentResolver(),
+                                                mUri, new String[] {Mms.LOCKED}, null, null, null);
+            cursor.moveToFirst();
+            
+            int msgType = mPdu.getMessageType();
+            if(!(Mms.MESSAGE_BOX_DRAFTS == mMailboxId)){
+               {
+                   menu.add(0, MENU_DELETE, 0, R.string.menu_delete_msg);
+                    menu.add(0, MENU_ONE_CALL, 0, R.string.menu_call).setIcon(
+                               R.drawable.ic_menu_call);   
+               }
+            }
+            if(Mms.MESSAGE_BOX_INBOX == mMailboxId){
+                menu.add(0, MENU_REPLY, 0, R.string.menu_reply);
+                menu.add(0, MENU_MMS_FORWARD, 0, R.string.menu_forward);     
+            }        
+            if(Mms.MESSAGE_BOX_OUTBOX == mMailboxId || Mms.MESSAGE_BOX_SENT == mMailboxId){
+                menu.add(0, MENU_RESEND, 0, R.string.menu_resend);
+                   } 
+            if(mMailboxId != Mms.MESSAGE_BOX_DRAFTS){
+    
+                if(cursor.getInt(0) == 0 ){
+                    menu.add(0, MENU_LOCK_UNLOCK_MMS, 0, R.string.menu_lock);
+                } else{
+                    menu.add(0, MENU_LOCK_UNLOCK_MMS, 0, R.string.menu_unlock);
+                }
+    
+            }         
+                 
+          if (haveSomethingToCopyToSDCard(mUri)){
+                 menu.add(0, MENU_COPY_TO_SDCARD, 0, R.string.copy_to_sdcard);
+             }
+           if ((PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF == msgType || PduHeaders.MESSAGE_TYPE_SEND_REQ == msgType)
+                && !(Mms.MESSAGE_BOX_DRAFTS == mMailboxId)){
+    
+                menu.add(0, MENU_SAVE_TO_CONTACT, 0, R.string.menu_save_to_contact).setIcon(
+                    R.drawable.ic_menu_move_up);
+            }
+           
+    
+            cursor.close();
+            return true;
+        }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()){
+
+        case MENU_ONE_CALL:
+            if(MessageUtils.isMultiSimEnabledMms())
+            {
+                if(MessageUtils.getActivatedIccCardCount() > 1)
+                {
+                    showCallSelectDialog();
+                }
+                else
+                {
+                    if(MessageUtils.isIccCardActivated(MessageUtils.SUB1))
+                    {
+                        MessageUtils.dialRecipient(this, msgFromTo, MessageUtils.SUB1);
+                    }
+                    else if(MessageUtils.isIccCardActivated(MessageUtils.SUB2))
+                    {
+                        MessageUtils.dialRecipient(this, msgFromTo, MessageUtils.SUB2);
+                    }                         
+                }
+            }
+            else
+            {
+                MessageUtils.dialRecipient(this, msgFromTo, MessageUtils.SUB_INVALID);
+            }
+            break;
+        case MENU_RESEND:{
+            reSendMms();
+            break;
+        }
+        
+        case MENU_MMS_FORWARD:{
+            forwardMms();
+            finish();
+            break;
+        }
+        case MENU_REPLY:{
+            replyMessage(this, AddressUtils.getFrom(this,mUri));   
+            finish();
+            break;
+        }
+        //wxj add end
+        case MENU_LOCK_UNLOCK_MMS :
+            {
+            Cursor cursor = SqliteWrapper.query(this, this.getContentResolver(),
+                                            mUri, new String[] {Mms.LOCKED}, null, null, null);
+            cursor.moveToFirst();
+            boolean locked = false;
+            locked = cursor.getInt(0) != 0;                     
+            cursor.close();
+            final ContentValues values = new ContentValues(1);
+            values.put("locked", locked ? 0 : 1);
+
+            new Thread(new Runnable() {
+                public void run() {
+                    getContentResolver().update(mUri,
+                            values, null, null);
+                    Message msg = Message.obtain();
+                    msg.what = SHOW_TOAST;
+                    msg.obj = getString(R.string.operate_success);
+                    uihandler.sendMessage(msg);  
+                }
+            }).start();
+            break;
+        }
+        case MENU_SAVE_TO_CONTACT:
+            addToContact();
+            break;
+        case MENU_COPY_TO_SDCARD:{
+            if(copyMedia(mUri)){
+            
+                int resId = R.string.copy_to_sdcard_direction_success ;
+                String direction1;
+                if(sdcardCanuse())
+                     direction1 = getResources().getString(resId) 
+                                    + Environment.getExternalStorageDirectory() + "/"
+                                    + Environment.DIRECTORY_DOWNLOADS + "/";
+                Toast.makeText(SlideshowActivity.this, direction, Toast.LENGTH_SHORT).show();
+            }else{
+                Toast.makeText(SlideshowActivity.this, R.string.copy_to_sdcard_fail, Toast.LENGTH_SHORT).show();
+            }
+            break;
+            }        
+        case MENU_DELETE:{
+            Cursor cursor = SqliteWrapper.query(this, this.getContentResolver(),
+                                            mUri, new String[] {Mms.LOCKED}, null, null, null);
+            cursor.moveToFirst();
+            boolean locked = false;
+            locked = cursor.getInt(0) != 0;   
+            cursor.close();
+            if (locked)
+            {
+                Toast.makeText(this, R.string.delete_lock_err, Toast.LENGTH_LONG).show();
+                return false;
+            }
+
+            DeleteMessageListener l = new DeleteMessageListener();
+            confirmDeleteDialog(l);
+            break;
+        }
+        default:
+            break;
+        }
+        return true;
     }
 }
