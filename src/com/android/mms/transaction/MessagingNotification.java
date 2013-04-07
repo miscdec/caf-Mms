@@ -322,7 +322,11 @@ public class MessagingNotification {
     }
 
     public static void blockingUpdateNewMessageOnIccIndicator(Context context, int subId) {
-       
+        if(!MessageUtils.isHasCard(subId))
+        {
+            return;
+        }
+        
         SortedSet<NotificationInfo> notificationSet =
                 new TreeSet<NotificationInfo>(INFO_COMPARATOR);
 

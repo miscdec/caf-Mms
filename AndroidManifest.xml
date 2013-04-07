@@ -90,7 +90,7 @@
                   android:uiOptions="splitActionBarWhenNarrow"
                   android:launchMode="singleTop">
             <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.MAIN" />            
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -340,6 +340,13 @@
             </intent-filter>
         </activity>
 
+        
+        <activity android:name=".ui.SearchActivityExtend"
+            android:theme="@style/MmsHoloTheme"
+            android:label="@string/search_title"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+        </activity>   
+        
         <activity android:name=".ui.SearchActivity"
             android:theme="@style/MmsHoloTheme"
             android:label="@string/search"

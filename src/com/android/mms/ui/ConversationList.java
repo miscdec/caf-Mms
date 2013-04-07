@@ -380,6 +380,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
 
         mSearchItem = menu.findItem(R.id.search);
+        mSearchItem.setActionView(new SearchView(this));
         mSearchView = (SearchView) mSearchItem.getActionView();
 
         mSearchView.setOnQueryTextListener(mQueryTextListener);

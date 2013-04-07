@@ -76,6 +76,11 @@ import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.CommonDataKinds.StructuredName;
+import android.provider.ContactsContract.Data;
 import android.provider.Settings;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.MSimSmsManager;
@@ -105,7 +110,11 @@ public class MessageUtils {
     // add for getting the read status when copy messages to sim card
     public static final int MESSAGE_READ = 1;
     public static final int MESSAGE_UNREAD = 0;
-
+    // add for different search mode in SearchActivityExtend
+    public static final int SEARCH_MODE_CONTENT = 0;
+    public static final int SEARCH_MODE_NAME    = 1;
+    public static final int SEARCH_MODE_NUMBER  = 2;
+  
     public static final int CARD_SUB1 = MSimConstants.SUB1; 
     public static final int CARD_SUB2 = MSimConstants.SUB2; 
     public static final int STORE_ME = 1;
@@ -1165,6 +1174,84 @@ public class MessageUtils {
         }
     }
 
+    public static String getAddressByName(Context context, String name)
+    {    
+        String resultAddr = "";
+        Uri nameUri = null;
+        if (TextUtils.isEmpty(name)) 
+        {
+            return resultAddr;
+        }
+
+        Cursor c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+            new String[] {ContactsContract.Data.RAW_CONTACT_ID},
+                ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME + " =? "  ,                    
+            new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
+
+        if (c == null) 
+        {            
+            return resultAddr;
+        }
+        
+        if (!c.moveToFirst())
+        {       
+            c.close();
+            return resultAddr;
+        }
+        
+        final int SUMMARY_ID_COLUMN_INDEX = 0;
+        final long raw_contact_id = c.getLong(SUMMARY_ID_COLUMN_INDEX);       
+        c.close();        
+
+        resultAddr = queryPhoneNumbersWithRaw(context, raw_contact_id);        
+        Log.d(TAG, "getAddressByName : raw_contact_id = " + 
+            raw_contact_id +  ",resultAddr = " + resultAddr);
+        
+        return resultAddr;        
+    }
+
+    private static String queryPhoneNumbersWithRaw(Context context, long rawContactId) 
+    {
+        Cursor c = null;        
+        String addrs = "";        
+        try
+        {
+                
+            c = context.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                    new String[] {Phone.NUMBER}, Phone.RAW_CONTACT_ID + " = " + rawContactId,
+                    null, null);
+
+            if (c != null && c.moveToFirst()) 
+            { 
+                int i = 0;
+                while (!c.isAfterLast())
+                {
+                    String addrValue = c.getString(0);
+                    if (!TextUtils.isEmpty(addrValue))
+                    {
+                        if (i == 0)
+                        {
+                            addrs = addrValue;
+                        }
+                        else
+                        {
+                            addrs = addrs + "," + addrValue;
+                        }                        
+                        i++;
+                    }
+                    c.moveToNext();
+                }                
+            } 
+        }
+        finally 
+        {
+            if (c != null) {
+                c.close();
+            }
+        }  
+        return addrs;        
+    }
+    
      /**
       * Return the activated card number
       */

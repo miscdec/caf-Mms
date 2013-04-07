@@ -525,7 +525,10 @@ public class SmsReceiverService extends Service {
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
             this, MessagingNotification.THREAD_ALL, false);
-        MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this);
+        if(MessageUtils.isHasCard())
+        {
+            MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this);
+        }
 
         if(MessageUtils.isMultiSimEnabledMms())
         {
