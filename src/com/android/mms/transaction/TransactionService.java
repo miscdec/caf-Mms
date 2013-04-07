@@ -59,6 +59,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.mms.LogTag;
 import com.android.mms.R;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.RateController;
 import com.google.android.mms.pdu.GenericPdu;
 import com.google.android.mms.pdu.NotificationInd;
@@ -341,7 +342,7 @@ public class TransactionService extends Service implements Observer {
                                 int subId = getSubIdFromDb(uri);
                                 Log.d(TAG, "SubId from DB= "+subId);
 
-                                if(subId != getCurrentSubcription()) {
+                                if((MessageUtils.isMultiSimEnabledMms())&&(subId != getCurrentSubcription())) {
                                     Log.d(TAG, "This MMS transaction can not be done on current sub. Ignore it. uri="+uri);
                                     break;
                                 }
