@@ -340,6 +340,13 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.MemoryStatusActivity"
+            android:label="@string/memory_status_title">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>  
         
         <activity android:name=".ui.SearchActivityExtend"
             android:theme="@style/MmsHoloTheme"

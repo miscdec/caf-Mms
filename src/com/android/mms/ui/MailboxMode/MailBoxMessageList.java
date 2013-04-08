@@ -945,6 +945,8 @@ public class MailBoxMessageList extends ListActivity
                     }
                 }
                 break;
+            case R.id.action_memory_status:   
+                startActivity(new Intent(this, MemoryStatusActivity.class));
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
                 break;

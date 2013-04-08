@@ -967,6 +967,14 @@
     <string name="type_all">All</string>
     <string name="type_slot1">Card1</string>
     <string name="type_slot2">Card2</string>
+    <!-- String used in MemoryStatusActivity.java -->
+    <string name="memory_status_title">Memory status</string>
+    <string name="phoneall">Phone</string>
+    <string name="phonecount">All count</string>  
+    <string name="phoneused">Used :</string>  
+    <string name="phoneunused">Unused :</string>
+    <string name="sim_card1">SIM card1</string>
+    <string name="sim_card2">SIM card2</string>
     <!-- String used in SearchActivityExtend.java -->
     <string name="search_title">"Message search"</string>  
     <string name="search_key">Search keyword</string>     

@@ -17,7 +17,9 @@
 
 package com.android.mms.ui;
 
+import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,6 +43,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.StatFs;
 import android.provider.MediaStore;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
@@ -125,6 +128,9 @@ public class MessageUtils {
     public static final Uri ICC_URI = Uri.parse("content://sms/icc");
     public static final Uri ICC1_URI = Uri.parse("content://sms/icc1");
     public static final Uri ICC2_URI = Uri.parse("content://sms/icc2");
+    // add for obtain mms data path
+    private static final String MMS_DATA_DIR = "/data/phonedata";    
+    private static final String MMS_DATA_DATA_DIR = "/data/data";
     
     // add for getting result whether icc card is full or will full when copying to card
     public static final String COPY_SUCCESS_FULL = "content://sms/sim/full/success";
@@ -1375,6 +1381,79 @@ public class MessageUtils {
         }
     }
 
+    private static String getMmsDataDir()
+    {
+        File data_file = new File(MMS_DATA_DIR);
+        
+        if (data_file.exists())
+        {          
+            return MMS_DATA_DIR; 
+        }        
+        
+        return MMS_DATA_DATA_DIR;
+    }
+    
+    public static long getStoreUnused()
+    {
+        File path = new File(getMmsDataDir());
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long availableBlocks = stat.getAvailableBlocks();
+        return availableBlocks*blockSize;
+    }
+
+    public static long getStoreAll()
+    {
+        File path = new File(getMmsDataDir());
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long allBlocks = stat.getBlockCount();
+        return allBlocks*blockSize;
+    }
+
+    public static long getStoreUsed()
+    {
+        return getStoreAll() - getStoreUnused();
+    }
+
+    public static String formatMemorySize(long size)
+    {
+        String suffix = null;
+        String kbStr = null;
+        boolean hasMb = false;
+        DecimalFormat formatter = new DecimalFormat();
+
+        // add KB or MB suffix if size is greater than 1K or 1M
+        if (size >= 1024)
+        {
+            suffix = " KB";
+            size /= 1024;
+            kbStr = formatter.format(size);
+            if (size >= 1024)
+            {
+                suffix = " MB";
+                size /= 1024;
+                hasMb = true;
+            }
+        }
+
+        formatter.setGroupingSize(3);
+        String result = formatter.format(size);
+
+        if (suffix != null)
+        {
+            if (hasMb && kbStr != null)
+            {
+                result = result + suffix + " (" + kbStr + " KB)";
+            }
+            else
+            {
+                result = result + suffix;
+            }
+        }
+        return result;
+    }
+    
     public static int getCurSmsPreferStore(Context context){
         SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
         int preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store", "1"));

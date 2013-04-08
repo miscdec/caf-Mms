@@ -37,6 +37,7 @@
     <string name="menu_cell_broadcasts" msgid="5646161375983084660">"小区广播"</string>
     <string name="has_draft" msgid="2487465595514636160">"草稿"</string>
     <string name="no_subject_view" msgid="7795086723069563537">"（无主题）"</string>
+    <string name="memory_card">卡</string>
     <string name="messagelist_sender_self" msgid="3579016854116401602">"我"</string>
     <string name="view_setting_phone">话机</string>
     <string name="view_slideshow" msgid="4990460971211388453">"观看幻灯片演示"</string>
@@ -418,6 +419,14 @@
     <string name="type_all">全部</string>
     <string name="type_slot1">卡1</string>
     <string name="type_slot2">卡2</string>
+    <!-- String used in MemoryStatusActivity.java -->
+    <string name="memory_status_title">存储状态</string>
+    <string name="phoneall">话机</string>
+    <string name="phonecount">总数</string>  
+    <string name="phoneused">已用内存：</string>  
+    <string name="phoneunused">未用内存：</string>
+    <string name="sim_card1">SIM卡1</string>
+    <string name="sim_card2">SIM卡2</string>
     <!-- String used in SearchActivityExtend.java -->
     <string name="search_title">"信息查找"</string>     
     <string name="search_key">"查找关键字"</string>     
