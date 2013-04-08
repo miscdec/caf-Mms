@@ -285,7 +285,7 @@ public class MemoryStatusActivity extends Activity
                     
                     break;
                  case ICC_QUERY_ID:
-                    if (!cursor.moveToFirst())
+                    if ((cursor != null) && !cursor.moveToFirst())
                     {
                         mIccCount = 0;
                         updateState(SHOW_LIST, MessageUtils.SUB1);
@@ -300,7 +300,7 @@ public class MemoryStatusActivity extends Activity
                     
                     break;            
                    case ICC2_QUERY_ID:
-                    if (!cursor.moveToFirst())
+                    if ((cursor != null) && !cursor.moveToFirst())
                     {
                         mIcc2Count = 0;
                         updateState(SHOW_LIST, MessageUtils.SUB2);

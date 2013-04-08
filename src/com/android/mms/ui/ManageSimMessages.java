@@ -152,9 +152,12 @@ public class ManageSimMessages extends Activity
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+        setMessageRead(this);
 
         init();
         registerSimChangeObserver();
+        registerReceiver(mIccStateChangedReceiver, 
+            new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
     }
 
     @Override
@@ -277,7 +280,6 @@ public class ManageSimMessages extends Activity
             }
             // Show option menu when query complete.
             invalidateOptionsMenu();
-            Log.d(TAG, "onQueryComplete");
             MessagingNotification.cancelNotification(ManageSimMessages.this, MessagingNotification.NOTIFICATION_ICC_ID);
         }
     }
@@ -843,8 +845,6 @@ public class ManageSimMessages extends Activity
     @Override
     protected void onStart() {
         super.onRestart();
-        setMessageRead(this);
-        registerReceiver(mIccStateChangedReceiver, new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
         
         // if updateContacts call before this method, it will doesn't work well,
         // need updateContacts again.
