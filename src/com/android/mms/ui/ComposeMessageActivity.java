@@ -84,6 +84,7 @@ import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Intents;
+import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.provider.Settings;
@@ -237,6 +238,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_COPY_TO_SIM           = 33;
 
     private static final int SHOW_COPY_TOAST = 1;
+    private static final int SUBJECT_MAX_LENGTH    =  40;
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
 
@@ -3374,9 +3376,16 @@ public class ComposeMessageActivity extends Activity
             break;
 
             case AttachmentTypeSelectorAdapter.ADD_SOUND:
-                MessageUtils.selectAudio(this, REQUEST_CODE_ATTACH_SOUND);
+               // MessageUtils.selectAudio(this, REQUEST_CODE_ATTACH_SOUND);
+               	{
+			   Intent intentmusic = new Intent(Intent.ACTION_PICK);
+			   intentmusic.setDataAndType(Uri.EMPTY, "vnd.android.cursor.dir/audio");
+			   intentmusic.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+			   intentmusic.putExtra("classname","mms");
+			   intentmusic.putExtra("RING_TYPE",getIntent().getIntExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, -1));
+			   startActivityForResult(intentmusic, REQUEST_CODE_ATTACH_SOUND);
                 break;
-
+               	}
             case AttachmentTypeSelectorAdapter.RECORD_SOUND:
                 long sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, sizeLimit);
@@ -3524,7 +3533,8 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case REQUEST_CODE_ATTACH_SOUND: {
-                Uri uri = (Uri) data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+               // Uri uri = (Uri) data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+			    Uri uri = data.getData();
                 if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
                     break;
                 }
@@ -4042,12 +4052,28 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
-            mWorkingMessage.setSubject(s, true);
-            updateSendButtonState();
+			if (s.toString().getBytes().length <= SUBJECT_MAX_LENGTH){
+				mWorkingMessage.setSubject(s, true);
+				updateSendButtonState();
+				if(s.toString().getBytes().length == SUBJECT_MAX_LENGTH){
+					Toast.makeText(ComposeMessageActivity.this, R.string.subject_full,Toast.LENGTH_SHORT).show();			  
+				}
+
+			}
         }
 
-        @Override
-        public void afterTextChanged(Editable s) { }
+        public void afterTextChanged(Editable s) {
+            if (s.toString().getBytes().length > SUBJECT_MAX_LENGTH)
+            {
+                String subject = s.toString();
+				Toast.makeText(ComposeMessageActivity.this, R.string.subject_full,Toast.LENGTH_SHORT).show();			  
+                while(subject.getBytes().length > SUBJECT_MAX_LENGTH){
+                    subject = subject.substring(0, subject.length() - 1);
+                }            
+                s.clear();
+                s.append(subject);                                
+            }
+        }
     };
 
     //==========================================================

@@ -372,6 +372,8 @@
     <string name="duration_not_a_number">Duration must be a number.</string>
     <!-- Toast when the user enters a zero value for the duration of a slide -->
     <string name="duration_zero">Duration must be greater than zero seconds.</string>
+    <!-- Toast when the subject is full -->
+    <string name="subject_full">"subject is full"</string> 
 
     <!-- In duration selection dialog box, short version of "seconds" -->
     <string name="secs">secs</string>
