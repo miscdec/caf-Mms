@@ -37,7 +37,7 @@ import com.google.android.mms.MmsException;
 public class SlideshowEditor {
     private static final String TAG = "Mms:slideshow";
 
-    public static final int MAX_SLIDE_NUM = 10;
+    public static final int MAX_SLIDE_NUM = 20;
 
     private final Context mContext;
     private SlideshowModel mModel;

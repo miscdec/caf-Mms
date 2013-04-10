@@ -48,6 +48,7 @@ public class GIFView extends ImageView implements GifAction{
         Log.v(TAG," gifview constructor.");
         //W = 240;
         //H = 320;
+		/*
         if(LayoutManager.getInstance().getLayoutParameters().getTypeDescription().equals("HVGA-P"))
             {
             W = 480;
@@ -58,8 +59,9 @@ public class GIFView extends ImageView implements GifAction{
             W = 800;
             H = 480;
             }
-        //W = LayoutManager.getInstance().getLayoutParameters().getWidth();
-       // H = LayoutManager.getInstance().getLayoutParameters().getHeight();        
+            */
+        W = LayoutManager.getInstance().getLayoutParameters().getWidth();
+        H = LayoutManager.getInstance().getLayoutParameters().getHeight();        
     }
 
     public boolean setDrawable(Uri uri){

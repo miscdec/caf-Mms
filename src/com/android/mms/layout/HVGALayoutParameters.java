@@ -19,11 +19,12 @@ package com.android.mms.layout;
 
 import android.content.Context;
 import android.util.Log;
+import android.util.DisplayMetrics;
 
 public class HVGALayoutParameters implements LayoutParameters {
     private static final String TAG = "HVGALayoutParameters";
     private static final boolean DEBUG = false;
-    private static final boolean LOCAL_LOGV = false;
+    private static final boolean LOCAL_LOGV = true;
 
     private int mType = -1;
 
@@ -33,6 +34,11 @@ public class HVGALayoutParameters implements LayoutParameters {
     private static int mTextHeightPortrait;
     private static int mMaxHeight;
     private static int mMaxWidth;
+    private static int IMAGE_HEIGHT_LANDSCAPE = 180;
+    private static int TEXT_HEIGHT_LANDSCAPE  =  60;
+    private static int IMAGE_HEIGHT_PORTRAIT  = 240;
+    private static int TEXT_HEIGHT_PORTRAIT   =  80;
+	private Context mcontext = null;
 
     public HVGALayoutParameters(Context context, int type) {
         if ((type != HVGA_LANDSCAPE) && (type != HVGA_PORTRAIT)) {
@@ -44,41 +50,37 @@ public class HVGALayoutParameters implements LayoutParameters {
             Log.v(TAG, "HVGALayoutParameters.<init>(" + type + ").");
         }
         mType = type;
+		mcontext=context;
 
-        float scale = context.getResources().getDisplayMetrics().density;
-        mMaxWidth = (int) (context.getResources().getConfiguration().screenWidthDp * scale + 0.5f);
-        mMaxHeight =
-            (int) (context.getResources().getConfiguration().screenHeightDp * scale + 0.5f);
+        DisplayMetrics scale = getDefaultDisplay();
 
-        mImageHeightLandscape = (int) (mMaxHeight * .90f);
-        mTextHeightLandscape = (int) (mMaxHeight * .10f);
-        mImageHeightPortrait = (int) (mMaxWidth * .90f);
-        mTextHeightPortrait = (int) (mMaxWidth * .10f);
+		IMAGE_HEIGHT_LANDSCAPE = scale.widthPixels/2;
+		TEXT_HEIGHT_LANDSCAPE  = scale.widthPixels/2;
+		IMAGE_HEIGHT_PORTRAIT  = scale.heightPixels/2;
+		TEXT_HEIGHT_PORTRAIT   = scale.heightPixels/2;
 
         if (LOCAL_LOGV) {
-            Log.v(TAG, "HVGALayoutParameters mMaxWidth: " + mMaxWidth +
-                    " mMaxHeight: " + mMaxHeight +
-                    " mImageHeightLandscape: " + mImageHeightLandscape +
-                    " mTextHeightLandscape: " + mTextHeightLandscape +
-                    " mImageHeightPortrait: " + mImageHeightPortrait +
-                    " mTextHeightPortrait: " + mTextHeightPortrait);
+            Log.v(TAG, "HVGALayoutParameters IMAGE_HEIGHT_LANDSCAPE: " + IMAGE_HEIGHT_LANDSCAPE +
+                    " TEXT_HEIGHT_LANDSCAPE: " + TEXT_HEIGHT_LANDSCAPE +
+                    " IMAGE_HEIGHT_PORTRAIT: " + IMAGE_HEIGHT_PORTRAIT +
+                    " TEXT_HEIGHT_PORTRAIT: " + TEXT_HEIGHT_PORTRAIT);
         }
 
     }
 
     public int getWidth() {
-        return mType == HVGA_LANDSCAPE ? mMaxWidth
-                                       : mMaxHeight;
+        return mType == HVGA_LANDSCAPE ? getDefaultDisplay().heightPixels
+                                       : getDefaultDisplay().widthPixels;
     }
 
     public int getHeight() {
-        return mType == HVGA_LANDSCAPE ? mMaxHeight
-                                       : mMaxWidth;
+        return mType == HVGA_LANDSCAPE ? getDefaultDisplay().widthPixels
+                                       : getDefaultDisplay().heightPixels;
     }
 
     public int getImageHeight() {
-        return mType == HVGA_LANDSCAPE ? mImageHeightLandscape
-                                       : mImageHeightPortrait;
+        return mType == HVGA_LANDSCAPE ? IMAGE_HEIGHT_LANDSCAPE
+                                       : IMAGE_HEIGHT_PORTRAIT;
     }
 
     public int getTextHeight() {
@@ -93,4 +95,9 @@ public class HVGALayoutParameters implements LayoutParameters {
     public String getTypeDescription() {
         return mType == HVGA_LANDSCAPE ? "HVGA-L" : "HVGA-P";
     }
+	private DisplayMetrics getDefaultDisplay(){
+		DisplayMetrics dm =mcontext.getResources().getDisplayMetrics();
+		
+		return dm;
+		}
 }
