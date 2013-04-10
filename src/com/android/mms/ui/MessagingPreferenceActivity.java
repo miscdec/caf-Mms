@@ -97,6 +97,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private ListPreference mSmsStorePref;
     private ListPreference mSmsStoreCard1Pref;
     private ListPreference mSmsStoreCard2Pref;
+    private ListPreference mMmsExpiryPref;
     private EditTextPreference mSmsCenterPref;
     private EditTextPreference mSmsCenterCard1Pref;
     private EditTextPreference mSmsCenterCard2Pref;
@@ -189,6 +190,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mSmsCenterPref = (EditTextPreference) findPreference ("pref_key_sms_center");
         mSmsCenterCard1Pref = (EditTextPreference) findPreference ("pref_key_sms_center_card1");
         mSmsCenterCard2Pref = (EditTextPreference) findPreference ("pref_key_sms_center_card2");
+        mMmsExpiryPref = (ListPreference) findPreference("pref_key_mms_expiry"); 
         
         setMessagePreferences();
     }
@@ -330,6 +332,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // Fix up the recycler's summary with the correct values
         setSmsDisplayLimit();
         setMmsDisplayLimit();
+        setMmsExpirySummary();
 
         String soundValue = sharedPreferences.getString(NOTIFICATION_RINGTONE, null);
         setRingtoneSummary(soundValue);
@@ -574,6 +577,35 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                     smsmanager.setSmsPreStore(MessageUtils.STORE_SM,true,MessageUtils.CARD_SUB2);
                 }
             }
+        }
+    }
+
+    private void setMmsExpirySummary() {
+        mMmsExpiryPref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                final String value = newValue.toString();
+                mMmsExpiryPref.setValue(value);
+
+                if (value.equals("604800") ) {
+                    mMmsExpiryPref.setSummary(getString(R.string.mms_one_week));
+                } else if (value.equals("172800")) {
+                    mMmsExpiryPref.setSummary(getString(R.string.mms_two_days));
+                } else {
+                    mMmsExpiryPref.setSummary(getString(R.string.mms_max));
+                }
+                return false;
+            }
+        });
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String expiry = prefs.getString("pref_key_mms_expiry", "");  
+        
+        if (expiry.equals("604800")) {
+            mMmsExpiryPref.setSummary(getString(R.string.mms_one_week));
+        } else if ( expiry.equals("172800")) {
+            mMmsExpiryPref.setSummary(getString(R.string.mms_two_days));
+        } else {
+            mMmsExpiryPref.setSummary(getString(R.string.mms_max));
         }
     }
 

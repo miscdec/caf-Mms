@@ -1003,6 +1003,13 @@
     <string name="pref_title_sms_center">Set SMS center</string> 
     <string name="pref_title_sms_center_card1">Set Card1 SMS center</string> 
     <string name="pref_title_sms_center_card2">Set Card2 SMS center</string> 
+
+    <!-- Settings item description for Mms Validity period  -->
+    <string name="pref_title_mms_save_time">Validity period</string>
+    <string name="mms_one_week">One week</string>
+    <string name="mms_two_days">Two days</string>
+    <string name="mms_max">Maximum</string>
+    <string name="save_description">How long the message will be stored in Server</string>
     
 </resources>
 
