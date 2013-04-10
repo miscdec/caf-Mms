@@ -83,14 +83,15 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
         int maxDur = 0;
         for (MediaModel media : mediaList) {
             internalAdd(media);
-
+        /*
             int mediaDur = media.getDuration();
             if (mediaDur > maxDur) {
                 maxDur = mediaDur;
             }
+            */
         }
 
-        updateDuration(maxDur);
+      //  updateDuration(maxDur);
     }
 
     private void internalAdd(MediaModel media) throws IllegalStateException {
