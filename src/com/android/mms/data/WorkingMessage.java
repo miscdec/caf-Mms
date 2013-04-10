@@ -230,6 +230,8 @@ public class WorkingMessage {
      * contains an MMS message.
      */
     public static WorkingMessage load(ComposeMessageActivity activity, Uri uri) {
+
+        SlideshowModel mModel = null;
         // If the message is not already in the draft box, move it there.
         if (!uri.toString().startsWith(Mms.Draft.CONTENT_URI.toString())) {
             PduPersister persister = PduPersister.getPduPersister(activity);
@@ -237,6 +239,10 @@ public class WorkingMessage {
                 LogTag.debug("load: moving %s to drafts", uri);
             }
             try {
+                mModel = SlideshowModel.createFromMessageUri(activity, uri);
+                SendReq sendReq = new SendReq();
+                sendReq.setBody(mModel.makeCopy());
+               // uri = persister.persist(sendReq, Mms.Draft.CONTENT_URI);
                 uri = persister.move(uri, Mms.Draft.CONTENT_URI);
             } catch (MmsException e) {
                 LogTag.error("Can't move %s to drafts", uri);
@@ -245,6 +251,24 @@ public class WorkingMessage {
         }
 
         WorkingMessage msg = new WorkingMessage(activity);
+        Cursor cursor;
+        ContentResolver cr = activity.getContentResolver();
+
+        cursor = SqliteWrapper.query(activity, cr,
+                uri, MMS_DRAFT_PROJECTION,
+                null, null, null);
+        
+        StringBuilder sb = new StringBuilder();
+         if (cursor.moveToFirst()) {
+            String subject = MessageUtils.extractEncStrFromCursor( cursor, MMS_SUBJECT_INDEX, MMS_SUBJECT_CHARSET );
+            if (subject != null) {
+                sb.append(subject);
+            }
+            if (sb.length() > 0) {
+               msg.setSubject(sb.toString(), false);
+            }
+        }
+         cursor.close();
         if (msg.loadFromUri(uri)) {
             msg.mHasMmsDraft = true;
             return msg;
@@ -384,6 +408,9 @@ public class WorkingMessage {
     public boolean hasText() {
         return mText != null && TextUtils.getTrimmedLength(mText) > 0;
     }
+    public Uri getMessageUri(){
+        return mMessageUri;
+    }
 
     public void removeAttachment(boolean notify) {
         removeThumbnailsFromCache(mSlideshow);
@@ -509,6 +536,21 @@ public class WorkingMessage {
             // Set HAS_ATTACHMENT if we need it.
             updateState(HAS_ATTACHMENT, hasAttachment(), true);
         }
+		
+		 if(hasAttachment()){
+			 PduPersister persister = PduPersister.getPduPersister(mActivity);
+			 SendReq sendReq = makeSendReq(mConversation, mSubject);
+			 if (mMessageUri == null) {
+				 mMessageUri = createDraftMmsMessage(persister, sendReq, mSlideshow,null,mActivity,null);
+			 } else {
+				 updateDraftMmsMessage(mMessageUri, persister, mSlideshow, sendReq,null);
+			 }
+		 } else{
+			 if(mMessageUri != null){
+				 asyncDelete(mMessageUri, null, null);
+				 mMessageUri = null;
+			 }
+		 }
         return result;
     }
 
@@ -776,7 +818,7 @@ public class WorkingMessage {
      * Gets internal message state ready for storage.  Should be called any
      * time the message is about to be sent or written to disk.
      */
-    private void prepareForSave(boolean notify) {
+    public void prepareForSave(boolean notify) {
         // Make sure our working set of recipients is resolved
         // to first-class Contact objects before we save.
         syncWorkingRecipients();
@@ -794,7 +836,7 @@ public class WorkingMessage {
         if (mWorkingRecipients != null) {
             ContactList recipients = ContactList.getByNumbers(mWorkingRecipients, false);
             mConversation.setRecipients(recipients);    // resets the threadId to zero
-            setHasMultipleRecipients(recipients.size() > 1, true);
+           // setHasMultipleRecipients(recipients.size() > 1, true);
             mWorkingRecipients = null;
         }
     }
@@ -1055,7 +1097,7 @@ public class WorkingMessage {
         // Convert to MMS if there are any email addresses in the recipient list.
         ContactList contactList = conv.getRecipients();
         setHasEmail(contactList.containsEmail(), false);
-        setHasMultipleRecipients(contactList.size() > 1, false);
+       // setHasMultipleRecipients(contactList.size() > 1, false);
     }
 
     public Conversation getConversation() {
@@ -1540,6 +1582,7 @@ public class WorkingMessage {
     private static final int MMS_ID_INDEX         = 0;
     private static final int MMS_SUBJECT_INDEX    = 1;
     private static final int MMS_SUBJECT_CS_INDEX = 2;
+    private static final int MMS_SUBJECT_CHARSET = 2;
 
     private static Uri readDraftMmsMessage(Context context, Conversation conv, StringBuilder sb) {
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
@@ -1651,7 +1694,7 @@ public class WorkingMessage {
                     asyncDeleteDraftSmsMessage(conv);
                 } finally {
                     DraftCache.getInstance().setSavingDraft(false);
-				    updateWidget();
+                    updateWidget();
                     closePreOpenedFiles(preOpenedFiles);
                 }
             }

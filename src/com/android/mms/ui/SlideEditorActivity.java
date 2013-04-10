@@ -62,6 +62,7 @@ import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
+import android.provider.MediaStore;
 
 /**
  * This activity allows user to edit the contents of a slide.
@@ -449,8 +450,17 @@ public class SlideEditorActivity extends Activity {
                 break;
 
             case MENU_ADD_AUDIO:
-                MessageUtils.selectAudio(this, REQUEST_CODE_CHANGE_MUSIC);
-                break;
+               // MessageUtils.selectAudio(this, REQUEST_CODE_CHANGE_MUSIC);
+                //break;
+                {
+                    Intent intentmusic = new Intent(Intent.ACTION_PICK);
+                    intentmusic.setDataAndType(Uri.EMPTY, "vnd.android.cursor.dir/audio");
+                    intentmusic.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+                    intentmusic.putExtra("classname","mms");
+                    intentmusic.putExtra("RING_TYPE",getIntent().getIntExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, -1));
+                    startActivityForResult(intentmusic, REQUEST_CODE_CHANGE_MUSIC);
+                    break;
+                }
 
             case MENU_RECORD_SOUND:
                 slide = mSlideshowModel.get(mPosition);
@@ -649,14 +659,7 @@ public class SlideEditorActivity extends Activity {
             case REQUEST_CODE_CHANGE_MUSIC:
             case REQUEST_CODE_RECORD_SOUND:
                 Uri uri;
-                if (requestCode == REQUEST_CODE_CHANGE_MUSIC) {
-                    uri = (Uri) data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
-                    if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
-                        return;
-                    }
-                } else {
-                    uri = data.getData();
-                }
+                uri = data.getData();
 
                 try {
                     mSlideshowEditor.changeAudio(mPosition, uri);

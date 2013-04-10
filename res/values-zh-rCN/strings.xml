@@ -396,6 +396,12 @@
     <string name="cancel">取消</string> 
     <string name="copy_to_sdcard_direction_success">已保存到：</string>
 
+    <!-- toast when subject is full  -->
+    <string name="subject_full">主题已满</string> 
+    <!-- toast when box is full  -->
+    <string name="box_full_title">信息信箱已满或存储空间低</string>
+    <string name="title_send_message">发送信息</string>      
+
     <!-- toast for send result -->
     <string name="send_failure">发送失败！</string>
     <string name="send_success">发送成功！</string>
@@ -435,12 +441,20 @@
     <string name="search_as_number">号码</string>
     <string name="search_as_content">内容</string>      
     <string name="invalid_name_toast">请输入有效的姓名！</string>    
-    <!-- Settings item description for storage and SMS center  -->
-    <string name="pref_title_sms_store">优先存储器</string>    
+    <!-- Settings item description for Preferred storage and SMS center  -->
+    <string name="pref_title_sms_store">优先存储器</string> 
+    <string name="pref_title_sms_store_card1">卡1优先存储器</string> 
+    <string name="pref_title_sms_store_card2">卡2优先存储器</string>    
     <string name="pref_sms_store_phone">话机</string> 
     <string name="pref_sms_store_card">SIM卡</string>
     <string name="pref_title_sms_center">短信中心</string>
     <string name="pref_title_sms_center_card1">卡1短信中心</string>  
     <string name="pref_title_sms_center_card2">卡2短信中心</string>  
 
+    <!-- Settings item description for Mms Validity period  -->
+    <string name="pref_title_mms_save_time">信息有效期</string>
+    <string name="mms_one_week">一周</string>
+    <string name="mms_two_days">两天</string>
+    <string name="mms_max">最长</string>
+    <string name="save_description">在服务器保存时间</string>
 </resources>

@@ -94,7 +94,10 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private CheckBoxPreference mEnableNotificationsPref;
     private CheckBoxPreference mMmsAutoRetrievialPref;
     private RingtonePreference mRingtonePref;
-    private ListPreference mSmsStorePref; 
+    private ListPreference mSmsStorePref;
+    private ListPreference mSmsStoreCard1Pref;
+    private ListPreference mSmsStoreCard2Pref;
+    private ListPreference mMmsExpiryPref;
     private EditTextPreference mSmsCenterPref;
     private EditTextPreference mSmsCenterCard1Pref;
     private EditTextPreference mSmsCenterCard2Pref;
@@ -182,9 +185,12 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mRingtonePref = (RingtonePreference) findPreference(NOTIFICATION_RINGTONE);
 
         mSmsStorePref = (ListPreference) findPreference("pref_key_sms_store"); 
+        mSmsStoreCard1Pref = (ListPreference) findPreference("pref_key_sms_store_card1");
+        mSmsStoreCard2Pref = (ListPreference) findPreference("pref_key_sms_store_card2");
         mSmsCenterPref = (EditTextPreference) findPreference ("pref_key_sms_center");
         mSmsCenterCard1Pref = (EditTextPreference) findPreference ("pref_key_sms_center_card1");
         mSmsCenterCard2Pref = (EditTextPreference) findPreference ("pref_key_sms_center_card2");
+        mMmsExpiryPref = (ListPreference) findPreference("pref_key_mms_expiry"); 
         
         setMessagePreferences();
     }
@@ -199,7 +205,14 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             if (MessageUtils.isHasCard()) {
                 setPreferStore(MessageUtils.STORE_ME);
             }   
-        } 
+        } else {
+            if (MessageUtils.isHasCard(MessageUtils.CARD_SUB1)) {
+                setPreferStore(MessageUtils.STORE_ME,MessageUtils.CARD_SUB1);
+            }  
+            if (MessageUtils.isHasCard(MessageUtils.CARD_SUB2)) {
+                setPreferStore(MessageUtils.STORE_ME,MessageUtils.CARD_SUB2);
+            }   
+        }
         
 
         // NOTE: After restoring preferences, the auto delete function (i.e. message recycler)
@@ -264,20 +277,27 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             smsCategory.removePreference(mSmsCenterPref);
             
             if (!MessageUtils.isHasCard(MessageUtils.CARD_SUB1)) {
+                storageOptions.removePreference(mSmsStoreCard1Pref);
                 smsCategory.removePreference(mSmsCenterCard1Pref);
             } else {
+                setSmsStoreSummary(MessageUtils.CARD_SUB1);
                 setSmsCenterNumber(MessageUtils.CARD_SUB1);
             }
             if (!MessageUtils.isHasCard(MessageUtils.CARD_SUB2)) {
+                storageOptions.removePreference(mSmsStoreCard2Pref);
                 smsCategory.removePreference(mSmsCenterCard2Pref);
             } else {
+                setSmsStoreSummary(MessageUtils.CARD_SUB2);
                 setSmsCenterNumber(MessageUtils.CARD_SUB2);
             }
         } else {
             PreferenceCategory storageOptions =
                 (PreferenceCategory)findPreference("pref_key_storage_settings");
             PreferenceCategory smsCategory =
-                (PreferenceCategory)findPreference("pref_key_sms_settings");  
+                (PreferenceCategory)findPreference("pref_key_sms_settings"); 
+            storageOptions.removePreference(mSmsStoreCard1Pref);
+            storageOptions.removePreference(mSmsStoreCard2Pref);
+
             smsCategory.removePreference(mSmsCenterCard1Pref);
             smsCategory.removePreference(mSmsCenterCard2Pref);
             
@@ -312,6 +332,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // Fix up the recycler's summary with the correct values
         setSmsDisplayLimit();
         setMmsDisplayLimit();
+        setMmsExpirySummary();
 
         String soundValue = sharedPreferences.getString(NOTIFICATION_RINGTONE, null);
         setRingtoneSummary(soundValue);
@@ -354,6 +375,34 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             }
         }); 
         mSmsStorePref.setSummary(mSmsStorePref.getEntry());
+    }
+
+    private void setSmsStoreSummary(int subscription) {
+        if(MessageUtils.CARD_SUB1 == subscription) {
+            mSmsStoreCard1Pref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    final String summary = newValue.toString();
+                    int index = mSmsStoreCard1Pref.findIndexOfValue(summary);
+                    mSmsStoreCard1Pref.setSummary(mSmsStoreCard1Pref.getEntries()[index]);
+                    mSmsStoreCard1Pref.setValue(summary);
+                    setPreferStore(Integer.parseInt(summary),MessageUtils.CARD_SUB1);
+                    return false;
+                }
+            });   
+            mSmsStoreCard1Pref.setSummary(mSmsStoreCard1Pref.getEntry());
+        } else {
+            mSmsStoreCard2Pref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    final String summary = newValue.toString();
+                    int index = mSmsStoreCard2Pref.findIndexOfValue(summary);
+                    mSmsStoreCard2Pref.setSummary(mSmsStoreCard2Pref.getEntries()[index]);
+                    mSmsStoreCard2Pref.setValue(summary);
+                    setPreferStore(Integer.parseInt(summary),MessageUtils.CARD_SUB2);
+                    return false;
+                }
+            }); 
+            mSmsStoreCard2Pref.setSummary(mSmsStoreCard2Pref.getEntry());
+        }       
     }
     
     private void getSmsCenterNumber() {
@@ -507,6 +556,56 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             } else if (store == MessageUtils.STORE_SM) {
                 smsmanager.setSmsPreStore(MessageUtils.STORE_SM,true);
             }
+        }
+    }
+
+    private void setPreferStore(int store,int subscription) {
+        MSimSmsManager smsmanager = MSimSmsManager.getDefault();
+        if (MessageUtils.CARD_SUB1 == subscription){
+            if (MessageUtils.isIccCardActivated(MessageUtils.CARD_SUB1)) {
+                if (store == MessageUtils.STORE_ME) {
+                    smsmanager.setSmsPreStore(MessageUtils.STORE_ME,true,MessageUtils.CARD_SUB1);
+                } else if (store == MessageUtils.STORE_SM) {
+                    smsmanager.setSmsPreStore(MessageUtils.STORE_SM,true,MessageUtils.CARD_SUB1);
+                }
+            }
+        } else{
+            if (MessageUtils.isIccCardActivated(MessageUtils.CARD_SUB2)) {
+                if (store == MessageUtils.STORE_ME) {
+                    smsmanager.setSmsPreStore(MessageUtils.STORE_ME,true,MessageUtils.CARD_SUB2);
+                } else if (store == MessageUtils.STORE_SM) {
+                    smsmanager.setSmsPreStore(MessageUtils.STORE_SM,true,MessageUtils.CARD_SUB2);
+                }
+            }
+        }
+    }
+
+    private void setMmsExpirySummary() {
+        mMmsExpiryPref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                final String value = newValue.toString();
+                mMmsExpiryPref.setValue(value);
+
+                if (value.equals("604800") ) {
+                    mMmsExpiryPref.setSummary(getString(R.string.mms_one_week));
+                } else if (value.equals("172800")) {
+                    mMmsExpiryPref.setSummary(getString(R.string.mms_two_days));
+                } else {
+                    mMmsExpiryPref.setSummary(getString(R.string.mms_max));
+                }
+                return false;
+            }
+        });
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String expiry = prefs.getString("pref_key_mms_expiry", "");  
+        
+        if (expiry.equals("604800")) {
+            mMmsExpiryPref.setSummary(getString(R.string.mms_one_week));
+        } else if ( expiry.equals("172800")) {
+            mMmsExpiryPref.setSummary(getString(R.string.mms_two_days));
+        } else {
+            mMmsExpiryPref.setSummary(getString(R.string.mms_max));
         }
     }
 

@@ -1592,7 +1592,7 @@ public class MessageUtils {
 
         return preferStore;
     }
-    
+
     private static void checkModifyPreStore(Context context, boolean isPhoneFull, int subscription)
     {
         int curPreStore = getCurSmsPreferStore(context, subscription);
@@ -1663,6 +1663,20 @@ public class MessageUtils {
             smsmanager.setSmsPreStore(STORE_SM, true);
         } else {         
             smsmanager.setSmsPreStore(STORE_ME, true);           
+        }
+    }
+
+    public static void checkModifyPreStoreWhenBoot(Context context,int subscription) {
+        if (!isIccCardActivated(subscription)) {
+            return;
+        }
+        MSimSmsManager smsmanager = MSimSmsManager.getDefault();
+        int curPreStore = getCurSmsPreferStore(context,subscription);
+
+        if (curPreStore == STORE_SM) {      
+            smsmanager.setSmsPreStore(STORE_SM, true, subscription);
+        } else {         
+            smsmanager.setSmsPreStore(STORE_ME, true, subscription); 
         }
     }
 

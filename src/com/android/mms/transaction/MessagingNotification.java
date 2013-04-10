@@ -322,21 +322,23 @@ public class MessagingNotification {
         }
     }
 
-    public static void blockingUpdateNewMessageOnIccIndicator(Context context, int subId) {
-        if(!MessageUtils.isHasCard(subId))
-        {
+    public static void blockingUpdateNewMessageOnIccIndicator(Context context, int subscription) {
+        if(!MessageUtils.isHasCard(subscription)) {
             return;
+        }
+        
+        if(!MessageUtils.isMultiSimEnabledMms()) {
+            subscription = MessageUtils.SUB_INVALID;
         }
         
         SortedSet<NotificationInfo> notificationSet =
                 new TreeSet<NotificationInfo>(INFO_COMPARATOR);
-
-        addSmsOnIccNotificationInfos(context, subId, notificationSet);
+        addSmsOnIccNotificationInfos(context, subscription, notificationSet);
         Log.d(TAG, "blockingUpdateNewMessageOnIccIndicator:notificationSet="+notificationSet);
         if (notificationSet.isEmpty()) {
             cancelNotification(context, NOTIFICATION_ICC_ID);
         } else {
-            updateIccNotification(context, true, notificationSet);
+            updateIccNotification(context, true, notificationSet, subscription);
         }
         MmsSmsDeliveryInfo delivery = getSmsNewDeliveryInfo(context);
         if (delivery != null) {
@@ -790,14 +792,10 @@ public class MessagingNotification {
 
 
     private static final void addSmsOnIccNotificationInfos(
-            Context context, int subId, SortedSet<NotificationInfo> notificationSet) {
+            Context context, int subscription, SortedSet<NotificationInfo> notificationSet) {
         ContentResolver resolver = context.getContentResolver();
-        if(!MessageUtils.isMultiSimEnabledMms())
-        {
-            subId = MessageUtils.SUB_INVALID;
-        }
         
-        Cursor cursor = SqliteWrapper.query(context, resolver, MessageUtils.getIccUriBySubscription(subId),
+        Cursor cursor = SqliteWrapper.query(context, resolver, MessageUtils.getIccUriBySubscription(subscription),
                             SMS_ICC_STATUS_PROJECTION, NEW_INCOMING_ICC_SM_CONSTRAINT,
                             null, Sms.DATE + " desc");
         
@@ -809,7 +807,6 @@ public class MessagingNotification {
         try {
             while (cursor.moveToNext()) {
                 String address = cursor.getString(COLUMN_SMS_ADDRESS);
-
                 Contact contact = Contact.get(address, false);
                 if (contact.getSendToVoicemail()) {
                     // don't notify, skip this one
@@ -821,9 +818,9 @@ public class MessagingNotification {
 
                 NotificationInfo info = getNewMessageOnIccNotificationInfo(context, true /* isSms */,
                         address, message, null /* subject */,
-                        -1 /* threadId */, subId, timeMillis, null /* attachmentBitmap */,
+                        -1 /* threadId */, subscription, timeMillis, null /* attachmentBitmap */,
                         contact, WorkingMessage.TEXT);
-
+             
                 notificationSet.add(info);
             }
         } finally {
@@ -867,22 +864,23 @@ public class MessagingNotification {
             String message,
             String subject,
             long threadId,
-            int subId,
+            int subscription,
             long timeMillis,
             Bitmap attachmentBitmap,
             Contact contact,
             int attachmentType) {
         Intent clickIntent = new Intent(context, ManageSimMessages.class);
+        clickIntent.putExtra(MessageUtils.SUB_KEY, subscription);
         clickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
         String senderInfo = buildTickerMessage(
-                context, address, null, null, subId).toString();
+                context, address, null, null, subscription).toString();
         String senderInfoName = senderInfo.substring(
                 0, senderInfo.length());
         CharSequence ticker = buildTickerMessage(
-                context, address, subject, message, subId);
+                context, address, subject, message, subscription);
 
         return new NotificationInfo(isSms,
                 clickIntent, message, subject, ticker, timeMillis,
@@ -1201,7 +1199,7 @@ public class MessagingNotification {
     private static void updateIccNotification(
             Context context,
             boolean isNew,
-            SortedSet<NotificationInfo> notificationSet) {
+            SortedSet<NotificationInfo> notificationSet, int subscription) {
         // If the user has turned off notifications in settings, don't do any notifying.
         if (!MessagingPreferenceActivity.getNotificationEnabled(context)) {
             if (DEBUG) {
@@ -1212,6 +1210,8 @@ public class MessagingNotification {
 
         // Figure out what we've got -- whether all sms's, mms's, or a mixture of both.
         final int messageCount = notificationSet.size();
+        Log.d(TAG,"updateIccNotification:messageCount= "+messageCount);
+        
         NotificationInfo mostRecentNotification = notificationSet.first();
 
         final Notification.Builder noti = new Notification.Builder(context)
@@ -1236,6 +1236,7 @@ public class MessagingNotification {
         String title = null;
         Bitmap avatar = null;
         Intent mainActivityIntent = new Intent(Intent.ACTION_VIEW);
+        mainActivityIntent.putExtra(MessageUtils.SUB_KEY, subscription);
 
         mainActivityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP
