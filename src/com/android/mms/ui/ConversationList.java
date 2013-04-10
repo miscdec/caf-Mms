@@ -904,6 +904,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 // Update the notification for failed messages since they
                 // may be deleted.
                 MessagingNotification.nonBlockingUpdateSendFailedNotification(ConversationList.this);
+                //Update the notification for text message memory may not be full, add for cmcc test
+                MessageUtils.checkIsPhoneMessageFull(ConversationList.this);
 
                 // Make sure the list reflects the delete
                 startAsyncQuery();

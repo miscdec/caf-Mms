@@ -326,6 +326,11 @@ public class MessageListItem extends LinearLayout implements
             avatarDrawable = sDefaultContactImage;
         }
         mAvatar.setImageDrawable(avatarDrawable);
+        
+        if(isSelf){
+            mAvatar.setClickable(false);
+        }
+        
     }
 
     // Add this fuction for ManagerSimMessages to update Contact icon
@@ -337,6 +342,7 @@ public class MessageListItem extends LinearLayout implements
 
             if (isSelf) {
                 mAvatar.assignContactUri(Profile.CONTENT_URI);
+                
             } else {
                 if (contact.existsInDatabase(context)) {
                     mAvatar.assignContactUri(contact.getUri());
@@ -348,6 +354,10 @@ public class MessageListItem extends LinearLayout implements
             avatarDrawable = sDefaultContactImage;
         }
         mAvatar.setImageDrawable(avatarDrawable);
+        
+        if(isSelf){
+            mAvatar.setClickable(false);
+        }
     }
 
     private void bindCommonMessage(final boolean sameItem) {

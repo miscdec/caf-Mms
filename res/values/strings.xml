@@ -975,6 +975,7 @@
     <string name="phoneunused">Unused :</string>
     <string name="sim_card1">SIM card1</string>
     <string name="sim_card2">SIM card2</string>
+    <string name="please_wait">Please waiting...</string> 
     <!-- String used in SearchActivityExtend.java -->
     <string name="search_title">"Message search"</string>  
     <string name="search_key">Search keyword</string>     
@@ -988,7 +989,6 @@
     <string name="btn_ok">OK</string>
     <string name="btn_cancel">Cancel</string>
     <string name="select_all">All</string>
-
     <!-- Settings item description for storage and SMS center  -->
     <string name="pref_title_sms_store">Preferred storage</string>    
     <string name="pref_sms_store_phone">Phone</string> 

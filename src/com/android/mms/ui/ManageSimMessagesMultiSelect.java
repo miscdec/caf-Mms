@@ -146,6 +146,8 @@ public class ManageSimMessagesMultiSelect extends Activity
                 case SHOW_TOAST:
                 {                
                     String toastStr = (String) msg.obj;
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(ManageSimMessagesMultiSelect.this);
 
                     Toast.makeText(ManageSimMessagesMultiSelect.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
@@ -314,15 +316,22 @@ public class ManageSimMessagesMultiSelect extends Activity
 
     private void copySelectedMessages(final boolean isCopyToPhone)
     {
-        new Thread(new Runnable() {
-            public void run() {
-                for (Integer position : mSelectedPositions)
-                { 
-                    Cursor c = (Cursor) mMsgListAdapter.getItem(position);
-                    if (c == null)
-                    {
-                        return;
-                    }
+        final SparseBooleanArray booleanArray = mMsgListView.getCheckedItemPositions();
+        final int size = booleanArray.size();
+        for (int j = 0; j < size; j++)
+        {
+            int position = booleanArray.keyAt(j);
+            if (!mMsgListView.isItemChecked(position))
+            {
+                continue;
+            }
+            final Cursor c = (Cursor) mMsgListAdapter.getItem(position);
+            if (c == null)
+            {
+                continue;
+            } 
+            new Thread(new Runnable() {
+                public void run() {
                     if(isCopyToPhone)
                     {
                         copyToPhoneMemory(c);
@@ -334,19 +343,19 @@ public class ManageSimMessagesMultiSelect extends Activity
                         {
                             return;
                         }
-                    }
+                    }         
                 }
-                
-                if(mShowSuccessToast)
-                {
-                    Message msg = Message.obtain();
-                    msg.what = SHOW_TOAST;
-                    msg.obj = getString(R.string.operate_success);
-                    uihandler.sendMessage(msg);
-                }
-            }
-        }).start();   
-       
+            }).start();   
+        }
+        
+        if(mShowSuccessToast)
+        {
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_success);
+            uihandler.sendMessage(msg);
+        }
+        
         this.finish();
     }
 

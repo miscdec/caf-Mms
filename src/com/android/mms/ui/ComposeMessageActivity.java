@@ -3937,7 +3937,18 @@ public class ComposeMessageActivity extends Activity
     @Override
     public void onClick(View v) {
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
-            confirmSendMessageIfNeeded();
+            if(MessageUtils.isSmsMessageJustFull(this))
+            {
+                Log.d(TAG, "Message size is limit!");
+                Toast.makeText(this, R.string.exceed_message_size_limitation, 
+                                Toast.LENGTH_LONG).show();
+                return;
+            }
+            else
+            {
+                confirmSendMessageIfNeeded();
+            }
+
         } else if ((v == mRecipientsPicker)) {
             launchMultiplePhonePicker();
         } else if ((v == mRecipientsPickerGroups)) {
@@ -4243,6 +4254,13 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
+        if (MessageUtils.isSmsMessageJustFull(this))
+        {
+            Toast.makeText(ComposeMessageActivity.this, R.string.exceed_message_size_limitation,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         mWorkingMessage.saveDraft(isStopping);
 
         if (mToastForDraftSave) {
@@ -4798,6 +4816,8 @@ public class ComposeMessageActivity extends Activity
                     // Update the notification for failed messages since they
                     // may be deleted.
                     updateSendFailedNotification();
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(ComposeMessageActivity.this);
                     break;
             }
             // If we're deleting the whole conversation, throw away

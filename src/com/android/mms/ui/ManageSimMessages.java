@@ -158,6 +158,7 @@ public class ManageSimMessages extends Activity
         registerSimChangeObserver();
         registerReceiver(mIccStateChangedReceiver, 
             new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
+
     }
 
     @Override
@@ -610,6 +611,8 @@ public class ManageSimMessages extends Activity
             // if native uri is null, saved fail and toast copy fail
             if (uri != null) {
                 Toast.makeText(this, R.string.operate_success, Toast.LENGTH_SHORT).show();
+                //Update the notification for text message memory may not be full, add for cmcc test
+                MessageUtils.checkIsPhoneMessageFull(ManageSimMessages.this);
             } else {
                 Toast.makeText(this, R.string.operate_failure, Toast.LENGTH_SHORT).show();
             }
