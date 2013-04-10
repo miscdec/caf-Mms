@@ -655,7 +655,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.confirm_dialog_title);
-        builder.setIcon(R.drawable.ic_sms_mms_not_delivered);
+        builder.setIcon(R.drawable.ic_dialog_alert_holo_light);
         builder.setCancelable(true);
         builder.setMessage(R.string.confirm_delete_message);
         builder.setPositiveButton(R.string.yes, listener);

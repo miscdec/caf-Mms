@@ -167,6 +167,7 @@ import com.google.android.mms.pdu.SendReq;
 import android.text.format.Time;
 import java.util.Set;
 import java.util.Iterator;
+import static com.android.mms.model.CarrierContentRestriction.MESSAGE_SIZE_LIMIT;
 
 
 /**
@@ -585,7 +586,7 @@ public class ComposeMessageActivity extends Activity
             updateSendButtonState();
         }
     };
-	
+    
     /**
      * Return the messageItem associated with the type ("mms" or "sms") and message id.
      * @param type Type of the message: "mms" or "sms"
@@ -918,6 +919,72 @@ public class ComposeMessageActivity extends Activity
             }
         }
         return count;
+    }
+
+    private void showSendConfirm(final int subID){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        int mMmsCurrentSize = 0;
+        
+        mWorkingMessage.prepareForSave(true);
+        if(mWorkingMessage.getMessageUri()==null)
+        {
+            Toast.makeText(ComposeMessageActivity.this,
+                            R.string.box_full_title, Toast.LENGTH_SHORT).show();                
+            return;
+        }
+        if(mWorkingMessage.getSlideshow() != null){
+            mMmsCurrentSize += mWorkingMessage.getSlideshow().getCurrentMessageSize();
+        } else{
+            if(mWorkingMessage.hasText()){
+                mMmsCurrentSize += mWorkingMessage.getText().toString().getBytes().length;
+            }
+        }
+       Log.v(TAG,"compose942 mMmsCurrentSize = " + mMmsCurrentSize);
+        mMmsCurrentSize = mMmsCurrentSize > 1 ? (mMmsCurrentSize + 2*1024) : 1024;
+
+        if (mMmsCurrentSize > MESSAGE_SIZE_LIMIT)
+        {
+            mMmsCurrentSize = MESSAGE_SIZE_LIMIT;
+        }
+        
+        builder.setTitle(R.string.title_send_message);
+        builder.setIcon(R.drawable.ic_dialog_alert_holo_light);
+        builder.setCancelable(false);
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            if((MessageUtils.isIccCardActivated(subID))&&(!MessageUtils.isIccCardActivated(1-subID)))
+            {
+                builder.setMessage(getString(R.string.message_size_label)
+                             + String.valueOf((mMmsCurrentSize+1023) / 1024)
+                             + getString(R.string.kilobyte));
+                builder.setPositiveButton(R.string.yes, new OnClickListener(){
+                    public void onClick(DialogInterface dialog, int whichButton){
+                        confirmSendMessageIfNeeded();
+                }
+                });
+                builder.setNegativeButton(R.string.no, null);
+                builder.show();
+                return;
+            }
+        }
+        else{
+          if(MessageUtils.isIccCardActivated())
+            {
+            
+            builder.setMessage(getString(R.string.message_size_label)
+                                     + String.valueOf((mMmsCurrentSize+1023) / 1024)
+                                     + getString(R.string.kilobyte));
+            
+            builder.setPositiveButton(R.string.yes, new OnClickListener(){
+                public void onClick(DialogInterface dialog, int whichButton){
+                    confirmSendMessageIfNeeded();
+                }
+            });
+            
+            }
+            }
+        builder.setNegativeButton(R.string.no, null);
+        builder.show();
     }
 
     private void confirmSendMessageIfNeeded() {
@@ -1343,7 +1410,7 @@ public class ComposeMessageActivity extends Activity
                         break;
                     case WorkingMessage.VIDEO:
                     case WorkingMessage.IMAGE:
-					case WorkingMessage.AUDIO:
+                    case WorkingMessage.AUDIO:
                         if (haveSomethingToCopyToSDCard(msgItem.mMsgId)) {
                             menu.add(0, MENU_COPY_TO_SDCARD, 0, R.string.copy_to_sdcard)
                             .setOnMenuItemClickListener(l);
@@ -3377,15 +3444,15 @@ public class ComposeMessageActivity extends Activity
 
             case AttachmentTypeSelectorAdapter.ADD_SOUND:
                // MessageUtils.selectAudio(this, REQUEST_CODE_ATTACH_SOUND);
-               	{
-			   Intent intentmusic = new Intent(Intent.ACTION_PICK);
-			   intentmusic.setDataAndType(Uri.EMPTY, "vnd.android.cursor.dir/audio");
-			   intentmusic.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
-			   intentmusic.putExtra("classname","mms");
-			   intentmusic.putExtra("RING_TYPE",getIntent().getIntExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, -1));
-			   startActivityForResult(intentmusic, REQUEST_CODE_ATTACH_SOUND);
+                   {
+               Intent intentmusic = new Intent(Intent.ACTION_PICK);
+               intentmusic.setDataAndType(Uri.EMPTY, "vnd.android.cursor.dir/audio");
+               intentmusic.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+               intentmusic.putExtra("classname","mms");
+               intentmusic.putExtra("RING_TYPE",getIntent().getIntExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, -1));
+               startActivityForResult(intentmusic, REQUEST_CODE_ATTACH_SOUND);
                 break;
-               	}
+                   }
             case AttachmentTypeSelectorAdapter.RECORD_SOUND:
                 long sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, sizeLimit);
@@ -3534,7 +3601,7 @@ public class ComposeMessageActivity extends Activity
 
             case REQUEST_CODE_ATTACH_SOUND: {
                // Uri uri = (Uri) data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
-			    Uri uri = data.getData();
+                Uri uri = data.getData();
                 if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
                     break;
                 }
@@ -3947,9 +4014,11 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     public void onClick(View v) {
-        if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
+        if ((v == mSendButtonSms) && isPreparedForSending()) {
             confirmSendMessageIfNeeded();
-        } else if ((v == mRecipientsPicker)) {
+        } else if ( v == mSendButtonMms){
+            showSendConfirm(MessageUtils.CARD_SUB1);
+        }else if ((v == mRecipientsPicker)) {
             launchMultiplePhonePicker();
         } else if ((v == mRecipientsPickerGroups)) {
             addRecipientsFromTab();
@@ -4052,21 +4121,21 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
-			if (s.toString().getBytes().length <= SUBJECT_MAX_LENGTH){
-				mWorkingMessage.setSubject(s, true);
-				updateSendButtonState();
-				if(s.toString().getBytes().length == SUBJECT_MAX_LENGTH){
-					Toast.makeText(ComposeMessageActivity.this, R.string.subject_full,Toast.LENGTH_SHORT).show();			  
-				}
+            if (s.toString().getBytes().length <= SUBJECT_MAX_LENGTH){
+                mWorkingMessage.setSubject(s, true);
+                updateSendButtonState();
+                if(s.toString().getBytes().length == SUBJECT_MAX_LENGTH){
+                    Toast.makeText(ComposeMessageActivity.this, R.string.subject_full,Toast.LENGTH_SHORT).show();              
+                }
 
-			}
+            }
         }
 
         public void afterTextChanged(Editable s) {
             if (s.toString().getBytes().length > SUBJECT_MAX_LENGTH)
             {
                 String subject = s.toString();
-				Toast.makeText(ComposeMessageActivity.this, R.string.subject_full,Toast.LENGTH_SHORT).show();			  
+                Toast.makeText(ComposeMessageActivity.this, R.string.subject_full,Toast.LENGTH_SHORT).show();              
                 while(subject.getBytes().length > SUBJECT_MAX_LENGTH){
                     subject = subject.substring(0, subject.length() - 1);
                 }            
