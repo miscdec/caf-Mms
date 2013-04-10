@@ -53,7 +53,7 @@ public class MmsConfig {
     private static String mEmailGateway = null;
     private static int mMaxImageHeight = MAX_IMAGE_HEIGHT;      // default value
     private static int mMaxImageWidth = MAX_IMAGE_WIDTH;        // default value
-    private static int mRecipientLimit = Integer.MAX_VALUE;     // default value
+    private static int mRecipientLimit = 100;     // default value
     private static int mDefaultSMSMessagesPerThread = 500;      // default value
     private static int mDefaultMMSMessagesPerThread = 50;       // default value
     private static int mMinMessageCountPerThread = 2;           // default value
@@ -99,7 +99,7 @@ public class MmsConfig {
     // will be sent as a single MMS message with multiple "TO" fields set for each recipient.
     // If mEnableGroupMms is false, the group MMS setting/preference will be hidden in the settings
     // activity.
-    private static boolean mEnableGroupMms = true;
+    private static boolean mEnableGroupMms = false;
 
     public static void init(Context context) {
         if (LOCAL_LOGV) {

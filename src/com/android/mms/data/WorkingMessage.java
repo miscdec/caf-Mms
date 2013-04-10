@@ -536,6 +536,21 @@ public class WorkingMessage {
             // Set HAS_ATTACHMENT if we need it.
             updateState(HAS_ATTACHMENT, hasAttachment(), true);
         }
+		
+		 if(hasAttachment()){
+			 PduPersister persister = PduPersister.getPduPersister(mActivity);
+			 SendReq sendReq = makeSendReq(mConversation, mSubject);
+			 if (mMessageUri == null) {
+				 mMessageUri = createDraftMmsMessage(persister, sendReq, mSlideshow,null,mActivity,null);
+			 } else {
+				 updateDraftMmsMessage(mMessageUri, persister, mSlideshow, sendReq,null);
+			 }
+		 } else{
+			 if(mMessageUri != null){
+				 asyncDelete(mMessageUri, null, null);
+				 mMessageUri = null;
+			 }
+		 }
         return result;
     }
 
@@ -821,7 +836,7 @@ public class WorkingMessage {
         if (mWorkingRecipients != null) {
             ContactList recipients = ContactList.getByNumbers(mWorkingRecipients, false);
             mConversation.setRecipients(recipients);    // resets the threadId to zero
-            setHasMultipleRecipients(recipients.size() > 1, true);
+           // setHasMultipleRecipients(recipients.size() > 1, true);
             mWorkingRecipients = null;
         }
     }
@@ -1082,7 +1097,7 @@ public class WorkingMessage {
         // Convert to MMS if there are any email addresses in the recipient list.
         ContactList contactList = conv.getRecipients();
         setHasEmail(contactList.containsEmail(), false);
-        setHasMultipleRecipients(contactList.size() > 1, false);
+       // setHasMultipleRecipients(contactList.size() > 1, false);
     }
 
     public Conversation getConversation() {
