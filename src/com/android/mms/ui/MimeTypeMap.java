@@ -1,6 +1,4 @@
 /**
-Author: yinqi
-Date  : 2010-1-15
 Usage: view attachments in the pdu, provide operations on the attachment, such as save, view, etc.
 */
 
