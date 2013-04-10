@@ -1459,7 +1459,18 @@ public class MessageUtils {
         int preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store", "1"));
         return preferStore;
     }
-    
+
+    public static int getCurSmsPreferStore(Context context, int subscription){
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
+        int preferStore = 0;
+        if(subscription == CARD_SUB1){
+            preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store_card1", "1"));
+        } else {
+            preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store_card2", "1"));
+        }
+        return preferStore;
+    }
+
     public static void checkModifyPreStoreWhenBoot(Context context) {
         if (!isIccCardActivated()) {
             return;
@@ -1471,6 +1482,20 @@ public class MessageUtils {
             smsmanager.setSmsPreStore(STORE_SM, true);
         } else {         
             smsmanager.setSmsPreStore(STORE_ME, true);           
+        }
+    }
+
+    public static void checkModifyPreStoreWhenBoot(Context context,int subscription) {
+        if (!isIccCardActivated(subscription)) {
+            return;
+        }
+        MSimSmsManager smsmanager = MSimSmsManager.getDefault();
+        int curPreStore = getCurSmsPreferStore(context,subscription);
+
+        if (curPreStore == STORE_SM) {      
+            smsmanager.setSmsPreStore(STORE_SM, true, subscription);
+        } else {         
+            smsmanager.setSmsPreStore(STORE_ME, true, subscription); 
         }
     }
     

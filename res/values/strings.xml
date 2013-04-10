@@ -994,8 +994,10 @@
     <string name="btn_cancel">Cancel</string>
     <string name="select_all">All</string>
 
-    <!-- Settings item description for storage and SMS center  -->
-    <string name="pref_title_sms_store">Preferred storage</string>    
+    <!-- Settings item description for Preferred storage and SMS center  -->
+    <string name="pref_title_sms_store">Preferred storage</string> 
+    <string name="pref_title_sms_store_card1">Card1 preferred storage</string> 
+    <string name="pref_title_sms_store_card2">Card2 preferred storage</string>  
     <string name="pref_sms_store_phone">Phone</string> 
     <string name="pref_sms_store_card">SIM card</string>  
     <string name="pref_title_sms_center">Set SMS center</string> 

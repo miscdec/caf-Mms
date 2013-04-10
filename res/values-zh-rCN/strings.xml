@@ -441,8 +441,10 @@
     <string name="search_as_number">号码</string>
     <string name="search_as_content">内容</string>      
     <string name="invalid_name_toast">请输入有效的姓名！</string>    
-    <!-- Settings item description for storage and SMS center  -->
-    <string name="pref_title_sms_store">优先存储器</string>    
+    <!-- Settings item description for Preferred storage and SMS center  -->
+    <string name="pref_title_sms_store">优先存储器</string> 
+    <string name="pref_title_sms_store_card1">卡1优先存储器</string> 
+    <string name="pref_title_sms_store_card2">卡2优先存储器</string>    
     <string name="pref_sms_store_phone">话机</string> 
     <string name="pref_sms_store_card">SIM卡</string>
     <string name="pref_title_sms_center">短信中心</string>
