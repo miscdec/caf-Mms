@@ -496,6 +496,8 @@ public class SmsReceiverService extends Service {
                     ", body: " + sms.getMessageBody()*/);
         }
 
+        MessageUtils.checkIsPhoneMessageFull(this);
+        
         if ((messageUri != null)&&(indexOnIcc<0)) {
             long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
             // Called off of the UI thread so ok to block.
@@ -504,6 +506,7 @@ public class SmsReceiverService extends Service {
         } else if ((messageUri != null)&&(indexOnIcc>0)) {
             MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this, subscription);
         }
+        
     }
 
     private void handleBootCompleted() {

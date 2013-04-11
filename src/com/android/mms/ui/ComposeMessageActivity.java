@@ -449,7 +449,7 @@ public class ComposeMessageActivity extends Activity
                 }
                 case AttachmentEditor.MSG_SEND_SLIDESHOW: {
                     if (isPreparedForSending()) {
-                        ComposeMessageActivity.this.confirmSendMessageIfNeeded();
+                        ComposeMessageActivity.this.showSendConfirm(MessageUtils.CARD_SUB1);
                     }
                     break;
                 }
@@ -926,20 +926,27 @@ public class ComposeMessageActivity extends Activity
         int mMmsCurrentSize = 0;
         
         mWorkingMessage.prepareForSave(true);
+        Log.v(TAG,"compose mWorkingMessage.getMessageUri()="+mWorkingMessage.getMessageUri());
         if(mWorkingMessage.getMessageUri()==null)
         {
-            Toast.makeText(ComposeMessageActivity.this,
-                            R.string.box_full_title, Toast.LENGTH_SHORT).show();                
-            return;
+           // Toast.makeText(ComposeMessageActivity.this,
+           //                 R.string.box_full_title, Toast.LENGTH_SHORT).show();                
+           // return;
         }
+        Log.v(TAG,"compose mWorkingMessage.getSlideshow()="+mWorkingMessage.getSlideshow());
+        Log.v(TAG,"compose mWorkingMessage.getSlideshow().getCurrentMessageSize="+mWorkingMessage.getSlideshow().getCurrentMessageSize());
+        Log.v(TAG,"compose mWorkingMessage.getSlideshow().getTotalMessageSize="+mWorkingMessage.getSlideshow().getTotalMessageSize());
         if(mWorkingMessage.getSlideshow() != null){
-            mMmsCurrentSize += mWorkingMessage.getSlideshow().getCurrentMessageSize();
+            if(mWorkingMessage.getSlideshow().getTotalMessageSize()>mWorkingMessage.getSlideshow().getCurrentMessageSize())
+                mMmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
+            else
+                mMmsCurrentSize += mWorkingMessage.getSlideshow().getCurrentMessageSize();
         } else{
             if(mWorkingMessage.hasText()){
                 mMmsCurrentSize += mWorkingMessage.getText().toString().getBytes().length;
             }
         }
-       Log.v(TAG,"compose942 mMmsCurrentSize = " + mMmsCurrentSize);
+        Log.v(TAG,"compose mMmsCurrentSize = " + mMmsCurrentSize);
         mMmsCurrentSize = mMmsCurrentSize > 1 ? (mMmsCurrentSize + 2*1024) : 1024;
 
         if (mMmsCurrentSize > MESSAGE_SIZE_LIMIT)
@@ -1067,9 +1074,11 @@ public class ComposeMessageActivity extends Activity
 
             List<String> numbers = mRecipientsEditor.getNumbers();
             mWorkingMessage.setWorkingRecipients(numbers);
+                        /*
             boolean multiRecipients = numbers != null && numbers.size() > 1;
             mMsgListAdapter.setIsGroupConversation(multiRecipients);
             mWorkingMessage.setHasMultipleRecipients(multiRecipients, true);
+            */
             mWorkingMessage.setHasEmail(mRecipientsEditor.containsEmail(), true);
 
             checkForTooManyRecipients();
@@ -3049,7 +3058,6 @@ public class ComposeMessageActivity extends Activity
             @Override
             public void run() {
                 showSmsOrMmsSendButton(convertToMms);
-
                 if (convertToMms) {
                     // In the case we went from a long sms with a counter to an mms because
                     // the user added an attachment or a subject, hide the counter --
@@ -4016,6 +4024,18 @@ public class ComposeMessageActivity extends Activity
     public void onClick(View v) {
         if ((v == mSendButtonSms) && isPreparedForSending()) {
             confirmSendMessageIfNeeded();
+            if(MessageUtils.isSmsMessageJustFull(this))
+            {
+                Log.d(TAG, "Message size is limit!");
+                Toast.makeText(this, R.string.exceed_message_size_limitation, 
+                                Toast.LENGTH_LONG).show();
+                return;
+            }
+            else
+            {
+                confirmSendMessageIfNeeded();
+            }
+
         } else if ( v == mSendButtonMms){
             showSendConfirm(MessageUtils.CARD_SUB1);
         }else if ((v == mRecipientsPicker)) {
@@ -4339,6 +4359,13 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
+        if (MessageUtils.isSmsMessageJustFull(this))
+        {
+            Toast.makeText(ComposeMessageActivity.this, R.string.exceed_message_size_limitation,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         mWorkingMessage.saveDraft(isStopping);
 
         if (mToastForDraftSave) {
@@ -4894,6 +4921,8 @@ public class ComposeMessageActivity extends Activity
                     // Update the notification for failed messages since they
                     // may be deleted.
                     updateSendFailedNotification();
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(ComposeMessageActivity.this);
                     break;
             }
             // If we're deleting the whole conversation, throw away

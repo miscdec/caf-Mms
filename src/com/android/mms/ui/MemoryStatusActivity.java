@@ -50,6 +50,8 @@ public class MemoryStatusActivity extends Activity
     private static final String TAG = "MemoryStatusView";
     private AsyncQueryHandler mQueryHandler = null;
     private static final Uri MAILBOX_URI = Uri.parse("content://mms-sms/mailboxs"); 
+    //query uri for obtaining mailbox count only in sms table, add for cmcc test
+    private static final Uri MAILBOX_URI_SMS = Uri.parse("content://mms-sms/mailboxs/sms"); 
 
     private int m_Card1SmsCountUsed = -1;
     private int m_Card1SmsCountAll = -1;
@@ -72,6 +74,9 @@ public class MemoryStatusActivity extends Activity
     TextView m_Card2Detail;
     TextView m_Card2Label;
     TextView phoneAll;
+    TextView phoneSmsLabel;  //only shown in cmcc test
+    TextView phoneMmsLabel;  //only shown in cmcc test
+    TextView MmsCountView;  //only shown in cmcc test
     TextView usedDetail;
     TextView unusedDetail;
     TextView countView;
@@ -115,12 +120,15 @@ public class MemoryStatusActivity extends Activity
     private void initUi()
     {
         phoneAll = (TextView) findViewById(R.id.phone);
+        phoneSmsLabel = (TextView) findViewById(R.id.phonesmslabel);  //only shown in cmcc test
+        phoneMmsLabel = (TextView) findViewById(R.id.phonemmslabel);  //only shown in cmcc test
         usedDetail = (TextView) findViewById(R.id.useddetail);
         unusedDetail = (TextView) findViewById(R.id.unuseddetail);
         countView = (TextView) findViewById(R.id.phonecount);
+        MmsCountView= (TextView) findViewById(R.id.phonecountmms);  //only shown in cmcc test
         usedView = (TextView) findViewById(R.id.phoneused);
         unusedView = (TextView) findViewById(R.id.phoneunused);
-
+        
         String slotOneStr = getString(R.string.sim_card1);
         String slottwoStr = getString(R.string.sim_card2);
         CardLabel = (TextView) findViewById(R.id.cardlabel);
@@ -128,6 +136,7 @@ public class MemoryStatusActivity extends Activity
         m_Card1Label = (TextView) findViewById(R.id.card);
         m_Card2Detail = (TextView) findViewById(R.id.cardtwodetail);
         m_Card2Label = (TextView) findViewById(R.id.cardtwo);
+        
         if(!MessageUtils.isMultiSimEnabledMms())
         {
             slotOneStr = getString(R.string.sim_card);
@@ -221,8 +230,17 @@ public class MemoryStatusActivity extends Activity
     {
         try
         {
-            mQueryHandler.startQuery(MAILBOX_QUERY_ID, null, MAILBOX_URI, 
-                null, null, null, "boxtype");
+            if(MessageUtils.isCMCCTest())
+            {
+                mQueryHandler.startQuery(MAILBOX_QUERY_ID, null, MAILBOX_URI_SMS, 
+                    null, null, null, null);
+            }
+            else
+            {
+                mQueryHandler.startQuery(MAILBOX_QUERY_ID, null, MAILBOX_URI, 
+                    null, null, null, null);
+            }
+
         }
         catch (SQLiteException e)
         {
@@ -331,6 +349,12 @@ public class MemoryStatusActivity extends Activity
                 usedView.setVisibility(View.VISIBLE);
                 unusedView.setVisibility(View.VISIBLE);
                 CardLabel.setVisibility(View.VISIBLE);
+                if(MessageUtils.isCMCCTest())
+                {
+                    phoneSmsLabel.setVisibility(View.VISIBLE);
+                    phoneMmsLabel.setVisibility(View.VISIBLE);
+                    //MmsCountView.setVisibility(View.VISIBLE);
+                }
                 
                 int allCount = -1;
 
@@ -346,29 +370,40 @@ public class MemoryStatusActivity extends Activity
                     {
                         allCount = MSimSmsManager.getDefault().getSmsCapCountOnIcc(subscription);
                     }
-                
-                    Log.d(TAG, "liutao allCount:" + allCount);
-                    String tempStr =Integer.toString(mIccCount) + "/" + Integer.toString(allCount);
-                    m_Card1Detail.setText(tempStr);
+
+                    if(allCount > 0)
+                    {
+                        String tempStr =Integer.toString(mIccCount) + "/" + Integer.toString(allCount);
+                        m_Card1Detail.setText(tempStr);
+                    }
+                    else
+                    {
+                        m_Card1Detail.setText(getString(R.string.please_wait));
+                    }
+
                     mIsIccOver = true;
                 }
                 else
                 {
                     m_Card2Label.setVisibility(View.VISIBLE);
                     allCount = MSimSmsManager.getDefault().getSmsCapCountOnIcc(subscription);
-                    Log.d(TAG, "liutao allCount:" + allCount);
-                    String tempStr =Integer.toString(mIcc2Count) + "/" + Integer.toString(allCount);
-                    m_Card2Detail.setText(tempStr);
+                    
+                    if(allCount > 0)
+                    {
+                        String tempStr =Integer.toString(mIcc2Count) + "/" + Integer.toString(allCount);
+                        m_Card2Detail.setText(tempStr);
+                    }
+                    else
+                    {
+                        m_Card2Detail.setText(getString(R.string.please_wait));
+                    }
+
                     mIsIcc2Over = true;
-                }
-                 
-                if((MessageUtils.isMultiSimEnabledMms() && mIsIccOver && mIsIcc2Over)
-                    || (!MessageUtils.isMultiSimEnabledMms() && mIsIccOver))
-                {
-                    setTitle(getString(R.string.memory_status_title));
-                    setProgressBarIndeterminateVisibility(false);
-                }
-                 
+                }               
+
+                setTitle(getString(R.string.memory_status_title));
+                setProgressBarIndeterminateVisibility(false);
+
                 break;
                 
             case SHOW_BUSY:
@@ -381,6 +416,9 @@ public class MemoryStatusActivity extends Activity
                 CardLabel.setVisibility(View.GONE);
                 m_Card1Label.setVisibility(View.GONE);
                 m_Card2Label.setVisibility(View.GONE);
+                phoneSmsLabel.setVisibility(View.GONE);
+                phoneMmsLabel.setVisibility(View.GONE);
+                //MmsCountView.setVisibility(View.GONE);
                 mIsIccOver = false;
                 mIsIcc2Over = false;
                 

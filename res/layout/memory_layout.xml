@@ -24,6 +24,17 @@
                 android:background="#cccccc"
                 android:textStyle="bold" >
             </TextView>
+
+            <!--show SMS message count, add for cmcc test -->
+            <TextView 
+                android:id="@+id/phonesmslabel"
+                android:layout_width="wrap_content" 
+                android:textAppearance="?android:attr/textAppearanceLarge" 
+                android:layout_height="wrap_content" 
+                android:text="@string/pref_sms_settings_title"
+                android:visibility="gone">
+            </TextView>
+            
             <LinearLayout android:id="@+id/LinearLayout01" 
                 android:layout_height="wrap_content" 
                 android:orientation="horizontal" 
@@ -42,6 +53,27 @@
                 android:layout_height="wrap_content" 
                 android:id="@+id/blank">
             </TextView> 
+            
+            <!--show MMS message count, add for cmcc test -->
+            <TextView 
+                android:id="@+id/phonemmslabel"
+                android:layout_width="wrap_content" 
+                android:textAppearance="?android:attr/textAppearanceLarge" 
+                android:layout_height="wrap_content" 
+                android:text="@string/pref_mms_settings_title"
+                android:visibility="gone">
+            </TextView>
+            <TextView 
+                android:id="@+id/phonecountmms" 
+                android:layout_width="wrap_content" 
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:layout_height="wrap_content"                  
+                android:layout_marginLeft="20dip"
+                android:text="@string/phonecount" 
+                android:minWidth="120dip"
+                android:visibility="gone">
+            </TextView>
+            
             <LinearLayout android:id="@+id/LinearLayout02" 
                 android:layout_height="wrap_content" 
                 android:orientation="horizontal" 

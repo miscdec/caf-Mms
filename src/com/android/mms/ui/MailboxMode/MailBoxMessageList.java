@@ -226,8 +226,6 @@ public class MailBoxMessageList extends ListActivity
         mListView = getListView(); 
         getListView().setItemsCanFocus(true);
         mModeCallback = new ModeCallback();
-        mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
-        mListView.setMultiChoiceModeListener(mModeCallback);
         
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true); 
@@ -238,7 +236,11 @@ public class MailBoxMessageList extends ListActivity
             mMessageTitle.setText(mTitle);
             mSpinners.setVisibility(View.GONE);
         }
-        
+        else
+        {
+            mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+            mListView.setMultiChoiceModeListener(mModeCallback);
+        }        
     }
 
     private Handler uihandler = new Handler()
@@ -1281,6 +1283,8 @@ public class MailBoxMessageList extends ListActivity
                         Toast.LENGTH_LONG).show();
                     MessagingNotification.blockingUpdateNewMessageIndicator(
                         this, MessagingNotification.THREAD_ALL, false);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(this);
                 }
             }
         }
@@ -1423,9 +1427,12 @@ public class MailBoxMessageList extends ListActivity
         menu.add(0, MENU_DELETE_SELECT,  0, R.string.delete)
             .setIcon(R.drawable.ic_menu_trash_holo_dark)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
-            .setIcon(R.drawable.ic_menu_copy)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);  
+        if(mQueryBoxType != TYPE_DRAFTBOX)
+        {
+            menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
+                .setIcon(R.drawable.ic_menu_copy)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS); 
+        } 
     }
     
     private class ModeCallback implements ListView.MultiChoiceModeListener {

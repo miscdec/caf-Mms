@@ -100,6 +100,8 @@ public class MessagingNotification {
 
     public static final int NOTIFICATION_ID = 123;
     public static final int NOTIFICATION_ICC_ID = 124;
+    public static final int FULL_NOTIFICATION_ID   = 125;
+
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
 
@@ -900,7 +902,44 @@ public class MessagingNotification {
         Log.d(TAG, "cancelNotification");
         nm.cancel(notificationId);
     }
+    
+    /**
+     * Checks to see if the message memory is full.
+     *
+     * @param context the context to use
+     * @param isFull if notify a full icon, it should be true, otherwise, false.
+     */
+    public static void updateSmsMessageFullIndicator(Context context, boolean isFull) 
+    {
+        if (isFull)
+        {
+            sendFullNotification(context);
+        }
+        else
+        {
+            cancelNotification(context, FULL_NOTIFICATION_ID);
+        }
+    }
 
+     /**
+      * This method sends a notification to NotificationManager to display
+      * an dialog indicating the message memory is full.
+      */
+    private static void sendFullNotification(Context context) 
+    {
+        NotificationManager nm = (NotificationManager)context.getSystemService(
+                Context.NOTIFICATION_SERVICE);
+        
+        String title = context.getString(R.string.sms_full_title);
+        String description = context.getString(R.string.sms_full_body);
+        PendingIntent intent = PendingIntent.getActivity(context, 0,  new Intent(), 0);        
+        Notification notification = new Notification();
+        notification.icon = R.drawable.stat_notify_sms_failed;
+        notification.tickerText = title;
+        notification.setLatestEventInfo(context, title, description, intent);
+        nm.notify(FULL_NOTIFICATION_ID, notification);
+    }
+     
     private static void updateDeliveryNotification(final Context context,
                                                    boolean isStatusMessage,
                                                    final CharSequence message,

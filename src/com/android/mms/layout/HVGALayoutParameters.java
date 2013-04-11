@@ -84,8 +84,8 @@ public class HVGALayoutParameters implements LayoutParameters {
     }
 
     public int getTextHeight() {
-        return mType == HVGA_LANDSCAPE ? mTextHeightLandscape
-                                       : mTextHeightPortrait;
+        return mType == HVGA_LANDSCAPE ? TEXT_HEIGHT_LANDSCAPE
+                                       : TEXT_HEIGHT_PORTRAIT;
     }
 
     public int getType() {

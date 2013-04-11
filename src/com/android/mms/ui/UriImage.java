@@ -244,7 +244,7 @@ public class UriImage {
 
         part.setData(data);
         // getResizedImageData ALWAYS compresses to JPEG, regardless of the original content type
-        part.setContentType(ContentType.IMAGE_JPEG.getBytes());
+        part.setContentType(getContentType().getBytes());
 
         return part;
     }
