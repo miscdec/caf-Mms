@@ -144,8 +144,15 @@ public class MmsMessageSender implements MessageSender {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
 
         // Expiry.
-        sendReq.setExpiry(prefs.getLong(
-                MessagingPreferenceActivity.EXPIRY_TIME, DEFAULT_EXPIRY_TIME));
+        long expiryTime = Long.parseLong(
+                prefs.getString(MessagingPreferenceActivity.EXPIRY_TIME, "0"));
+        string expiryStr = prefs.getString(MessagingPreferenceActivity.EXPIRY_TIME, "0");
+        Log.v(TAG, "updatePreferencesHeaders expiryTime = " + expiryTime + ", expiryStr = " + expiryStr);
+        if( expiryTime > 100){
+            sendReq.setExpiry(expiryTime); /* Add for sub , if don't set , net will set to Maxinum to default */
+        }
+        //sendReq.setExpiry(prefs.getLong(
+        //        MessagingPreferenceActivity.EXPIRY_TIME, DEFAULT_EXPIRY_TIME));
 
         // Priority.
         sendReq.setPriority(prefs.getInt(MessagingPreferenceActivity.PRIORITY, DEFAULT_PRIORITY));
