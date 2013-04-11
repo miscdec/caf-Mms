@@ -103,7 +103,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:lines="2"
-                android:text="@string/replace_image" />
+                android:text="@string/edit" />
 
             <Button android:id="@+id/remove_slide_button"
                 style="?android:attr/buttonStyleSmall"
