@@ -541,7 +541,7 @@ public class MailBoxMessageContent extends Activity
                         values.put(Sms.READ, read);
                         values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
                         Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
-                        
+
                         Uri retUri = SqliteWrapper.insert(MailBoxMessageContent.this, getContentResolver(),
                                                           uriStr, values);
                         if (uriStr != null && retUri != null) {
@@ -934,6 +934,8 @@ public class MailBoxMessageContent extends Activity
                         Toast.makeText(MailBoxMessageContent.this, R.string.operate_failure,
                                        Toast.LENGTH_SHORT).show();
                     }
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(MailBoxMessageContent.this);
                     finish();
                     break;
                 }

@@ -43,6 +43,7 @@
     <uses-permission android:name="android.permission.WRITE_APN_SETTINGS" />
     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
     <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
+    <uses-permission android:name="android.permission.DEVICE_POWER" />
 
     <application android:name="MmsApp"
             android:label="@string/app_label"
@@ -90,7 +91,7 @@
                   android:uiOptions="splitActionBarWhenNarrow"
                   android:launchMode="singleTop">
             <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.MAIN" />            
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -257,6 +258,8 @@
                   android:label="@string/sim_manage_messages_title">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android-dir/icc-sms" />
             </intent-filter>
         </activity>
 
@@ -338,6 +341,20 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.MemoryStatusActivity"
+            android:label="@string/memory_status_title">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>  
+        
+        <activity android:name=".ui.SearchActivityExtend"
+            android:theme="@style/MmsHoloTheme"
+            android:label="@string/search_title"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+        </activity>   
+        
         <activity android:name=".ui.SearchActivity"
             android:theme="@style/MmsHoloTheme"
             android:label="@string/search"

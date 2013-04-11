@@ -24,8 +24,8 @@
     <item android:id="@+id/search"
           android:title="@string/menu_search"
           android:icon="@drawable/ic_menu_search_holo_dark"
-          android:showAsAction="ifRoom|collapseActionView"
-          android:actionViewClass="android.widget.SearchView" />
+          android:showAsAction="ifRoom|collapseActionView"/>
+  <!--        android:actionViewClass="android.widget.SearchView" -->
 
     <item android:id="@+id/action_settings"
         android:title="@string/menu_preferences"
@@ -36,6 +36,9 @@
 
     <item android:id="@+id/action_sim_card"
         android:title="@string/sim_card"/>
+
+    <item android:id="@+id/action_memory_status"
+        android:title="@string/memory_status_title"/>
         
     <item android:id="@+id/action_delete_all"
         android:title="@string/menu_delete_all"

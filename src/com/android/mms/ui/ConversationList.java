@@ -380,6 +380,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
 
         mSearchItem = menu.findItem(R.id.search);
+        mSearchItem.setActionView(new SearchView(this));
         mSearchView = (SearchView) mSearchItem.getActionView();
 
         mSearchView.setOnQueryTextListener(mQueryTextListener);
@@ -492,6 +493,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     }
                 }
                 break;
+            case R.id.action_memory_status:      
+                startActivity(new Intent(this, MemoryStatusActivity.class));
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
                 break;
@@ -901,6 +904,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 // Update the notification for failed messages since they
                 // may be deleted.
                 MessagingNotification.nonBlockingUpdateSendFailedNotification(ConversationList.this);
+                //Update the notification for text message memory may not be full, add for cmcc test
+                MessageUtils.checkIsPhoneMessageFull(ConversationList.this);
 
                 // Make sure the list reflects the delete
                 startAsyncQuery();

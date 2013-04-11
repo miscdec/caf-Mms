@@ -372,6 +372,11 @@
     <string name="duration_not_a_number">Duration must be a number.</string>
     <!-- Toast when the user enters a zero value for the duration of a slide -->
     <string name="duration_zero">Duration must be greater than zero seconds.</string>
+    <!-- Toast when the subject is full -->
+    <string name="subject_full">"subject is full"</string> 
+    <!-- Toast when the box is full -->
+    <string name="box_full_title">Mailbox full</string>
+    <string name="title_send_message">Send message</string>        
 
     <!-- In duration selection dialog box, short version of "seconds" -->
     <string name="secs">secs</string>
@@ -937,6 +942,13 @@
     <string name="menu_delete_msg">Delete</string>
     <string name="menu_reply">Reply</string>
     <string name="menu_copy_to">Copy</string>
+    <!-- menu item of slideshowactivity -->
+    <string name="reply_by_mms">Reply via MMS</string>
+    <string name="delete_lock_err">Can not delete the locked message!</string>    
+    <string name="dialing">Connecting network</string>
+    <string name="cancel">Cancel</string>    
+    <string name="copy_to_sdcard_direction_success">Attachment copied to:</string>
+
     <!-- toast for send result -->
     <string name="send_failure">Sending failed!</string>
     <string name="send_success">Send successfully!</string>
@@ -960,19 +972,44 @@
     <string name="type_all">All</string>
     <string name="type_slot1">Card1</string>
     <string name="type_slot2">Card2</string>
+    <!-- String used in MemoryStatusActivity.java -->
+    <string name="memory_status_title">Memory status</string>
+    <string name="phoneall">Phone</string>
+    <string name="phonecount">All count</string>  
+    <string name="phoneused">Used :</string>  
+    <string name="phoneunused">Unused :</string>
+    <string name="sim_card1">SIM card1</string>
+    <string name="sim_card2">SIM card2</string>
+    <string name="please_wait">Please waiting...</string> 
+    <!-- String used in SearchActivityExtend.java -->
+    <string name="search_title">"Message search"</string>  
+    <string name="search_key">Search keyword</string>     
+    <string name="search_mode">Search mode</string>  
+    <string name="search_as_name">Name</string>
+    <string name="search_as_number">Number</string>
+    <string name="search_as_content">Content</string> 
+    <string name="invalid_name_toast">Please input valid name!</string>
     <!-- Gray hint displayed in the search field in Contacts when empty -->
     <string name="search_bar_hint">Search contacts</string>
     <string name="btn_ok">OK</string>
     <string name="btn_cancel">Cancel</string>
     <string name="select_all">All</string>
-
-    <!-- Settings item description for storage and SMS center  -->
-    <string name="pref_title_sms_store">Preferred storage</string>    
+    <!-- Settings item description for Preferred storage and SMS center  -->
+    <string name="pref_title_sms_store">Preferred storage</string> 
+    <string name="pref_title_sms_store_card1">Card1 preferred storage</string> 
+    <string name="pref_title_sms_store_card2">Card2 preferred storage</string>  
     <string name="pref_sms_store_phone">Phone</string> 
     <string name="pref_sms_store_card">SIM card</string>  
     <string name="pref_title_sms_center">Set SMS center</string> 
     <string name="pref_title_sms_center_card1">Set Card1 SMS center</string> 
     <string name="pref_title_sms_center_card2">Set Card2 SMS center</string> 
+
+    <!-- Settings item description for Mms Validity period  -->
+    <string name="pref_title_mms_save_time">Validity period</string>
+    <string name="mms_one_week">One week</string>
+    <string name="mms_two_days">Two days</string>
+    <string name="mms_max">Maximum</string>
+    <string name="save_description">How long the message will be stored in Server</string>
     
 </resources>
 

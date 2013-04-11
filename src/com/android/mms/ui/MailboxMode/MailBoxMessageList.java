@@ -146,13 +146,16 @@ public class MailBoxMessageList extends ListActivity
     implements MailBoxMessageListAdapter.OnListContentChangedListener,
     MailBoxMessageListAdapter.ActivityCanPaused
 {
-    private Cursor mCursor;
     private static final String TAG = "MailBoxMessageList";
     private BoxMsgListQueryHandler mQueryHandler;
     private static String MAILBOX_URI ="content://mms-sms/mailbox/";
+    private static Uri SEARCH_URI = Uri.parse("content://mms-sms/search-message");
+    private Cursor mCursor;
     private String mMailboxUri;
-    
+    private CharSequence mTitle;
+    private static final int MENU_SEARCH          = 1;
     private static final int MESSAGE_LIST_QUERY_TOKEN             = 9001;
+    private static final int MESSAGE_SEARCH_LIST_QUERY_TOKEN      = 9002;
 
     // IDs of the spinner items for the box type.
     public static final int TYPE_INBOX    = 1;
@@ -192,16 +195,18 @@ public class MailBoxMessageList extends ListActivity
     private final Object mCursorLock = new Object();
     private ListView mListView;
     private TextView mCountTextView;
+    private TextView mMessageTitle;
     private View mSpinners;
     private Spinner boxSpinner = null;
     private Spinner slotSpinner = null;
     private ModeCallback mModeCallback = null;
     // mark whether comes into MultiChoiceMode or not.
     private boolean mMultiChoiceMode = false;
-    private MenuItem mSearchItem;
-    private SearchView mSearchView;
-    private CharSequence mQueryText;
-
+    // add for obtain parameters from SearchActivityExtend
+    private int mSearchModePosition = MessageUtils.SEARCH_MODE_CONTENT;
+    private String mSearchKeyStr = "";   
+    private int mMatchWhole = 0;   
+    
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
@@ -221,12 +226,21 @@ public class MailBoxMessageList extends ListActivity
         mListView = getListView(); 
         getListView().setItemsCanFocus(true);
         mModeCallback = new ModeCallback();
-        mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
-        mListView.setMultiChoiceModeListener(mModeCallback);
         
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true); 
         setupActionBar();
+        
+        if(mMailboxId == Sms.MESSAGE_TYPE_SEARCH && mTitle != null)
+        {
+            mMessageTitle.setText(mTitle);
+            mSpinners.setVisibility(View.GONE);
+        }
+        else
+        {
+            mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+            mListView.setMultiChoiceModeListener(mModeCallback);
+        }        
     }
 
     private Handler uihandler = new Handler()
@@ -251,11 +265,7 @@ public class MailBoxMessageList extends ListActivity
     };
     
     public boolean onSearchRequested() {
-        // if comes into multiChoiceMode,do not continue to enter search mode ;
-        if (mSearchItem != null && !mMultiChoiceMode) {
-            mSearchItem.expandActionView();
-        }
-        return true;
+        return false;
     }     
 
     @Override
@@ -288,6 +298,11 @@ public class MailBoxMessageList extends ListActivity
             return;
         }
         showMessageContent(c);
+                
+        if(mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
+        {
+            this.finish();
+        }
     }
 
     private void showMessageContent(Cursor c)
@@ -548,8 +563,15 @@ public class MailBoxMessageList extends ListActivity
     }
     private void handleIntent(Intent intent)
     {
-        String subject = intent.getStringExtra("subject");
         mMailboxId = intent.getIntExtra("mailboxId", Sms.MESSAGE_TYPE_INBOX);
+
+        if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
+        {
+            mTitle = intent.getStringExtra("title");
+            mSearchModePosition = intent.getIntExtra("mode_position", MessageUtils.SEARCH_MODE_CONTENT);
+            mSearchKeyStr = intent.getStringExtra("key_str");
+            mMatchWhole = intent.getIntExtra("match_whole", 0); 
+        }
         
         if (mMailboxId < 0)
         {
@@ -685,15 +707,36 @@ public class MailBoxMessageList extends ListActivity
                 {
                     selStr = "sub_id = " + MessageUtils.SUB2;
                 }
-                mMailboxUri = MAILBOX_URI + mQueryBoxType;
-                if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {                     
-                    Log.d(TAG,"startAsyncQuery : mMailboxUri = " + mMailboxUri);
+                
+                if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
+                {                   
+                    Uri queryUri = SEARCH_URI.buildUpon().appendQueryParameter("search_mode", 
+                                Integer.toString(mSearchModePosition)).build();
+                    queryUri = queryUri.buildUpon().appendQueryParameter("key_str", 
+                                mSearchKeyStr).build();
+                    queryUri = queryUri.buildUpon().appendQueryParameter("match_whole", 
+                                Integer.toString(mMatchWhole)).build();                                    
+                               
+                    if (true || LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {                     
+                        Log.d(TAG,"startAsyncQuery : queryUri = " + queryUri);
+                    }
+                    
+                    mQueryHandler.startQuery(MESSAGE_SEARCH_LIST_QUERY_TOKEN, 0, 
+                        queryUri,
+                        null, null, null, null);
                 }
-
-                mQueryHandler.startQuery(MESSAGE_LIST_QUERY_TOKEN, 0, 
-                    Uri.parse(mMailboxUri),
-                    MAILBOX_PROJECTION, selStr, 
-                    null, "normalized_date DESC");
+                else
+                {
+                    mMailboxUri = MAILBOX_URI + mQueryBoxType;
+                    if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {                     
+                        Log.d(TAG,"startAsyncQuery : mMailboxUri = " + mMailboxUri);
+                    }
+                    
+                    mQueryHandler.startQuery(MESSAGE_LIST_QUERY_TOKEN, 0, 
+                        Uri.parse(mMailboxUri),
+                        MAILBOX_PROJECTION, selStr, 
+                        null, "normalized_date DESC");
+                }
             }
         }
         catch (SQLiteException e)
@@ -731,13 +774,42 @@ public class MailBoxMessageList extends ListActivity
                                            MailBoxMessageList.this, cursor);
                         invalidateOptionsMenu();
                         MailBoxMessageList.this.setListAdapter(mListAdapter);
-                        View emptyView = (View) findViewById(R.id.emptyview);
+                        TextView emptyView = (TextView) findViewById(R.id.emptyview);
                         mListView.setEmptyView(emptyView);
+                        if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
+                        {
+                            int count = cursor.getCount();
+                            if(mMatchWhole == 1)
+                            {
+                                mSearchKeyStr = Contact.get(mSearchKeyStr, true).getName();
+                            }
+                            
+                            if(count > 0)
+                            {                              
+                                mMessageTitle.setText(getResources().getQuantityString(
+                                    R.plurals.search_results_title,
+                                    count,
+                                    count,
+                                    mSearchKeyStr));
+                                
+                            }
+                            else
+                            {
+                                mMessageTitle.setText(getResources().getQuantityString(
+                                    R.plurals.search_results_title,
+                                    0,
+                                    0,
+                                    mSearchKeyStr));
+
+                                emptyView.setText(getString(R.string.search_empty));
+                            } 
+                            
+                        }
                     }
                     else
                     {  
                         mListAdapter.changeCursor(mCursor);
-                        if(cursor.getCount() > 0)
+                        if(cursor.getCount() > 0 && mMailboxId != Sms.MESSAGE_TYPE_SEARCH)
                         {
                             mCountTextView.setVisibility(View.VISIBLE);
                             if(mQueryBoxType == TYPE_INBOX)
@@ -777,38 +849,33 @@ public class MailBoxMessageList extends ListActivity
 
     }
 
-    SearchView.OnQueryTextListener mQueryTextListener = new SearchView.OnQueryTextListener() {
-        @Override
-        public boolean onQueryTextSubmit(String query) {
-            Intent intent = new Intent();
-            intent.setClass(MailBoxMessageList.this, SearchActivity.class);
-            intent.putExtra(SearchManager.QUERY, query);
-            startActivity(intent);
-            mSearchItem.collapseActionView();
-            return true;
-        }
-
-        @Override
-        public boolean onQueryTextChange(String newText) {
-            return false;
-        }
-    };
-    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
-        mSearchItem = menu.findItem(R.id.search);
-        mSearchView = (SearchView) mSearchItem.getActionView();
-        if(mSearchView != null)
+        if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
         {
-            mSearchView.setOnQueryTextListener(mQueryTextListener);
-            mSearchView.setQueryHint(getString(R.string.search_hint));
-            mSearchView.setIconifiedByDefault(true);
-            SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-
-            if (searchManager != null) {
-                SearchableInfo info = searchManager.getSearchableInfo(getComponentName());
-                mSearchView.setSearchableInfo(info);
+            return true;
+        }
+        
+        getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
+    
+        MenuItem cellBroadcastItem = menu.findItem(R.id.action_cell_broadcasts);
+        if (cellBroadcastItem != null) {
+            // Enable link to Cell broadcast activity depending on the value in config.xml.
+            boolean isCellBroadcastAppLinkEnabled = this.getResources().getBoolean(
+                    com.android.internal.R.bool.config_cellBroadcastAppLinks);
+            try {
+                if (isCellBroadcastAppLinkEnabled) {
+                    PackageManager pm = getPackageManager();
+                    if (pm.getApplicationEnabledSetting("com.android.cellbroadcastreceiver")
+                            == PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
+                        isCellBroadcastAppLinkEnabled = false;  // CMAS app disabled
+                    }
+                }
+            } catch (IllegalArgumentException ignored) {
+                isCellBroadcastAppLinkEnabled = false;  // CMAS app not installed
+            }
+            if (!isCellBroadcastAppLinkEnabled) {
+                cellBroadcastItem.setVisible(false);
             }
         }
 
@@ -836,10 +903,6 @@ public class MailBoxMessageList extends ListActivity
                 item.setVisible(false);
             }
         }
-        // if mQueryText is not null,so restore it.
-        if (mQueryText != null && mSearchView != null) {
-            mSearchView.setQuery(mQueryText,false);
-        }
 
         return true;
     }
@@ -852,6 +915,10 @@ public class MailBoxMessageList extends ListActivity
             case R.id.action_compose_new:
                 createNewMessage();
                 break;
+            case R.id.search:
+                Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                startActivityIfNeeded(searchintent, -1);
+                break;   
             case R.id.action_settings:
                 Intent intent = new Intent(this, MessagingPreferenceActivity.class);
                 startActivityIfNeeded(intent, -1);
@@ -880,6 +947,8 @@ public class MailBoxMessageList extends ListActivity
                     }
                 }
                 break;
+            case R.id.action_memory_status:   
+                startActivity(new Intent(this, MemoryStatusActivity.class));
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
                 break;
@@ -1214,6 +1283,8 @@ public class MailBoxMessageList extends ListActivity
                         Toast.LENGTH_LONG).show();
                     MessagingNotification.blockingUpdateNewMessageIndicator(
                         this, MessagingNotification.THREAD_ALL, false);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(this);
                 }
             }
         }
@@ -1345,6 +1416,7 @@ public class MailBoxMessageList extends ListActivity
                         Gravity.CENTER_VERTICAL | Gravity.RIGHT));
 
         mCountTextView = (TextView)v.findViewById(R.id.message_count);
+        mMessageTitle = (TextView)v.findViewById(R.id.message_title);
         return;
     }
     
@@ -1355,9 +1427,12 @@ public class MailBoxMessageList extends ListActivity
         menu.add(0, MENU_DELETE_SELECT,  0, R.string.delete)
             .setIcon(R.drawable.ic_menu_trash_holo_dark)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
-            .setIcon(R.drawable.ic_menu_copy)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);  
+        if(mQueryBoxType != TYPE_DRAFTBOX)
+        {
+            menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
+                .setIcon(R.drawable.ic_menu_copy)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS); 
+        } 
     }
     
     private class ModeCallback implements ListView.MultiChoiceModeListener {

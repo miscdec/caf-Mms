@@ -66,7 +66,10 @@ import android.widget.TextView;
 import android.widget.ImageView;
 import com.android.mms.R;
 import android.widget.Toast;
+import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.telephony.MSimConstants;
+import com.android.internal.telephony.TelephonyIntents;
+
 import java.util.ArrayList;
 import com.android.mms.transaction.MessagingNotification;
 
@@ -149,9 +152,13 @@ public class ManageSimMessages extends Activity
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+        setMessageRead(this);
 
         init();
         registerSimChangeObserver();
+        registerReceiver(mIccStateChangedReceiver, 
+            new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
+
     }
 
     @Override
@@ -166,8 +173,46 @@ public class ManageSimMessages extends Activity
                 SIM_FULL_NOTIFICATION_ID);
 
         updateState(SHOW_BUSY);
-        startQuery();
+        if(MessageUtils.sIsIccLoaded)
+        {
+            startQuery();
+        }
     }
+
+
+    /**
+     * A wrapper of a broadcast receiver which provides network connectivity information
+     * for all kinds of network: wifi, mobile, etc.
+     */
+    private final BroadcastReceiver mIccStateChangedReceiver = new BroadcastReceiver(){
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " + intent); 
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                
+                if(!MessageUtils.isMultiSimEnabledMms())
+                {
+                    subscription = MessageUtils.SUB_INVALID;
+                }
+                
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) && subscription == mSubscription) {
+                    startQuery();
+                }
+            }
+        }
+    };
+
+    private void setMessageRead(Context context)
+    {
+        Log.d(TAG, "setMessageRead : mSubscription="+mSubscription);
+        ContentValues values = new ContentValues(1);
+        values.put("status_on_icc", 1);
+        SqliteWrapper.update(context, getContentResolver(),
+            MessageUtils.getIccUriBySubscription(mSubscription), values, null, null);
+    }  
     
     private Handler uihandler = new Handler()
     {
@@ -236,6 +281,7 @@ public class ManageSimMessages extends Activity
             }
             // Show option menu when query complete.
             invalidateOptionsMenu();
+            MessagingNotification.cancelNotification(ManageSimMessages.this, MessagingNotification.NOTIFICATION_ICC_ID);
         }
     }
 
@@ -525,6 +571,7 @@ public class ManageSimMessages extends Activity
     public void onDestroy() {
         mContentResolver.unregisterContentObserver(simChangeObserver);
         mContentResolver.unregisterContentObserver(mContactsChangedObserver);
+        unregisterReceiver(mIccStateChangedReceiver);
         super.onDestroy();
     }
 
@@ -564,6 +611,8 @@ public class ManageSimMessages extends Activity
             // if native uri is null, saved fail and toast copy fail
             if (uri != null) {
                 Toast.makeText(this, R.string.operate_success, Toast.LENGTH_SHORT).show();
+                //Update the notification for text message memory may not be full, add for cmcc test
+                MessageUtils.checkIsPhoneMessageFull(ManageSimMessages.this);
             } else {
                 Toast.makeText(this, R.string.operate_failure, Toast.LENGTH_SHORT).show();
             }
@@ -799,7 +848,7 @@ public class ManageSimMessages extends Activity
     @Override
     protected void onStart() {
         super.onRestart();
-
+        
         // if updateContacts call before this method, it will doesn't work well,
         // need updateContacts again.
         if (mIsNeedUpdateContacts) {

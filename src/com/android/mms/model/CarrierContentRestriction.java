@@ -34,6 +34,7 @@ public class CarrierContentRestriction implements ContentRestriction {
     private static final ArrayList<String> sSupportedAudioTypes;
     private static final ArrayList<String> sSupportedVideoTypes;
     private static final boolean DEBUG = true;
+    public static final int MESSAGE_SIZE_LIMIT = 300 * 1024;
 
     static {
         sSupportedImageTypes = ContentType.getImageTypes();

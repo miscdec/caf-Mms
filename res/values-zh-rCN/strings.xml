@@ -20,7 +20,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_label" msgid="1503967887341230795">"短信"</string>
+    <string name="app_label" msgid="1503967887341230795">"信息"</string>
     <string name="new_message" msgid="1530369762346003973">"新信息"</string>
     <string name="menu_call_back" msgid="7538482331117914146">"呼叫<xliff:g id="NAME">%s</xliff:g>"</string>
     <string name="menu_send_email" msgid="671366308915241664">"发送电子邮件至<xliff:g id="NAME">%s</xliff:g>"</string>
@@ -37,6 +37,7 @@
     <string name="menu_cell_broadcasts" msgid="5646161375983084660">"小区广播"</string>
     <string name="has_draft" msgid="2487465595514636160">"草稿"</string>
     <string name="no_subject_view" msgid="7795086723069563537">"（无主题）"</string>
+    <string name="memory_card">卡</string>
     <string name="messagelist_sender_self" msgid="3579016854116401602">"我"</string>
     <string name="view_setting_phone">话机</string>
     <string name="view_slideshow" msgid="4990460971211388453">"观看幻灯片演示"</string>
@@ -388,6 +389,19 @@
     <string name="menu_delete_msg">删除</string>
     <string name="menu_reply">回复</string>
     <string name="menu_copy_to">复制</string>
+    <!-- menu item of slideshowactivity -->
+    <string name="reply_by_mms">通过彩信回复</string>
+    <string name="delete_lock_err">不能删除被锁定的信息！</string>                   
+    <string name="dialing">正在连接网络</string>
+    <string name="cancel">取消</string> 
+    <string name="copy_to_sdcard_direction_success">已保存到：</string>
+
+    <!-- toast when subject is full  -->
+    <string name="subject_full">主题已满</string> 
+    <!-- toast when box is full  -->
+    <string name="box_full_title">信息信箱已满或存储空间低</string>
+    <string name="title_send_message">发送信息</string>      
+
     <!-- toast for send result -->
     <string name="send_failure">发送失败！</string>
     <string name="send_success">发送成功！</string>
@@ -411,12 +425,36 @@
     <string name="type_all">全部</string>
     <string name="type_slot1">卡1</string>
     <string name="type_slot2">卡2</string>
-
-    <!-- Settings item description for storage and SMS center  -->
-    <string name="pref_title_sms_store">优先存储器</string>    
+    <!-- String used in MemoryStatusActivity.java -->
+    <string name="memory_status_title">存储状态</string>
+    <string name="phoneall">话机</string>
+    <string name="phonecount">总数</string>  
+    <string name="phoneused">已用内存：</string>  
+    <string name="phoneunused">未用内存：</string>
+    <string name="sim_card1">SIM卡1</string>
+    <string name="sim_card2">SIM卡2</string>
+    <!-- String used in SearchActivityExtend.java -->
+    <string name="search_title">"信息查找"</string>     
+    <string name="search_key">"查找关键字"</string>     
+    <string name="search_mode">"查找方式"</string>         
+    <string name="search_as_name">姓名</string>
+    <string name="search_as_number">号码</string>
+    <string name="search_as_content">内容</string>      
+    <string name="invalid_name_toast">请输入有效的姓名！</string>    
+    <!-- Settings item description for Preferred storage and SMS center  -->
+    <string name="pref_title_sms_store">优先存储器</string> 
+    <string name="pref_title_sms_store_card1">卡1优先存储器</string> 
+    <string name="pref_title_sms_store_card2">卡2优先存储器</string>    
     <string name="pref_sms_store_phone">话机</string> 
     <string name="pref_sms_store_card">SIM卡</string>
     <string name="pref_title_sms_center">短信中心</string>
     <string name="pref_title_sms_center_card1">卡1短信中心</string>  
-    <string name="pref_title_sms_center_card2">卡2短信中心</string>         
+    <string name="pref_title_sms_center_card2">卡2短信中心</string>  
+
+    <!-- Settings item description for Mms Validity period  -->
+    <string name="pref_title_mms_save_time">信息有效期</string>
+    <string name="mms_one_week">一周</string>
+    <string name="mms_two_days">两天</string>
+    <string name="mms_max">最长</string>
+    <string name="save_description">在服务器保存时间</string>
 </resources>
