@@ -51,6 +51,7 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
@@ -98,9 +99,10 @@ public class MessagingNotification {
     private static final boolean DEBUG = false;
 
     public static final int NOTIFICATION_ID = 123;
-	public static final int NOTIFICATION_ICC_ID = 124;
+    public static final int NOTIFICATION_ICC_ID = 124;
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
+
     /**
      * This is the volume at which to play the in-conversation notification sound,
      * expressed as a fraction of the system notification volume.
@@ -129,6 +131,9 @@ public class MessagingNotification {
     private static final int COLUMN_SMS_BODY    = 4;
     private static final int COLUMN_SUB_ID      = 5;
 
+    private static final int WAKE_LOCK_TIMEOUT = 5000;
+    private static PowerManager.WakeLock mWakeLock;
+    
     private static final String[] SMS_THREAD_ID_PROJECTION = new String[] { Sms.THREAD_ID };
     private static final String[] MMS_THREAD_ID_PROJECTION = new String[] { Mms.THREAD_ID };
 
@@ -297,6 +302,7 @@ public class MessagingNotification {
                     return;
                 }
             }
+
             updateNotification(context, newMsgThreadId != THREAD_NONE, threads.size(),
                     notificationSet);
         }
@@ -1153,7 +1159,8 @@ public class MessagingNotification {
                 }
             }
         }
-
+        
+        wakeScreen(context);
         nm.notify(NOTIFICATION_ID, notification);
     }
 
@@ -1315,7 +1322,8 @@ public class MessagingNotification {
                 Log.d(TAG, "updateIccNotification: multi messages for single thread");
             }
         }
-
+        
+        wakeScreen(context);
         nm.notify(NOTIFICATION_ICC_ID, notification);
     }
 
@@ -1645,4 +1653,12 @@ public class MessagingNotification {
             cursor.close();
         }
     }
+
+    private static void wakeScreen(Context context) {
+        PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
+        mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "MessagingNotification");
+        mWakeLock.setReferenceCounted(true);
+        mWakeLock.acquire(WAKE_LOCK_TIMEOUT);
+    }
+    
 }

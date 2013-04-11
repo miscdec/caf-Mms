@@ -71,6 +71,7 @@ import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.MmsException;
 
+
 /**
  * This service essentially plays the role of a "worker thread", allowing us to store
  * incoming messages to the database, update notifications, etc. without blocking the
@@ -124,7 +125,7 @@ public class SmsReceiverService extends Service {
     static final int TOKEN_DELETE_ICC1 = 4100;
     static final int TOKEN_DELETE_ICC2 = 4101;
     static final int TOKEN_DELETE_ICC  = 4102;
-    
+
     private int mResultCode;
 
     @Override
@@ -902,6 +903,7 @@ public class SmsReceiverService extends Service {
             // Allow un-matched register-unregister calls
         }
     }
+
 }
 
 
