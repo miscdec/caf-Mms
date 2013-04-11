@@ -48,6 +48,7 @@ import android.widget.FrameLayout;
 
 import java.io.InputStream;
 import android.content.ContentResolver;
+import android.text.util.Linkify;
 /**
  * A basic view to show the contents of a slide.
  */
@@ -414,8 +415,12 @@ public class SlideView extends LinearLayout implements
             }
             mScrollText.requestFocus();
         }
+        mTextView.setAutoLinkMask(Linkify.ALL);
+        mTextView.setLinksClickable(true);
+        mTextView.setTelUrl("tels:");
+        mTextView.setWebUrl("www_custom:");
         mTextView.setVisibility(View.VISIBLE);
-        mTextView.setText(text);
+        mTextView.setTextExt(text);
         // Let the text in Mms can be selected.
         mTextView.setTextIsSelectable(true);
     }
