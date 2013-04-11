@@ -344,7 +344,7 @@ public class MessageListItem extends LinearLayout implements
                 mAvatar.assignContactUri(Profile.CONTENT_URI);
                 
             } else {
-                if (contact.existsInDatabase(context)) {
+                if (contact.existsInDatabase()) {
                     mAvatar.assignContactUri(contact.getUri());
                 } else {
                     mAvatar.assignContactFromPhone(contact.getNumber(), true);

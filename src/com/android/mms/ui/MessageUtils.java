@@ -126,6 +126,17 @@ public class MessageUtils {
     public static final int STORE_SM = 2;
     public static boolean sIsIccLoaded  = false;
 
+    /** Free space (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_FREE      = 0;
+    /** Received and read (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_READ      = 1;
+    /** Received and unread (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_UNREAD    = 3;
+    /** Stored and sent (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_SENT      = 5;
+    /** Stored and unsent (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_UNSENT    = 7;
+    
     //max short message count , add for cmcc test
     public static int MAX_SMS_MESSAGE_COUNT = 2000;
     // the remaining space , format as MB
@@ -138,6 +149,8 @@ public class MessageUtils {
     public static final Uri ICC_URI = Uri.parse("content://sms/icc");
     public static final Uri ICC1_URI = Uri.parse("content://sms/icc1");
     public static final Uri ICC2_URI = Uri.parse("content://sms/icc2");
+    //add for query unread message count from iccsms table, used in MessagingNotification.java
+    public static final Uri ICC_SMS_URI = Uri.parse("content://sms/iccsms");
     // add for obtain mms data path
     private static final String MMS_DATA_DIR = "/data/phonedata";    
     private static final String MMS_DATA_DATA_DIR = "/data/data";
@@ -1475,10 +1488,11 @@ public class MessageUtils {
 
     public static boolean isIccCardFull(Context context, int subscription)
     {
-        if (!isHasCard(subscription))
-        {         
+        if ((!isMultiSimEnabledMms() && !isHasCard()) 
+            || (isMultiSimEnabledMms() && !isHasCard(subscription)))
+        {
             return true;
-        }
+        }   
         
         Uri uri = getIccUriBySubscription(subscription);
 
@@ -1597,7 +1611,9 @@ public class MessageUtils {
     {
         int curPreStore = getCurSmsPreferStore(context, subscription);
         boolean isIccCardFull = isIccCardFull(context, subscription);
-
+        Log.d(TAG, "checkModifyPreStore : curPreStore = "
+            + curPreStore + ",isIccCardFull = " + isIccCardFull);
+        
         if(isMultiSimEnabledMms())
         {
             MSimSmsManager smsManager = MSimSmsManager.getDefault();
@@ -1683,7 +1699,7 @@ public class MessageUtils {
     /* check to see whether short message count is up to 2000, add for cmcc test */
     public static void checkIsPhoneMessageFull(Context context)
     {
-        if(!MessageUtils.isCMCCTest())
+        if(!isCMCCTest())
         {
             return;
         }
@@ -1701,7 +1717,8 @@ public class MessageUtils {
 
     public static void checkIsSmsMessageFull(Context context, int subscription)
     {
-        if (!isHasCard(subscription))
+        if ((!isMultiSimEnabledMms() && !isHasCard()) 
+            || (isMultiSimEnabledMms() && !isHasCard(subscription)))
         {
             return;
         }    
@@ -1710,9 +1727,10 @@ public class MessageUtils {
         boolean isPhoneMemoryFull = isPhoneMemoryFull();
         boolean isPhoneSmsCountFull = (msgCount >= MAX_SMS_MESSAGE_COUNT);
         boolean isPhoneFull = (isPhoneMemoryFull || isPhoneSmsCountFull);
+        Log.d(TAG, "checkIsSmsMessageFull : isPhoneMemoryFull = " + isPhoneMemoryFull
+            + ",isPhoneSmsCountFull = " + isPhoneSmsCountFull);
         checkModifyPreStore(context, isPhoneSmsCountFull, subscription);
-        Log.d(TAG, "checkIsSmsMessageFull : Message size is limit!");
-        
+                
         if (isPhoneSmsCountFull)
         {
             MessagingNotification.updateSmsMessageFullIndicator(context, true);

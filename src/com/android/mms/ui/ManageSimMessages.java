@@ -152,7 +152,6 @@ public class ManageSimMessages extends Activity
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        setMessageRead(this);
 
         init();
         registerSimChangeObserver();
@@ -171,7 +170,6 @@ public class ManageSimMessages extends Activity
     private void init() {
         MessagingNotification.cancelNotification(getApplicationContext(),
                 SIM_FULL_NOTIFICATION_ID);
-
         updateState(SHOW_BUSY);
         if(MessageUtils.sIsIccLoaded)
         {
@@ -204,14 +202,16 @@ public class ManageSimMessages extends Activity
             }
         }
     };
-
-    private void setMessageRead(Context context)
+    
+    private void setMessageRead(Context context, String indexString)
     {
         Log.d(TAG, "setMessageRead : mSubscription="+mSubscription);
+
         ContentValues values = new ContentValues(1);
-        values.put("status_on_icc", 1);
+        values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);
         SqliteWrapper.update(context, getContentResolver(),
-            MessageUtils.getIccUriBySubscription(mSubscription), values, null, null);
+            Uri.parse(MessageUtils.getIccUriBySubscription(mSubscription).toString()+"/"+indexString),
+            values, null, null);
     }  
     
     private Handler uihandler = new Handler()
@@ -248,6 +248,7 @@ public class ManageSimMessages extends Activity
         protected void onQueryComplete(
                 int token, Object cookie, Cursor cursor) {
             mCursor = cursor;
+
             if (mCursor != null) {
                 if (!mCursor.moveToFirst()) {
                     // Let user know the SIM is empty
@@ -274,14 +275,33 @@ public class ManageSimMessages extends Activity
                     mListAdapter.changeCursor(mCursor);
                     updateState(SHOW_LIST);
                 }
-                startManagingCursor(mCursor);
+                            
+                if (mCursor != null && mCursor.moveToFirst()){
+                    do
+                    {
+                        final String indexString = mCursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
+                        String statusString = mCursor.getString(cursor.getColumnIndexOrThrow("status_on_icc"));
+                        
+                        if(statusString.equals(Integer.toString(MessageUtils.STATUS_ON_SIM_UNREAD)))
+                        {
+                            new Thread(new Runnable() {
+                                public void run() {
+                                    setMessageRead(ManageSimMessages.this, indexString);              
+                                }
+                            }).start();  
+                        }                   
+
+                    }while (mCursor.moveToNext());
+                }
+                
+                MessagingNotification.blockingUpdateNewMessageOnIccIndicator(ManageSimMessages.this, mSubscription);
+                //startManagingCursor(mCursor);
             } else {
                 // Let user know the SIM is empty
                 updateState(SHOW_EMPTY);
             }
             // Show option menu when query complete.
             invalidateOptionsMenu();
-            MessagingNotification.cancelNotification(ManageSimMessages.this, MessagingNotification.NOTIFICATION_ICC_ID);
         }
     }
 
@@ -295,10 +315,12 @@ public class ManageSimMessages extends Activity
 
     private void refreshMessageList() {
         updateState(SHOW_BUSY);
+        /*
         if (mCursor != null) {
             stopManagingCursor(mCursor);
             mCursor.close();
         }
+        */
         startQuery();
     }
 
@@ -449,6 +471,7 @@ public class ManageSimMessages extends Activity
                         updateState(SHOW_BUSY);
                         deleteFromSim(cursor);
                         dialog.dismiss();
+                        MessageUtils.checkIsPhoneMessageFull(ManageSimMessages.this);
                     }
                 }, R.string.confirm_delete_SIM_message);
                 return true;
@@ -573,6 +596,10 @@ public class ManageSimMessages extends Activity
         mContentResolver.unregisterContentObserver(mContactsChangedObserver);
         unregisterReceiver(mIccStateChangedReceiver);
         super.onDestroy();
+        if(mCursor != null)
+        {
+            mCursor.close();
+        }
     }
 
     @Override
@@ -662,6 +689,7 @@ public class ManageSimMessages extends Activity
                     public void run() {
                         refreshMessageList();
                         registerSimChangeObserver();
+                        MessageUtils.checkIsPhoneMessageFull(ManageSimMessages.this);
                     }
                 });
             }
@@ -847,7 +875,7 @@ public class ManageSimMessages extends Activity
 
     @Override
     protected void onStart() {
-        super.onRestart();
+        super.onStart();
         
         // if updateContacts call before this method, it will doesn't work well,
         // need updateContacts again.

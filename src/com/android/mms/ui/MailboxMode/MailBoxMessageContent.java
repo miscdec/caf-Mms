@@ -776,7 +776,7 @@ public class MailBoxMessageContent extends Activity
         }
 
         mBodyTextView.setTextExt(formatMessage(mMsgText));
-        mNumberView.setTextExt(mMsgFromto);   
+        mNumberView.setTextExt(mMsgFromto);     
         mFromTextView.setText(mFromtoLabel); 
         mTimeTextView.setText(mSendLabel);
         mTimeDetailTextView.setText(mMsgTime);  

@@ -4023,7 +4023,7 @@ public class ComposeMessageActivity extends Activity
     @Override
     public void onClick(View v) {
         if ((v == mSendButtonSms) && isPreparedForSending()) {
-            confirmSendMessageIfNeeded();
+            
             if(MessageUtils.isSmsMessageJustFull(this))
             {
                 Log.d(TAG, "Message size is limit!");
