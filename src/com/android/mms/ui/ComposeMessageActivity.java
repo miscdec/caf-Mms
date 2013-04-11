@@ -1588,6 +1588,11 @@ public class ComposeMessageActivity extends Activity
                         subject += msgItem.mSubject;
                     }
                     intent.putExtra("subject", subject);
+
+                    String[] numbers = mConversation.getRecipients().getNumbers();
+                    if (numbers != null) {
+                        intent.putExtra("msg_recipient",numbers[0]);
+                    }
                 }
                 // ForwardMessageActivity is simply an alias in the manifest for
                 // ComposeMessageActivity. We have to make an alias because ComposeMessageActivity
@@ -2498,12 +2503,7 @@ public class ComposeMessageActivity extends Activity
 
         // If we have been passed a thread_id, use that to find our
         // conversation.
-
-        // Note that originalThreadId might be zero but if this is a draft and we save the
-        // draft, ensureThreadId gets called async from WorkingMessage.asyncUpdateDraftSmsMessage
-        // the thread will get a threadId behind the UI thread's back.
-        long originalThreadId = mConversation.getThreadId();
-        long threadId = intent.getLongExtra(THREAD_ID, 0);
+        long threadId = intent.getLongExtra("thread_id", 0);
         Uri intentUri = intent.getData();
 
         boolean sameThread = false;
@@ -2511,21 +2511,17 @@ public class ComposeMessageActivity extends Activity
             conversation = Conversation.get(this, threadId, false);
         } else {
             if (mConversation.getThreadId() == 0) {
-                // We've got a draft. Make sure the working recipients are synched
-                // to the conversation so when we compare conversations later in this function,
-                // the compare will work.
+                // We've got a draft. See if the new intent's recipient is the same as
+                // the draft's recipient. First make sure the working recipients are synched
+                // to the conversation.
                 mWorkingMessage.syncWorkingRecipients();
+                sameThread = mConversation.sameRecipient(intentUri,this);
             }
-            // Get the "real" conversation based on the intentUri. The intentUri might specify
-            // the conversation by a phone number or by a thread id. We'll typically get a threadId
-            // based uri when the user pulls down a notification while in ComposeMessageActivity and
-            // we end up here in onNewIntent. mConversation can have a threadId of zero when we're
-            // working on a draft. When a new message comes in for that same recipient, a
-            // conversation will get created behind CMA's back when the message is inserted into
-            // the database and the corresponding entry made in the threads table. The code should
-            // use the real conversation as soon as it can rather than finding out the threadId
-            // when sending with "ensureThreadId".
-            conversation = Conversation.get(this, intentUri, false);
+            if (!sameThread) {
+                // Otherwise, try to get a conversation based on the
+                // data URI passed to our intent.
+                conversation = Conversation.get(this, intentUri, false);
+            }
         }
 
         if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
@@ -2539,29 +2535,21 @@ public class ComposeMessageActivity extends Activity
         // (we cannot just compare thread ids because there is a case where mConversation
         // has a stale/obsolete thread id (=1) that could collide against the new thread_id(=1),
         // even though the recipient lists are different)
-        sameThread = ((conversation.getThreadId() == mConversation.getThreadId() ||
-                mConversation.getThreadId() == 0) &&
-                conversation.equals(mConversation));
+            sameThread = (conversation.getThreadId() == mConversation.getThreadId() &&
+                    conversation.equals(mConversation));
 
         if (sameThread) {
             log("onNewIntent: same conversation");
-            if (mConversation.getThreadId() == 0) {
-                mConversation = conversation;
-                mWorkingMessage.setConversation(mConversation);
-                updateThreadIdIfRunning();
-                invalidateOptionsMenu();
-            }
         } else {
             if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 log("onNewIntent: different conversation");
             }
             saveDraft(false);    // if we've got a draft, save it first
 
-            initialize(null, originalThreadId);
+            initialize(null,mConversation.getThreadId());
+            loadMessageContent();
         }
-        loadMessagesAndDraft(0);
-    }
-
+        }
     private void sanityCheckConversation() {
         if (mWorkingMessage.getConversation() != mConversation) {
             LogTag.warnPossibleRecipientMismatch(
@@ -3718,6 +3706,8 @@ public class ComposeMessageActivity extends Activity
                         // The mRecipientsWatcher will be call while UI thread deal
                         // with the "postHandlePendingChips" runnable.
                         mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
+                        updateTitle(list);
+                        mTextEditor.requestFocus();
 
                         // if process finished, then dismiss the progress dialog
                         progressDialog.dismiss();
@@ -4416,20 +4406,6 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (!mSendingMessage) {
-            if (LogTag.SEVERE_WARNING) {
-                String sendingRecipients = mConversation.getRecipients().serialize();
-                if (!sendingRecipients.equals(mDebugRecipients)) {
-                    String workingRecipients = mWorkingMessage.getWorkingRecipients();
-                    if (!mDebugRecipients.equals(workingRecipients)) {
-                        LogTag.warnPossibleRecipientMismatch("ComposeMessageActivity.sendMessage" +
-                                " recipients in window: \"" +
-                                mDebugRecipients + "\" differ from recipients from conv: \"" +
-                                sendingRecipients + "\" and working recipients: " +
-                                workingRecipients, this);
-                    }
-                }
-                sanityCheckConversation();
-            }
 
             // send can change the recipients. Make sure we remove the listeners first and then add
             // them back once the recipient list has settled.
