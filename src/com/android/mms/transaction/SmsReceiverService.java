@@ -226,7 +226,7 @@ public class SmsReceiverService extends Service {
                 } else if (ACTION_SEND_MESSAGE.endsWith(action)) {
                     handleSendMessage(intent);
                 } else if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
-                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, MessageUtils.SUB_INVALID);
                     String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
                     
                     Log.d(TAG, "ACTION_SIM_STATE_CHANGED : stateExtra= " + stateExtra + ",subscription= " + subscription);
