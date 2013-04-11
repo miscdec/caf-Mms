@@ -146,7 +146,7 @@ public class MmsMessageSender implements MessageSender {
         // Expiry.
         long expiryTime = Long.parseLong(
                 prefs.getString(MessagingPreferenceActivity.EXPIRY_TIME, "0"));
-        string expiryStr = prefs.getString(MessagingPreferenceActivity.EXPIRY_TIME, "0");
+        String expiryStr = prefs.getString(MessagingPreferenceActivity.EXPIRY_TIME, "0");
         Log.v(TAG, "updatePreferencesHeaders expiryTime = " + expiryTime + ", expiryStr = " + expiryStr);
         if( expiryTime > 100){
             sendReq.setExpiry(expiryTime); /* Add for sub , if don't set , net will set to Maxinum to default */
