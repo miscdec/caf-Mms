@@ -23,6 +23,7 @@ package com.android.mms.ui;
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.Intent;
@@ -189,7 +190,8 @@ public class MailBoxMessageList extends ListActivity
     private boolean mShowSuccessToast = true;
     private AsyncDialog mAsyncDialog;   // Used for background tasks.
     ArrayList<Integer> mSelectedPositions = new ArrayList<Integer>();
-    
+    private ProgressDialog mProgressDialog = null;
+    private OperateThread mOperateThread = null;
     
     private MailBoxMessageListAdapter mListAdapter = null;
     private final Object mCursorLock = new Object();
@@ -255,6 +257,16 @@ public class MailBoxMessageList extends ListActivity
                     String toastStr = (String) msg.obj;
                     Toast.makeText(MailBoxMessageList.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
+
+                    MessagingNotification.blockingUpdateNewMessageIndicator(
+                        MailBoxMessageList.this, MessagingNotification.THREAD_ALL, false);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(MailBoxMessageList.this);
+                     
+                    if (mProgressDialog != null)
+                    {
+                        mProgressDialog.dismiss();
+                    }
 
                     break; 
                 }
@@ -746,6 +758,39 @@ public class MailBoxMessageList extends ListActivity
             mListView.setVisibility(View.VISIBLE);
         }
     }
+
+    private class OperateThread extends Thread
+    {
+        boolean mDeleteLockedMessages;
+        int mSubscription;
+
+        public OperateThread()
+        {
+            super("OperateThread");
+        }
+        
+        public OperateThread(boolean deleteLockedMessages)
+        {
+            mDeleteLockedMessages = deleteLockedMessages;
+        }
+      
+        public OperateThread(int subscription)
+        {
+            mSubscription = subscription;
+        }
+        
+        public void run()
+        {
+            if (ACTION_DELETE == mAction)
+            {
+                deleteMessages(mDeleteLockedMessages);             
+            }
+            else if (ACTION_COPY == mAction)
+            {             
+                copyMessages(mSubscription);                
+            }
+        }
+    }
     
     private final class BoxMsgListQueryHandler extends AsyncQueryHandler
     {
@@ -1092,6 +1137,7 @@ public class MailBoxMessageList extends ListActivity
         public void onClick(DialogInterface dialog, int whichButton)
         {
             copySelectedMessages(mSubscription); 
+            
         }
     }
     
@@ -1112,12 +1158,31 @@ public class MailBoxMessageList extends ListActivity
         @Override
         public void onClick(DialogInterface dialog, int whichButton)
         {
-            deleteMessages(mDeleteLockedMessages);            
+            deleteSelectedMessages(mDeleteLockedMessages);       
             MessagingNotification.nonBlockingUpdateNewMessageIndicator(MailBoxMessageList.this,
                 MessagingNotification.THREAD_NONE, false);  
         }
     }
-  
+
+    
+    private void deleteSelectedMessages(boolean deleteLockedMessages)
+    {
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        mProgressDialog.setCancelable(false);
+        mProgressDialog.setTitle(R.string.deleting_title);
+        mProgressDialog.setMessage(getString(R.string.please_wait));
+        mProgressDialog.show();
+        if (mOperateThread == null)
+        {
+            mOperateThread = new OperateThread(deleteLockedMessages);
+        }
+        Thread thread = new Thread(mOperateThread);
+        thread.setPriority(Thread.MAX_PRIORITY);            
+        thread.start();
+        return;
+    }
+    
     private void confirmCopyDialog(OnClickListener listener) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.confirm_copy_dialog_title);
@@ -1156,34 +1221,47 @@ public class MailBoxMessageList extends ListActivity
         builder.show();
     }
 
-    private void copySelectedMessages(final int subscription)
+    
+    private void copySelectedMessages(int subscription)
     {
-        new Thread(new Runnable() {
-            public void run() {            
-                for (Integer position : mSelectedPositions)
-                { 
-                    Cursor c = (Cursor) mListAdapter.getItem(position);
-                    if (c == null)
-                    {
-                        return;
-                    }
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        mProgressDialog.setCancelable(false);
+        mProgressDialog.setTitle(R.string.copying_title);
+        mProgressDialog.setMessage(getString(R.string.please_wait));
+        mProgressDialog.show();
+        if (mOperateThread == null)
+        {
+            mOperateThread = new OperateThread(subscription);
+        }        
+        Thread thread = new Thread(mOperateThread);
+        thread.start();
+    }
 
-                    copyToCard(c, subscription);
-                    if(!mShowSuccessToast)
-                    {
-                        return;
-                    }
-                }
-
-                if(mShowSuccessToast)
-                {
-                    Message msg = Message.obtain();
-                    msg.what = SHOW_TOAST;
-                    msg.obj = getString(R.string.operate_success);
-                    uihandler.sendMessage(msg);
-                }
+    private void copyMessages(int subscription)
+    {          
+        for (Integer position : mSelectedPositions)
+        { 
+            Cursor c = (Cursor) mListAdapter.getItem(position);
+            if (c == null)
+            {
+                return;
             }
-        }).start();   
+
+            copyToCard(c, subscription);
+            if(!mShowSuccessToast)
+            {
+                return;
+            }
+        }
+
+        if(mShowSuccessToast)
+        {
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_success);
+            uihandler.sendMessage(msg);
+        }
     }
 
     private void copyToCard(Cursor cursor, int subscription)
@@ -1277,14 +1355,9 @@ public class MailBoxMessageList extends ListActivity
             {
                 int delSmsCount = SqliteWrapper.delete(this, getContentResolver(),
                     Uri.parse("content://sms"), whereClause, null);
-                if(delSmsCount > 0)
+                if(delSmsCount <= 0)
                 {
-                    Toast.makeText(MailBoxMessageList.this, getString(R.string.operate_success),
-                        Toast.LENGTH_LONG).show();
-                    MessagingNotification.blockingUpdateNewMessageIndicator(
-                        this, MessagingNotification.THREAD_ALL, false);
-                    //Update the notification for text message memory may not be full, add for cmcc test
-                    MessageUtils.checkIsPhoneMessageFull(this);
+                    mShowSuccessToast = false;
                 }
             }
         }
@@ -1302,14 +1375,19 @@ public class MailBoxMessageList extends ListActivity
             {
                 int delMmsCount = SqliteWrapper.delete(this, getContentResolver(),
                                      Uri.parse("content://mms"), whereClause, null);
-                if(delMmsCount > 0)
+                if(delMmsCount <= 0)
                 {
-                    Toast.makeText(MailBoxMessageList.this, getString(R.string.operate_success),
-                        Toast.LENGTH_LONG).show();
-                     MessagingNotification.blockingUpdateNewMessageIndicator(
-                        this, MessagingNotification.THREAD_ALL, false);
+                    mShowSuccessToast = false;
                 }
             }
+        }
+
+        if(mShowSuccessToast)
+        {
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_success);   
+            uihandler.sendMessage(msg);
         }
     }
     
