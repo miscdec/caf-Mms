@@ -398,6 +398,9 @@
     <!-- menu item of mobileshowactivity -->
     <string name="normal_show">普通模式查看</string>
     <string name="cannot_play">无法播放该消息，请查看附件。</string>
+    <string name="attach_add_contact_as_vcard">电子名片</string>
+    <string name="type_vcard">电子名片</string>
+    <string name="import_vcard">导入</string>
 
     <!-- toast when subject is full  -->
     <string name="subject_full">主题已满</string> 

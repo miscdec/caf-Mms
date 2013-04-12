@@ -93,6 +93,7 @@ import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.preference.PreferenceManager;
 import com.android.internal.telephony.MSimConstants;
+import com.android.mms.model.VcardModel;
 
 
 /**
@@ -125,6 +126,7 @@ public class MessageUtils {
     public static final int STORE_ME = 1;
     public static final int STORE_SM = 2;
     public static boolean sIsIccLoaded  = false;
+    private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
 
     /** Free space (TS 51.011 10.5.3). */
     static public final int STATUS_ON_SIM_FREE      = 0;
@@ -501,6 +503,9 @@ public class MessageUtils {
             if (slide.hasImage()) {
                 return WorkingMessage.IMAGE;
             }
+            if (slide.hasVcard()) {
+                return WorkingMessage.VCARD;
+            }
 
             if (slide.hasText()) {
                 return WorkingMessage.TEXT;
@@ -645,7 +650,24 @@ public class MessageUtils {
             mm = slide.getImage();
         } else if (slide.hasVideo()) {
             mm = slide.getVideo();
-        }
+        }else if (slide.hasVcard()) {
+                    mm = slide.getVcard();
+                    String lookupUri = ((VcardModel) mm).getLookupUri();
+        
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    if (!TextUtils.isEmpty(lookupUri)) {
+                        // if the uri is from the contact, we suggest to view the contact.
+                        intent.setData(Uri.parse(lookupUri));
+                    } else {
+                        // we need open the saved part.
+                        intent.setDataAndType(mm.getUri(), ContentType.TEXT_VCARD.toLowerCase());
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    }
+                    // distinguish view vcard from mms or contacts.
+                    intent.putExtra(VIEW_VCARD, true);
+                    context.startActivity(intent);
+                    return;
+                }
 
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

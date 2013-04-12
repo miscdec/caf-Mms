@@ -125,7 +125,9 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final int MENU_ONE_CALL                 = 21;   
     private static final int MENU_COPY_TO_SDCARD  = 22;  
  
-    private static final int SHOW_TOAST = 10;
+ private static final int SHOW_TOAST = 10;
+ private static final int SHOW_MEDIA_CONTROLLER = 3;
+    
     private Uri mUri;
     private GenericPdu mPdu;
     private int mMailboxId                                 = -1;
@@ -338,10 +340,14 @@ public class SlideshowActivity extends Activity implements EventListener {
         }
         return false;
     }
+    protected void onStart(){
+        super.onStart();
+    }
 
     @Override
     protected void onPause() {
         super.onPause();
+        Log.w(TAG,"onPause");
         if (mSmilDoc != null) {
             ((EventTarget) mSmilDoc).removeEventListener(
                     SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT, this, false);
@@ -354,6 +360,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     @Override
     protected void onStop() {
         super.onStop();
+        Log.w(TAG,"onstop");
         if ((null != mSmilPlayer)) {
             if (isFinishing()) {
                 mSmilPlayer.stop();
@@ -366,10 +373,17 @@ public class SlideshowActivity extends Activity implements EventListener {
             }
         }
     }
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        Log.v(TAG,"onResume");
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.w(TAG,"onDestroy");
         if(mProgressDlg!=null)
             mProgressDlg = null;
         if (mSmilDoc != null) {
@@ -480,6 +494,7 @@ public class SlideshowActivity extends Activity implements EventListener {
         mHandler.post(new Runnable() {
             public void run() {
                 String type = event.getType();
+                Log.w(TAG,"handleEvent type="+type);
                 if(type.equals(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT)) {
                     finish();
                 }
@@ -679,6 +694,11 @@ public class SlideshowActivity extends Activity implements EventListener {
                                     Toast.LENGTH_LONG).show();
                     break; 
                 }
+                case SHOW_MEDIA_CONTROLLER:
+                 {
+                     mMediaController.show();
+                     break; 
+                 }   
                                
             }
         }

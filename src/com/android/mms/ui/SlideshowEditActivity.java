@@ -217,6 +217,12 @@ public class SlideshowEditActivity extends ListActivity {
         mSlideshowModel = SlideshowModel.createFromMessageUri(this, mUri);
         mSlideshowModel.registerModelChangedObserver(mModelChangedObserver);
         mSlideshowEditor = new SlideshowEditor(this, mSlideshowModel);
+        if (mSlideshowModel != null && mSlideshowModel.size() > 0) {
+            SlideModel slideModel = mSlideshowModel.get(0);
+            if (slideModel != null && slideModel.hasVcard()) {
+                mSlideshowEditor.removeVcard(0);
+            }
+        }
         mSlideListAdapter = new SlideListAdapter(
                 this, R.layout.slideshow_edit_item, mSlideshowModel);
         mList.setAdapter(mSlideListAdapter);
