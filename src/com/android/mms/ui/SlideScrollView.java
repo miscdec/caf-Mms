@@ -134,11 +134,11 @@ public class SlideScrollView extends FrameLayout {
     private Handler mHandler;
     private int mHandlerMsg = -1;
     private float mScaleFactor = 1;
-	
+                
     public SlideScrollView(Context context) {
         this(context, null);
     }
-	
+                
     public SlideScrollView(Context context, AttributeSet attrs) {
         this(context, attrs, com.android.internal.R.attr.scrollViewStyle);
     }
@@ -226,12 +226,12 @@ public class SlideScrollView extends FrameLayout {
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float deltaX, float deltaY) {
                 int distanceX = (int) e1.getX() - (int) e2.getX();
                 int distanceY = (int) e1.getY() - (int) e2.getY();
-       	  int absDistanceX = Math.abs(distanceX);
-        	  int absDistanceY = Math.abs(distanceY);
-     	         if (mTouchMode == TOUCH_MODE_DOWN) {
-          	     if (absDistanceX >= 2 * absDistanceY) {
-               	  mTouchMode = TOUCH_MODE_HSCROLL;
-           	     } else {
+                         int absDistanceX = Math.abs(distanceX);
+                          int absDistanceY = Math.abs(distanceY);
+                              if (mTouchMode == TOUCH_MODE_DOWN) {
+                               if (absDistanceX >= 2 * absDistanceY) {
+                                 mTouchMode = TOUCH_MODE_HSCROLL;
+                                } else {
                         mTouchMode = TOUCH_MODE_VSCROLL;
                    }
                 } 
@@ -242,12 +242,12 @@ public class SlideScrollView extends FrameLayout {
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                 int distanceX = (int) e1.getX() - (int) e2.getX();
                 int distanceY = (int) e1.getY() - (int) e2.getY();
-       	  int absDistanceX = Math.abs(distanceX);
-        	  int absDistanceY = Math.abs(distanceY);
-     	         if (mTouchMode == TOUCH_MODE_DOWN) {
-          	     if (absDistanceX >= 2 * absDistanceY) {
-               	  mTouchMode = TOUCH_MODE_HSCROLL;
-           	     } else {
+                         int absDistanceX = Math.abs(distanceX);
+                          int absDistanceY = Math.abs(distanceY);
+                              if (mTouchMode == TOUCH_MODE_DOWN) {
+                               if (absDistanceX >= 2 * absDistanceY) {
+                                 mTouchMode = TOUCH_MODE_HSCROLL;
+                                } else {
                         mTouchMode = TOUCH_MODE_VSCROLL;
                    }
                 } else if ((mTouchMode & TOUCH_MODE_HSCROLL) != 0) {
@@ -471,7 +471,7 @@ public class SlideScrollView extends FrameLayout {
             case MotionEvent.ACTION_MOVE:
                mGestureDetector.onTouchEvent(ev);
                return false;
-			   
+                                                   
             case MotionEvent.ACTION_UP:
                 mGestureDetector.onTouchEvent(ev); 
                 Message msg = Message.obtain();
@@ -484,7 +484,7 @@ public class SlideScrollView extends FrameLayout {
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent ev) {	
+    public boolean onTouchEvent(MotionEvent ev) {                
         final int action = ev.getAction();
         mScaleDetector.onTouchEvent(ev);
         switch (action) {
@@ -495,7 +495,7 @@ public class SlideScrollView extends FrameLayout {
             case MotionEvent.ACTION_MOVE:
                mGestureDetector.onTouchEvent(ev);
                return true;
-			   
+                                                   
             case MotionEvent.ACTION_UP:
                 mGestureDetector.onTouchEvent(ev); 
                 Message msg = Message.obtain();
@@ -505,16 +505,16 @@ public class SlideScrollView extends FrameLayout {
                 return true;
 
             case MotionEvent.ACTION_CANCEL:
-				
+                                                                
                 mGestureDetector.onTouchEvent(ev);
                 return true;
-				
+                                                                
             default:
-				
+                                                                
                 if (mGestureDetector.onTouchEvent(ev)) {
                     return true;
                 }
-				
+                                                                
            return true;
         }
     }
@@ -960,16 +960,16 @@ public class SlideScrollView extends FrameLayout {
      * @param child the View to scroll to
      */
     private void scrollToChild(View child) {
-//	        child.getDrawingRect(mTempRect);
-//	
-//	        /* Offset from child's local coordinates to ScrollView coordinates */
-//	        offsetDescendantRectToMyCoords(child, mTempRect);
-//	
-//	        int scrollDelta = computeScrollDeltaToGetChildRectOnScreen(mTempRect);
-//	
-//	        if (scrollDelta != 0) {
-//	            scrollBy(0, scrollDelta);
-//	        }
+//                        child.getDrawingRect(mTempRect);
+//                
+//                        /* Offset from child's local coordinates to ScrollView coordinates */
+//                        offsetDescendantRectToMyCoords(child, mTempRect);
+//                
+//                        int scrollDelta = computeScrollDeltaToGetChildRectOnScreen(mTempRect);
+//                
+//                        if (scrollDelta != 0) {
+//                            scrollBy(0, scrollDelta);
+//                        }
     }
 
     /**
@@ -1108,15 +1108,15 @@ public class SlideScrollView extends FrameLayout {
         return nextFocus.requestFocus(direction, previouslyFocusedRect);
     }    
 
-//	    @Override
-//	    public boolean requestChildRectangleOnScreen(View child, Rect rectangle,
-//	            boolean immediate) {
-//	        // offset into coordinate space of this scroll view
-//	        rectangle.offset(child.getLeft() - child.getScrollX(),
-//	                child.getTop() - child.getScrollY());
-//	
-//	        return scrollToChildRect(rectangle, immediate);
-//	    }
+//                    @Override
+//                    public boolean requestChildRectangleOnScreen(View child, Rect rectangle,
+//                            boolean immediate) {
+//                        // offset into coordinate space of this scroll view
+//                        rectangle.offset(child.getLeft() - child.getScrollX(),
+//                                child.getTop() - child.getScrollY());
+//                
+//                        return scrollToChildRect(rectangle, immediate);
+//                    }
 
     @Override
     public void requestLayout() {
@@ -1241,11 +1241,11 @@ public class SlideScrollView extends FrameLayout {
             mScaleFactor = scale;
         }
             
-//	            float scale = detector.getScaleFactor();
-//	            if (Float.isNaN(scale) || Float.isInfinite(scale)
-//	                    || mTransitionMode != TRANS_NONE) return true;
-//	            mPositionController.scaleBy(scale,
-//	                    detector.getFocusX(), detector.getFocusY());
+//                            float scale = detector.getScaleFactor();
+//                            if (Float.isNaN(scale) || Float.isInfinite(scale)
+//                                    || mTransitionMode != TRANS_NONE) return true;
+//                            mPositionController.scaleBy(scale,
+//                                    detector.getFocusX(), detector.getFocusY());
             return true;
         }
 
@@ -1253,9 +1253,9 @@ public class SlideScrollView extends FrameLayout {
         public boolean onScaleBegin(ScaleGestureDetector detector) {
                     Log.d(TAG,"+++++++++++++onScaleBegin+++++++++++++++++");
 
-//	            if (mTransitionMode != TRANS_NONE) return false;
-//	            mPositionController.beginScale(
-//	                detector.getFocusX(), detector.getFocusY());
+//                            if (mTransitionMode != TRANS_NONE) return false;
+//                            mPositionController.beginScale(
+//                                detector.getFocusX(), detector.getFocusY());
             return true;
         }
 
@@ -1271,8 +1271,8 @@ public class SlideScrollView extends FrameLayout {
             mHandlerMsg = 5;
         }
                     Log.d(TAG,"+++++++++++++onScaleEnd+++++++++++++++++" + scale);
-//	            mPositionController.endScale();
-//	            snapToNeighborImage();
+//                            mPositionController.endScale();
+//                            snapToNeighborImage();
         }
     }
 /*ZhangChao 2012-03-27 end*/

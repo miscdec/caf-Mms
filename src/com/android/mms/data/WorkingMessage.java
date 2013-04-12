@@ -126,6 +126,7 @@ public class WorkingMessage {
     public static final int VIDEO = 2;
     public static final int AUDIO = 3;
     public static final int SLIDESHOW = 4;
+    public static final int VCARD = 5;
 
     // Current attachment type of the message; one of the above values.
     private int mAttachmentType;
