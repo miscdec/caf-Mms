@@ -331,8 +331,18 @@ public class ManageSimMessages extends Activity
         if (mCursor == null || mCursor.getPosition() < 0) {
             return;
         }
-        menu.add(0, MENU_COPY_TO_PHONE_MEMORY, 0,
-                 R.string.menu_copy_to);
+
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            menu.add(0, MENU_COPY_TO_PHONE_MEMORY, 0,
+                     R.string.menu_copy_to);
+        }
+        else
+        {
+            menu.add(0, MENU_COPY_TO_PHONE_MEMORY, 0,
+                     R.string.sim_copy_to_phone_memory);
+        }
+
         menu.add(0, MENU_DELETE_FROM_SIM, 0, R.string.sim_delete);
 
         Cursor cursor = mListAdapter.getCursor();
@@ -619,6 +629,13 @@ public class ManageSimMessages extends Activity
     }
 
     private void copyToPhoneMemory(Cursor cursor) {
+        if(MessageUtils.isSmsMessageJustFull(this))
+        {
+            Toast.makeText(ManageSimMessages.this, R.string.exceed_message_size_limitation, 
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+                           
         String address = cursor.getString(
                 cursor.getColumnIndexOrThrow("address"));
         String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));

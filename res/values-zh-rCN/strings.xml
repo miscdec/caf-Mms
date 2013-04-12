@@ -377,6 +377,8 @@
     <string name="loadurlinfo_str">加载此URL？</string>  
     <!--add for toast when deleting -->
     <string name="deleting_title">正在删除...</string>  
+    <!--add for toast when copying -->
+    <string name="copying_title">正在复制...</string>   
     <!--add for showing slot type in MailBoxMessageContent -->
     <string name="slot_type">卡槽 : %s</string>    
     <!-- Show SIM capacity -->
@@ -433,6 +435,7 @@
     <string name="phoneunused">未用内存：</string>
     <string name="sim_card1">SIM卡1</string>
     <string name="sim_card2">SIM卡2</string>
+    <string name="please_wait">请稍候...</string> 
     <!-- String used in SearchActivityExtend.java -->
     <string name="search_title">"信息查找"</string>     
     <string name="search_key">"查找关键字"</string>     

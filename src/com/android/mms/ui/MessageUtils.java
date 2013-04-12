@@ -793,24 +793,34 @@ public class MessageUtils {
         if (threadIds != null) {
             String threadIdSelection = null;
             StringBuilder buf = new StringBuilder();
-            selectionArgs = new String[threadIds.size()];
+            //selectionArgs = new String[threadIds.size()];
             int i = 0;
 
             for (long threadId : threadIds) {
+                /*
                 if (i > 0) {
                     buf.append(" OR ");
                 }
                 buf.append(Mms.THREAD_ID).append("=?");
                 selectionArgs[i++] = Long.toString(threadId);
-            }
-            threadIdSelection = buf.toString();
+                */
+                if (i++ > 0) {
+                    //buf.append(" OR ");
+                    buf.append(",");
+                    
+                }
+                buf.append(Long.toString(threadId));              
 
+            }
+            //threadIdSelection = buf.toString();
+            threadIdSelection = Mms.THREAD_ID + " IN " + "("+buf.toString()+")";
+            
             selectionBuilder.append(" AND (" + threadIdSelection + ")");
         }
 
         final Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
                         Mms.Inbox.CONTENT_URI, new String[] {Mms._ID, Mms.MESSAGE_ID},
-                        selectionBuilder.toString(), selectionArgs, null);
+                        selectionBuilder.toString(), null, null);
 
         if (c == null) {
             return;
@@ -1454,8 +1464,7 @@ public class MessageUtils {
     public static boolean isSmsMessageJustFull(Context context)
     {
         int msgCount = getSmsMessageCount(context);
-     
-        if (msgCount >= MAX_SMS_MESSAGE_COUNT)
+        if (isCMCCTest() && msgCount >= MAX_SMS_MESSAGE_COUNT)
         {
             return true;
         }
@@ -1468,7 +1477,7 @@ public class MessageUtils {
         int msgCount = -1;
         Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
                         MAILBOX_SMS_MESSAGES_COUNT, null, null, null, null);
-
+        
         if (c == null)
         {
             return msgCount;
@@ -1478,11 +1487,11 @@ public class MessageUtils {
         {
             msgCount = c.getInt(0);
             c.close();
+            Log.d(TAG, "getSmsMessageCount : msgCount = " + msgCount);
             return msgCount;
         }
         c.close();
 
-        Log.d(TAG, "getSmsMessageCount : msgCount = " + msgCount);
         return msgCount;
     }
 
@@ -1701,6 +1710,7 @@ public class MessageUtils {
     {
         if(!isCMCCTest())
         {
+            Log.d(TAG, "checkIsPhoneMessageFull : It's not in cmcc test!");
             return;
         }
         
@@ -1729,7 +1739,7 @@ public class MessageUtils {
         boolean isPhoneFull = (isPhoneMemoryFull || isPhoneSmsCountFull);
         Log.d(TAG, "checkIsSmsMessageFull : isPhoneMemoryFull = " + isPhoneMemoryFull
             + ",isPhoneSmsCountFull = " + isPhoneSmsCountFull);
-        checkModifyPreStore(context, isPhoneSmsCountFull, subscription);
+        checkModifyPreStore(context, isPhoneFull, subscription);
                 
         if (isPhoneSmsCountFull)
         {
