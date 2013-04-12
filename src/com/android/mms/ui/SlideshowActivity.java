@@ -90,6 +90,7 @@ import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduBody;
 import android.os.Environment;
 import com.google.android.mms.ContentType;
+import java.util.ArrayList;
 
 /**
  * Plays the given slideshow in full-screen mode with a common controller.
@@ -108,6 +109,8 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private SlideView mSlideView;
     private int mSlideCount;
+    
+    private static final int MENU_NORMALSHOW             =  1;
     private static final int MENU_REPLY             =  2;
     private static final int MENU_REPLY_BY_MMS              =3;
     private static final int MENU_RESEND              =4;
@@ -647,7 +650,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     private void delete(){
         SqliteWrapper.delete(this, getContentResolver(),
                                     mUri, null, null);
-//        Toast.makeText(this, R.string.del_success, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, R.string.operate_success, Toast.LENGTH_LONG).show();
         finish();
     }
 
@@ -1029,6 +1032,26 @@ public class SlideshowActivity extends Activity implements EventListener {
       }
 
       
+          
+      public static void viewMmsMessageAttachmentMobilepaper(Context context, Uri msgUri,
+                  SlideshowModel slideshow, PduPersister persister, ArrayList<String> allIdList,boolean report)
+          {
+      
+              boolean isSimple = (slideshow == null) ? false : slideshow.isSimple();
+              if (isSimple || msgUri == null)
+              {
+                  // In attachment-editor mode, we only ever have one slide.
+                  MessageUtils.viewSimpleSlideshow(context, slideshow);
+              }
+              else
+              {
+                  Intent intent = new Intent(context, MobilePaperShowActivity.class);            
+                  intent.setData(msgUri);
+                  intent.putExtra("mms_report", report);
+                  intent.putStringArrayListExtra("sms_id_list", allIdList);
+                  context.startActivity(intent);
+              }
+          }
       @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
             menu.clear();
@@ -1040,8 +1063,7 @@ public class SlideshowActivity extends Activity implements EventListener {
             if(!(Mms.MESSAGE_BOX_DRAFTS == mMailboxId)){
                {
                    menu.add(0, MENU_DELETE, 0, R.string.menu_delete_msg);
-                    menu.add(0, MENU_ONE_CALL, 0, R.string.menu_call).setIcon(
-                               R.drawable.ic_menu_call);   
+                    menu.add(0, MENU_ONE_CALL, 0, R.string.menu_call);  
                }
             }
             if(Mms.MESSAGE_BOX_INBOX == mMailboxId){
@@ -1072,6 +1094,7 @@ public class SlideshowActivity extends Activity implements EventListener {
             }
            
     
+             menu.add(0, MENU_NORMALSHOW, 0, R.string.normal_show);
             cursor.close();
             return true;
         }
@@ -1080,6 +1103,12 @@ public class SlideshowActivity extends Activity implements EventListener {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()){
 
+        case MENU_NORMALSHOW:
+            Intent intent = getIntent();
+            Uri msg = intent.getData();   
+            viewMmsMessageAttachmentMobilepaper(this,msg,null,null,intent.getStringArrayListExtra("sms_id_list"),intent.getBooleanExtra("mms_report", false));
+            finish();
+            break;    
         case MENU_ONE_CALL:
             if(MessageUtils.isMultiSimEnabledMms())
             {
