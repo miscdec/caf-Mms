@@ -143,11 +143,11 @@ public class AttachmentEditor extends LinearLayout {
 
     private SlideViewInterface createView() {
         boolean inPortrait = inPortraitMode();
-        if (mSlideshow.size() > 1) {
-            return createSlideshowView(inPortrait);
-        }
 
         SlideModel slide = mSlideshow.get(0);
+        if (mSlideshow.size() > 1 || (mSlideshow.size() == 1 && (slide.hasImage() || slide.hasVideo() || slide.hasAudio()))) {
+            return createSlideshowView(inPortrait);
+        }
         if (slide.hasImage()) {
             return createMediaView(
                     R.id.image_attachment_view_stub,
