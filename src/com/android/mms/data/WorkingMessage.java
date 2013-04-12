@@ -280,21 +280,28 @@ public class WorkingMessage {
 
     private void correctAttachmentState() {
         int slideCount = mSlideshow.size();
-
+        SlideModel slide = mSlideshow.get(0);
         // If we get an empty slideshow, tear down all MMS
         // state and discard the unnecessary message Uri.
         if (slideCount == 0) {
             removeAttachment(false);
         } else if (slideCount > 1) {
             mAttachmentType = SLIDESHOW;
+            // The vCard can be considered a special slide only in the
+            // case of only 1 slide in it, vCard can not as the elements
+            // of slide which have many slides.
+            if (slide.hasVcard()) {
+                slide.removeVcard();
+            }
         } else {
-            SlideModel slide = mSlideshow.get(0);
             if (slide.hasImage()) {
                 mAttachmentType = IMAGE;
             } else if (slide.hasVideo()) {
                 mAttachmentType = VIDEO;
             } else if (slide.hasAudio()) {
                 mAttachmentType = AUDIO;
+            } else if (slide.hasVcard()) {
+                mAttachmentType = VCARD;
             }
         }
 
@@ -696,6 +703,8 @@ public class WorkingMessage {
                 slideShowEditor.changeVideo(slideNum, uri);
             } else if (type == AUDIO) {
                 slideShowEditor.changeAudio(slideNum, uri);
+            } else if (type == VCARD) {  
+                slideShowEditor.changeVcard(slideNum, uri);
             } else {
                 result = UNSUPPORTED_TYPE;
             }
