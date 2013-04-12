@@ -259,6 +259,16 @@ public class MessageListItem extends LinearLayout implements
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        if (MessageUtils.isMmsMemoryFull(mContext))
+                        {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                            builder.setTitle(R.string.download);
+                            /*builder.setIcon(R.drawable.ic_dialog_alert_holo_light);*/
+                            builder.setCancelable(true);                    
+                            builder.setMessage(mContext.getString(R.string.sms_full_body));
+                            builder.show();
+                            return;
+                        }                            
                         mDownloadingLabel.setVisibility(View.VISIBLE);
                         mDownloadButton.setVisibility(View.GONE);
                         Intent intent = new Intent(mContext, TransactionService.class);
@@ -781,6 +791,7 @@ public class MessageListItem extends LinearLayout implements
 
     private void setOnClickListener(final MessageItem msgItem) {
         switch(msgItem.mAttachmentType) {
+            case WorkingMessage.VCARD:
             case WorkingMessage.IMAGE:
             case WorkingMessage.VIDEO:
                 mImageView.setOnClickListener(new OnClickListener() {
@@ -925,5 +936,22 @@ public class MessageListItem extends LinearLayout implements
     public void seekVideo(int seekTo) {
         // TODO Auto-generated method stub
 
+    }
+    @Override
+    public void setVcard(Uri lookupUri, String name) {
+        showMmsView(true);
+
+        try {
+            mImageView.setImageResource(R.drawable.ic_attach_vcard);
+            mImageView.setVisibility(VISIBLE);
+        } catch (java.lang.OutOfMemoryError e) {
+            // shouldn't be here.
+            Log.e(TAG, "setVcard: out of memory: ", e);
+        }
+    }
+
+    @Override
+    public void setVcardVisibility(boolean visible) {
+        // TODO Auto-generated method stub
     }
 }

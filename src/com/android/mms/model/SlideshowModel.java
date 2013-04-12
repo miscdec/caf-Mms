@@ -285,8 +285,11 @@ public class SlideshowModel extends Model
 
                 if (media.isText()) {
                     part.setData(((TextModel) media).getText().getBytes());
-                } else if (media.isImage() || media.isVideo() || media.isAudio()) {
+                } else if (media.isImage() || media.isVideo() || media.isAudio()|| media.isVcard()) {
                     part.setDataUri(media.getUri());
+                    if (media.isVcard() && !TextUtils.isEmpty(((VcardModel) media).getLookupUri())) {
+                        part.setContentDisposition(((VcardModel) media).getLookupUri().getBytes());
+                        }
                 } else {
                     Log.w(TAG, "Unsupport media: " + media);
                 }
@@ -644,8 +647,10 @@ public class SlideshowModel extends Model
             return false;
 
         SlideModel slide = get(0);
-        // The slide must have either an image or video, but not both.
-        if (!(slide.hasImage() ^ slide.hasVideo()))
+        // The slide must have either an image or video or vcard, but not both.
+        if (!(((slide.hasImage() ? 1 : 0)
+                + (slide.hasVideo() ? 1 : 0)
+                + (slide.hasVcard() ? 1 : 0)) == 1))
             return false;
 
         // No audio allowed.

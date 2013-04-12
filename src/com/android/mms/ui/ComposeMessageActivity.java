@@ -197,6 +197,7 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_ADD_CONTACT      = 108;
     public static final int REQUEST_CODE_PICK             = 109;
     public static final int REQUEST_CODE_RECIPIENT_PICKER             = 110;
+    public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD    = 111;
 
     private static final String TAG = "Mms/compose";
 
@@ -412,6 +413,16 @@ public class ComposeMessageActivity extends Activity
     //==========================================================
 
     private void editSlideshow() {
+        // The SlideShow is not support Vcard attachment, if we have created a
+        // Vcard already before adding SlideShow, we must remove it first.
+        SlideshowModel slideShow = mWorkingMessage.getSlideshow();
+        if (slideShow != null) {
+            for (SlideModel model : slideShow) {
+                if (model != null && model.hasVcard()) {
+                    model.removeVcard();
+                }
+            }
+        }
         // The user wants to edit the slideshow. That requires us to persist the slideshow to
         // disk as a PDU in saveAsMms. This code below does that persisting in a background
         // task. If the task takes longer than a half second, a progress dialog is displayed.
@@ -457,6 +468,7 @@ public class ComposeMessageActivity extends Activity
                 case AttachmentEditor.MSG_PLAY_VIDEO:
                 case AttachmentEditor.MSG_PLAY_AUDIO:
                 case AttachmentEditor.MSG_PLAY_SLIDESHOW:
+                case AttachmentEditor.MSG_VIEW_VCARD:
                     viewMmsMessageAttachment(msg.what);
                     break;
 
@@ -532,6 +544,7 @@ public class ComposeMessageActivity extends Activity
                             case WorkingMessage.IMAGE:
                             case WorkingMessage.VIDEO:
                             case WorkingMessage.AUDIO:
+                            case WorkingMessage.VCARD:
                             case WorkingMessage.SLIDESHOW:
                                 MessageUtils.viewMmsMessageAttachment(ComposeMessageActivity.this,
                                         msgItem.mMessageUri, msgItem.mSlideshow,
@@ -1420,6 +1433,7 @@ public class ComposeMessageActivity extends Activity
                     case WorkingMessage.VIDEO:
                     case WorkingMessage.IMAGE:
                     case WorkingMessage.AUDIO:
+                    case WorkingMessage.VCARD:
                         if (haveSomethingToCopyToSDCard(msgItem.mMsgId)) {
                             menu.add(0, MENU_COPY_TO_SDCARD, 0, R.string.copy_to_sdcard)
                             .setOnMenuItemClickListener(l);
@@ -1588,6 +1602,11 @@ public class ComposeMessageActivity extends Activity
                         subject += msgItem.mSubject;
                     }
                     intent.putExtra("subject", subject);
+
+                    String[] numbers = mConversation.getRecipients().getNumbers();
+                    if (numbers != null) {
+                        intent.putExtra("msg_recipient",numbers[0]);
+                    }
                 }
                 // ForwardMessageActivity is simply an alias in the manifest for
                 // ComposeMessageActivity. We have to make an alias because ComposeMessageActivity
@@ -1905,7 +1924,8 @@ public class ComposeMessageActivity extends Activity
             }
 
             if (ContentType.isImageType(type) || ContentType.isVideoType(type) ||
-                    ContentType.isAudioType(type) || DrmUtils.isDrmType(type)) {
+                    ContentType.isAudioType(type) || DrmUtils.isDrmType(type)||
+                    type.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase())) {
                 result = true;
                 break;
             }
@@ -2059,7 +2079,7 @@ public class ComposeMessageActivity extends Activity
                     .getOriginalMimeType(part.getDataUri());
         }
         if (!ContentType.isImageType(type) && !ContentType.isVideoType(type) &&
-                !ContentType.isAudioType(type)) {
+                !ContentType.isAudioType(type)&& !(ContentType.TEXT_VCARD.toLowerCase().equals(type.toLowerCase()))) {
             return true;    // we only save pictures, videos, and sounds. Skip the text parts,
                             // the app (smil) parts, and other type that we can't handle.
                             // Return true to pretend that we successfully saved the part so
@@ -3469,10 +3489,20 @@ public class ComposeMessageActivity extends Activity
             case AttachmentTypeSelectorAdapter.ADD_SLIDESHOW:
                 editSlideshow();
                 break;
+            case AttachmentTypeSelectorAdapter.ADD_CONTACT_AS_VCARD:
+                    pickContacts(MultiPickContactsActivity.MODE_VCARD,
+                            REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD);
+                    break;
 
             default:
                 break;
         }
+    }
+
+    private void pickContacts(int mode, int requestCode) {
+        Intent intent = new Intent(this, MultiPickContactsActivity.class);
+        intent.putExtra(MultiPickContactsActivity.MODE, mode);
+        startActivityForResult(intent, requestCode);
     }
 
     public static long computeAttachmentSizeLimit(SlideshowModel slideShow, int currentSlideSize) {
@@ -3636,6 +3666,20 @@ public class ComposeMessageActivity extends Activity
                 }
                 break;
 
+            case REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD:
+                if (data != null) {
+                    // In a case that a draft message has an attachment whose type is slideshow,then reopen it and
+                    // replace the attachment through attach icon, we have to remove the old attachement silently first.
+                    if (mWorkingMessage != null) {
+                        mWorkingMessage.removeAttachment(false);
+                    }
+                    String extraVCard = data.getStringExtra(MultiPickContactsActivity.EXTRA_VCARD);
+                    if (extraVCard != null) {
+                        Uri vcard = Uri.parse(extraVCard);
+                        addVcard(vcard);
+                    }
+                }
+                break;
             default:
                 if (LogTag.VERBOSE) log("bail due to unknown requestCode=" + requestCode);
                 break;
@@ -3718,6 +3762,8 @@ public class ComposeMessageActivity extends Activity
                         // The mRecipientsWatcher will be call while UI thread deal
                         // with the "postHandlePendingChips" runnable.
                         mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
+                        updateTitle(list);
+                        mTextEditor.requestFocus();
 
                         // if process finished, then dismiss the progress dialog
                         progressDialog.dismiss();
@@ -3864,9 +3910,17 @@ public class ComposeMessageActivity extends Activity
         // If this is a forwarded message, it will have an Intent extra
         // indicating so.  If not, bail out.
         if (intent.getBooleanExtra("forwarded_message", false) == false) {
+            if (mConversation != null) {
+                mConversation.setHasMmsForward(false);
+            }
             return false;
         }
-
+        if (mConversation != null) {
+            mConversation.setHasMmsForward(true);
+            String recipientNumber = intent.getStringExtra("msg_recipient");
+            // save the recipient of the forwarded Mms.
+            mConversation.setForwardRecipientNumber(recipientNumber);
+        }
         Uri uri = intent.getParcelableExtra("msg_uri");
 
         if (Log.isLoggable(LogTag.APP, Log.DEBUG)) {
@@ -3961,8 +4015,20 @@ public class ComposeMessageActivity extends Activity
             } else if (type.startsWith("video/") ||
                     (wildcard && uri.toString().startsWith(mVideoUri))) {
                 addVideo(uri, append);
-            }
+            }else if (type.equals("text/x-vcard")
+                    || (wildcard && isVcardFile(uri))) {
+                addVcard(uri);
+            } 
         }
+    }
+    private boolean isVcardFile(Uri uri) {
+        String path = uri.getPath();
+        return null != path && path.toLowerCase().endsWith(".vcf");
+    }
+
+    private void addVcard(Uri uri) {
+        int result = mWorkingMessage.setAttachment(WorkingMessage.VCARD, uri, false);
+        handleAddAttachmentError(result, R.string.type_vcard);
     }
 
     private String getResourcesString(int id, String mediaName) {

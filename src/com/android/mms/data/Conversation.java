@@ -96,6 +96,8 @@ public class Conversation {
     private static Object sDeletingThreadsLock = new Object();
     private boolean mMarkAsReadBlocked;
     private boolean mMarkAsReadWaiting;
+    private String mForwardRecipientNumber;    // The recipient which the forwarded Mms received from.
+    private boolean mHasMmsForward = false;          // True if some Mms be forward
 
     private Conversation(Context context) {
         mContext = context;
@@ -1431,5 +1433,17 @@ public class Conversation {
                     " recipient from DB: " + address);
         }
         return address;
+    }
+     public boolean getHasMmsForward(){
+        return mHasMmsForward;
+    }
+    public void setHasMmsForward(boolean value){
+        mHasMmsForward = value;
+    }
+    public String getForwardRecipientNumber(){
+        return mForwardRecipientNumber;
+    }
+    public void setForwardRecipientNumber(String forwardRecipientNumber){
+        mForwardRecipientNumber = forwardRecipientNumber;
     }
 }

@@ -950,6 +950,12 @@
     <string name="dialing">Connecting network</string>
     <string name="cancel">Cancel</string>    
     <string name="copy_to_sdcard_direction_success">Attachment copied to:</string>
+    <!-- menu item of mobileshowactivity -->
+    <string name="normal_show">View normal mode</string>
+    <string name="cannot_play">Cannot present the slide show.</string>
+    <string name="attach_add_contact_as_vcard">Contact vCard</string>
+    <string name="type_vcard">vCard</string>
+    <string name="import_vcard">Import</string>
 
     <!-- toast for send result -->
     <string name="send_failure">Sending failed!</string>
