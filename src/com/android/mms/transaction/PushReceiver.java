@@ -48,6 +48,7 @@ import android.util.Log;
 
 import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.Recycler;
 import com.android.mms.R;
 import com.google.android.mms.ContentType;
@@ -214,7 +215,7 @@ public class PushReceiver extends BroadcastReceiver {
                             // don't allow persist() to create a thread for the notificationInd
                             // because it causes UI jank.
                             Uri uri = p.persist(pdu, Inbox.CONTENT_URI,
-                                    !NotificationTransaction.allowAutoDownload(),
+                                    !NotificationTransaction.allowAutoDownload() ||MessageUtils.isMmsMemoryFull(mContext),
                                     MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
                                     null);
 

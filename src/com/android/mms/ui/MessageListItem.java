@@ -259,6 +259,16 @@ public class MessageListItem extends LinearLayout implements
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        if (MessageUtils.isMmsMemoryFull(mContext))
+                        {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                            builder.setTitle(R.string.download);
+                            /*builder.setIcon(R.drawable.ic_dialog_alert_holo_light);*/
+                            builder.setCancelable(true);                    
+                            builder.setMessage(mContext.getString(R.string.sms_full_body));
+                            builder.show();
+                            return;
+                        }                            
                         mDownloadingLabel.setVisibility(View.VISIBLE);
                         mDownloadButton.setVisibility(View.GONE);
                         Intent intent = new Intent(mContext, TransactionService.class);

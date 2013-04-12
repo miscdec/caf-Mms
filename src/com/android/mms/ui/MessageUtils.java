@@ -1462,6 +1462,17 @@ public class MessageUtils {
         
         return false;
     }  
+
+    /* Used for judge weather have memory for save mms */
+    public static boolean isMmsMemoryFull(Context context){
+        boolean isCountFull = isSmsMessageJustFull(context);
+        boolean isMemoryFull = isPhoneMemoryFull();
+        if(isCountFull ||isMemoryFull){
+            Log.d(TAG, "isMmsMemoryFull : isCountFull = " + isCountFull + ", isMemoryFull = " + isMemoryFull);
+            return true;
+        }
+        return false;
+    }
     
     public static int getSmsMessageCount(Context context)
     {
