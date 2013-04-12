@@ -311,6 +311,7 @@ public class ManageSimMessagesMultiSelect extends Activity
 
         Toast.makeText(ManageSimMessagesMultiSelect.this, getString(R.string.operate_success),
             Toast.LENGTH_LONG).show();
+        MessageUtils.checkIsPhoneMessageFull(ManageSimMessagesMultiSelect.this);
         finish();
     }
 

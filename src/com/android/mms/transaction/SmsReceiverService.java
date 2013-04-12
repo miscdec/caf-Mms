@@ -529,9 +529,6 @@ public class SmsReceiverService extends Service {
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
             this, MessagingNotification.THREAD_ALL, false);
-        if(MessageUtils.isHasCard()) {
-            MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this);
-        }
 
         if(MessageUtils.isMultiSimEnabledMms())
         {
@@ -550,6 +547,7 @@ public class SmsReceiverService extends Service {
 
     private void handleIccAbsent(int subscription) 
     {    
+        Log.d(TAG, "handleIccAbsent : subscription = " + subscription);
         Uri iccUri = MessageUtils.getIccUriBySubscription(subscription);          
         int tokenId = TOKEN_DELETE_ICC;
         if(MessageUtils.isMultiSimEnabledMms())
@@ -793,8 +791,8 @@ public class SmsReceiverService extends Service {
                 }
         }
 
-        //Uri uri = ContentUris.withAppendedId(uriStr, index);
-        //Log.d(TAG, " uri = " + uri);
+        Uri iccMessageUri = ContentUris.withAppendedId(uriStr, index);
+        Log.d(TAG, "storeMessageToIcc : iccMessageUri = " + iccMessageUri);
         String address = sms.getDisplayOriginatingAddress();
         ContentValues values = new ContentValues(16);
         values.put("service_center_address", sms.getServiceCenterAddress());
@@ -814,7 +812,7 @@ public class SmsReceiverService extends Service {
         values.put(Sms.TYPE, Sms.MESSAGE_TYPE_INBOX);
         values.put("status_on_icc", statusOnIcc);
         values.put(Sms.SUB_ID, subId);  
-        values.put(Sms.READ, MessageUtils.MESSAGE_UNREAD);
+        //values.put(Sms.READ, MessageUtils.MESSAGE_UNREAD);
         
         /*if (!TextUtils.isEmpty(address)){
             values.put(Sms.THREAD_ID, 
@@ -822,7 +820,7 @@ public class SmsReceiverService extends Service {
         }*/
 
         ContentResolver resolver = context.getContentResolver();        
-        return SqliteWrapper.insert(context, resolver, uriStr, values);
+        return SqliteWrapper.insert(context, resolver, iccMessageUri, values);
     }
 
     /**

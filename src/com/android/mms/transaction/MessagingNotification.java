@@ -132,6 +132,11 @@ public class MessagingNotification {
     private static final int COLUMN_SUBJECT_CS  = 4;
     private static final int COLUMN_SMS_BODY    = 4;
     private static final int COLUMN_SUB_ID      = 5;
+    //SMS_ICC_STATUS_PROJECTION
+    private static final int COLUMN_ICC_DATE    = 0;
+    private static final int COLUMN_ICC_ADDRESS = 1;
+    private static final int COLUMN_ICC_BODY    = 2;
+
 
     private static final int WAKE_LOCK_TIMEOUT = 5000;
     private static PowerManager.WakeLock mWakeLock;
@@ -145,6 +150,7 @@ public class MessagingNotification {
 
     private static final String NEW_INCOMING_ICC_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
+            + " AND " + Sms.SUB_ID + " = ? "
             + " AND status_on_icc = 3)";
 
     private static final String NEW_DELIVERY_SM_CONSTRAINT =
@@ -330,7 +336,8 @@ public class MessagingNotification {
     }
 
     public static void blockingUpdateNewMessageOnIccIndicator(Context context, int subscription) {
-        if(!MessageUtils.isHasCard(subscription)) {
+        if((!MessageUtils.isMultiSimEnabledMms() && !MessageUtils.isHasCard()) 
+            || (MessageUtils.isMultiSimEnabledMms() && !MessageUtils.isHasCard(subscription))) {
             return;
         }
         
@@ -801,28 +808,27 @@ public class MessagingNotification {
     private static final void addSmsOnIccNotificationInfos(
             Context context, int subscription, SortedSet<NotificationInfo> notificationSet) {
         ContentResolver resolver = context.getContentResolver();
-        
-        Cursor cursor = SqliteWrapper.query(context, resolver, MessageUtils.getIccUriBySubscription(subscription),
+
+        Cursor cursor = SqliteWrapper.query(context, resolver, MessageUtils.ICC_SMS_URI,
                             SMS_ICC_STATUS_PROJECTION, NEW_INCOMING_ICC_SM_CONSTRAINT,
-                            null, Sms.DATE + " desc");
-        
+                             new String[] {Integer.toString(subscription)}, Sms.DATE + " desc");
+
         if (cursor == null) {
             Log.d(TAG, "addSmsOnIccNotificationInfos:cursor = null");
             return;
         }
-        
+
         try {
             while (cursor.moveToNext()) {
-                String address = cursor.getString(COLUMN_SMS_ADDRESS);
+                String address = cursor.getString(COLUMN_ICC_ADDRESS);
                 Contact contact = Contact.get(address, false);
                 if (contact.getSendToVoicemail()) {
                     // don't notify, skip this one
                     continue;
                 }
 
-                String message = cursor.getString(COLUMN_SMS_BODY);
-                long timeMillis = cursor.getLong(COLUMN_DATE);
-
+                String message = cursor.getString(COLUMN_ICC_BODY);
+                long timeMillis = cursor.getLong(COLUMN_ICC_DATE);
                 NotificationInfo info = getNewMessageOnIccNotificationInfo(context, true /* isSms */,
                         address, message, null /* subject */,
                         -1 /* threadId */, subscription, timeMillis, null /* attachmentBitmap */,
