@@ -1602,6 +1602,11 @@ public class ComposeMessageActivity extends Activity
                         subject += msgItem.mSubject;
                     }
                     intent.putExtra("subject", subject);
+
+                    String[] numbers = mConversation.getRecipients().getNumbers();
+                    if (numbers != null) {
+                        intent.putExtra("msg_recipient",numbers[0]);
+                    }
                 }
                 // ForwardMessageActivity is simply an alias in the manifest for
                 // ComposeMessageActivity. We have to make an alias because ComposeMessageActivity
@@ -3905,9 +3910,17 @@ public class ComposeMessageActivity extends Activity
         // If this is a forwarded message, it will have an Intent extra
         // indicating so.  If not, bail out.
         if (intent.getBooleanExtra("forwarded_message", false) == false) {
+            if (mConversation != null) {
+                mConversation.setHasMmsForward(false);
+            }
             return false;
         }
-
+        if (mConversation != null) {
+            mConversation.setHasMmsForward(true);
+            String recipientNumber = intent.getStringExtra("msg_recipient");
+            // save the recipient of the forwarded Mms.
+            mConversation.setForwardRecipientNumber(recipientNumber);
+        }
         Uri uri = intent.getParcelableExtra("msg_uri");
 
         if (Log.isLoggable(LogTag.APP, Log.DEBUG)) {

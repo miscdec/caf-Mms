@@ -24,24 +24,29 @@ import java.util.HashSet;
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
 import android.content.ComponentName;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
@@ -58,6 +63,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
@@ -81,6 +87,7 @@ import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.pdu.PduHeaders;
 import com.qrd.plugin.feature_query.FeatureQuery;
+
 
 /**
  * This activity provides a list view of existing conversations.
@@ -113,6 +120,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private SearchView mSearchView;
     private int mSavedFirstVisiblePosition = AdapterView.INVALID_POSITION;
     private int mSavedFirstItemOffset;
+    private static ProgressDialog mProgressDialog = null;
 
     // keys for extras and icicles
     private final static String LAST_LIST_POS = "last_list_pos";
@@ -205,6 +213,47 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     };
 
+    static final int OPERATE_DEL_SELECTED_OVER   = 1;
+
+    private Handler uihandler = new Handler() 
+    {
+        @Override
+        public void handleMessage(Message msg) 
+        {
+            switch (msg.what) 
+            {
+               case OPERATE_DEL_SELECTED_OVER:
+                if(mProgressDialog != null && mProgressDialog.isShowing())
+                {
+                    mProgressDialog.dismiss();                
+                }
+                                    
+                // Make sure the conversation cache reflects the threads in the DB.
+                Conversation.init(ConversationList.this);
+
+                // Update the notification for new messages since they
+                // may be deleted.
+                MessagingNotification.nonBlockingUpdateNewMessageIndicator(ConversationList.this,
+                        MessagingNotification.THREAD_NONE, false);
+                // Update the notification for failed messages since they
+                // may be deleted.
+                MessagingNotification.nonBlockingUpdateSendFailedNotification(ConversationList.this);
+                //Update the notification for text message memory may not be full, add for cmcc test
+                MessageUtils.checkIsPhoneMessageFull(ConversationList.this);
+
+                // Make sure the list reflects the delete
+                startAsyncQuery();
+
+                MmsWidgetProvider.notifyDatasetChanged(getApplicationContext());
+
+                break;
+                default:
+                break;
+
+            }
+        }
+    };      
+    
     private void initListAdapter() {
         mListAdapter = new ConversationListAdapter(this, null);
         mListAdapter.setOnContentChangedListener(mContentChangedListener);
@@ -755,13 +804,62 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     PduHeaders.READ_STATUS__DELETED_WITHOUT_BEING_READ, new Runnable() {
                 @Override
                 public void run() {
-                    int token = DELETE_CONVERSATION_TOKEN;
+                    mProgressDialog = new ProgressDialog(mContext);
+                    mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                    mProgressDialog.setCancelable(false);
+                    mProgressDialog.setMessage(mContext.getString(R.string.please_wait));
+                    mProgressDialog.setTitle(R.string.deleting_title);
+
+                    mProgressDialog.show();
+                    WindowManager.LayoutParams lp = mProgressDialog.getWindow().getAttributes();
+                    lp.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_NOSENSOR;
+                    mProgressDialog.getWindow().setAttributes(lp); 
+                    
+                    final int token = DELETE_CONVERSATION_TOKEN;
                     if (mThreadIds == null) {
+                        try
+                        {
+                            Thread.sleep(200);
+                        }
+                        catch(Exception e)
+                        {
+
+                        }
+
+                        if (! mProgressDialog.isShowing()) {
+                            try
+                            {
+                                Thread.sleep(2000);
+                            }
+                            catch(Exception e)
+                            {
+                            
+                            }
+                        }
+                        
                         Conversation.startDeleteAll(mHandler, token, mDeleteLockedMessages);
                         DraftCache.getInstance().refresh();
                     } else {
-                        Conversation.startDelete(mHandler, token, mDeleteLockedMessages,
-                                mThreadIds);
+                        Thread t = new Thread(new Runnable()
+                        {
+                            public void run()
+                            {
+                            if (! mProgressDialog.isShowing()) {
+                                try
+                                {
+                                    Thread.sleep(2000);
+                                }
+                                catch(Exception e)
+                                {
+
+                                }
+                            }
+
+                            Conversation.startDelete(mHandler, token, mDeleteLockedMessages,
+                               mThreadIds);
+                            }
+                        });
+                        t.start();
                     }
                 }
             });
@@ -875,6 +973,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             super.onDeleteComplete(token, cookie, result);
             switch (token) {
             case DELETE_CONVERSATION_TOKEN:
+                if(mProgressDialog != null && mProgressDialog.isShowing())
+                {
+                    mProgressDialog.dismiss();                
+                }
+                                    
                 long threadId = cookie != null ? (Long)cookie : -1;     // default to all threads
 
                 if (threadId == -1) {

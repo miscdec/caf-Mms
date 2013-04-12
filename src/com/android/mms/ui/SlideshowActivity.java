@@ -91,6 +91,7 @@ import com.google.android.mms.pdu.PduBody;
 import android.os.Environment;
 import com.google.android.mms.ContentType;
 import java.util.ArrayList;
+import android.view.View;
 
 /**
  * Plays the given slideshow in full-screen mode with a common controller.
@@ -137,6 +138,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static ProgressDialog mProgressDlg = null;
     private static final String VCALENDAR               = "vCalendar";
     private String direction = new String();
+    private SlideScrollView mScrollView;
 
     /**
      * @return whether the Smil has MMS conformance layout.
@@ -224,6 +226,9 @@ public class SlideshowActivity extends Activity implements EventListener {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
         setContentView(R.layout.slideshow);
+        mScrollView = (SlideScrollView)findViewById(R.id.scroll_slide_view);
+        mScrollView.setScrollBarStyle(0x03000000);
+        mScrollView.setHandler(this, uihandler);
 
         Intent intent = getIntent();
         Uri msg = intent.getData();

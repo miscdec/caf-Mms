@@ -929,7 +929,9 @@
     <!-- Delete confirmation dialog title -->
     <string name="confirm_copy_dialog_title">Copy?</string>
     <!--add for toast when deleting -->
-    <string name="deleting_title">Deleting...</string>     
+    <string name="deleting_title">Deleting...</string>    
+    <!--add for toast when copying -->
+    <string name="copying_title">Copying...</string>    
     <!--add for showing slot type in MailBoxMessageContent -->
     <string name="slot_type">Slot : %s</string>  
     <!-- Show SIM capacity -->

@@ -372,10 +372,6 @@ public class SlideScrollView extends FrameLayout {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-        if (!mFillViewport) {
-            return;
-        }
-
         final int heightMode = MeasureSpec.getMode(heightMeasureSpec);
         if (heightMode == MeasureSpec.UNSPECIFIED) {
             return;
