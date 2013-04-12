@@ -73,7 +73,10 @@ import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.SmileyParser;
 import com.android.mms.util.ThumbnailManager.ImageLoaded;
 import com.google.android.mms.ContentType;
+import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.NotificationInd;
 import com.google.android.mms.pdu.PduHeaders;
+import com.google.android.mms.pdu.PduPersister;
 
 /**
  * This class provides view of a message in the messages list.
@@ -259,6 +262,7 @@ public class MessageListItem extends LinearLayout implements
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        /* Judge weather memory is full */
                         if (MessageUtils.isMmsMemoryFull(mContext))
                         {
                             AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
@@ -268,7 +272,27 @@ public class MessageListItem extends LinearLayout implements
                             builder.setMessage(mContext.getString(R.string.sms_full_body));
                             builder.show();
                             return;
-                        }                            
+                        }           
+                        
+                        /* Judge notification weather is expired */
+                        try {
+                            NotificationInd nInd = (NotificationInd) PduPersister.getPduPersister(mContext)
+                                .load(mMessageItem.mMessageUri);
+                            Log.d(TAG, "Download notify Uri = " + mMessageItem.mMessageUri);
+                            if (nInd.getExpiry() < System.currentTimeMillis()/1000L) {
+                                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                                builder.setTitle(R.string.download);
+                                /*builder.setIcon(R.drawable.ic_dialog_alert_holo_light);*/
+                                builder.setCancelable(true);                    
+                                builder.setMessage(mContext.getString(R.string.service_message_not_found));
+                                builder.show();
+                                return;
+                            }
+                        } catch(MmsException e) {
+                            Log.e(TAG, e.getMessage(), e);
+                            return ;
+                        }
+                        
                         mDownloadingLabel.setVisibility(View.VISIBLE);
                         mDownloadButton.setVisibility(View.GONE);
                         Intent intent = new Intent(mContext, TransactionService.class);
