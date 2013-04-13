@@ -4043,7 +4043,7 @@ public class ComposeMessageActivity extends Activity
         // Reset the counter for text editor.
         resetCounter();
 
-        if (mWorkingMessage.hasSlideshow()) {
+        if (mWorkingMessage.hasSlideshow() || (mWorkingMessage.getSlideshow() != null  && mWorkingMessage.hasAttachment())) {
             mBottomPanel.setVisibility(View.GONE);
             mAttachmentEditor.requestFocus();
             return;
@@ -4576,7 +4576,7 @@ public class ComposeMessageActivity extends Activity
             // When the type of attachment is slideshow, we should
             // also hide the 'Send' button since the slideshow view
             // already has a 'Send' button embedded.
-            if (!mWorkingMessage.hasSlideshow()) {
+            if (!(mWorkingMessage.hasSlideshow() || (mWorkingMessage.getSlideshow() != null  && mWorkingMessage.hasAttachment()))) {
                 enable = true;
             } else {
                 mAttachmentEditor.setCanSend(true);
