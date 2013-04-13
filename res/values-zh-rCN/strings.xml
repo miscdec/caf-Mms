@@ -466,4 +466,5 @@
     <string name="mms_two_days">两天</string>
     <string name="mms_max">最长</string>
     <string name="save_description">在服务器保存时间</string>
+    <string name="status_expired">已过期</string>
 </resources>

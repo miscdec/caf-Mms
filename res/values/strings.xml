@@ -1018,6 +1018,7 @@
     <string name="mms_two_days">Two days</string>
     <string name="mms_max">Maximum</string>
     <string name="save_description">How long the message will be stored in Server</string>
+    <string name="status_expired">Mms expired</string>
     
 </resources>
 

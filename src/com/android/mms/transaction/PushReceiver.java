@@ -169,6 +169,7 @@ public class PushReceiver extends BroadcastReceiver {
             ContentResolver cr = mContext.getContentResolver();
             int type = pdu.getMessageType();
             long threadId = -1;
+            Log.e(TAG, "PushReceiver type = " + type);
 
             try {
                 switch (type) {
