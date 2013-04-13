@@ -1400,7 +1400,7 @@ public class ComposeMessageActivity extends Activity
 
                 if (MessageUtils.getActivatedIccCardCount() > 0)
                 {
-                    menu.add(0, MENU_COPY_TO_SIM, 0, R.string.menu_copy_to)
+                    menu.add(0, MENU_COPY_TO_SIM, 0, R.string.phone_copy_to_card_memory)
                     .setOnMenuItemClickListener(l);
                 }
             }
@@ -1737,7 +1737,14 @@ public class ComposeMessageActivity extends Activity
             items[i] = MessageUtils.getMultiSimName(this, i);
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(getString(R.string.menu_copy_to));
+        if(items.length > 1)
+        {
+            builder.setTitle(getString(R.string.menu_copy_to));
+        }
+        else
+        {
+            builder.setTitle(getString(R.string.operation_to_card_memory));
+        }
         builder.setCancelable(true);
         builder.setItems(items, new DialogInterface.OnClickListener()
         {
