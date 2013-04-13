@@ -106,7 +106,7 @@
     <string name="has_invalid_recipient" msgid="1485388396900997383">"无效接收者：&lt;<xliff:g id="NAME">%1$s</xliff:g>&gt;"</string>
     <string name="invalid_destination" msgid="4573835601024786416">"目标地址无效。"</string>
     <string name="service_not_activated" msgid="9178218144019626176">"该服务尚未在网络上激活。"</string>
-    <string name="service_message_not_found" msgid="1908877102600048515">"短信已过期或无法查看。"</string>
+    <string name="service_message_not_found" msgid="1908877102600048515">"信息已过期或无法查看。"</string>
     <string name="service_network_problem" msgid="4583269174855943025">"遇到网络问题，发送失败。"</string>
     <string name="invalid_recipient_message" msgid="6465343105010999068">"请更正收件人，否则他们无法收到该短信。"</string>
     <string name="cannot_send_message" msgid="3414307479833622644">"无法发送短信"</string>
