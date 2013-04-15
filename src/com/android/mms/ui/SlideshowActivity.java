@@ -701,6 +701,7 @@ public class SlideshowActivity extends Activity implements EventListener {
                 }
                 case SHOW_MEDIA_CONTROLLER:
                  {
+                 if(mMediaController!=null)
                      mMediaController.show();
                      break; 
                  }   

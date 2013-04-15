@@ -235,6 +235,7 @@ public class DeliveryReportActivity extends ListActivity {
             }
         }
 
+        Log.v(LOG_TAG, "status.deliveryStatus = " + status.deliveryStatus);
         switch (status.deliveryStatus) {
             case 0: // No delivery report received so far.
                 return getString(R.string.status_pending);
@@ -243,6 +244,8 @@ public class DeliveryReportActivity extends ListActivity {
                 return getString(R.string.status_received);
             case PduHeaders.STATUS_REJECTED:
                 return getString(R.string.status_rejected);
+            case PduHeaders.STATUS_EXPIRED:
+                return getString(R.string.status_expired);
             default:
                 return getString(R.string.status_failed);
         }

@@ -273,7 +273,7 @@ public class MailBoxMessageContent extends Activity
                 || mMailboxId == Sms.MESSAGE_TYPE_DRAFT
                 || mMailboxId == Sms.MESSAGE_TYPE_SENT))
         {
-            menu.add(0, MENU_COPY, 0, R.string.menu_copy_to);
+            menu.add(0, MENU_COPY, 0, R.string.phone_copy_to_card_memory);
         }
 
         int isLocked = getLockAttr();
@@ -405,7 +405,14 @@ public class MailBoxMessageContent extends Activity
         }
         
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(getString(R.string.menu_copy_to));
+        if(items.length > 1)
+        {
+            builder.setTitle(getString(R.string.menu_copy_to));
+        }
+        else
+        {
+            builder.setTitle(getString(R.string.operation_to_card_memory));
+        }
         builder.setCancelable(true);
         builder.setItems(items, new DialogInterface.OnClickListener()
         {

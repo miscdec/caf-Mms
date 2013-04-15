@@ -489,11 +489,12 @@ public class SmsReceiverService extends Service {
         SmsMessage sms = msgs[0];
         int subscription = sms.getSubId();
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
+        //if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) 
+            {
             Log.v(TAG, "handleSmsReceived" + (sms.isReplace() ? "(replace)" : "") +
                     " messageUri: " + messageUri +
-                    ", address: " + sms.getOriginatingAddress()/* +
-                    ", body: " + sms.getMessageBody()*/);
+                    ", address: " + sms.getOriginatingAddress() +
+                    ", body: " + sms.getMessageBody()/**/);
         }
 
         MessageUtils.checkIsPhoneMessageFull(this);

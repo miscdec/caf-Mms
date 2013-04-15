@@ -64,6 +64,7 @@
     <string name="copy_message_text" msgid="4296252229544252834">"复制文字"</string>
     <string name="message_options" msgid="6838806653341967550">"信息选项"</string>
     <string name="slideshow_options" msgid="3501759384739796431">"幻灯片选项"</string>
+    <string name="done_slide" msgid="7479926268660505871">"完成"</string>
     <string name="done" msgid="7479926268660505871">"完成"</string>
     <string name="move_up" msgid="7307578107431739359">"上移"</string>
     <string name="move_down" msgid="6356509518429479053">"下移"</string>
@@ -106,7 +107,7 @@
     <string name="has_invalid_recipient" msgid="1485388396900997383">"无效接收者：&lt;<xliff:g id="NAME">%1$s</xliff:g>&gt;"</string>
     <string name="invalid_destination" msgid="4573835601024786416">"目标地址无效。"</string>
     <string name="service_not_activated" msgid="9178218144019626176">"该服务尚未在网络上激活。"</string>
-    <string name="service_message_not_found" msgid="1908877102600048515">"短信已过期或无法查看。"</string>
+    <string name="service_message_not_found" msgid="1908877102600048515">"信息已过期或无法查看。"</string>
     <string name="service_network_problem" msgid="4583269174855943025">"遇到网络问题，发送失败。"</string>
     <string name="invalid_recipient_message" msgid="6465343105010999068">"请更正收件人，否则他们无法收到该短信。"</string>
     <string name="cannot_send_message" msgid="3414307479833622644">"无法发送短信"</string>
@@ -459,11 +460,15 @@
     <string name="pref_title_sms_center">短信中心</string>
     <string name="pref_title_sms_center_card1">卡1短信中心</string>  
     <string name="pref_title_sms_center_card2">卡2短信中心</string>  
-
+    <string name="phone_copy_to_card_memory">复制到SIM卡</string>
+    <string name="operation_to_card_memory">到SIM卡</string>
+    <string name="operation_to_phone_memory">到手机内存</string>
+	
     <!-- Settings item description for Mms Validity period  -->
     <string name="pref_title_mms_save_time">信息有效期</string>
     <string name="mms_one_week">一周</string>
     <string name="mms_two_days">两天</string>
     <string name="mms_max">最长</string>
     <string name="save_description">在服务器保存时间</string>
+    <string name="status_expired">已过期</string>
 </resources>

@@ -1138,7 +1138,14 @@ public class MailBoxMessageList extends ListActivity
             items[i] = MessageUtils.getMultiSimName(this, i);
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(getString(R.string.menu_copy_to));
+        if(items.length > 1)
+        {
+            builder.setTitle(getString(R.string.menu_copy_to));
+        }
+        else
+        {
+            builder.setTitle(getString(R.string.operation_to_card_memory));
+        }
         builder.setCancelable(true);
         builder.setItems(items, new DialogInterface.OnClickListener()
         {
