@@ -32,8 +32,7 @@
         android:listSelector="@android:drawable/list_selector_background"
         android:divider="@android:drawable/divider_horizontal_bright"
         android:focusable="true"
-        android:drawSelectorOnTop="false"
-        android:stackFromBottom="true" />
+        android:drawSelectorOnTop="false"/>
     <TextView
         android:id="@+id/empty_message"
         android:layout_width="wrap_content"

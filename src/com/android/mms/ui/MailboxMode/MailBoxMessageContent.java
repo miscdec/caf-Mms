@@ -273,7 +273,7 @@ public class MailBoxMessageContent extends Activity
                 || mMailboxId == Sms.MESSAGE_TYPE_DRAFT
                 || mMailboxId == Sms.MESSAGE_TYPE_SENT))
         {
-            menu.add(0, MENU_COPY, 0, R.string.menu_copy_to);
+            menu.add(0, MENU_COPY, 0, R.string.phone_copy_to_card_memory);
         }
 
         int isLocked = getLockAttr();
@@ -382,7 +382,8 @@ public class MailBoxMessageContent extends Activity
     private void setMessageRead(Context context)
     {
         ContentValues values = new ContentValues(1);
-        values.put(Sms.READ, 1);
+        values.put(Sms.SEEN, MessageUtils.MESSAGE_READ);
+        values.put(Sms.READ, MessageUtils.MESSAGE_READ);
         SqliteWrapper.update(context, getContentResolver(),
                              mMessageUri, values, null, null);
     }  
@@ -404,7 +405,14 @@ public class MailBoxMessageContent extends Activity
         }
         
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(getString(R.string.menu_copy_to));
+        if(items.length > 1)
+        {
+            builder.setTitle(getString(R.string.menu_copy_to));
+        }
+        else
+        {
+            builder.setTitle(getString(R.string.operation_to_card_memory));
+        }
         builder.setCancelable(true);
         builder.setItems(items, new DialogInterface.OnClickListener()
         {
@@ -971,7 +979,8 @@ public class MailBoxMessageContent extends Activity
                 MessagingNotification.nonBlockingUpdateNewMessageIndicator(MailBoxMessageContent.this, MessagingNotification.THREAD_NONE, false);  
             }
             catch(Exception e)
-            {}
+            {
+            }
             Message msg = Message.obtain();
             msg.what = UPDATE_TITLE;
             uihandler.sendMessage(msg);

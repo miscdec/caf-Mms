@@ -29,6 +29,8 @@ LOCAL_SRC_FILES := $(call all-java-files-under, src)
 
 LOCAL_PACKAGE_NAME := MmsTests
 
+LOCAL_MODULE_TAGS := optional
+
 LOCAL_INSTRUMENTATION_FOR := Mms
 
 include $(BUILD_PACKAGE)

@@ -18,11 +18,36 @@
  */
 -->
 
-<merge xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <com.android.mms.ui.SlideView android:id="@+id/slide_view"
-        android:gravity="center"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/slide_show_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:foreground="?android:attr/windowContentOverlay"
+    android:orientation="vertical">
+    <LinearLayout
+    android:id="@+id/linelayout1"    
+    android:orientation="vertical" 
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" 
+    android:gravity="center_horizontal"
+    android:isScrollContainer="true"
+    android:paddingTop="0dip" >
+    <com.android.mms.ui.SlideScrollView  android:id="@+id/scroll_slide_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:scrollbarAlwaysDrawVerticalTrack="true"
+        android:layout_marginRight="0dip"
+        android:layout_weight="1" 
+        android:paddingLeft="5dip"
+        android:stackFromBottom="false"
+        android:foreground="?android:attr/windowContentOverlay"
+        android:orientation="horizontal">
 
-</merge>
+        <com.android.mms.ui.SlideView android:id="@+id/slide_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />    
+
+     </com.android.mms.ui.SlideScrollView >
+    </LinearLayout>
+
+</FrameLayout>

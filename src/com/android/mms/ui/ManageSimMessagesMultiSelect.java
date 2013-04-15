@@ -21,6 +21,7 @@ package com.android.mms.ui;
 
 import com.android.mms.R;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -100,8 +101,10 @@ public class ManageSimMessagesMultiSelect extends Activity
     PowerManager.WakeLock mWakeLock;
     private int mSubscription; // add for DSDS
     private Uri mIccUri;
+    private ProgressDialog mProgressDialog = null;
+    private OperateThread mOperateThread = null;
     private boolean mShowSuccessToast = true;
-    ArrayList<Integer> mSelectedPositions = new ArrayList<Integer>();
+    ArrayList<Cursor> mSelectedCursors = new ArrayList<Cursor>();
     ArrayList<String> mSelectedUris = new ArrayList<String>();
     
     private static final int MENU_DELETE_SELECT = 0;
@@ -113,6 +116,7 @@ public class ManageSimMessagesMultiSelect extends Activity
     private int ACTION_COPY = 1;
     private int ACTION_DELETE = 2;
     private static final int SHOW_TOAST = 1;
+    
     private int mAction = ACTION_NONE;
     
     @Override
@@ -132,7 +136,7 @@ public class ManageSimMessagesMultiSelect extends Activity
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-
+        
         startMsgListQuery();
     }
 
@@ -146,11 +150,19 @@ public class ManageSimMessagesMultiSelect extends Activity
                 case SHOW_TOAST:
                 {                
                     String toastStr = (String) msg.obj;
-                    //Update the notification for text message memory may not be full, add for cmcc test
-                    MessageUtils.checkIsPhoneMessageFull(ManageSimMessagesMultiSelect.this);
-
                     Toast.makeText(ManageSimMessagesMultiSelect.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
+                    
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(ManageSimMessagesMultiSelect.this);
+                    clearSelect();
+                    
+                    if (mProgressDialog != null)
+                    {
+                        mProgressDialog.dismiss();
+                    }
+                    
+                    finish();
                     break; 
                 }
                 default:
@@ -218,7 +230,7 @@ public class ManageSimMessagesMultiSelect extends Activity
                 {
                     return;
                 }
-                mSelectedPositions.add(position);
+                mSelectedCursors.add(c);
                 mSelectedUris.add(getUriStrByCursor(c)); 
             }
         }
@@ -301,52 +313,73 @@ public class ManageSimMessagesMultiSelect extends Activity
 
     private void deleteSelectedMessages()
     {
-        setTitle(getString(R.string.refreshing));
-        setProgressBarIndeterminateVisibility(true);
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        mProgressDialog.setCancelable(false);
+        mProgressDialog.setTitle(R.string.deleting_title);
+        mProgressDialog.setMessage(getString(R.string.please_wait));
+        mProgressDialog.show();
+        if (mOperateThread == null)
+        {
+            mOperateThread = new OperateThread();
+        }
+        Thread thread = new Thread(mOperateThread);
+        thread.setPriority(Thread.MAX_PRIORITY);            
+        thread.start();
+        return;
+    }
 
+    private void deleteMessages()
+    {        
         for (String uri : mSelectedUris)
         { 
             SqliteWrapper.delete(ManageSimMessagesMultiSelect.this, mContentResolver, Uri.parse(uri), null, null);
         }
 
-        Toast.makeText(ManageSimMessagesMultiSelect.this, getString(R.string.operate_success),
-            Toast.LENGTH_LONG).show();
-        MessageUtils.checkIsPhoneMessageFull(ManageSimMessagesMultiSelect.this);
-        finish();
+        Message msg = Message.obtain();
+        msg.what = SHOW_TOAST;
+        msg.obj = getString(R.string.operate_success);   
+        uihandler.sendMessage(msg);
+    }
+    
+    private void copySelectedMessages(boolean isCopyToPhone)
+    {
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        mProgressDialog.setCancelable(false);
+        mProgressDialog.setTitle(R.string.copying_title);
+        mProgressDialog.setMessage(getString(R.string.please_wait));
+        mProgressDialog.show();
+        if (mOperateThread == null)
+        {
+            mOperateThread = new OperateThread(isCopyToPhone);
+        }        
+        Thread thread = new Thread(mOperateThread);
+        thread.start();
     }
 
-    private void copySelectedMessages(final boolean isCopyToPhone)
+    private void copyMessages(boolean isCopyToPhone)
     {
-        final SparseBooleanArray booleanArray = mMsgListView.getCheckedItemPositions();
-        final int size = booleanArray.size();
-        for (int j = 0; j < size; j++)
+        for (Cursor c : mSelectedCursors)
         {
-            int position = booleanArray.keyAt(j);
-            if (!mMsgListView.isItemChecked(position))
-            {
-                continue;
-            }
-            final Cursor c = (Cursor) mMsgListAdapter.getItem(position);
             if (c == null)
             {
-                continue;
+                return;
             } 
-            new Thread(new Runnable() {
-                public void run() {
-                    if(isCopyToPhone)
-                    {
-                        copyToPhoneMemory(c);
-                    }
-                    else
-                    {
-                        copyToCard(c, mSubscription == SUB1 ? SUB2 : SUB1);
-                        if(!mShowSuccessToast)
-                        {
-                            return;
-                        }
-                    }         
-                }
-            }).start();   
+            
+            if(isCopyToPhone)
+            {
+                copyToPhoneMemory(c);       
+            }
+            else
+            {
+                copyToCard(c, mSubscription == SUB1 ? SUB2 : SUB1);
+            } 
+            
+            if(!mShowSuccessToast)
+            {
+                break;
+            }          
         }
         
         if(mShowSuccessToast)
@@ -356,10 +389,8 @@ public class ManageSimMessagesMultiSelect extends Activity
             msg.obj = getString(R.string.operate_success);
             uihandler.sendMessage(msg);
         }
-        
-        this.finish();
     }
-
+    
     private String getUriStrByCursor(Cursor cursor)
     {
         String messageIndexString =
@@ -457,6 +488,15 @@ public class ManageSimMessagesMultiSelect extends Activity
     }
     
     private void copyToPhoneMemory(Cursor cursor) {
+        if(MessageUtils.isSmsMessageJustFull(this))
+        {
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.exceed_message_size_limitation);
+            uihandler.sendMessage(msg);
+            mShowSuccessToast = false;
+            return;
+        }
         String address = cursor.getString(
                 cursor.getColumnIndexOrThrow("address"));
         String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
@@ -500,9 +540,21 @@ public class ManageSimMessagesMultiSelect extends Activity
         menu.add(0, MENU_DELETE_SELECT,  0, R.string.delete)
             .setIcon(R.drawable.ic_menu_trash_holo_dark)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
+        
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
+                .setIcon(R.drawable.ic_menu_copy)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS); 
+
+        }
+        else
+        {
+            menu.add(0, MENU_COPY_SELECT,  0, R.string.sim_copy_to_phone_memory)
             .setIcon(R.drawable.ic_menu_copy)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);  
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS); 
+        }
+ 
     }
 
     private void setupActionBar()
@@ -581,6 +633,35 @@ public class ManageSimMessagesMultiSelect extends Activity
                                     deleteUri, null, null);
     }  
 
+    private class OperateThread extends Thread
+    {
+        boolean mIsCopyToPhone;
+
+        public OperateThread()
+        {
+            super("OperateThread");
+        }
+        
+        public OperateThread(boolean isCopyToPhone)
+        {
+            mIsCopyToPhone = isCopyToPhone;
+        }
+
+        public void run()
+        {
+            if (ACTION_DELETE == mAction)
+            {
+                deleteMessages();             
+            }
+            else if (ACTION_COPY == mAction)
+            {
+                //disenableSleep(ManageSimMessagesMultiSelect.this);                
+                copyMessages(mIsCopyToPhone);                
+                //enalbeSleep();   
+            }
+        }
+    }
+    
     private final class BackgroundQueryHandler extends AsyncQueryHandler {
         public BackgroundQueryHandler(ContentResolver contentResolver) {
             super(contentResolver);

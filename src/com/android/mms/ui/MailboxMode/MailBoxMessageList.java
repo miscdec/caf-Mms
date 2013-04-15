@@ -23,6 +23,7 @@ package com.android.mms.ui;
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.Intent;
@@ -54,6 +55,7 @@ import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.os.Bundle;
@@ -61,6 +63,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
+import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Threads;
@@ -189,7 +192,8 @@ public class MailBoxMessageList extends ListActivity
     private boolean mShowSuccessToast = true;
     private AsyncDialog mAsyncDialog;   // Used for background tasks.
     ArrayList<Integer> mSelectedPositions = new ArrayList<Integer>();
-    
+    private ProgressDialog mProgressDialog = null;
+    private OperateThread mOperateThread = null;
     
     private MailBoxMessageListAdapter mListAdapter = null;
     private final Object mCursorLock = new Object();
@@ -218,6 +222,9 @@ public class MailBoxMessageList extends ListActivity
         LayoutInflater inflater =
                 (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         setContentView(R.layout.mailbox_list_screen);
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        pref.edit().putInt("current_view", MessageUtils.MAILBOX_MODE).commit();
+        
         mSpinners = (View) findViewById(R.id.spinners);
         boxSpinner = (Spinner) findViewById(R.id.box_spinner);
         slotSpinner = (Spinner) findViewById(R.id.slot_spinner);
@@ -255,6 +262,16 @@ public class MailBoxMessageList extends ListActivity
                     String toastStr = (String) msg.obj;
                     Toast.makeText(MailBoxMessageList.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
+
+                    MessagingNotification.blockingUpdateNewMessageIndicator(
+                        MailBoxMessageList.this, MessagingNotification.THREAD_ALL, false);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(MailBoxMessageList.this);
+                     
+                    if (mProgressDialog != null)
+                    {
+                        mProgressDialog.dismiss();
+                    }
 
                     break; 
                 }
@@ -299,10 +316,6 @@ public class MailBoxMessageList extends ListActivity
         }
         showMessageContent(c);
                 
-        if(mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
-        {
-            this.finish();
-        }
     }
 
     private void showMessageContent(Cursor c)
@@ -746,6 +759,39 @@ public class MailBoxMessageList extends ListActivity
             mListView.setVisibility(View.VISIBLE);
         }
     }
+
+    private class OperateThread extends Thread
+    {
+        boolean mDeleteLockedMessages;
+        int mSubscription;
+
+        public OperateThread()
+        {
+            super("OperateThread");
+        }
+        
+        public OperateThread(boolean deleteLockedMessages)
+        {
+            mDeleteLockedMessages = deleteLockedMessages;
+        }
+      
+        public OperateThread(int subscription)
+        {
+            mSubscription = subscription;
+        }
+        
+        public void run()
+        {
+            if (ACTION_DELETE == mAction)
+            {
+                deleteMessages(mDeleteLockedMessages);             
+            }
+            else if (ACTION_COPY == mAction)
+            {             
+                copyMessages(mSubscription);                
+            }
+        }
+    }
     
     private final class BoxMsgListQueryHandler extends AsyncQueryHandler
     {
@@ -812,6 +858,7 @@ public class MailBoxMessageList extends ListActivity
                         if(cursor.getCount() > 0 && mMailboxId != Sms.MESSAGE_TYPE_SEARCH)
                         {
                             mCountTextView.setVisibility(View.VISIBLE);
+
                             if(mQueryBoxType == TYPE_INBOX)
                             {
                                 int count = 0;
@@ -829,8 +876,38 @@ public class MailBoxMessageList extends ListActivity
                             }
                         }
                         else
-                        {
-                            mCountTextView.setVisibility(View.INVISIBLE);
+                        {                                                     
+                            if(mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
+                            {
+                                int count = mCursor.getCount();
+                                int size = cursor.getCount();
+                                if(mMatchWhole == 1)
+                                {
+                                    mSearchKeyStr = Contact.get(mSearchKeyStr, true).getName();
+                                }
+                                
+                                if(count > 0)
+                                {                              
+                                    mMessageTitle.setText(getResources().getQuantityString(
+                                        R.plurals.search_results_title,
+                                        count,
+                                        count,
+                                        mSearchKeyStr));
+                                    
+                                }
+                                else
+                                {
+                                    mMessageTitle.setText(getResources().getQuantityString(
+                                        R.plurals.search_results_title,
+                                        0,
+                                        0,
+                                        mSearchKeyStr));
+                                }                        
+                            }
+                            else
+                            {
+                                mCountTextView.setVisibility(View.INVISIBLE);
+                            }
                         }
                     }                    
                 }
@@ -926,6 +1003,7 @@ public class MailBoxMessageList extends ListActivity
             case R.id.action_change_mode:
                 Intent modeIntent = new Intent(this, ConversationList.class);
                 startActivityIfNeeded(modeIntent, -1);
+                finish();
                 break;
             case R.id.action_sim_card:
                 if (!MessageUtils.isMultiSimEnabledMms()) {
@@ -1060,7 +1138,14 @@ public class MailBoxMessageList extends ListActivity
             items[i] = MessageUtils.getMultiSimName(this, i);
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(getString(R.string.menu_copy_to));
+        if(items.length > 1)
+        {
+            builder.setTitle(getString(R.string.menu_copy_to));
+        }
+        else
+        {
+            builder.setTitle(getString(R.string.operation_to_card_memory));
+        }
         builder.setCancelable(true);
         builder.setItems(items, new DialogInterface.OnClickListener()
         {
@@ -1092,6 +1177,7 @@ public class MailBoxMessageList extends ListActivity
         public void onClick(DialogInterface dialog, int whichButton)
         {
             copySelectedMessages(mSubscription); 
+            
         }
     }
     
@@ -1112,12 +1198,31 @@ public class MailBoxMessageList extends ListActivity
         @Override
         public void onClick(DialogInterface dialog, int whichButton)
         {
-            deleteMessages(mDeleteLockedMessages);            
+            deleteSelectedMessages(mDeleteLockedMessages);       
             MessagingNotification.nonBlockingUpdateNewMessageIndicator(MailBoxMessageList.this,
                 MessagingNotification.THREAD_NONE, false);  
         }
     }
-  
+
+    
+    private void deleteSelectedMessages(boolean deleteLockedMessages)
+    {
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        mProgressDialog.setCancelable(false);
+        mProgressDialog.setTitle(R.string.deleting_title);
+        mProgressDialog.setMessage(getString(R.string.please_wait));
+        mProgressDialog.show();
+        if (mOperateThread == null)
+        {
+            mOperateThread = new OperateThread(deleteLockedMessages);
+        }
+        Thread thread = new Thread(mOperateThread);
+        thread.setPriority(Thread.MAX_PRIORITY);            
+        thread.start();
+        return;
+    }
+    
     private void confirmCopyDialog(OnClickListener listener) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.confirm_copy_dialog_title);
@@ -1156,34 +1261,47 @@ public class MailBoxMessageList extends ListActivity
         builder.show();
     }
 
-    private void copySelectedMessages(final int subscription)
+    
+    private void copySelectedMessages(int subscription)
     {
-        new Thread(new Runnable() {
-            public void run() {            
-                for (Integer position : mSelectedPositions)
-                { 
-                    Cursor c = (Cursor) mListAdapter.getItem(position);
-                    if (c == null)
-                    {
-                        return;
-                    }
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        mProgressDialog.setCancelable(false);
+        mProgressDialog.setTitle(R.string.copying_title);
+        mProgressDialog.setMessage(getString(R.string.please_wait));
+        mProgressDialog.show();
+        if (mOperateThread == null)
+        {
+            mOperateThread = new OperateThread(subscription);
+        }        
+        Thread thread = new Thread(mOperateThread);
+        thread.start();
+    }
 
-                    copyToCard(c, subscription);
-                    if(!mShowSuccessToast)
-                    {
-                        return;
-                    }
-                }
-
-                if(mShowSuccessToast)
-                {
-                    Message msg = Message.obtain();
-                    msg.what = SHOW_TOAST;
-                    msg.obj = getString(R.string.operate_success);
-                    uihandler.sendMessage(msg);
-                }
+    private void copyMessages(int subscription)
+    {          
+        for (Integer position : mSelectedPositions)
+        { 
+            Cursor c = (Cursor) mListAdapter.getItem(position);
+            if (c == null)
+            {
+                return;
             }
-        }).start();   
+
+            copyToCard(c, subscription);
+            if(!mShowSuccessToast)
+            {
+                return;
+            }
+        }
+
+        if(mShowSuccessToast)
+        {
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_success);
+            uihandler.sendMessage(msg);
+        }
     }
 
     private void copyToCard(Cursor cursor, int subscription)
@@ -1277,14 +1395,9 @@ public class MailBoxMessageList extends ListActivity
             {
                 int delSmsCount = SqliteWrapper.delete(this, getContentResolver(),
                     Uri.parse("content://sms"), whereClause, null);
-                if(delSmsCount > 0)
+                if(delSmsCount <= 0)
                 {
-                    Toast.makeText(MailBoxMessageList.this, getString(R.string.operate_success),
-                        Toast.LENGTH_LONG).show();
-                    MessagingNotification.blockingUpdateNewMessageIndicator(
-                        this, MessagingNotification.THREAD_ALL, false);
-                    //Update the notification for text message memory may not be full, add for cmcc test
-                    MessageUtils.checkIsPhoneMessageFull(this);
+                    mShowSuccessToast = false;
                 }
             }
         }
@@ -1302,14 +1415,19 @@ public class MailBoxMessageList extends ListActivity
             {
                 int delMmsCount = SqliteWrapper.delete(this, getContentResolver(),
                                      Uri.parse("content://mms"), whereClause, null);
-                if(delMmsCount > 0)
+                if(delMmsCount <= 0)
                 {
-                    Toast.makeText(MailBoxMessageList.this, getString(R.string.operate_success),
-                        Toast.LENGTH_LONG).show();
-                     MessagingNotification.blockingUpdateNewMessageIndicator(
-                        this, MessagingNotification.THREAD_ALL, false);
+                    mShowSuccessToast = false;
                 }
             }
+        }
+
+        if(mShowSuccessToast)
+        {
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_success);   
+            uihandler.sendMessage(msg);
         }
     }
     

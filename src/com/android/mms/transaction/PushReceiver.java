@@ -47,7 +47,9 @@ import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 
 import com.android.mms.MmsConfig;
+import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.Recycler;
 import com.android.mms.R;
 import com.google.android.mms.ContentType;
@@ -168,6 +170,7 @@ public class PushReceiver extends BroadcastReceiver {
             ContentResolver cr = mContext.getContentResolver();
             int type = pdu.getMessageType();
             long threadId = -1;
+            Log.e(TAG, "PushReceiver type = " + type);
 
             try {
                 switch (type) {
@@ -186,6 +189,9 @@ public class PushReceiver extends BroadcastReceiver {
                         ContentValues values = new ContentValues(1);
                         values.put(Mms.THREAD_ID, threadId);
                         SqliteWrapper.update(mContext, cr, uri, values, null, null);
+                        if (type == MESSAGE_TYPE_DELIVERY_IND){
+                            showNotificationMmsDeliveryStatus((DeliveryInd)pdu);
+                        }
                         break;
                     }
                     case MESSAGE_TYPE_NOTIFICATION_IND: {
@@ -214,7 +220,7 @@ public class PushReceiver extends BroadcastReceiver {
                             // don't allow persist() to create a thread for the notificationInd
                             // because it causes UI jank.
                             Uri uri = p.persist(pdu, Inbox.CONTENT_URI,
-                                    !NotificationTransaction.allowAutoDownload(),
+                                    !NotificationTransaction.allowAutoDownload() ||MessageUtils.isMmsMemoryFull(mContext),
                                     MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
                                     null);
 
@@ -406,4 +412,30 @@ public class PushReceiver extends BroadcastReceiver {
         }
         return false;
     }
+
+    private void showNotificationMmsDeliveryStatus(DeliveryInd pdu) {
+        Log.v(TAG, "showNotificationMmsDeliveryStatus = " + pdu.getStatus());
+        String ct = null;
+        switch (pdu.getStatus()) {
+            case 0: // No delivery report received so far.
+                ct = mContext.getString(R.string.status_pending);
+                break;
+            case PduHeaders.STATUS_FORWARDED:
+            case PduHeaders.STATUS_RETRIEVED:
+                ct =  mContext.getString(R.string.status_received);
+                break;
+            case PduHeaders.STATUS_REJECTED:
+                ct =  mContext.getString(R.string.status_rejected);
+                break;
+            case PduHeaders.STATUS_EXPIRED:
+                ct =  mContext.getString(R.string.status_expired);
+                break;
+            default:
+                ct =  mContext.getString(R.string.status_failed);
+                break;
+        }
+        
+        MessagingNotification.updateMmsDeliveryNotification(mContext, ct);
+    }    
+    
 }

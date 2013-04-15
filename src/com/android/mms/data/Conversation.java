@@ -96,6 +96,8 @@ public class Conversation {
     private static Object sDeletingThreadsLock = new Object();
     private boolean mMarkAsReadBlocked;
     private boolean mMarkAsReadWaiting;
+    private String mForwardRecipientNumber;    // The recipient which the forwarded Mms received from.
+    private boolean mHasMmsForward = false;          // True if some Mms be forward
 
     private Conversation(Context context) {
         mContext = context;
@@ -726,14 +728,23 @@ public class Conversation {
             }
             MmsApp.getApplication().getPduLoaderManager().clear();
             sDeletingThreads = true;
-
+            int size  = threadIds.size();
+            int i=0;
             for (long threadId : threadIds) {
+
                 Uri uri = ContentUris.withAppendedId(Threads.CONTENT_URI, threadId);
                 String selection = deleteAll ? null : "locked=0";
-
-                handler.setDeleteToken(token);
-                handler.startDelete(token, new Long(threadId), uri, selection, null);
-
+                
+                if(i++ == size - 1)
+                {
+                    handler.setDeleteToken(token);                   
+                    handler.startDelete(token, new Long(threadId), uri, selection, null);
+                }
+                else
+                {
+                    handler.startDelete(1800, new Long(threadId), uri, selection, null);
+                }
+ 
                 DraftCache.getInstance().setDraftState(threadId, false);
             }
         }
@@ -824,16 +835,21 @@ public class Conversation {
 
             for (long threadId : threadIds) {
                 if (i++ > 0) {
-                    buf.append(" OR ");
+                    //buf.append(" OR ");
+                    buf.append(",");
+                    
                 }
                 // We have to build the selection arg into the selection because deep down in
                 // provider, the function buildUnionSubQuery takes selectionArgs, but ignores it.
-                buf.append(Mms.THREAD_ID).append("=").append(Long.toString(threadId));
+                //buf.append(Mms.THREAD_ID).append("=").append(Long.toString(threadId));
+                buf.append(Long.toString(threadId));
             }
-            selection = buf.toString();
+            
+            selection = Mms.THREAD_ID + " IN " + "("+buf.toString()+")";
         }
         handler.startQuery(token, threadIds, uri,
-                ALL_THREADS_PROJECTION, selection, null, Conversations.DEFAULT_SORT_ORDER);
+               ALL_THREADS_PROJECTION, selection, null, Conversations.DEFAULT_SORT_ORDER);
+        
     }
 
     /**
@@ -1417,5 +1433,17 @@ public class Conversation {
                     " recipient from DB: " + address);
         }
         return address;
+    }
+     public boolean getHasMmsForward(){
+        return mHasMmsForward;
+    }
+    public void setHasMmsForward(boolean value){
+        mHasMmsForward = value;
+    }
+    public String getForwardRecipientNumber(){
+        return mForwardRecipientNumber;
+    }
+    public void setForwardRecipientNumber(String forwardRecipientNumber){
+        mForwardRecipientNumber = forwardRecipientNumber;
     }
 }

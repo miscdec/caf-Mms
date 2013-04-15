@@ -41,6 +41,7 @@ import android.util.Log;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
@@ -143,6 +144,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
     public void run() {
         DownloadManager downloadManager = DownloadManager.getInstance();
         boolean autoDownload = allowAutoDownload();
+        boolean isMemoryFull = MessageUtils.isMmsMemoryFull(mContext);
         try {
             if (LOCAL_LOGV) {
                 Log.v(TAG, "Notification transaction launched: " + this);
@@ -153,8 +155,14 @@ public class NotificationTransaction extends Transaction implements Runnable {
             // download a MM immediately.
             int status = STATUS_DEFERRED;
             // Don't try to download when data is suspended, as it will fail, so defer download
-            if (!autoDownload) {
+            if (!autoDownload ) {
                 downloadManager.markState(mUri, DownloadManager.STATE_UNSTARTED);
+                sendNotifyRespInd(status);
+                return;
+            }
+
+            if(isMemoryFull){
+                downloadManager.markState(mUri, DownloadManager.STATE_TRANSIENT_FAILURE);
                 sendNotifyRespInd(status);
                 return;
             }
@@ -246,7 +254,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
             Log.e(TAG, Log.getStackTraceString(t));
         } finally {
             mTransactionState.setContentUri(mUri);
-            if (!autoDownload) {
+            if (!autoDownload ||isMemoryFull ) {
                 // Always mark the transaction successful for deferred
                 // download since any error here doesn't make sense.
                 mTransactionState.setState(SUCCESS);

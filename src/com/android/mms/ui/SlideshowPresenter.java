@@ -34,6 +34,7 @@ import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.TextModel;
 import com.android.mms.model.VideoModel;
+import com.android.mms.model.VcardModel;
 import com.android.mms.ui.AdaptableSlideViewInterface.OnSizeChangedListener;
 import com.android.mms.util.ItemLoadedCallback;
 

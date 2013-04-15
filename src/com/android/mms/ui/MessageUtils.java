@@ -93,6 +93,7 @@ import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.preference.PreferenceManager;
 import com.android.internal.telephony.MSimConstants;
+import com.android.mms.model.VcardModel;
 
 
 /**
@@ -106,7 +107,9 @@ public class MessageUtils {
     private static final String TAG = LogTag.TAG;
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
-    
+    // add for launcher to enter 
+    public static final int MAILBOX_MODE = 0;
+    public static final int CHAT_MODE = 1;
     // add the defination of subscription 
     public static final int SUB_INVALID = -1;  //  for single card product
     public static final int SUB1 = 0;  // for DSDS product of slot one
@@ -125,6 +128,7 @@ public class MessageUtils {
     public static final int STORE_ME = 1;
     public static final int STORE_SM = 2;
     public static boolean sIsIccLoaded  = false;
+    private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
 
     /** Free space (TS 51.011 10.5.3). */
     static public final int STATUS_ON_SIM_FREE      = 0;
@@ -501,6 +505,9 @@ public class MessageUtils {
             if (slide.hasImage()) {
                 return WorkingMessage.IMAGE;
             }
+            if (slide.hasVcard()) {
+                return WorkingMessage.VCARD;
+            }
 
             if (slide.hasText()) {
                 return WorkingMessage.TEXT;
@@ -645,7 +652,24 @@ public class MessageUtils {
             mm = slide.getImage();
         } else if (slide.hasVideo()) {
             mm = slide.getVideo();
-        }
+        }else if (slide.hasVcard()) {
+                    mm = slide.getVcard();
+                    String lookupUri = ((VcardModel) mm).getLookupUri();
+        
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    if (!TextUtils.isEmpty(lookupUri)) {
+                        // if the uri is from the contact, we suggest to view the contact.
+                        intent.setData(Uri.parse(lookupUri));
+                    } else {
+                        // we need open the saved part.
+                        intent.setDataAndType(mm.getUri(), ContentType.TEXT_VCARD.toLowerCase());
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    }
+                    // distinguish view vcard from mms or contacts.
+                    intent.putExtra(VIEW_VCARD, true);
+                    context.startActivity(intent);
+                    return;
+                }
 
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -793,24 +817,34 @@ public class MessageUtils {
         if (threadIds != null) {
             String threadIdSelection = null;
             StringBuilder buf = new StringBuilder();
-            selectionArgs = new String[threadIds.size()];
+            //selectionArgs = new String[threadIds.size()];
             int i = 0;
 
             for (long threadId : threadIds) {
+                /*
                 if (i > 0) {
                     buf.append(" OR ");
                 }
                 buf.append(Mms.THREAD_ID).append("=?");
                 selectionArgs[i++] = Long.toString(threadId);
-            }
-            threadIdSelection = buf.toString();
+                */
+                if (i++ > 0) {
+                    //buf.append(" OR ");
+                    buf.append(",");
+                    
+                }
+                buf.append(Long.toString(threadId));              
 
+            }
+            //threadIdSelection = buf.toString();
+            threadIdSelection = Mms.THREAD_ID + " IN " + "("+buf.toString()+")";
+            
             selectionBuilder.append(" AND (" + threadIdSelection + ")");
         }
 
         final Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
                         Mms.Inbox.CONTENT_URI, new String[] {Mms._ID, Mms.MESSAGE_ID},
-                        selectionBuilder.toString(), selectionArgs, null);
+                        selectionBuilder.toString(), null, null);
 
         if (c == null) {
             return;
@@ -1454,21 +1488,31 @@ public class MessageUtils {
     public static boolean isSmsMessageJustFull(Context context)
     {
         int msgCount = getSmsMessageCount(context);
-     
-        if (msgCount >= MAX_SMS_MESSAGE_COUNT)
+        if (isCMCCTest() && msgCount >= MAX_SMS_MESSAGE_COUNT)
         {
             return true;
         }
         
         return false;
     }  
+
+    /* Used for judge weather have memory for save mms */
+    public static boolean isMmsMemoryFull(Context context){
+        boolean isCountFull = isSmsMessageJustFull(context);
+        boolean isMemoryFull = isPhoneMemoryFull();
+        if(isCountFull ||isMemoryFull){
+            Log.d(TAG, "isMmsMemoryFull : isCountFull = " + isCountFull + ", isMemoryFull = " + isMemoryFull);
+            return true;
+        }
+        return false;
+    }
     
     public static int getSmsMessageCount(Context context)
     {
         int msgCount = -1;
         Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
                         MAILBOX_SMS_MESSAGES_COUNT, null, null, null, null);
-
+        
         if (c == null)
         {
             return msgCount;
@@ -1478,11 +1522,11 @@ public class MessageUtils {
         {
             msgCount = c.getInt(0);
             c.close();
+            Log.d(TAG, "getSmsMessageCount : msgCount = " + msgCount);
             return msgCount;
         }
         c.close();
 
-        Log.d(TAG, "getSmsMessageCount : msgCount = " + msgCount);
         return msgCount;
     }
 
@@ -1701,6 +1745,7 @@ public class MessageUtils {
     {
         if(!isCMCCTest())
         {
+            Log.d(TAG, "checkIsPhoneMessageFull : It's not in cmcc test!");
             return;
         }
         
@@ -1729,7 +1774,7 @@ public class MessageUtils {
         boolean isPhoneFull = (isPhoneMemoryFull || isPhoneSmsCountFull);
         Log.d(TAG, "checkIsSmsMessageFull : isPhoneMemoryFull = " + isPhoneMemoryFull
             + ",isPhoneSmsCountFull = " + isPhoneSmsCountFull);
-        checkModifyPreStore(context, isPhoneSmsCountFull, subscription);
+        checkModifyPreStore(context, isPhoneFull, subscription);
                 
         if (isPhoneSmsCountFull)
         {

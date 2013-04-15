@@ -159,7 +159,7 @@ public class SmilDocumentImpl extends DocumentImpl implements SMILDocument, Docu
                 tagName.equals("img") ||
                 tagName.equals("video")) {
             return new SmilRegionMediaElementImpl(this, tagName);
-        } else if (tagName.equals("audio")) {
+        } else if (tagName.equals("audio")|| tagName.toLowerCase().contains("vcard")) {
             return new SmilMediaElementImpl(this, tagName);
         } else if (tagName.equals("layout")) {
             return new SmilLayoutElementImpl(this, tagName);

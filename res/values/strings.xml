@@ -216,6 +216,7 @@
 
     <!-- Button text on edit slide screen indicating the user wants to finish editing that slide -->
     <string name="done">Done</string>
+    <string name="done_slide">Done</string>
 
     <!-- Menu item in slideshow edit screen for moving the selected slide up in the order -->
     <string name="move_up">Move up</string>
@@ -929,7 +930,9 @@
     <!-- Delete confirmation dialog title -->
     <string name="confirm_copy_dialog_title">Copy?</string>
     <!--add for toast when deleting -->
-    <string name="deleting_title">Deleting...</string>     
+    <string name="deleting_title">Deleting...</string>    
+    <!--add for toast when copying -->
+    <string name="copying_title">Copying...</string>    
     <!--add for showing slot type in MailBoxMessageContent -->
     <string name="slot_type">Slot : %s</string>  
     <!-- Show SIM capacity -->
@@ -951,6 +954,9 @@
     <!-- menu item of mobileshowactivity -->
     <string name="normal_show">View normal mode</string>
     <string name="cannot_play">Cannot present the slide show.</string>
+    <string name="attach_add_contact_as_vcard">Contact vCard</string>
+    <string name="type_vcard">vCard</string>
+    <string name="import_vcard">Import</string>
 
     <!-- toast for send result -->
     <string name="send_failure">Sending failed!</string>
@@ -1006,6 +1012,10 @@
     <string name="pref_title_sms_center">Set SMS center</string> 
     <string name="pref_title_sms_center_card1">Set Card1 SMS center</string> 
     <string name="pref_title_sms_center_card2">Set Card2 SMS center</string> 
+    <string name="phone_copy_to_card_memory">Copy to SIM card</string>
+    <string name="operation_to_card_memory"> to SIM card</string>
+    <string name="operation_to_phone_memory"> to phone memory</string>
+
 
     <!-- Settings item description for Mms Validity period  -->
     <string name="pref_title_mms_save_time">Validity period</string>
@@ -1013,6 +1023,7 @@
     <string name="mms_two_days">Two days</string>
     <string name="mms_max">Maximum</string>
     <string name="save_description">How long the message will be stored in Server</string>
+    <string name="status_expired">Mms expired</string>
     
 </resources>
 
