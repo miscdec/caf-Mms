@@ -64,7 +64,7 @@ import android.text.util.Linkify;
 import android.app.AlertDialog;
 import android.view.KeyEvent;
 import android.content.DialogInterface.OnClickListener;
-
+import android.content.ActivityNotFoundException;
 /**
  * Demonstrates how to write an efficient list adapter. The adapter used in this example binds
  * to an ImageView and to a TextView for each row in the list.
@@ -177,7 +177,13 @@ public class WwwContextMenuActivity extends Activity
         if((url.substring(url.length()-4).compareToIgnoreCase(".mp4")==0) || (url.substring(url.length()-4).compareToIgnoreCase(".3gp")==0) ){
             intent.setDataAndType(Uri.parse(url),"video/*");
         }
-        startActivity(intent);       
+        try{
+            startActivity(intent); 
+            }
+        catch (ActivityNotFoundException e)        
+        {
+            return;
+        }
     }
 
     private void addToLabel()
