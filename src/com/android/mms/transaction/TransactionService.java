@@ -96,6 +96,7 @@ import com.google.android.mms.pdu.PduPersister;
  */
 public class TransactionService extends Service implements Observer {
     private static final String TAG = "TransactionService";
+    private static final boolean DEBUG = true;
 
     /**
      * Used to identify notification intents broadcasted by the
@@ -175,7 +176,7 @@ public class TransactionService extends Service implements Observer {
 
     @Override
     public void onCreate() {
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "Creating TransactionService");
         }
 
@@ -260,7 +261,7 @@ public class TransactionService extends Service implements Observer {
         mConnMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         boolean noNetwork = !isNetworkAvailable();
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "onNewIntent: serviceId: " + serviceId + ": " + intent.getExtras() +
                     " intent=" + intent);
             Log.v(TAG, "    networkAvailable=" + !noNetwork);
@@ -283,12 +284,12 @@ public class TransactionService extends Service implements Observer {
                 try {
                     int count = cursor.getCount();
 
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "onNewIntent: cursor.count=" + count);
                     }
 
                     if (count == 0) {
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                             Log.v(TAG, "onNewIntent: no pending messages. Stopping service.");
                         }
                         RetryScheduler.setRetryAlarm(this);
@@ -303,7 +304,7 @@ public class TransactionService extends Service implements Observer {
 
                     if (noNetwork) {
                         // Make sure we register for connection state changes.
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                             Log.v(TAG, "onNewIntent: registerForConnectionStateChanges");
                         }
                         MmsSystemEventReceiver.registerForConnectionStateChanges(
@@ -362,7 +363,7 @@ public class TransactionService extends Service implements Observer {
                     cursor.close();
                 }
             } else {
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                     Log.v(TAG, "onNewIntent: no pending messages. Stopping service.");
                 }
                 RetryScheduler.setRetryAlarm(this);
@@ -370,7 +371,7 @@ public class TransactionService extends Service implements Observer {
                 stopSelfIfIdle(serviceId);
             }
         } else {
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.v(TAG, "onNewIntent: launch transaction...");
             }
             String uriStr = intent.getStringExtra("uri");
@@ -429,11 +430,11 @@ public class TransactionService extends Service implements Observer {
     private void stopSelfIfIdle(int startId) {
         synchronized (mProcessing) {
             if (mProcessing.isEmpty() && mPending.isEmpty()) {
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                     Log.v(TAG, "stopSelfIfIdle: STOP!");
                 }
                 // Make sure we're no longer listening for connection state changes.
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                     Log.v(TAG, "stopSelfIfIdle: unRegisterForConnectionStateChanges");
                 }
                 MmsSystemEventReceiver.unRegisterForConnectionStateChanges(getApplicationContext());
@@ -478,14 +479,14 @@ public class TransactionService extends Service implements Observer {
         msg.arg1 = serviceId;
         msg.obj = txnBundle;
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "launchTransaction: sending message " + msg);
         }
         mServiceHandler.sendMessage(msg);
     }
 
     private void onNetworkUnavailable(int serviceId, int transactionType) {
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "onNetworkUnavailable: sid=" + serviceId + ", type=" + transactionType);
         }
 
@@ -504,7 +505,7 @@ public class TransactionService extends Service implements Observer {
 
     @Override
     public void onDestroy() {
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "Destroying TransactionService");
         }
         if (!mPending.isEmpty()) {
@@ -544,7 +545,7 @@ public class TransactionService extends Service implements Observer {
         Transaction transaction = (Transaction) observable;
         int serviceId = transaction.getServiceId();
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "update transaction " + serviceId);
         }
 
@@ -552,7 +553,7 @@ public class TransactionService extends Service implements Observer {
             synchronized (mProcessing) {
                 mProcessing.remove(transaction);
                 if (mPending.size() > 0) {
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "update: handle next pending transaction...");
                     }
                     Message msg = mServiceHandler.obtainMessage(
@@ -561,7 +562,7 @@ public class TransactionService extends Service implements Observer {
                     mServiceHandler.sendMessage(msg);
                 }
                 else {
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "update: endMmsConnectivity");
                     }
                     endMmsConnectivity();
@@ -576,7 +577,7 @@ public class TransactionService extends Service implements Observer {
             switch (result) {
                 case TransactionState.SUCCESS:
                     updateTxnRequestStatus(serviceId, true);
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "Transaction complete: " + serviceId);
                     }
 
@@ -602,19 +603,19 @@ public class TransactionService extends Service implements Observer {
                     break;
                 case TransactionState.FAILED:
                     updateTxnRequestStatus(serviceId, false);
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "Transaction failed: " + serviceId);
                     }
                     break;
                 default:
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "Transaction state unknown: " +
                                 serviceId + " " + result);
                     }
                     break;
             }
 
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.v(TAG, "update: broadcast transaction result " + result);
             }
             // Broadcast the result of the transaction.
@@ -656,7 +657,7 @@ public class TransactionService extends Service implements Observer {
         int result = mConnMgr.startUsingNetworkFeature(
                 ConnectivityManager.TYPE_MOBILE, Phone.FEATURE_ENABLE_MMS);
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "beginMmsConnectivity: result=" + result);
         }
 
@@ -672,7 +673,7 @@ public class TransactionService extends Service implements Observer {
 
     protected void endMmsConnectivity() {
         try {
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.v(TAG, "endMmsConnectivity");
             }
 
@@ -728,7 +729,7 @@ public class TransactionService extends Service implements Observer {
          */
         @Override
         public void handleMessage(Message msg) {
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.v(TAG, "Handling incoming message: " + msg + " = " + decodeMessage(msg));
             }
 
@@ -750,7 +751,7 @@ public class TransactionService extends Service implements Observer {
                         }
                     }
 
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "handle EVENT_CONTINUE_MMS_CONNECTIVITY event...");
                     }
 
@@ -778,7 +779,7 @@ public class TransactionService extends Service implements Observer {
                         TransactionBundle args = (TransactionBundle) msg.obj;
                         TransactionSettings transactionSettings;
 
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                             Log.v(TAG, "EVENT_TRANSACTION_REQUEST MmscUrl=" +
                                     args.getMmscUrl() + " proxy port: " + args.getProxyAddress());
                         }
@@ -796,7 +797,7 @@ public class TransactionService extends Service implements Observer {
 
                         int transactionType = args.getTransactionType();
 
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                             Log.v(TAG, "handle EVENT_TRANSACTION_REQUEST: transactionType=" +
                                     transactionType + " " + decodeTransactionType(transactionType));
                         }
@@ -853,7 +854,7 @@ public class TransactionService extends Service implements Observer {
                             return;
                         }
 
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                             Log.v(TAG, "Started processing of incoming message: " + msg);
                         }
                     } catch (Exception ex) {
@@ -877,7 +878,7 @@ public class TransactionService extends Service implements Observer {
                         }
                     } finally {
                         if (transaction == null) {
-                            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                                 Log.v(TAG, "Transaction was null. Stopping self: " + serviceId);
                             }
                             endMmsConnectivity();
@@ -898,7 +899,7 @@ public class TransactionService extends Service implements Observer {
         public void processPendingTransaction(Transaction transaction,
                                                TransactionSettings settings) {
 
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.v(TAG, "processPendingTxn: transaction=" + transaction);
             }
 
@@ -921,12 +922,12 @@ public class TransactionService extends Service implements Observer {
                 try {
                     int serviceId = transaction.getServiceId();
 
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "processPendingTxn: process " + serviceId);
                     }
 
                     if (processTransaction(transaction)) {
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                             Log.v(TAG, "Started deferred processing of transaction  "
                                     + transaction);
                         }
@@ -940,7 +941,7 @@ public class TransactionService extends Service implements Observer {
                 }
             } else {
                 if (numProcessTransaction == 0) {
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "processPendingTxn: no more transaction, endMmsConnectivity");
                     }
                     endMmsConnectivity();
@@ -961,7 +962,7 @@ public class TransactionService extends Service implements Observer {
             synchronized (mProcessing) {
                 for (Transaction t : mPending) {
                     if (t.isEquivalent(transaction)) {
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                             Log.v(TAG, "Transaction already pending: " +
                                     transaction.getServiceId());
                         }
@@ -970,7 +971,7 @@ public class TransactionService extends Service implements Observer {
                 }
                 for (Transaction t : mProcessing) {
                     if (t.isEquivalent(transaction)) {
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                             Log.v(TAG, "Duplicated transaction: " + transaction.getServiceId());
                         }
                         return true;
@@ -983,20 +984,20 @@ public class TransactionService extends Service implements Observer {
                 * to defer processing the transaction until
                 * connectivity is established.
                 */
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                     Log.v(TAG, "processTransaction: call beginMmsConnectivity...");
                 }
                 int connectivityResult = beginMmsConnectivity();
                 if (connectivityResult == PhoneConstants.APN_REQUEST_STARTED) {
                     mPending.add(transaction);
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "processTransaction: connResult=APN_REQUEST_STARTED, " +
                                 "defer transaction pending MMS connectivity");
                     }
                     return true;
                 }
 
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                     Log.v(TAG, "Adding transaction to 'mProcessing' list: " + transaction);
                 }
                 mProcessing.add(transaction);
@@ -1006,7 +1007,7 @@ public class TransactionService extends Service implements Observer {
             sendMessageDelayed(obtainMessage(EVENT_CONTINUE_MMS_CONNECTIVITY),
                                APN_EXTENSION_WAIT);
 
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.v(TAG, "processTransaction: starting transaction " + transaction);
             }
 
@@ -1028,7 +1029,7 @@ public class TransactionService extends Service implements Observer {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.w(TAG, "ConnectivityBroadcastReceiver.onReceive() action: " + action);
             }
 
@@ -1048,14 +1049,14 @@ public class TransactionService extends Service implements Observer {
              * transaction, if any.
              */
 
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.v(TAG, "Handle ConnectivityBroadcastReceiver.onReceive(): " + networkInfo);
             }
 
             // Check availability of the mobile network.
             if ((networkInfo == null) || (networkInfo.getType() !=
                     ConnectivityManager.TYPE_MOBILE_MMS)) {
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                     Log.v(TAG, "   type is not TYPE_MOBILE_MMS, bail");
                 }
                 // This is a very specific fix to handle the case where the phone receives an
@@ -1063,7 +1064,7 @@ public class TransactionService extends Service implements Observer {
                 // When the call ends, restart the process of mms connectivity.
                 if (networkInfo != null &&
                         Phone.REASON_VOICE_CALL_ENDED.equals(networkInfo.getReason())) {
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "   reason is " + Phone.REASON_VOICE_CALL_ENDED +
                                 ", retrying mms connectivity");
                     }
@@ -1073,7 +1074,7 @@ public class TransactionService extends Service implements Observer {
             }
 
             if (!networkInfo.isConnected()) {
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                     Log.v(TAG, "   TYPE_MOBILE_MMS not connected, bail");
                 }
                 return;
