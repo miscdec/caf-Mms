@@ -153,6 +153,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         mHandler = new Handler();
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        mPrefs.edit().putInt("current_view", MessageUtils.CHAT_MODE).commit();
         boolean checkedMessageLimits = mPrefs.getBoolean(CHECKED_MESSAGE_LIMITS, false);
         if (DEBUG) Log.v(TAG, "checkedMessageLimits: " + checkedMessageLimits);
         if (!checkedMessageLimits || DEBUG) {
@@ -428,6 +429,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
 
+        /*
         mSearchItem = menu.findItem(R.id.search);
         mSearchItem.setActionView(new SearchView(this));
         mSearchView = (SearchView) mSearchItem.getActionView();
@@ -436,12 +438,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         mSearchView.setQueryHint(getString(R.string.search_hint));
         mSearchView.setIconifiedByDefault(true);
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-
+        
         if (searchManager != null) {
             SearchableInfo info = searchManager.getSearchableInfo(this.getComponentName());
             mSearchView.setSearchableInfo(info);
         }
-
+        */
+        
         MenuItem cellBroadcastItem = menu.findItem(R.id.action_cell_broadcasts);
         if (cellBroadcastItem != null) {
             // Enable link to Cell broadcast activity depending on the value in config.xml.
@@ -510,6 +513,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             case R.id.action_compose_new:
                 createNewMessage();
                 break;
+            case R.id.search:
+                Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                startActivityIfNeeded(searchintent, -1);
+                break;   
             case R.id.action_delete_all:
                 // The invalid threadId of -1 means all threads here.
                 confirmDeleteThread(-1L, mQueryHandler);
@@ -521,6 +528,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             case R.id.action_change_mode:
                 Intent modeIntent = new Intent(this, MailBoxMessageList.class);
                 startActivityIfNeeded(modeIntent, -1);
+                finish();
                 break;
             case R.id.action_sim_card:
                 if (!MessageUtils.isMultiSimEnabledMms()) {

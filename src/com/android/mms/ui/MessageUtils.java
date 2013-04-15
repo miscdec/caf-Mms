@@ -107,7 +107,9 @@ public class MessageUtils {
     private static final String TAG = LogTag.TAG;
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
-    
+    // add for launcher to enter 
+    public static final int MAILBOX_MODE = 0;
+    public static final int CHAT_MODE = 1;
     // add the defination of subscription 
     public static final int SUB_INVALID = -1;  //  for single card product
     public static final int SUB1 = 0;  // for DSDS product of slot one

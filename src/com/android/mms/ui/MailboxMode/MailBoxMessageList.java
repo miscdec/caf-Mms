@@ -55,6 +55,7 @@ import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.os.Bundle;
@@ -62,6 +63,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
+import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Threads;
@@ -220,6 +222,9 @@ public class MailBoxMessageList extends ListActivity
         LayoutInflater inflater =
                 (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         setContentView(R.layout.mailbox_list_screen);
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        pref.edit().putInt("current_view", MessageUtils.MAILBOX_MODE).commit();
+        
         mSpinners = (View) findViewById(R.id.spinners);
         boxSpinner = (Spinner) findViewById(R.id.box_spinner);
         slotSpinner = (Spinner) findViewById(R.id.slot_spinner);
@@ -311,10 +316,6 @@ public class MailBoxMessageList extends ListActivity
         }
         showMessageContent(c);
                 
-        if(mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
-        {
-            this.finish();
-        }
     }
 
     private void showMessageContent(Cursor c)
@@ -857,6 +858,7 @@ public class MailBoxMessageList extends ListActivity
                         if(cursor.getCount() > 0 && mMailboxId != Sms.MESSAGE_TYPE_SEARCH)
                         {
                             mCountTextView.setVisibility(View.VISIBLE);
+
                             if(mQueryBoxType == TYPE_INBOX)
                             {
                                 int count = 0;
@@ -874,8 +876,38 @@ public class MailBoxMessageList extends ListActivity
                             }
                         }
                         else
-                        {
-                            mCountTextView.setVisibility(View.INVISIBLE);
+                        {                                                     
+                            if(mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
+                            {
+                                int count = mCursor.getCount();
+                                int size = cursor.getCount();
+                                if(mMatchWhole == 1)
+                                {
+                                    mSearchKeyStr = Contact.get(mSearchKeyStr, true).getName();
+                                }
+                                
+                                if(count > 0)
+                                {                              
+                                    mMessageTitle.setText(getResources().getQuantityString(
+                                        R.plurals.search_results_title,
+                                        count,
+                                        count,
+                                        mSearchKeyStr));
+                                    
+                                }
+                                else
+                                {
+                                    mMessageTitle.setText(getResources().getQuantityString(
+                                        R.plurals.search_results_title,
+                                        0,
+                                        0,
+                                        mSearchKeyStr));
+                                }                        
+                            }
+                            else
+                            {
+                                mCountTextView.setVisibility(View.INVISIBLE);
+                            }
                         }
                     }                    
                 }
@@ -971,6 +1003,7 @@ public class MailBoxMessageList extends ListActivity
             case R.id.action_change_mode:
                 Intent modeIntent = new Intent(this, ConversationList.class);
                 startActivityIfNeeded(modeIntent, -1);
+                finish();
                 break;
             case R.id.action_sim_card:
                 if (!MessageUtils.isMultiSimEnabledMms()) {
