@@ -91,7 +91,7 @@ public class GifDecoder extends Thread{
     }
     
     public void free(){
-        currentFrame = null;//moushanli add 2011.12.07 for free memory
+        currentFrame = null;
         GifFrame fg = gifFrame;
         while(fg != null){
             if (fg.image != null) {
