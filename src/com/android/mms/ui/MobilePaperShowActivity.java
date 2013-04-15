@@ -418,6 +418,13 @@ public class MobilePaperShowActivity extends Activity
         }        
         
         menu.add(0, MENU_DETAIL, 0, R.string.view_message_details);
+
+        if((Mms.MESSAGE_BOX_SENT == mMailboxId)){
+            if (getIntent().getBooleanExtra("mms_report", false)) {
+                menu.add(0, MENU_DELIVERY_REPORT, 0, R.string.view_delivery_report);
+            }     
+        }
+        
         if ((PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF == msgType || PduHeaders.MESSAGE_TYPE_SEND_REQ == msgType)
                                                 && !(Mms.MESSAGE_BOX_DRAFTS == mMailboxId)){
 

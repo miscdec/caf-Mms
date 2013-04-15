@@ -1655,6 +1655,7 @@ public class MessageUtils {
     {
         int curPreStore = getCurSmsPreferStore(context, subscription);
         boolean isIccCardFull = isIccCardFull(context, subscription);
+        
         Log.d(TAG, "checkModifyPreStore : curPreStore = "
             + curPreStore + ",isIccCardFull = " + isIccCardFull);
         

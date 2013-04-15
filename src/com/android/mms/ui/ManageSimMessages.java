@@ -19,7 +19,6 @@ package com.android.mms.ui;
 
 import com.android.mms.R;
 import com.android.mms.data.Contact;
-import android.database.sqlite.SqliteWrapper;
 import com.android.mms.LogTag;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.util.Recycler;
@@ -72,7 +71,6 @@ import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.TelephonyIntents;
 
 import java.util.ArrayList;
-import com.android.mms.transaction.MessagingNotification;
 
 /**
  * Displays a list of the SMS messages stored on the ICC.
@@ -671,7 +669,7 @@ public class ManageSimMessages extends Activity
 
     private boolean isIncomingMessage(Cursor cursor) {
         int messageStatus = cursor.getInt(
-                cursor.getColumnIndexOrThrow("status"));
+                cursor.getColumnIndexOrThrow("status_on_icc"));
             
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
