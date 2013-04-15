@@ -26,6 +26,7 @@ import com.android.mms.util.Recycler;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.AsyncQueryHandler;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -110,7 +111,7 @@ public class ManageSimMessages extends Activity
     private TextView mMessage;
     private MessageListAdapter mListAdapter = null;
     private AsyncQueryHandler mQueryHandler = null;
-
+    private ProgressDialog mProgressDialog = null;
     private boolean mIsDeleteAll = false;
 
     public static final int SIM_FULL_NOTIFICATION_ID = 234;
@@ -701,6 +702,17 @@ public class ManageSimMessages extends Activity
                     cursor.moveToPosition(i);
                     deleteFromSim(cursor);
                 }
+                
+                if (mProgressDialog != null)
+                {
+                    mProgressDialog.dismiss();
+                }
+                
+                Message msg = Message.obtain();
+                msg.what = SHOW_TOAST;
+                msg.obj = getString(R.string.operate_success);   
+                uihandler.sendMessage(msg);
+                
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -740,7 +752,13 @@ public class ManageSimMessages extends Activity
             case OPTION_MENU_DELETE_ALL:
                 confirmDeleteDialog(new OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        updateState(SHOW_BUSY);
+                        //updateState(SHOW_BUSY);
+                        mProgressDialog = new ProgressDialog(ManageSimMessages.this);
+                        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                        mProgressDialog.setCancelable(false);
+                        mProgressDialog.setTitle(R.string.deleting_title);
+                        mProgressDialog.setMessage(getString(R.string.please_wait));
+                        mProgressDialog.show();
                         new Thread() {
                             @Override
                             public void run() {

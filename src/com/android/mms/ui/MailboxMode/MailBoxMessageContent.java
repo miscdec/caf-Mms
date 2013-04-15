@@ -382,7 +382,8 @@ public class MailBoxMessageContent extends Activity
     private void setMessageRead(Context context)
     {
         ContentValues values = new ContentValues(1);
-        values.put(Sms.READ, 1);
+        values.put(Sms.SEEN, MessageUtils.MESSAGE_READ);
+        values.put(Sms.READ, MessageUtils.MESSAGE_READ);
         SqliteWrapper.update(context, getContentResolver(),
                              mMessageUri, values, null, null);
     }  
@@ -971,7 +972,8 @@ public class MailBoxMessageContent extends Activity
                 MessagingNotification.nonBlockingUpdateNewMessageIndicator(MailBoxMessageContent.this, MessagingNotification.THREAD_NONE, false);  
             }
             catch(Exception e)
-            {}
+            {
+            }
             Message msg = Message.obtain();
             msg.what = UPDATE_TITLE;
             uihandler.sendMessage(msg);
