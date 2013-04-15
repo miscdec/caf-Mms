@@ -101,6 +101,7 @@ public class MessagingNotification {
     public static final int NOTIFICATION_ID = 123;
     public static final int NOTIFICATION_ICC_ID = 124;
     public static final int FULL_NOTIFICATION_ID   = 125;
+    public static final int NOTIFICATION_MMS_DELIVERY_ID   = 126;
 
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
@@ -944,6 +945,20 @@ public class MessagingNotification {
         notification.tickerText = title;
         notification.setLatestEventInfo(context, title, description, intent);
         nm.notify(FULL_NOTIFICATION_ID, notification);
+    }
+
+    public static void updateMmsDeliveryNotification(Context context, String statusStr) {
+        NotificationManager nm = (NotificationManager)context.getSystemService(
+                Context.NOTIFICATION_SERVICE);
+        nm.cancel(NOTIFICATION_MMS_DELIVERY_ID);
+        String title = context.getString(R.string.pref_title_mms_delivery_reports);
+        String description = statusStr;
+        PendingIntent intent = PendingIntent.getActivity(context, 0,  new Intent(), 0);        
+        Notification notification = new Notification();
+        notification.icon = android.R.drawable.stat_notify_chat;
+        notification.tickerText = title;
+        notification.setLatestEventInfo(context, title, description, intent);
+        nm.notify(NOTIFICATION_MMS_DELIVERY_ID, notification);
     }
      
     private static void updateDeliveryNotification(final Context context,
