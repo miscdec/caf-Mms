@@ -360,7 +360,7 @@ public class MessageListItem extends LinearLayout implements
         }
     }
 
-    private void bindCommonMessage(final boolean sameItem) {
+    public void bindCommonMessage(final boolean sameItem) {
         if (mDownloadButton != null) {
             mDownloadButton.setVisibility(View.GONE);
             mDownloadingLabel.setVisibility(View.GONE);

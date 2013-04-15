@@ -279,6 +279,12 @@ public class MessageItem {
         return isOutgoingMms || isOutgoingSms;
     }
 
+    public boolean isSentMessage() {
+        boolean isOutgoingMms = isMms() && (mBoxId == Mms.MESSAGE_BOX_SENT);
+        boolean isOutgoingSms = isSms() && ((mBoxId == Sms.MESSAGE_TYPE_SENT));
+        return isOutgoingMms || isOutgoingSms;
+    }
+
     public boolean isSending() {
         return !isFailedMessage() && isOutgoingMessage();
     }
