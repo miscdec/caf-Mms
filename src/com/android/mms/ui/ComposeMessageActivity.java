@@ -1047,6 +1047,8 @@ public class ComposeMessageActivity extends Activity
                 sendMessageWithChooseDialog(true,isMms);
             } else {
                 sendMessage(true);
+                if(isMms)
+                    goToConversationList();
             }
         }
     }
@@ -4489,20 +4491,6 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (!mSendingMessage) {
-            if (LogTag.SEVERE_WARNING) {
-                String sendingRecipients = mConversation.getRecipients().serialize();
-                if (!sendingRecipients.equals(mDebugRecipients)) {
-                    String workingRecipients = mWorkingMessage.getWorkingRecipients();
-                    if (!mDebugRecipients.equals(workingRecipients)) {
-                        LogTag.warnPossibleRecipientMismatch("ComposeMessageActivity.sendMessage" +
-                                " recipients in window: \"" +
-                                mDebugRecipients + "\" differ from recipients from conv: \"" +
-                                sendingRecipients + "\" and working recipients: " +
-                                workingRecipients, this);
-                    }
-                }
-                sanityCheckConversation();
-            }
 
             // send can change the recipients. Make sure we remove the listeners first and then add
             // them back once the recipient list has settled.
