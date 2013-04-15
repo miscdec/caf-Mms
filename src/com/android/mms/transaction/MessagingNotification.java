@@ -102,6 +102,8 @@ public class MessagingNotification {
     public static final int NOTIFICATION_ICC_ID = 124;
     public static final int FULL_NOTIFICATION_ID   = 125;
     public static final int NOTIFICATION_MMS_DELIVERY_ID   = 126;
+    public static final int NOTIFICATION_ICC1_ID = 127;
+    public static final int NOTIFICATION_ICC2_ID = 128;
 
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
@@ -324,6 +326,17 @@ public class MessagingNotification {
         }
     }
 
+    public static int getNotificationIDBySubscription(int subscription){
+            switch (subscription) {
+            case MessageUtils.SUB1:
+                return NOTIFICATION_ICC1_ID;
+            case MessageUtils.SUB2:
+                return NOTIFICATION_ICC2_ID;
+            default:
+                return NOTIFICATION_ICC_ID;
+        }
+    }
+    
     public static void blockingUpdateNewMessageOnIccIndicator(Context context){
         if(MessageUtils.isMultiSimEnabledMms())
         {
@@ -351,7 +364,7 @@ public class MessagingNotification {
         addSmsOnIccNotificationInfos(context, subscription, notificationSet);
         Log.d(TAG, "blockingUpdateNewMessageOnIccIndicator:notificationSet="+notificationSet);
         if (notificationSet.isEmpty()) {
-            cancelNotification(context, NOTIFICATION_ICC_ID);
+            cancelNotification(context, getNotificationIDBySubscription(subscription));
         } else {
             updateIccNotification(context, true, notificationSet, subscription);
         }
@@ -1384,7 +1397,7 @@ public class MessagingNotification {
         }
         
         wakeScreen(context);
-        nm.notify(NOTIFICATION_ICC_ID, notification);
+        nm.notify(getNotificationIDBySubscription(subscription), notification);
     }
 
     protected static CharSequence buildTickerMessage(

@@ -355,6 +355,7 @@ public class SmsReceiverService extends Service {
                         SEND_PROJECTION, where, null, "date ASC");  // date ASC so we send out in
                                                                     // same order the user tried
                                                                     // to send messages.
+        Log.v(TAG, "sendFirstQueuedMessage = " + c.getCount());
         if (c != null) {
             try {
                 if (c.moveToFirst()) {

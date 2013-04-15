@@ -112,6 +112,7 @@ public class RetryScheduler implements Observer {
         Cursor cursor = SqliteWrapper.query(mContext, mContentResolver,
                 uriBuilder.build(), null, null, null, null);
 
+        Log.v(TAG, "transaction scheduleRetry: cursor count =  " + cursor.getCount());
         if (cursor != null) {
             try {
                 if ((cursor.getCount() == 1) && cursor.moveToFirst()) {

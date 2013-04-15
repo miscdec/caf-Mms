@@ -168,6 +168,12 @@ import android.text.format.Time;
 import java.util.Set;
 import java.util.Iterator;
 import static com.android.mms.model.CarrierContentRestriction.MESSAGE_SIZE_LIMIT;
+import com.android.mms.transaction.MessageSender;
+import com.android.mms.transaction.SmsMessageSender;
+import com.google.android.mms.pdu.PduHeaders;
+import com.android.mms.transaction.TransactionService;
+import com.android.mms.transaction.Transaction;
+import com.android.mms.transaction.TransactionBundle;
 
 
 /**
@@ -238,6 +244,10 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_PREFERENCES           = 31;
     private static final int MENU_GROUP_PARTICIPANTS    = 32;
     private static final int MENU_COPY_TO_SIM           = 33;
+
+    private static final int MENU_RESEND                = 34;
+    private static final int MENU_RESEND_MMS            = 35;
+    private static final int MENU_RESEND_SENT_MMS       = 36;
 
     private static final int SHOW_COPY_TOAST = 1;
     private static final int SUBJECT_MAX_LENGTH    =  40;
@@ -365,6 +375,13 @@ public class ComposeMessageActivity extends Activity
     // state of mWorkingMessage. Also, if we are handling a Send or Forward Message Intent,
     // we should not load the draft.
     private boolean mShouldLoadDraft;
+    
+    private boolean mbResendMms = false;
+    private String mstrMsgId = null;
+    private Uri mSendingMessageUri;
+    private int mpduType;
+    private ProgressDialog mProgressDlg = null;
+    private int mMmsCurrentSize = 0;
 
     private Handler mHandler = new Handler();
 
@@ -1415,6 +1432,17 @@ public class ComposeMessageActivity extends Activity
                         .setOnMenuItemClickListener(l);
             }
 
+            if(msgItem.isSms()&&(msgItem.isSentMessage() || msgItem.isFailedMessage())) {
+                menu.add(0, MENU_RESEND, 0, R.string.menu_resend).setOnMenuItemClickListener(l);
+            }
+            if(msgItem.isMms() && msgItem.isFailedMessage() &&(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)) {
+                menu.add(0, MENU_RESEND_MMS, 0, R.string.menu_resend).setOnMenuItemClickListener(l);
+            }
+            if(msgItem.isMms() && msgItem.isSentMessage()&&(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)) {
+                menu.add(0, MENU_RESEND_SENT_MMS, 0, R.string.menu_resend).setOnMenuItemClickListener(l);
+            }
+       
+
             if (msgItem.isMms()) {
                 switch (msgItem.mBoxId) {
                     case Mms.MESSAGE_BOX_INBOX:
@@ -1724,6 +1752,25 @@ public class ComposeMessageActivity extends Activity
 
                 case MENU_UNLOCK_MESSAGE: {
                     lockMessage(mMsgItem, false);
+                    return true;
+                }
+
+                case MENU_RESEND: {
+                    resendShortMessage(msgItem);
+                    return true;
+                }
+
+                case MENU_RESEND_MMS: {
+                    mbResendMms = true;
+                    mstrMsgId = Long.toString(msgId, 10);
+                    handleResendMmsMessage(false);
+                    return true;
+                }
+
+                case MENU_RESEND_SENT_MMS: {
+                    mbResendMms = true;
+                    mstrMsgId = Long.toString(msgId, 10);
+                    handleResendMmsMessage(true);
                     return true;
                 }
 
@@ -5173,4 +5220,67 @@ public class ComposeMessageActivity extends Activity
         }
         // If we're not running, but resume later, the current thread ID will be set in onResume()
     }
+
+    private void resendShortMessage(MessageItem msgItem) {     
+        Uri uri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgItem.mMsgId);
+        Cursor cursor = SqliteWrapper.query(this, getContentResolver(),
+                                         uri, 
+                                         new String[] {Sms.ADDRESS, Sms.BODY, Sms.SUB_ID}, 
+                                         null, null, null);
+        if (cursor != null){
+            try {
+                if ((cursor.getCount() == 1) && cursor.moveToFirst()) {
+                    MessageSender sender = new SmsMessageSender(
+                        this, new String[] { cursor.getString(0) },
+                        cursor.getString(1), mConversation.getThreadId(), cursor.getInt(2));
+                    sender.sendMessage(mConversation.getThreadId());
+
+                    // Delete the undelivered message since the sender will
+                    // save a new one into database.
+                    SqliteWrapper.delete(this, getContentResolver(), uri, null, null);
+                }
+            } catch (MmsException e) {
+                Log.e(TAG, e.getMessage());
+            } finally {
+                cursor.close();
+            }
+        }
+    }
+
+    private boolean handleResendMmsMessage(boolean sent) {
+        if (mbResendMms){            
+            startSendingService(sent);
+            return true;
+        }
+        return false;
+    }
+
+    private void startSendingService(boolean sent) {
+        if ( mbResendMms && null != mstrMsgId ) {
+            Uri uri = null;
+            if(sent) {
+                uri = ContentUris.withAppendedId(Mms.Sent.CONTENT_URI, new Long(mstrMsgId) );//sent
+            } else {
+                uri = ContentUris.withAppendedId(Mms.Outbox.CONTENT_URI, new Long(mstrMsgId) );//Outbox
+            }
+            // Start MMS transaction service
+            mbResendMms = false;
+            mSendingMessageUri = uri;
+            
+            Intent intent = new Intent(this, TransactionService.class);
+            intent.putExtra(TransactionBundle.URI, uri.toString());
+
+            if (mpduType == PduHeaders.MESSAGE_TYPE_READ_REC_IND){
+                intent.putExtra(TransactionBundle.TRANSACTION_TYPE,
+                        Transaction.READREC_TRANSACTION);   
+            }else{
+                intent.putExtra(TransactionBundle.TRANSACTION_TYPE,
+                        Transaction.SEND_TRANSACTION);   
+            }
+            
+            startService(intent);
+           
+        }
+    }
+
 }
