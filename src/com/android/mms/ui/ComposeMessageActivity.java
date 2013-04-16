@@ -23,6 +23,7 @@ import static com.android.mms.transaction.ProgressCallbackEntity.PROGRESS_COMPLE
 import static com.android.mms.transaction.ProgressCallbackEntity.PROGRESS_START;
 import static com.android.mms.transaction.ProgressCallbackEntity.PROGRESS_STATUS_ACTION;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_ID;
+import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_STATUS;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MSG_TYPE;
 import static com.android.mms.ui.MessageListAdapter.PROJECTION;
 
@@ -250,6 +251,9 @@ public class ComposeMessageActivity extends Activity
     // even if we tell it to (turning off and on the screen). So we need to force load the
     // messages+draft after the max delay.
     private static final int LOADING_MESSAGES_AND_DRAFT_MAX_DELAY_MS = 500;
+
+    // If the Mms download success or it is a sent Mms, the download type is 0.
+    private static final int MMS_DOWNLOAD_TYPE_SUCCESS_OR_IS_SENT_MMS = 0;
 
     private ContentResolver mContentResolver;
 
@@ -1107,8 +1111,13 @@ public class ComposeMessageActivity extends Activity
                         break;
                     case WorkingMessage.SLIDESHOW:
                     default:
-                        menu.add(0, MENU_VIEW_SLIDESHOW, 0, R.string.view_slideshow)
-                        .setOnMenuItemClickListener(l);
+                        int downloadType = cursor.getInt(COLUMN_MMS_STATUS);
+
+                        // Show the "view slideshow" menu item only in success item.
+                        if (MMS_DOWNLOAD_TYPE_SUCCESS_OR_IS_SENT_MMS == downloadType) {
+                            menu.add(0, MENU_VIEW_SLIDESHOW, 0, R.string.view_slideshow)
+                            .setOnMenuItemClickListener(l);
+                        }
                         if (haveSomethingToCopyToSDCard(msgItem.mMsgId)) {
                             menu.add(0, MENU_COPY_TO_SDCARD, 0, R.string.copy_to_sdcard)
                             .setOnMenuItemClickListener(l);
