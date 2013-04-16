@@ -4197,7 +4197,7 @@ public class ComposeMessageActivity extends Activity
                 return;                    
             }
                                 
-        intent.putExtra(MULTI_SEL_EXTRA_MAXITEMS, MessageUtils.MAX_RECIPIENT - oldRecipientCount);                                
+        intent.putExtra("com.android.contacts.MULTI_SEL_EXTRA_MAXITEMS", MessageUtils.MAX_RECIPIENT - oldRecipientCount);                                
         startActivityForResult(intent, REQUEST_CODE_PICK);
     }
 
