@@ -706,8 +706,8 @@ public class SlideView extends LinearLayout implements
             viewsByPosition.put(new Position(imageLeft, imageTop), mImageView);
             // According MMS Conformance Document, the image and video should use the same
             // region. So, put the VideoView below the ImageView.
-           // mVideoView = new VideoView(mContext);
-           // viewsByPosition.put(new Position(imageLeft + 1, imageTop), mVideoView);
+            mVideoView = new VideoView(mContext);
+            viewsByPosition.put(new Position(imageLeft + 1, imageTop), mVideoView);
         }
         for (View view : viewsByPosition.values()) {
             if (view instanceof VideoView) {
