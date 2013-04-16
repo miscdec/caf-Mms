@@ -1279,7 +1279,7 @@ public class MailBoxMessageList extends ListActivity
     }
 
     private void copyMessages(int subscription)
-    {          
+    {   
         for (Integer position : mSelectedPositions)
         { 
             Cursor c = (Cursor) mListAdapter.getItem(position);
@@ -1289,6 +1289,7 @@ public class MailBoxMessageList extends ListActivity
             }
 
             copyToCard(c, subscription);
+
             if(!mShowSuccessToast)
             {
                 return;
@@ -1306,14 +1307,13 @@ public class MailBoxMessageList extends ListActivity
 
     private void copyToCard(Cursor cursor, int subscription)
     {        
-        final String type = cursor.getString(COLUMN_MSG_TYPE);
-        if (type.equals("mms"))
+        final String type = cursor.getString(COLUMN_MSG_TYPE);        
+        final String address = cursor.getString(
+                cursor.getColumnIndexOrThrow("address"));
+        if (type.equals("mms") || "Browser Information".equals(address))
         {
             return;                            
         }
-        
-        final String address = cursor.getString(
-                cursor.getColumnIndexOrThrow("address"));
         final String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
         final Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
         final int boxId = cursor.getInt(cursor.getColumnIndexOrThrow("type"));
@@ -1344,7 +1344,7 @@ public class MailBoxMessageList extends ListActivity
             values.put(Sms.READ, MessageUtils.MESSAGE_READ);
             values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
             Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
-            
+                
             Uri retUri = SqliteWrapper.insert(MailBoxMessageList.this, getContentResolver(),
                                               uriStr, values);
             if (uriStr != null && retUri != null) {
@@ -1395,10 +1395,6 @@ public class MailBoxMessageList extends ListActivity
             {
                 int delSmsCount = SqliteWrapper.delete(this, getContentResolver(),
                     Uri.parse("content://sms"), whereClause, null);
-                if(delSmsCount <= 0)
-                {
-                    mShowSuccessToast = false;
-                }
             }
         }
         
@@ -1415,10 +1411,6 @@ public class MailBoxMessageList extends ListActivity
             {
                 int delMmsCount = SqliteWrapper.delete(this, getContentResolver(),
                                      Uri.parse("content://mms"), whereClause, null);
-                if(delMmsCount <= 0)
-                {
-                    mShowSuccessToast = false;
-                }
             }
         }
 

@@ -248,6 +248,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_RESEND                = 34;
     private static final int MENU_RESEND_MMS            = 35;
     private static final int MENU_RESEND_SENT_MMS       = 36;
+    private static final int MENU_LOAD_PUSH             = 37;
 
     private static final int SHOW_COPY_TOAST = 1;
     private static final int SUBJECT_MAX_LENGTH    =  40;
@@ -1403,6 +1404,15 @@ public class ComposeMessageActivity extends Activity
 
             MsgListMenuClickListener l = new MsgListMenuClickListener(msgItem);
 
+            if(msgItem.isPushMessage())
+            {
+                menu.add(0, MENU_LOAD_PUSH, 0, R.string.menu_load_push)
+                    .setOnMenuItemClickListener(l);
+                menu.add(0, MENU_DELETE_MESSAGE, 0, R.string.menu_delete_msg)
+                    .setOnMenuItemClickListener(l);
+                return;
+            }
+            
             // It is unclear what would make most sense for copying an MMS message
             // to the clipboard, so we currently do SMS only.
             if (msgItem.isSms()) {
@@ -1774,12 +1784,43 @@ public class ComposeMessageActivity extends Activity
                     return true;
                 }
 
+                case MENU_LOAD_PUSH: {
+                    loadUrl(msgItem.mBody);
+                    return true;
+                }
+                
                 default:
                     return false;
             }
         }
     }
 
+    private void loadUrl(String body)
+    {        
+        String url = body.substring(body.indexOf("http"));
+        
+        if (TextUtils.isEmpty(url))
+        {
+            return;
+        }
+        if (!url.regionMatches(true, 0, "http://", 0, 7) 
+                && !url.regionMatches(true, 0, "https://", 0, 8))
+        {     
+            url = "http://" + url;
+        }
+        
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        intent.addCategory(Intent.CATEGORY_BROWSABLE);
+        try
+        {
+            startActivity(intent);
+        }        
+        catch (ActivityNotFoundException e)        
+        {
+            Log.e(TAG, "loadUrl :  error url = " + url);
+        }
+    }
+        
     private void showCopySelectDialog(final MessageItem msgItem){
         String[] items = new String[MessageUtils.getActivatedIccCardCount()];
         for (int i = 0; i < items.length; i++) {
@@ -2741,6 +2782,12 @@ public class ComposeMessageActivity extends Activity
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+
+        if(mConversation.getRecipients().size() > 0 &&
+            "Browser Information".equals(mConversation.getRecipients().get(0).getNumber()))
+        {
+            mBottomPanel.setVisibility(View.GONE);
+        }
     }
 
     public void loadMessageContent() {
@@ -3258,6 +3305,12 @@ public class ComposeMessageActivity extends Activity
 
         menu.clear();
 
+        if(mConversation.getRecipients().size() > 0 
+            && "Browser Information".equals(mConversation.getRecipients().get(0).getNumber()))
+        {
+            return true;
+        }
+        
         if (isRecipientCallable()) {
             MenuItem item = menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
                 .setIcon(R.drawable.ic_menu_call)

@@ -297,6 +297,10 @@ public class MessageItem {
         return isFailedMms || isFailedSms;
     }
 
+    public boolean isPushMessage() {
+        return "Browser Information".equals(mAddress);
+    }
+    
     // Note: This is the only mutable field in this class.  Think of
     // mCachedFormattedMessage as a C++ 'mutable' field on a const
     // object, with this being a lazy accessor whose logic to set it
