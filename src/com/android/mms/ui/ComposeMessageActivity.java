@@ -4189,6 +4189,15 @@ public class ComposeMessageActivity extends Activity
     }
     private void launchMultiplePhonePicker() {
         Intent intent = new Intent("com.android.contacts.action.MULTI_PICK",Contacts.CONTENT_URI);
+        int oldRecipientCount = mRecipientsEditor.getRecipientCount();
+        if (oldRecipientCount >= MessageUtils.MAX_RECIPIENT)
+            {
+                Toast.makeText(this, 
+                    R.string.max_recipient, Toast.LENGTH_SHORT).show();
+                return;                    
+            }
+                                
+        intent.putExtra(MULTI_SEL_EXTRA_MAXITEMS, MessageUtils.MAX_RECIPIENT - oldRecipientCount);                                
         startActivityForResult(intent, REQUEST_CODE_PICK);
     }
 

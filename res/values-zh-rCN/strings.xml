@@ -359,7 +359,11 @@
     <string name="confirm_delete_selected_messages">选中的信息将被删除</string>
     <string name="confirm_copy_dialog_title" msgid="2187213750475782725">"要复制吗？"</string>
     <string name="confirm_copy_selected_messages">选中的信息将被复制</string>
-    
+    <string name="menu_selectok">确定</string>
+    <string name="menu_selectall">全选</string>
+    <string name="menu_clearall">取消</string>
+    <string name="operation_exceed">超出最大数目！最大限制条数：<xliff:g id="max_num">%s</xliff:g>。</string>
+
     <string name="batch_operate">批量操作</string>
     <string name="copy_to_phone_success">保存成功</string>
     <string name="copy_to_phone_fail">无法保存</string>
