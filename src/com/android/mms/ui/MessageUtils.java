@@ -467,7 +467,7 @@ public class MessageUtils {
         return details.toString();
     }
 
-    static private String getPriorityDescription(Context context, int PriorityValue) {
+    static public String getPriorityDescription(Context context, int PriorityValue) {
         Resources res = context.getResources();
         switch(PriorityValue) {
             case PduHeaders.PRIORITY_HIGH:
@@ -935,7 +935,7 @@ public class MessageUtils {
         }
     }
 
-    private static String extractEncStr(Context context, EncodedStringValue value) {
+    public static String extractEncStr(Context context, EncodedStringValue value) {
         if (value != null) {
             return value.getString();
         } else {

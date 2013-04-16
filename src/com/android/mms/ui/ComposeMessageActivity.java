@@ -4242,27 +4242,21 @@ public class ComposeMessageActivity extends Activity
     }
     private void launchMultiplePhonePicker() {
         Intent intent = new Intent("com.android.contacts.action.MULTI_PICK",Contacts.CONTENT_URI);
+        int oldRecipientCount = mRecipientsEditor.getRecipientCount();
+        if (oldRecipientCount >= MessageUtils.MAX_RECIPIENT)
+            {
+                Toast.makeText(this, 
+                    R.string.max_recipient, Toast.LENGTH_SHORT).show();
+                return;                    
+            }
+                                
+        intent.putExtra("com.android.contacts.MULTI_SEL_EXTRA_MAXITEMS", MessageUtils.MAX_RECIPIENT - oldRecipientCount);                                
         startActivityForResult(intent, REQUEST_CODE_PICK);
     }
 
     @Override
     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-        if (event != null) {
-            // if shift key is down, then we want to insert the '\n' char in the TextView;
-            // otherwise, the default action is to send the message.
-            if (!event.isShiftPressed() && event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (isPreparedForSending()) {
-                    confirmSendMessageIfNeeded();
-                }
-                return true;
-            }
-            return false;
-        }
-
-        if (isPreparedForSending()) {
-            confirmSendMessageIfNeeded();
-        }
-        return true;
+        return false;
     }
 
     private final TextWatcher mTextEditorWatcher = new TextWatcher() {

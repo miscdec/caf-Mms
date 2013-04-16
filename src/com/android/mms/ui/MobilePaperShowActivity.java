@@ -77,6 +77,10 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.Telephony.Mms;
 import android.os.Looper;
+import android.content.res.Resources;
+import com.google.android.mms.pdu.MultimediaMessagePdu;
+import com.google.android.mms.pdu.RetrieveConf;
+import com.google.android.mms.pdu.SendReq;
 public class MobilePaperShowActivity extends Activity
 {
     private static final String TAG = "MobilePaperShowActivity";
@@ -129,7 +133,7 @@ public class MobilePaperShowActivity extends Activity
         BaseColumns._ID,
         Conversations.THREAD_ID,
         // For SMS
-        "_address",
+       // "_address",
         "NULL AS" + Sms.BODY,
         "pdu.date * 1000 AS " + Sms.DATE,
         Sms.READ,
@@ -515,7 +519,7 @@ public class MobilePaperShowActivity extends Activity
             Cursor cursor = SqliteWrapper.query(this, this.getContentResolver(),
                                             mUri, PROJECTION, null, null, null);
             cursor.moveToFirst();
-            String messageDetails = MessageUtils.getMessageDetails(
+            String messageDetails = getMessageDetails(
                     MobilePaperShowActivity.this, cursor, mSlideModel.getCurrentMessageSize());
             cursor.close();
             new AlertDialog.Builder(MobilePaperShowActivity.this)
@@ -798,6 +802,115 @@ public class MobilePaperShowActivity extends Activity
                         });   
     }
 
+public static String getMessageDetails(Context context, Cursor cursor, int size) {
+    if (cursor == null) {
+        return null;
+    }
+
+    int type = cursor.getInt(14);
+    Log.w("huangzengzhi","mobilepaper807 type="+type);
+    switch (type) {
+        case PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF:
+        case PduHeaders.MESSAGE_TYPE_SEND_REQ:
+            return getMultimediaMessageDetails(context, cursor, size);
+        default:
+            Log.w(TAG, "No details could be retrieved.");
+            return "";
+        }
+    }
     
+
+    private static String getMultimediaMessageDetails(
+            Context context, Cursor cursor, int size) {
+
+        StringBuilder details = new StringBuilder();
+        Resources res = context.getResources();
+
+        long id = cursor.getLong(MessageListAdapter.COLUMN_ID);
+        Uri uri = ContentUris.withAppendedId(Mms.CONTENT_URI, id);
+        MultimediaMessagePdu msg;
+
+        try {
+            msg = (MultimediaMessagePdu) PduPersister.getPduPersister(
+                    context).load(uri);
+        } catch (MmsException e) {
+            Log.e(TAG, "Failed to load the message: " + uri, e);
+            return context.getResources().getString(R.string.cannot_get_details);
+        }
+
+        // Message Type: Text message.
+        details.append(res.getString(R.string.message_type_label));
+        details.append(res.getString(R.string.multimedia_message));
+
+        if (msg instanceof RetrieveConf) {
+            // From: ***
+            String from = MessageUtils.extractEncStr(context, ((RetrieveConf) msg).getFrom());
+            details.append('\n');
+            details.append(res.getString(R.string.from_label));
+            details.append(!TextUtils.isEmpty(from)? from:
+                                  res.getString(R.string.hidden_sender_address));
+        }
+
+        // To: ***
+        details.append('\n');
+        details.append(res.getString(R.string.to_address_label));
+        EncodedStringValue[] to = msg.getTo();
+        if (to != null) {
+            details.append(EncodedStringValue.concat(to));
+        }
+        else {
+            Log.w(TAG, "recipient list is empty!");
+        }
+
+
+        // Bcc: ***
+        if (msg instanceof SendReq) {
+            EncodedStringValue[] values = ((SendReq) msg).getBcc();
+            if ((values != null) && (values.length > 0)) {
+                details.append('\n');
+                details.append(res.getString(R.string.bcc_label));
+                details.append(EncodedStringValue.concat(values));
+            }
+        }
+
+        // Date: ***
+        details.append('\n');
+        int msgBox = cursor.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_BOX);
+        if (msgBox == Mms.MESSAGE_BOX_DRAFTS) {
+            details.append(res.getString(R.string.saved_label));
+        } else if (msgBox == Mms.MESSAGE_BOX_INBOX) {
+            details.append(res.getString(R.string.received_label));
+        } else {
+            details.append(res.getString(R.string.sent_label));
+        }
+
+        details.append(MessageUtils.formatTimeStampString(
+                context, msg.getDate() * 1000L, true));
+
+        // Subject: ***
+        details.append('\n');
+        details.append(res.getString(R.string.subject_label));
+
+        EncodedStringValue subject = msg.getSubject();
+        if (subject != null) {
+            String subStr = subject.getString();
+            // Message size should include size of subject.
+            size += subStr.length();
+            details.append(subStr);
+        }
+
+        // Priority: High/Normal/Low
+        details.append('\n');
+        details.append(res.getString(R.string.priority_label));
+        details.append(MessageUtils.getPriorityDescription(context, msg.getPriority()));
+
+        // Message size: *** KB
+        details.append('\n');
+        details.append(res.getString(R.string.message_size_label));
+        details.append((size - 1)/1000 + 1);
+        details.append(" KB");
+
+        return details.toString();
+    }
     
 }
