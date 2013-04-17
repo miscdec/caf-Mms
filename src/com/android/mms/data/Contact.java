@@ -92,9 +92,19 @@ public class Contact {
     private boolean mQueryPending;
     private boolean mIsMe;          // true if this contact is me!
     private boolean mSendToVoicemail;   // true if this contact should not put up notification
+    private static final String PHONE_NUMBER_SEPARATORS = " ()-./";
 
     public interface UpdateListener {
         public void onUpdate(Contact updated);
+    }
+
+	public Contact() {
+        mName = "";
+        mNumberIsModified = false;
+        mLabel = "";
+        mPersonId = 0;
+        mPresenceResId = 0;
+        mIsStale = true;
     }
 
     private Contact(String number, String name) {
@@ -282,6 +292,13 @@ public class Contact {
     public synchronized String getLabel() {
         return mLabel;
     }
+    public synchronized long getPersonId() {
+        return mPersonId;
+    }
+
+    public synchronized void setPersonId(long id) {
+        mPersonId = id;
+    }    
 
     public synchronized Uri getUri() {
         return ContentUris.withAppendedId(Contacts.CONTENT_URI, mPersonId);
@@ -292,6 +309,28 @@ public class Contact {
     }
 
     public synchronized boolean existsInDatabase() {
+        return (mPersonId > 0);
+    }
+
+    // define this fuction for save sim cantact delay, then check it is in database or not
+    public synchronized boolean existsInDatabase(Context context) {
+        Cursor cursor = null;
+
+        try {
+            cursor = context.getContentResolver().query(ContactsCache.PHONES_WITH_PRESENCE_URI,
+                    ContactsCache.CALLER_ID_PROJECTION, Phone.NUMBER + " = ?", new String[] {
+                        mNumber
+                    }, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                mPersonId = cursor.getLong(ContactsCache.CONTACT_ID_COLUMN);
+            } else {
+                mPersonId = 0;
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
         return (mPersonId > 0);
     }
 
@@ -1170,6 +1209,16 @@ public class Contact {
         }
     }
 
+    public synchronized void setName(String  name){
+        mName = name;   
+    }
+    public synchronized void setLabel(String  label){
+        mLabel= label;   
+    }
+
+    public synchronized void setNameAndNumber(String nameAndNumber){
+        mNameAndNumber = nameAndNumber;   
+    }
     private static void log(String msg) {
         Log.d(TAG, msg);
     }

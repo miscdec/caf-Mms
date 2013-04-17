@@ -31,6 +31,7 @@ import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 
 import com.android.mms.LogTag;
+import com.android.mms.data.WorkingMessage;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.util.SendingProgressTokenManager;
@@ -125,7 +126,7 @@ public class MmsMessageSender implements MessageSender {
         SendingProgressTokenManager.put(messageId, token);
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
             Intent intent = new Intent(mContext, TransactionService.class);
-            intent.putExtra(Mms.SUB_ID, ComposeMessageActivity.subSelected);
+            intent.putExtra(Mms.SUB_ID, WorkingMessage.mCurrentConvSub);
             Intent silentIntent = new Intent(mContext,
                     com.android.mms.ui.SelectMmsSubscription.class);
             silentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -143,8 +144,15 @@ public class MmsMessageSender implements MessageSender {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
 
         // Expiry.
-        sendReq.setExpiry(prefs.getLong(
-                MessagingPreferenceActivity.EXPIRY_TIME, DEFAULT_EXPIRY_TIME));
+        long expiryTime = Long.parseLong(
+                prefs.getString(MessagingPreferenceActivity.EXPIRY_TIME, "0"));
+        String expiryStr = prefs.getString(MessagingPreferenceActivity.EXPIRY_TIME, "0");
+        Log.v(TAG, "updatePreferencesHeaders expiryTime = " + expiryTime + ", expiryStr = " + expiryStr);
+        if( expiryTime > 100){
+            sendReq.setExpiry(expiryTime); /* Add for sub , if don't set , net will set to Maxinum to default */
+        }
+        //sendReq.setExpiry(prefs.getLong(
+        //        MessagingPreferenceActivity.EXPIRY_TIME, DEFAULT_EXPIRY_TIME));
 
         // Priority.
         sendReq.setPriority(prefs.getInt(MessagingPreferenceActivity.PRIORITY, DEFAULT_PRIORITY));

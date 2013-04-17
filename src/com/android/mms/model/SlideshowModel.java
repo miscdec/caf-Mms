@@ -69,7 +69,8 @@ public class SlideshowModel extends Model
     private final ArrayList<SlideModel> mSlides;
     private SMILDocument mDocumentCache;
     private PduBody mPduBodyCache;
-    private int mCurrentMessageSize;    // This is the current message size, not including
+    private static final int MMS_INIT_SIZE = 1 * 1024;
+    private int mCurrentMessageSize=MMS_INIT_SIZE;    // This is the current message size, not including
                                         // attachments that can be resized (such as photos)
     private int mTotalMessageSize;      // This is the computed total message size
     private Context mContext;
@@ -284,8 +285,11 @@ public class SlideshowModel extends Model
 
                 if (media.isText()) {
                     part.setData(((TextModel) media).getText().getBytes());
-                } else if (media.isImage() || media.isVideo() || media.isAudio()) {
+                } else if (media.isImage() || media.isVideo() || media.isAudio()|| media.isVcard()) {
                     part.setDataUri(media.getUri());
+                    if (media.isVcard() && !TextUtils.isEmpty(((VcardModel) media).getLookupUri())) {
+                        part.setContentDisposition(((VcardModel) media).getLookupUri().getBytes());
+                        }
                 } else {
                     Log.w(TAG, "Unsupport media: " + media);
                 }
@@ -426,7 +430,7 @@ public class SlideshowModel extends Model
                     slide.unregisterModelChangedObserver(observer);
                 }
             }
-            mCurrentMessageSize = 0;
+            mCurrentMessageSize = 1024;
             mSlides.clear();
             notifyModelChanged(true);
         }
@@ -598,7 +602,20 @@ public class SlideshowModel extends Model
         if (dataChanged) {
             mDocumentCache = null;
             mPduBodyCache = null;
+        
+            mCurrentMessageSize = MMS_INIT_SIZE;
+            for (SlideModel slide : mSlides) {
+                for (MediaModel m : slide){
+                    mCurrentMessageSize += m.getMediaSize();
+                }
+            }
+/*
+            for (MediaModel m : mMedia) {
+                mCurrentMessageSize += m.getMediaSize();
+            }
+            */
         }
+        
     }
 
     public void sync(PduBody pb) {
@@ -630,8 +647,10 @@ public class SlideshowModel extends Model
             return false;
 
         SlideModel slide = get(0);
-        // The slide must have either an image or video, but not both.
-        if (!(slide.hasImage() ^ slide.hasVideo()))
+        // The slide must have either an image or video or vcard, but not both.
+        if (!(((slide.hasImage() ? 1 : 0)
+                + (slide.hasVideo() ? 1 : 0)
+                + (slide.hasVcard() ? 1 : 0)) == 1))
             return false;
 
         // No audio allowed.

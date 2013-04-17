@@ -25,6 +25,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.sqlite.SqliteWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Paint.FontMetricsInt;
 import android.graphics.Typeface;
@@ -73,7 +74,10 @@ import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.SmileyParser;
 import com.android.mms.util.ThumbnailManager.ImageLoaded;
 import com.google.android.mms.ContentType;
+import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.NotificationInd;
 import com.google.android.mms.pdu.PduHeaders;
+import com.google.android.mms.pdu.PduPersister;
 
 /**
  * This class provides view of a message in the messages list.
@@ -110,6 +114,7 @@ public class MessageListItem extends LinearLayout implements
     private int mPosition;      // for debugging
     private ImageLoadedCallback mImageLoadedCallback;
     private boolean mMultiRecipients;
+    private boolean mSimFlag;  // add for showing address only in SIM card list item
 
     public MessageListItem(Context context) {
         super(context);
@@ -137,12 +142,27 @@ public class MessageListItem extends LinearLayout implements
         super.onFinishInflate();
 
         mBodyTextView = (TextView) findViewById(R.id.text_view);
+        mBodyTextView.setTelUrl("tels:");
+        mBodyTextView.setWebUrl("www_custom:");
         mDateView = (TextView) findViewById(R.id.date_view);
         mLockedIndicator = (ImageView) findViewById(R.id.locked_indicator);
         mDeliveredIndicator = (ImageView) findViewById(R.id.delivered_indicator);
         mDetailsIndicator = (ImageView) findViewById(R.id.details_indicator);
         mAvatar = (QuickContactDivot) findViewById(R.id.avatar);
         mMessageBlock = findViewById(R.id.message_block);
+    }
+
+    // add for setting the background according to whether the item is selected
+    public void markAsSelected(boolean selected)
+    {
+        if(selected)
+        {
+            mMessageBlock.setBackgroundResource(R.drawable.list_selected_holo_light);
+        }
+        else
+        {
+            mMessageBlock.setBackgroundResource(R.drawable.listitem_background);
+        }
     }
 
     public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position) {
@@ -153,7 +173,8 @@ public class MessageListItem extends LinearLayout implements
         }
         boolean sameItem = mMessageItem != null && mMessageItem.mMsgId == msgItem.mMsgId;
         mMessageItem = msgItem;
-
+        mSimFlag = mMessageItem.mSimFlag;
+        
         mPosition = position;
         mMultiRecipients = convHasMultiRecipients;
 
@@ -206,7 +227,7 @@ public class MessageListItem extends LinearLayout implements
                                 + String.valueOf((mMessageItem.mMessageSize + 1023) / 1024)
                                 + mContext.getString(R.string.kilobyte);
 
-        mBodyTextView.setText(formatMessage(mMessageItem, null,
+        mBodyTextView.setTextExt(formatMessage(mMessageItem, null,
                                             mMessageItem.mSubscription,
                                             mMessageItem.mSubject,
                                             mMessageItem.mHighlight,
@@ -242,6 +263,38 @@ public class MessageListItem extends LinearLayout implements
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        /* Judge weather memory is full */
+                        if (MessageUtils.isMmsMemoryFull(mContext))
+                        {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                            builder.setTitle(R.string.download);
+                            /*builder.setIcon(R.drawable.ic_dialog_alert_holo_light);*/
+                            builder.setCancelable(true);                    
+                            builder.setMessage(mContext.getString(R.string.sms_full_body));
+                            builder.show();
+                            return;
+                        }           
+                        
+                        /* Judge notification weather is expired */
+                        try {
+                            NotificationInd nInd = (NotificationInd) PduPersister.getPduPersister(mContext)
+                                .load(mMessageItem.mMessageUri);
+                            Log.d(TAG, "Download notify Uri = " + mMessageItem.mMessageUri);
+                            if (nInd.getExpiry() < System.currentTimeMillis()/1000L) {
+                                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                                builder.setTitle(R.string.download);
+                                /*builder.setIcon(R.drawable.ic_dialog_alert_holo_light);*/
+                                builder.setCancelable(true);                    
+                                builder.setMessage(mContext.getString(R.string.service_message_not_found));
+                                builder.show();
+                                SqliteWrapper.delete(mContext, mContext.getContentResolver(), mMessageItem.mMessageUri, null, null);
+                                return;
+                            }
+                        } catch(MmsException e) {
+                            Log.e(TAG, e.getMessage(), e);
+                            return ;
+                        }
+                        
                         mDownloadingLabel.setVisibility(View.VISIBLE);
                         mDownloadButton.setVisibility(View.GONE);
                         Intent intent = new Intent(mContext, TransactionService.class);
@@ -309,9 +362,41 @@ public class MessageListItem extends LinearLayout implements
             avatarDrawable = sDefaultContactImage;
         }
         mAvatar.setImageDrawable(avatarDrawable);
+        
+        if(isSelf){
+            mAvatar.setClickable(false);
+        }
+        
     }
 
-    private void bindCommonMessage(final boolean sameItem) {
+    // Add this fuction for ManagerSimMessages to update Contact icon
+    public void updateAvatarView(Context context, String addr, boolean isSelf) {
+        Drawable avatarDrawable;
+        if (isSelf || !TextUtils.isEmpty(addr)) {
+            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
+            avatarDrawable = contact.getAvatar(context, sDefaultContactImage);
+
+            if (isSelf) {
+                mAvatar.assignContactUri(Profile.CONTENT_URI);
+                
+            } else {
+                if (contact.existsInDatabase()) {
+                    mAvatar.assignContactUri(contact.getUri());
+                } else {
+                    mAvatar.assignContactFromPhone(contact.getNumber(), true);
+                }
+            }
+        } else {
+            avatarDrawable = sDefaultContactImage;
+        }
+        mAvatar.setImageDrawable(avatarDrawable);
+        
+        if(isSelf){
+            mAvatar.setClickable(false);
+        }
+    }
+
+    public void bindCommonMessage(final boolean sameItem) {
         if (mDownloadButton != null) {
             mDownloadButton.setVisibility(View.GONE);
             mDownloadingLabel.setVisibility(View.GONE);
@@ -351,7 +436,7 @@ public class MessageListItem extends LinearLayout implements
             mMessageItem.setCachedFormattedMessage(formattedMessage);
         }
         if (!sameItem || haveLoadedPdu) {
-            mBodyTextView.setText(formattedMessage);
+            mBodyTextView.setTextExt(formattedMessage);
         }
 
         // Debugging code to put the URI of the image attachment in the body of the list item.
@@ -369,7 +454,7 @@ public class MessageListItem extends LinearLayout implements
                     debugText = slide.getImage().getUri().toString();
                 }
             }
-            mBodyTextView.setText(mPosition + ": " + debugText);
+            mBodyTextView.setTextExt(mPosition + ": " + debugText);
         }
 
         // If we're in the process of sending a message (i.e. pending), then we show a "SENDING..."
@@ -545,8 +630,9 @@ public class MessageListItem extends LinearLayout implements
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
 
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            buf.append( (subId == 0) ? "SUB1:" : "SUB2:");
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !mSimFlag) {
+            buf.append(MessageUtils.getMultiSimName(mContext , subId));
+            buf.append(":");       
             buf.append("\n");
         }
 
@@ -574,12 +660,19 @@ public class MessageListItem extends LinearLayout implements
             }
         }
 
+        if(mSimFlag)
+        {
+            buf.append("\n");
+            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
+        }
+        
         if (highlight != null) {
             Matcher m = highlight.matcher(buf.toString());
             while (m.find()) {
                 buf.setSpan(new StyleSpan(Typeface.BOLD), m.start(), m.end(), 0);
             }
         }
+        
         return buf;
     }
 
@@ -666,15 +759,26 @@ public class MessageListItem extends LinearLayout implements
                             tv.setCompoundDrawables(d, null, null, null);
                         }
                         final String telPrefix = "tel:";
-                        if (url.startsWith(telPrefix)) {
-                            if ((mDefaultCountryIso == null) || mDefaultCountryIso.isEmpty()) {
-                                url = url.substring(telPrefix.length());
+                        // If prefix string is "mailto" then translate it.
+                        final String mailPrefix = "mailto:";
+                        
+                        if(url != null)
+                        {
+                            if (url.startsWith(telPrefix)) {
+                                if ((mDefaultCountryIso == null) || mDefaultCountryIso.isEmpty()) {
+                                    url = url.substring(telPrefix.length());
+                                }
+                                else {
+                                    url = PhoneNumberUtils.formatNumber(
+                                            url.substring(telPrefix.length()), mDefaultCountryIso);
+                                }
                             }
-                            else {
-                                url = PhoneNumberUtils.formatNumber(
-                                        url.substring(telPrefix.length()), mDefaultCountryIso);
+                            else if (url.startsWith(mailPrefix)) {
+                                url = mContext.getResources().getString(R.string.mail_to) +
+                                            url.substring(mailPrefix.length());
                             }
                         }
+
                         tv.setText(url);
                     } catch (android.content.pm.PackageManager.NameNotFoundException ex) {
                         // it's ok if we're unable to set the drawable for this view - the user
@@ -713,6 +817,7 @@ public class MessageListItem extends LinearLayout implements
 
     private void setOnClickListener(final MessageItem msgItem) {
         switch(msgItem.mAttachmentType) {
+            case WorkingMessage.VCARD:
             case WorkingMessage.IMAGE:
             case WorkingMessage.VIDEO:
                 mImageView.setOnClickListener(new OnClickListener() {
@@ -857,5 +962,22 @@ public class MessageListItem extends LinearLayout implements
     public void seekVideo(int seekTo) {
         // TODO Auto-generated method stub
 
+    }
+    @Override
+    public void setVcard(Uri lookupUri, String name) {
+        showMmsView(true);
+
+        try {
+            mImageView.setImageResource(R.drawable.ic_attach_vcard);
+            mImageView.setVisibility(VISIBLE);
+        } catch (java.lang.OutOfMemoryError e) {
+            // shouldn't be here.
+            Log.e(TAG, "setVcard: out of memory: ", e);
+        }
+    }
+
+    @Override
+    public void setVcardVisibility(boolean visible) {
+        // TODO Auto-generated method stub
     }
 }

@@ -44,11 +44,15 @@ import android.widget.VideoView;
 
 import com.android.mms.R;
 import com.android.mms.layout.LayoutManager;
+import android.widget.FrameLayout;
 
+import java.io.InputStream;
+import android.content.ContentResolver;
+import android.text.util.Linkify;
 /**
  * A basic view to show the contents of a slide.
  */
-public class SlideView extends AbsoluteLayout implements
+public class SlideView extends LinearLayout implements
         AdaptableSlideViewInterface {
     private static final String TAG = "SlideView";
     private static final boolean DEBUG = false;
@@ -57,6 +61,7 @@ public class SlideView extends AbsoluteLayout implements
     private static final int AUDIO_INFO_HEIGHT = 82;
 
     private View mAudioInfoView;
+    private Uri mGifUri = null;
     private ImageView mImageView;
     private VideoView mVideoView;
     private ScrollView mScrollText;
@@ -103,32 +108,200 @@ public class SlideView extends AbsoluteLayout implements
         super(context, attrs);
     }
 
-    public void setImage(String name, Bitmap bitmap) {
+    public void setImage(String name, Bitmap bitmap) {   
+        if(null == name && null == bitmap){
+            removeView(mImageView);
+            if (mImageView != null)
+            {
+                if (mImageView instanceof GIFView)
+                {
+                    ((GIFView)mImageView).freeMemory();            
+                }
+            }
+            mImageView = null;
+        }
+        
+        if (mImageView != null && mImageView instanceof GIFView){
+            int position = indexOfChild(mImageView);
+            removeView(mImageView);
+            ((GIFView)mImageView).freeMemory();            
+            mImageView = null;
+            mImageView = new ImageView(mContext);
+            addView(mImageView, position, new LayoutParams(
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+        }
+        
         if (mImageView == null) {
             mImageView = new ImageView(mContext);
             mImageView.setPadding(0, 5, 0, 5);
             addView(mImageView, new LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 0, 0));
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             if (DEBUG) {
-                mImageView.setBackgroundColor(0xFFFF0000);
+                //mImageView.setBackgroundColor(0xFFFF0000);
             }
         }
+
+        if (null == bitmap) {
+            bitmap = BitmapFactory.decodeResource(getResources(),
+                    R.drawable.ic_missing_thumbnail_picture);
+        }
+        mImageView.setImageBitmap(bitmap);
+        //mShowAsImage = true;
+    }  
+
+    public boolean setGIF(Uri uri, Bitmap bitmap) {
+        if (bitmap == null || !isGif(uri))
+        {
+            Log.v(TAG,"uri = " + uri);
+            return false;
+        }
+/*Start of  zhuzhongwei 2011.4.28*/
+        int imageHeight = bitmap.getHeight();
+        int imageWidth = bitmap.getWidth();        
+        int newWidth = LayoutManager.getInstance().getLayoutParameters().getWidth();
+        int screenWidth  = newWidth;
+        int newHeight = LayoutManager.getInstance().getLayoutParameters().getHeight();   
+        int screenHeight = newHeight;
+        Log.v(TAG,"screenWidth = " + screenWidth
+            + ";screenHeight = " + screenHeight);
+
+        if (newWidth < imageWidth)
+        {
+            if (newHeight < imageHeight)
+            {
+                //h big, w big;                            
+                Log.v(TAG," h big, w big");
+                if (imageHeight*screenWidth > imageWidth*screenHeight)
+                {
+                   //too height                
+                   newWidth = (imageWidth * newHeight)/imageHeight;    
+                   Log.v(TAG," h big, w big");                
+                }
+                else
+                {
+                    newHeight = (imageHeight * newWidth)/imageWidth;                   
+                }
+            }
+            else
+            {
+                //h small, w big;
+                newHeight = (imageHeight * newWidth)/imageWidth;
+            }           
+        }
+        else if (newHeight < imageHeight)
+        {
+            //h big, w small;        
+            newWidth = (imageWidth * newHeight)/imageHeight;   
+        }
+        else
+        {
+            newHeight = imageHeight;
+        }
+        Log.v(TAG," newHeight = " + newHeight
+            + ";newWidth = " + newWidth
+            + ";screenWidth = " + screenWidth);            
+/*End   of  zhuzhongwei 2011.4.28*/
+        
+        if (mImageView != null 
+            && (mImageView instanceof GIFView)
+            && mGifUri != null && mGifUri == uri)
+        {
+            if (!mImageView.isShown())
+            {
+                mImageView.setVisibility(View.VISIBLE);
+                if (((GIFView)mImageView).restartGif())
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                return true;
+            }
+            Log.v(TAG," gif is same.");        
+            //return true;
+        }
+        mGifUri = uri;
+        if (mImageView == null) {
+            mImageView = new GIFView(mContext);
+            /*
+            addView(mImageView, new LayoutParams(
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+                    */
+            addView(mImageView, new LayoutParams(
+                    screenWidth, newHeight));                    
+            if (DEBUG) 
+            {
+                //mImageView.setBackgroundColor(0xFFFF0000);
+            }
+        } else if (mImageView != null){
+            int position = indexOfChild(mImageView);
+            removeView(mImageView);
+            if (mImageView instanceof GIFView)
+            {
+                ((GIFView)mImageView).freeMemory();
+            }
+            mImageView = null;
+            mImageView = new GIFView(mContext);
+            addView(mImageView, position, new LayoutParams(
+                        screenWidth, newHeight));
+
+        }
+        return ((GIFView)mImageView).setDrawable(uri);
+    }
+
+    private boolean isGif(Uri uri)
+    {
+        InputStream input = null;
+        ContentResolver cr = mContext.getContentResolver();        
+        try 
+        {
+            input = cr.openInputStream(uri);
+            return isGifHeader(input);
+
+        } catch (IOException e) {
+        } finally {
+            if (null != input) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isGifHeader(InputStream input) {
+        String id = "";
         try {
-            if (null == bitmap) {
-                bitmap = BitmapFactory.decodeResource(getResources(),
-                        R.drawable.ic_missing_thumbnail_picture);
+            for (int i = 0; i < 6; i++) {        
+                id += (char) input.read();
             }
-            mImageView.setVisibility(View.VISIBLE);
-            mImageView.setImageBitmap(bitmap);
-        } catch (java.lang.OutOfMemoryError e) {
-            Log.e(TAG, "setImage: out of memory: ", e);
+        }                
+        catch (Exception e) {
+            Log.v(TAG," e = " + e);
+            return false;
+        }        
+        Log.v(TAG," id = " + id);
+        if (!id.startsWith("GIF")) {
+            return false;
         }
+        return true;
     }
 
     public void setImageRegion(int left, int top, int width, int height) {
-        // Ignore any requirement of layout change once we are in MMS conformance mode.
-        if (mImageView != null && !mConformanceMode) {
-            mImageView.setLayoutParams(new LayoutParams(width, height, left, top));
+        if (mImageView != null) {
+            int W = LayoutManager.getInstance().getLayoutParameters().getWidth();
+            int H = LayoutManager.getInstance().getLayoutParameters().getHeight();
+
+            if (mImageView instanceof GIFView){
+                return;
+                
+            } else{
+                mImageView.setScrollY(-7);
+                mImageView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+            }
         }
     }
 
@@ -140,14 +313,14 @@ public class SlideView extends AbsoluteLayout implements
         if (mVideoView == null) {
             mVideoView = new VideoView(mContext);
             addView(mVideoView, new LayoutParams(
-                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0, 0));
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             if (DEBUG) {
                 mVideoView.setBackgroundColor(0xFFFF0000);
             }
         }
 
         if (LOCAL_LOGV) {
-            Log.v(TAG, "Changing video source to " + video);
+            Log.v(TAG, " video source to " + video);
         }
         mVideoView.setVisibility(View.VISIBLE);
         mVideoView.setVideoURI(video);
@@ -167,8 +340,7 @@ public class SlideView extends AbsoluteLayout implements
                         AUDIO_INFO_HEIGHT));
             } else {
                 addView(mAudioInfoView, new LayoutParams(
-                        LayoutParams.MATCH_PARENT, AUDIO_INFO_HEIGHT,
-                        0, getHeight() - AUDIO_INFO_HEIGHT));
+                        LayoutParams.MATCH_PARENT, AUDIO_INFO_HEIGHT+20));
                 if (DEBUG) {
                     mAudioInfoView.setBackgroundColor(0xFFFF0000);
                 }
@@ -197,7 +369,7 @@ public class SlideView extends AbsoluteLayout implements
         }
 
         if (LOCAL_LOGV) {
-            Log.v(TAG, "Changing audio source to " + audio);
+            Log.v(TAG, " audio source to " + audio);
         }
 
         if (mAudioPlayer != null) {
@@ -231,7 +403,7 @@ public class SlideView extends AbsoluteLayout implements
                 mScrollText = new ScrollView(mContext);
                 mScrollText.setScrollBarStyle(SCROLLBARS_OUTSIDE_INSET);
                 addView(mScrollText, new LayoutParams(
-                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0, 0));
+                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
                 if (DEBUG) {
                     mScrollText.setBackgroundColor(0xFF00FF00);
                 }
@@ -243,8 +415,12 @@ public class SlideView extends AbsoluteLayout implements
             }
             mScrollText.requestFocus();
         }
+        mTextView.setAutoLinkMask(Linkify.ALL);
+        mTextView.setLinksClickable(true);
+        mTextView.setTelUrl("tels:");
+        mTextView.setWebUrl("www_custom:");
         mTextView.setVisibility(View.VISIBLE);
-        mTextView.setText(text);
+        mTextView.setTextExt(text);
         // Let the text in Mms can be selected.
         mTextView.setTextIsSelectable(true);
     }
@@ -252,13 +428,13 @@ public class SlideView extends AbsoluteLayout implements
     public void setTextRegion(int left, int top, int width, int height) {
         // Ignore any requirement of layout change once we are in MMS conformance mode.
         if (mScrollText != null && !mConformanceMode) {
-            mScrollText.setLayoutParams(new LayoutParams(width, height, left, top));
+            mScrollText.setLayoutParams(new LayoutParams(width, height));
         }
     }
 
     public void setVideoRegion(int left, int top, int width, int height) {
         if (mVideoView != null && !mConformanceMode) {
-            mVideoView.setLayoutParams(new LayoutParams(width, height, left, top));
+            mVideoView.setLayoutParams(new LayoutParams(width, height));
         }
     }
 
@@ -384,6 +560,7 @@ public class SlideView extends AbsoluteLayout implements
         if (null != mVideoView) {
             stopVideo();
             mVideoView.setVisibility(View.GONE);
+          //  mVideoView = null;
         }
 
         if (null != mTextView) {
@@ -393,7 +570,7 @@ public class SlideView extends AbsoluteLayout implements
         if (mScrollViewPort != null) {
             mScrollViewPort.scrollTo(0, 0);
             mScrollViewPort.setLayoutParams(
-                    new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 0, 0));
+                    new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         }
 
     }
@@ -545,5 +722,13 @@ public class SlideView extends AbsoluteLayout implements
     }
 
     public void setVideoThumbnail(String name, Bitmap bitmap) {
+    }
+    
+    @Override
+    public void setVcard(Uri lookupUri, String name) {
+    }
+
+    @Override
+    public void setVcardVisibility(boolean visible) {
     }
 }

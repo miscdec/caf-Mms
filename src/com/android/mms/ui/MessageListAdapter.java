@@ -31,6 +31,7 @@ import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Sms.Conversations;
+import android.provider.Telephony.Threads;
 import android.provider.Telephony.TextBasedSmsColumns;
 import android.util.Log;
 import android.util.LruCache;
@@ -83,6 +84,39 @@ public class MessageListAdapter extends CursorAdapter {
         Mms.TEXT_ONLY
     };
 
+    static final String[] MAILBOX_PROJECTION = new String[] {
+        // TODO: should move this symbol into android.provider.Telephony.
+        MmsSms.TYPE_DISCRIMINATOR_COLUMN,
+        BaseColumns._ID,
+        Conversations.THREAD_ID,
+        // For SMS
+        Sms.ADDRESS,
+        Sms.BODY,
+        Sms.SUB_ID,
+        Sms.DATE,
+        Sms.DATE_SENT,
+        Sms.READ,
+        Sms.TYPE,
+        Sms.STATUS,
+        Sms.LOCKED,
+        Sms.ERROR_CODE,
+        // For MMS
+        Mms.SUBJECT,
+        Mms.SUBJECT_CHARSET,
+        Mms.DATE,
+        Mms.DATE_SENT,
+        Mms.READ,
+        Mms.MESSAGE_TYPE,
+        Mms.MESSAGE_BOX,
+        Mms.DELIVERY_REPORT,
+        Mms.READ_REPORT,
+        PendingMessages.ERROR_TYPE,
+        Mms.LOCKED,
+        Mms.STATUS,
+        Mms.TEXT_ONLY,
+        Mms.SUB_ID,   // add for DSDS
+        Threads.RECIPIENT_IDS  // add for obtaining address of MMS
+    };
     // The indexes of the default columns which must be consistent
     // with above PROJECTION.
     static final int COLUMN_MSG_TYPE            = 0;
@@ -111,6 +145,8 @@ public class MessageListAdapter extends CursorAdapter {
     static final int COLUMN_MMS_LOCKED          = 23;
     static final int COLUMN_MMS_STATUS          = 24;
     static final int COLUMN_MMS_TEXT_ONLY       = 25;
+    static final int COLUMN_MMS_SUB_ID          = 26;
+    static final int COLUMN_RECIPIENT_IDS       = 27;
 
     private static final int CACHE_SIZE         = 50;
 
@@ -120,23 +156,28 @@ public class MessageListAdapter extends CursorAdapter {
     public static final int OUTGOING_ITEM_TYPE_MMS = 3;
 
     protected LayoutInflater mInflater;
+    private final ListView mListView;
     private final MessageItemCache mMessageItemCache;
     private final ColumnsMap mColumnsMap;
     private OnDataSetChangedListener mOnDataSetChangedListener;
     private Handler mMsgListItemHandler;
     private Pattern mHighlight;
+    private boolean mSimflag; // add for showing address only in SIM card list item
     private Context mContext;
     private boolean mIsGroupConversation;
 
     public MessageListAdapter(
             Context context, Cursor c, ListView listView,
-            boolean useDefaultColumnsMap, Pattern highlight) {
+            boolean useDefaultColumnsMap, Pattern highlight, boolean simflag) {
         super(context, c, FLAG_REGISTER_CONTENT_OBSERVER);
         mContext = context;
         mHighlight = highlight;
 
+        mSimflag = simflag;
+
         mInflater = (LayoutInflater) context.getSystemService(
                 Context.LAYOUT_INFLATER_SERVICE);
+        mListView = listView;
         mMessageItemCache = new MessageItemCache(CACHE_SIZE);
 
         if (useDefaultColumnsMap) {
@@ -160,15 +201,28 @@ public class MessageListAdapter extends CursorAdapter {
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
         if (view instanceof MessageListItem) {
+            if(mListView.isItemChecked(cursor.getPosition()))
+            {
+                if(view != null)
+                {
+                    ((MessageListItem)view).markAsSelected(true);
+                }
+            }
+            else
+            {
+                    ((MessageListItem)view).markAsSelected(false);
+            }       
             String type = cursor.getString(mColumnsMap.mColumnMsgType);
             long msgId = cursor.getLong(mColumnsMap.mColumnMsgId);
-
-            MessageItem msgItem = getCachedMessageItem(type, msgId, cursor);
-            if (msgItem != null) {
-                MessageListItem mli = (MessageListItem) view;
-                int position = cursor.getPosition();
-                mli.bind(msgItem, mIsGroupConversation, position);
-                mli.setMsgListItemHandler(mMsgListItemHandler);
+            if(type != null)
+            {
+                MessageItem msgItem = getCachedMessageItem(type, msgId, cursor);
+                if (msgItem != null) {
+                    MessageListItem mli = (MessageListItem) view;
+                    int position = cursor.getPosition();
+                    mli.bind(msgItem, mIsGroupConversation, position);
+                    mli.setMsgListItemHandler(mMsgListItemHandler);
+                }
             }
         }
     }
@@ -233,11 +287,17 @@ public class MessageListAdapter extends CursorAdapter {
         return view;
     }
 
+
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+
     public MessageItem getCachedMessageItem(String type, long msgId, Cursor c) {
         MessageItem item = mMessageItemCache.get(getKey(type, msgId));
         if (item == null && c != null && isCursorValid(c)) {
             try {
-                item = new MessageItem(mContext, type, c, mColumnsMap, mHighlight);
+                 item = new MessageItem(mContext, type, c, mColumnsMap, mHighlight, mSimflag);
                 mMessageItemCache.put(getKey(item.mType, item.mMsgId), item);
             } catch (MmsException e) {
                 Log.e(TAG, "getCachedMessageItem: ", e);
@@ -310,7 +370,8 @@ public class MessageListAdapter extends CursorAdapter {
             if (cursor.moveToFirst()) {
                 do {
                     long id = cursor.getLong(mRowIDColumn);
-                    if (id == item.mMsgId) {
+                    String type = cursor.getString(mColumnsMap.mColumnMsgType);
+                    if ((id == item.mMsgId) && type.equals(item.mType)) {
                         return cursor;
                     }
                 } while (cursor.moveToNext());
@@ -345,6 +406,8 @@ public class MessageListAdapter extends CursorAdapter {
         public int mColumnMmsLocked;
         public int mColumnMmsStatus;
         public int mColumnMmsTextOnly;
+        public int mColumnMmsSubId;
+        public int mColumnRecipientIds;
 
         public ColumnsMap() {
             mColumnMsgType            = COLUMN_MSG_TYPE;
@@ -368,6 +431,8 @@ public class MessageListAdapter extends CursorAdapter {
             mColumnMmsLocked          = COLUMN_MMS_LOCKED;
             mColumnMmsStatus          = COLUMN_MMS_STATUS;
             mColumnMmsTextOnly        = COLUMN_MMS_TEXT_ONLY;
+            mColumnMmsSubId           = COLUMN_MMS_SUB_ID;
+            mColumnRecipientIds       = COLUMN_RECIPIENT_IDS;
         }
 
         public ColumnsMap(Cursor cursor) {
@@ -496,6 +561,18 @@ public class MessageListAdapter extends CursorAdapter {
 
             try {
                 mColumnMmsTextOnly = cursor.getColumnIndexOrThrow(Mms.TEXT_ONLY);
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnMmsSubId = cursor.getColumnIndexOrThrow(Mms.SUB_ID);
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRecipientIds = cursor.getColumnIndexOrThrow(Threads.RECIPIENT_IDS);
             } catch (IllegalArgumentException e) {
                 Log.w("colsMap", e.getMessage());
             }

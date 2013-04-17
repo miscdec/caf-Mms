@@ -25,9 +25,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.provider.Settings;
 import android.provider.Telephony;
+import android.util.Log;
 
 import com.android.mms.R;
 import com.android.mms.ui.ManageSimMessages;
+import com.android.mms.ui.MessageUtils;
 
 /**
  * Receive Intent.SIM_FULL_ACTION.  Handle notification that SIM is full.
@@ -59,6 +61,9 @@ public class SimFullReceiver extends BroadcastReceiver {
                     context.getString(R.string.sim_full_body),
                     pendingIntent);
             nm.notify(ManageSimMessages.SIM_FULL_NOTIFICATION_ID, notification);
+
+            Log.d("SimFullReceiver", "SIM card is full!");
+            MessageUtils.checkIsPhoneMessageFull(context);
        }
     }
 

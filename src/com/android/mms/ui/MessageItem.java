@@ -81,6 +81,7 @@ public class MessageItem {
     int mSubscription;   // Holds current mms/sms subscription value.
     String mTextContentType; // ContentType of text of MMS.
     Pattern mHighlight; // portion of message to highlight (from search)
+    boolean mSimFlag;  // add for showing address only in SIM card list item
 
     // The only non-immutable field.  Not synchronized, as access will
     // only be from the main GUI thread.  Worst case if accessed from
@@ -108,15 +109,17 @@ public class MessageItem {
     ColumnsMap mColumnsMap;
     private PduLoadedCallback mPduLoadedCallback;
     private ItemLoadedFuture mItemLoadedFuture;
+    long mDate;
 
     MessageItem(Context context, String type, final Cursor cursor,
-            final ColumnsMap columnsMap, Pattern highlight) throws MmsException {
+            final ColumnsMap columnsMap, Pattern highlight, boolean simflag) throws MmsException {
         mContext = context;
         mMsgId = cursor.getLong(columnsMap.mColumnMsgId);
         mHighlight = highlight;
         mType = type;
         mCursor = cursor;
         mColumnsMap = columnsMap;
+        mSimFlag = simflag;
 
         if ("sms".equals(type)) {
             mReadReport = false; // No read reports in sms
@@ -154,9 +157,25 @@ public class MessageItem {
             mSubscription = cursor.getInt(columnsMap.mColumnSubId);
             // Unless the message is currently in the progress of being sent, it gets a time stamp.
             if (!isOutgoingMessage()) {
-                // Set "received" or "sent" time stamp
-                long date = cursor.getLong(columnsMap.mColumnSmsDate);
-                mTimestamp = MessageUtils.formatTimeStampString(context, date);
+                if (mBoxId == Sms.MESSAGE_TYPE_SENT) {
+                    // Set "sent" time stamp
+                    mDate = cursor.getLong(columnsMap.mColumnSmsDate);
+                    //cdma sms stored in UIM card don not have timestamp
+                    if (0 == mDate) {
+                        mDate = System.currentTimeMillis();
+                    }
+                    mTimestamp = String.format(context.getString(R.string.sent_on),
+                            MessageUtils.formatTimeStampString(context, mDate));
+                } else {
+                    // Set "received" time stamp
+                    mDate = cursor.getLong(columnsMap.mColumnSmsDate);
+                    //cdma sms stored in UIM card don not have timestamp
+                    if (0 == mDate) {
+                        mDate = System.currentTimeMillis();
+                    }
+                    mTimestamp = String.format(context.getString(R.string.received_on),
+                            MessageUtils.formatTimeStampString(context, mDate));
+                }
             }
 
             mLocked = cursor.getInt(columnsMap.mColumnSmsLocked) != 0;
@@ -180,10 +199,12 @@ public class MessageItem {
             mDeliveryStatus = DeliveryStatus.NONE;
             mReadReport = false;
             mBody = null;
-            mMessageSize = 0;
             mTextContentType = null;
-            // Initialize the time stamp to "" instead of null
-            mTimestamp = "";
+            // We must initialize the message size and time, if we don't do this
+            // before downloading the MMS, the size and time can't display correct.
+            mMessageSize = 0;
+            mTimestamp = MessageUtils.formatTimeStampString(mContext,
+                    cursor.getInt(columnsMap.mColumnMmsDate) * 1000L);
             mMmsStatus = cursor.getInt(columnsMap.mColumnMmsStatus);
             mAttachmentType = cursor.getInt(columnsMap.mColumnMmsTextOnly) != 0 ?
                     WorkingMessage.TEXT : ATTACHMENT_TYPE_NOT_LOADED;
@@ -212,6 +233,16 @@ public class MessageItem {
             mAddress = AddressUtils.getFrom(mContext, messageUri);
         }
         mContact = TextUtils.isEmpty(mAddress) ? "" : Contact.get(mAddress, false).getName();
+    }
+
+    private int getTimestampStrId() {
+        if (PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND == mMessageType) {
+            return R.string.expire_on;
+        } else if (PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF == mMessageType) {
+            return R.string.received_on;
+        } else {
+            return R.string.sent_on;
+        }
     }
 
     public boolean isMms() {
@@ -245,6 +276,12 @@ public class MessageItem {
                                     && ((mBoxId == Sms.MESSAGE_TYPE_FAILED)
                                             || (mBoxId == Sms.MESSAGE_TYPE_OUTBOX)
                                             || (mBoxId == Sms.MESSAGE_TYPE_QUEUED));
+        return isOutgoingMms || isOutgoingSms;
+    }
+
+    public boolean isSentMessage() {
+        boolean isOutgoingMms = isMms() && (mBoxId == Mms.MESSAGE_BOX_SENT);
+        boolean isOutgoingSms = isSms() && ((mBoxId == Sms.MESSAGE_TYPE_SENT));
         return isOutgoingMms || isOutgoingSms;
     }
 
@@ -391,10 +428,17 @@ public class MessageItem {
             }
             if (!isOutgoingMessage()) {
                 if (PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND == mMessageType) {
-                    mTimestamp = mContext.getString(R.string.expire_on,
+                    mTimestamp = "\n" + mContext.getString(R.string.expire_on,
                             MessageUtils.formatTimeStampString(mContext, timestamp));
                 } else {
-                    mTimestamp =  MessageUtils.formatTimeStampString(mContext, timestamp);
+                    // add judgement the Mms is sent or received and format mTimestamp
+                    if (mBoxId == Sms.MESSAGE_TYPE_SENT) {
+                        mTimestamp = String.format(mContext.getString(R.string.sent_on),
+                                MessageUtils.formatTimeStampString(mContext, timestamp));
+                    } else {
+                        mTimestamp = String.format(mContext.getString(R.string.received_on),
+                                MessageUtils.formatTimeStampString(mContext, timestamp));
+                    }
                 }
             }
             if (mPduLoadedCallback != null) {

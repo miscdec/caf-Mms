@@ -28,6 +28,9 @@ import com.android.mms.model.VideoModel;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ItemLoadedFuture;
 import com.android.mms.util.ThumbnailManager.ImageLoaded;
+import com.android.mms.model.VcardModel;
+import android.text.TextUtils;
+import android.net.Uri;
 
 public class MmsThumbnailPresenter extends Presenter {
     private static final String TAG = "MmsThumbnailPresenter";
@@ -56,6 +59,8 @@ public class MmsThumbnailPresenter extends Presenter {
             presentVideoThumbnail(view, slide.getVideo());
         } else if (slide.hasAudio()) {
             presentAudioThumbnail(view, slide.getAudio());
+        } else if (slide.hasVcard()) {
+            presentVcardThumbnail(view, slide.getVcard());
         }
     }
 
@@ -96,6 +101,12 @@ public class MmsThumbnailPresenter extends Presenter {
 
     protected void presentAudioThumbnail(SlideViewInterface view, AudioModel audio) {
         view.setAudio(audio.getUri(), audio.getSrc(), audio.getExtras());
+    }
+
+    protected void presentVcardThumbnail(SlideViewInterface view, VcardModel vcard) {
+        view.setVcard(
+                TextUtils.isEmpty(vcard.getLookupUri()) ? null : Uri.parse(vcard.getLookupUri()),
+                vcard.getSrc());
     }
 
     public void onModelChanged(Model model, boolean dataChanged) {

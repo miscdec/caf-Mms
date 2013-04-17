@@ -28,6 +28,7 @@ import java.util.GregorianCalendar;
 
 import android.app.Activity;
 import android.app.Service;
+import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -54,6 +55,10 @@ import android.telephony.SmsMessage;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
+import android.database.sqlite.SQLiteException;
+import com.android.mms.ui.MessageUtils;
+import com.android.internal.telephony.MSimConstants;
+import com.android.internal.telephony.IccCardConstants;
 
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
@@ -65,6 +70,7 @@ import com.android.mms.util.Recycler;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.MmsException;
+
 
 /**
  * This service essentially plays the role of a "worker thread", allowing us to store
@@ -88,6 +94,9 @@ public class SmsReceiverService extends Service {
     public static final String ACTION_SEND_MESSAGE =
         "com.android.mms.transaction.SEND_MESSAGE";
 
+    public static final String ICC_SMS_RECEIVED_ACTION =
+        "com.android.mms.transaction.ICC_SMS_RECEIVED";
+
     // This must match the column IDs below.
     private static final String[] SEND_PROJECTION = new String[] {
         Sms._ID,        //0
@@ -95,10 +104,12 @@ public class SmsReceiverService extends Service {
         Sms.ADDRESS,    //2
         Sms.BODY,       //3
         Sms.STATUS,     //4
+        Sms.SUB_ID,     //5
 
     };
 
     public Handler mToastHandler = new Handler();
+    private AsyncQueryHandler mQueryHandler = null;
 
     // This must match SEND_PROJECTION.
     private static final int SEND_COLUMN_ID         = 0;
@@ -106,6 +117,14 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_ADDRESS    = 2;
     private static final int SEND_COLUMN_BODY       = 3;
     private static final int SEND_COLUMN_STATUS     = 4;
+    private static final int SEND_COLUMN_SUB_ID     = 5;
+
+    static final int TOKEN_QUERY_ICC1  = 4097;
+    static final int TOKEN_QUERY_ICC2  = 4098;
+    static final int TOKEN_QUERY_ICC   = 4099;
+    static final int TOKEN_DELETE_ICC1 = 4100;
+    static final int TOKEN_DELETE_ICC2 = 4101;
+    static final int TOKEN_DELETE_ICC  = 4102;
 
     private int mResultCode;
 
@@ -121,6 +140,7 @@ public class SmsReceiverService extends Service {
         // main thread, which we don't want to block.
         HandlerThread thread = new HandlerThread(TAG, Process.THREAD_PRIORITY_BACKGROUND);
         thread.start();
+        mQueryHandler = new QueryHandler(getContentResolver());
 
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
@@ -179,6 +199,41 @@ public class SmsReceiverService extends Service {
         return null;
     }
 
+    private class QueryHandler extends AsyncQueryHandler {
+        public QueryHandler(ContentResolver cr) {
+            super(cr);
+        }
+
+        @Override
+        protected void onQueryComplete(int token, Object cookie,
+                                       Cursor cursor)
+        {
+            Log.d(TAG, "onQueryComplete: token = " + token + ";cursor = " + cursor);
+            if (cursor != null)
+            {
+                cursor.close();
+            }
+            switch(token) 
+            {
+                case TOKEN_QUERY_ICC1:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB1);
+                    return;
+                case TOKEN_QUERY_ICC2:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB2);
+                    return;
+                case TOKEN_QUERY_ICC:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB_INVALID);
+                    return;
+            }            
+        }
+        
+        @Override
+        protected void onDeleteComplete(int token, Object cookie, int result) 
+        {
+            return;
+        }         
+    }
+    
     private final class ServiceHandler extends Handler {
         public ServiceHandler(Looper looper) {
             super(looper);
@@ -192,6 +247,7 @@ public class SmsReceiverService extends Service {
         public void handleMessage(Message msg) {
             int serviceId = msg.arg1;
             Intent intent = (Intent)msg.obj;
+
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "handleMessage serviceId: " + serviceId + " intent: " + intent);
             }
@@ -206,15 +262,33 @@ public class SmsReceiverService extends Service {
 
                 if (MESSAGE_SENT_ACTION.equals(intent.getAction())) {
                     handleSmsSent(intent, error);
-                } else if (SMS_RECEIVED_ACTION.equals(action)) {
+                } else if (SMS_RECEIVED_ACTION.equals(action)
+                        || ICC_SMS_RECEIVED_ACTION.equals(action)) {
                     handleSmsReceived(intent, error);
                 } else if (ACTION_BOOT_COMPLETED.equals(action)) {
                     handleBootCompleted();
                 } else if (TelephonyIntents.ACTION_SERVICE_STATE_CHANGED.equals(action)) {
                     handleServiceStateChanged(intent);
                 } else if (ACTION_SEND_MESSAGE.endsWith(action)) {
-                    handleSendMessage();
-                }
+                    handleSendMessage(intent);
+                } else if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
+                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, MessageUtils.SUB_INVALID);
+                    String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                    
+                    Log.d(TAG, "ACTION_SIM_STATE_CHANGED : stateExtra= " + stateExtra + ",subscription= " + subscription);
+                    if(!MessageUtils.isMultiSimEnabledMms())
+                    {
+                        subscription = MessageUtils.SUB_INVALID;
+                    }
+                    
+                    if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)) {
+                        handleIccAbsent(subscription);
+                    }
+                    else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(true);
+                        queryIccSms(subscription);
+                    }
+                  }
             }
             // NOTE: We MUST not call stopSelf() directly, since we need to
             // make sure the wake lock acquired by AlertReceiver is released.
@@ -222,6 +296,25 @@ public class SmsReceiverService extends Service {
         }
     }
 
+    private void queryIccSms(int subscription)
+    {
+        Uri iccUri = MessageUtils.getIccUriBySubscription(subscription); 
+        int tokenId = TOKEN_QUERY_ICC;
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            tokenId = subscription == MessageUtils.SUB1 ? TOKEN_QUERY_ICC1 : TOKEN_QUERY_ICC2;
+        }
+        
+        try 
+        {
+            mQueryHandler.startQuery(tokenId, null, iccUri, null, null, null, null);
+        } 
+        catch (SQLiteException e) 
+        {
+            SqliteWrapper.checkSQLiteException(this, e);
+        }
+    }
+    
     private void handleServiceStateChanged(Intent intent) {
         // If service just returned, start sending out the queued messages
         ServiceState serviceState = ServiceState.newFromBundle(intent.getExtras());
@@ -236,21 +329,33 @@ public class SmsReceiverService extends Service {
         }
     }
 
-    private void handleSendMessage() {
+    private void handleSendMessage(Intent intent) {
         if (!mSending) {
-            sendFirstQueuedMessage();
+            if (MessageUtils.isMultiSimEnabledMms()) {
+                sendFirstQueuedMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0)); //Todo 
+            } else {
+                sendFirstQueuedMessage();
+            }
+
         }
     }
 
     public synchronized void sendFirstQueuedMessage() {
+        //sendFirstQueuedMessage(MSimSmsManager.getDefault().getPreferredSmsSubscription());
+        sendFirstQueuedMessage(MessageUtils.SUB_INVALID);
+    }
+
+    public synchronized void sendFirstQueuedMessage(int subscription) {
         boolean success = true;
         // get all the queued messages from the database
         final Uri uri = Uri.parse("content://sms/queued");
         ContentResolver resolver = getContentResolver();
+        String where = Sms.SUB_ID + "=" + subscription;
         Cursor c = SqliteWrapper.query(this, resolver, uri,
-                        SEND_PROJECTION, null, null, "date ASC");   // date ASC so we send out in
+                        SEND_PROJECTION, where, null, "date ASC");  // date ASC so we send out in
                                                                     // same order the user tried
                                                                     // to send messages.
+        Log.v(TAG, "sendFirstQueuedMessage = " + c.getCount());
         if (c != null) {
             try {
                 if (c.moveToFirst()) {
@@ -262,10 +367,9 @@ public class SmsReceiverService extends Service {
                     int msgId = c.getInt(SEND_COLUMN_ID);
                     Uri msgUri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgId);
                     SmsMessageSender sender;
-
                     sender = new SmsSingleRecipientSender(this,
                             address, msgText, threadId, status == Sms.STATUS_PENDING,
-                            msgUri, MSimSmsManager.getDefault().getPreferredSmsSubscription());
+                            msgUri, subscription);
 
                     if (LogTag.DEBUG_SEND ||
                             LogTag.VERBOSE ||
@@ -284,6 +388,9 @@ public class SmsReceiverService extends Service {
                         mSending = false;
                         messageFailedToSend(msgUri, SmsManager.RESULT_ERROR_GENERIC_FAILURE);
                         success = false;
+                        // Current message send was failed(have some
+                        // exceptions), need send next one.
+                        sendNextMessage(subscription);
                     }
                 }
             } finally {
@@ -315,8 +422,9 @@ public class SmsReceiverService extends Service {
             if (!Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_SENT, error)) {
                 Log.e(TAG, "handleSmsSent: failed to move message " + uri + " to sent folder");
             }
+            // Current message sent out, send next one if necessary.
             if (sendNextMsg) {
-                sendFirstQueuedMessage();
+                sendNextMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0));
             }
 
             // Update the notification for failed messages since they may be deleted.
@@ -347,9 +455,8 @@ public class SmsReceiverService extends Service {
             });
         } else {
             messageFailedToSend(uri, error);
-            if (sendNextMsg) {
-                sendFirstQueuedMessage();
-            }
+            // Current message send failed, need send next one.
+            sendNextMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0));
         }
     }
 
@@ -361,25 +468,47 @@ public class SmsReceiverService extends Service {
         MessagingNotification.notifySendFailed(getApplicationContext(), true);
     }
 
+    /**
+     * Send the next message on the message queue.
+     *
+     * @param subscription Indicate send the message from which slot.
+     */
+    private void sendNextMessage(int subscription) {
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            sendFirstQueuedMessage(subscription);
+        } else {
+            sendFirstQueuedMessage();
+        }
+
+    }
+
     private void handleSmsReceived(Intent intent, int error) {
         SmsMessage[] msgs = Intents.getMessagesFromIntent(intent);
         String format = intent.getStringExtra("format");
-        Uri messageUri = insertMessage(this, msgs, error, format);
+        int indexOnIcc = intent.getIntExtra("index_on_icc", -1); 
+        Uri messageUri = insertMessage(this, msgs, error, format, indexOnIcc);
+        SmsMessage sms = msgs[0];
+        int subscription = sms.getSubId();
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
-            SmsMessage sms = msgs[0];
+        //if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) 
+            {
             Log.v(TAG, "handleSmsReceived" + (sms.isReplace() ? "(replace)" : "") +
                     " messageUri: " + messageUri +
                     ", address: " + sms.getOriginatingAddress() +
-                    ", body: " + sms.getMessageBody());
+                    ", body: " + sms.getMessageBody()/**/);
         }
 
-        if (messageUri != null) {
+        MessageUtils.checkIsPhoneMessageFull(this);
+        
+        if ((messageUri != null)&&(indexOnIcc<0)) {
             long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
             // Called off of the UI thread so ok to block.
             Log.d(TAG, "handleSmsReceived messageUri: " + messageUri + " threadId: " + threadId);
             MessagingNotification.blockingUpdateNewMessageIndicator(this, threadId, false);
+        } else if ((messageUri != null)&&(indexOnIcc>0)) {
+            MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this, subscription);
         }
+        
     }
 
     private void handleBootCompleted() {
@@ -392,11 +521,53 @@ public class SmsReceiverService extends Service {
         }
 
         // Send any queued messages that were waiting from before the reboot.
-        sendFirstQueuedMessage();
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            sendFirstQueuedMessage(MSimConstants.SUB1);
+            sendFirstQueuedMessage(MSimConstants.SUB2);
+        } else {
+            sendFirstQueuedMessage();
+        }
 
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
-                this, MessagingNotification.THREAD_ALL, false);
+            this, MessagingNotification.THREAD_ALL, false);
+
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            handleIccAbsent(MessageUtils.SUB1);
+            handleIccAbsent(MessageUtils.SUB2);
+            MessageUtils.checkModifyPreStoreWhenBoot(this,MessageUtils.SUB1);
+            MessageUtils.checkModifyPreStoreWhenBoot(this,MessageUtils.SUB2);
+        }
+        else
+        {
+            handleIccAbsent(MessageUtils.SUB_INVALID);
+            MessageUtils.checkModifyPreStoreWhenBoot(this);
+        }
+        
+    }
+
+    private void handleIccAbsent(int subscription) 
+    {    
+        Log.d(TAG, "handleIccAbsent : subscription = " + subscription);
+        Uri iccUri = MessageUtils.getIccUriBySubscription(subscription);          
+        int tokenId = TOKEN_DELETE_ICC;
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            tokenId = subscription == MessageUtils.SUB1 ? TOKEN_DELETE_ICC1: TOKEN_DELETE_ICC2;
+        }
+        
+        try 
+        {
+            mQueryHandler.startDelete(tokenId, null, iccUri, null, null);
+        }
+        catch (SQLiteException e) 
+        {
+            SqliteWrapper.checkSQLiteException(this, e);
+        }  
+        
+        ContentResolver resolver = getContentResolver();        
+        resolver.notifyChange(iccUri, null);
     }
 
     /**
@@ -438,17 +609,21 @@ public class SmsReceiverService extends Service {
      * <code>Uri</code> of the thread containing this message
      * so that we can use it for notification.
      */
-    private Uri insertMessage(Context context, SmsMessage[] msgs, int error, String format) {
+    private Uri insertMessage(Context context, SmsMessage[] msgs, int error, String format, int indexOnIcc) {
         // Build the helper classes to parse the messages.
         SmsMessage sms = msgs[0];
 
-        if (sms.getMessageClass() == SmsMessage.MessageClass.CLASS_0) {
+        Log.d(TAG,"insertMessage() format is " + format + ", indexOnIcc = "+indexOnIcc);
+
+        if (sms != null && sms.getMessageClass() == SmsMessage.MessageClass.CLASS_0 && indexOnIcc < 0) {
             displayClassZeroMessage(context, sms, format);
             return null;
-        } else if (sms.isReplace()) {
-            return replaceMessage(context, msgs, error);
-        } else {
-            return storeMessage(context, msgs, error);
+        }
+        else if (sms != null && sms.isReplace() && indexOnIcc < 0) {
+            return replaceMessage(context, msgs, error, indexOnIcc);
+        }
+        else {
+            return storeMessage(context, msgs, error, indexOnIcc);
         }
     }
 
@@ -461,7 +636,7 @@ public class SmsReceiverService extends Service {
      *
      * See TS 23.040 9.2.3.9.
      */
-    private Uri replaceMessage(Context context, SmsMessage[] msgs, int error) {
+    private Uri replaceMessage(Context context, SmsMessage[] msgs, int error, int indexOnIcc) {
         SmsMessage sms = msgs[0];
         ContentValues values = extractContentValues(sms);
         values.put(Sms.ERROR_CODE, error);
@@ -496,7 +671,7 @@ public class SmsReceiverService extends Service {
                     Sms.SUB_ID +  " = ? ";
         selectionArgs = new String[] {
                 originatingAddress, Integer.toString(protocolIdentifier),
-                Integer.toString(sms.getSubId())
+                Integer.toString(MessageUtils.isMultiSimEnabledMms() ? sms.getSubId() : MessageUtils.SUB_INVALID)
             };
 
         Cursor cursor = SqliteWrapper.query(context, resolver, Inbox.CONTENT_URI,
@@ -517,7 +692,7 @@ public class SmsReceiverService extends Service {
                 cursor.close();
             }
         }
-        return storeMessage(context, msgs, error);
+        return storeMessage(context, msgs, error, indexOnIcc);
     }
 
     public static String replaceFormFeeds(String s) {
@@ -527,13 +702,17 @@ public class SmsReceiverService extends Service {
 
 //    private static int count = 0;
 
-    private Uri storeMessage(Context context, SmsMessage[] msgs, int error) {
+    private Uri storeMessage(Context context, SmsMessage[] msgs, int error, int indexOnIcc) {
         SmsMessage sms = msgs[0];
+
+      if (indexOnIcc > -1) {
+          return storeMessageToIcc(indexOnIcc, context, sms);
+      }
 
         // Store the message in the content provider.
         ContentValues values = extractContentValues(sms);
         values.put(Sms.ERROR_CODE, error);
-        values.put(Sms.SUB_ID, sms.getSubId());
+        values.put(Sms.SUB_ID, MessageUtils.isMultiSimEnabledMms() ? sms.getSubId() : MessageUtils.SUB_INVALID);
 
         int pduCount = msgs.length;
 
@@ -596,6 +775,56 @@ public class SmsReceiverService extends Service {
         return insertedUri;
     }
 
+    private Uri storeMessageToIcc(int index, Context context, SmsMessage sms)
+    {    
+       Log.d(TAG,"storeMessageToIcc() index = " + index); 
+       int subId = MessageUtils.SUB_INVALID;
+        if (index < 0 || sms == null){
+            return null;
+        }
+        int statusOnIcc = SmsManager.STATUS_ON_ICC_UNREAD;
+        Uri uriStr = MessageUtils.ICC_URI;
+        if (MessageUtils.isMultiSimEnabledMms()){
+            subId = sms.getSubId();
+            if (MSimConstants.SUB2 == subId){
+                uriStr = MessageUtils.ICC2_URI;
+            } else {
+                uriStr = MessageUtils.ICC1_URI;
+                }
+        }
+
+        Uri iccMessageUri = ContentUris.withAppendedId(uriStr, index);
+        Log.d(TAG, "storeMessageToIcc : iccMessageUri = " + iccMessageUri);
+        String address = sms.getDisplayOriginatingAddress();
+        ContentValues values = new ContentValues(16);
+        values.put("service_center_address", sms.getServiceCenterAddress());
+        values.put(Sms.ADDRESS, address);
+        values.put("message_class", String.valueOf(sms.getMessageClass()));        
+        String content = sms.getDisplayMessageBody();
+        if (content == null){
+            content = "";
+        }
+        
+        values.put(Sms.BODY, content);
+        values.put(Sms.DATE, sms.getTimestampMillis());
+        values.put(Sms.STATUS, Sms.STATUS_NONE);
+        values.put("index_on_icc", index);                
+        values.put("is_status_report", -1);        
+        values.put("transport_type", "sms");
+        values.put(Sms.TYPE, Sms.MESSAGE_TYPE_INBOX);
+        values.put("status_on_icc", statusOnIcc);
+        values.put(Sms.SUB_ID, subId);  
+        //values.put(Sms.READ, MessageUtils.MESSAGE_UNREAD);
+        
+        /*if (!TextUtils.isEmpty(address)){
+            values.put(Sms.THREAD_ID, 
+                Conversation.getOrCreateThreadId(context, address));
+        }*/
+
+        ContentResolver resolver = context.getContentResolver();        
+        return SqliteWrapper.insert(context, resolver, iccMessageUri, values);
+    }
+
     /**
      * Extract all the content values except the body from an SMS
      * message.
@@ -646,6 +875,7 @@ public class SmsReceiverService extends Service {
         Intent smsDialogIntent = new Intent(context, ClassZeroActivity.class)
                 .putExtra("pdu", sms.getPdu())
                 .putExtra("format", format)
+                .putExtra(MSimConstants.SUBSCRIPTION_KEY, sms.getSubId())
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                           | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
 
@@ -676,6 +906,7 @@ public class SmsReceiverService extends Service {
             // Allow un-matched register-unregister calls
         }
     }
+
 }
 
 

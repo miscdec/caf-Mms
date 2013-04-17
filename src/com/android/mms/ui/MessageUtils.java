@@ -17,7 +17,9 @@
 
 package com.android.mms.ui;
 
+import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,6 +34,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
@@ -40,9 +43,12 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.StatFs;
+import android.os.SystemProperties;
 import android.provider.MediaStore;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.provider.Telephony.Threads;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
@@ -60,6 +66,7 @@ import com.android.mms.data.WorkingMessage;
 import com.android.mms.model.MediaModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
+import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
 import com.google.android.mms.ContentType;
@@ -74,6 +81,20 @@ import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.CommonDataKinds.StructuredName;
+import android.provider.ContactsContract.Data;
+import android.provider.Settings;
+import android.telephony.MSimTelephonyManager;
+import android.telephony.MSimSmsManager;
+import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
+import android.preference.PreferenceManager;
+import com.android.internal.telephony.MSimConstants;
+import com.android.mms.model.VcardModel;
+
 
 /**
  * An utility class for managing messages.
@@ -86,7 +107,63 @@ public class MessageUtils {
     private static final String TAG = LogTag.TAG;
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
+    // add for launcher to enter 
+    public static final int MAILBOX_MODE = 0;
+    public static final int CHAT_MODE = 1;
+    // add the defination of subscription 
+    public static final int SUB_INVALID = -1;  //  for single card product
+    public static final int SUB1 = 0;  // for DSDS product of slot one
+    public static final int SUB2 = 1;  // for DSDS product of slot two
+    public static final String SUB_KEY  = MSimConstants.SUBSCRIPTION_KEY; /* subscription */ 
+    // add for getting the read status when copy messages to sim card
+    public static final int MESSAGE_READ = 1;
+    public static final int MESSAGE_UNREAD = 0;
+    // add for different search mode in SearchActivityExtend
+    public static final int SEARCH_MODE_CONTENT = 0;
+    public static final int SEARCH_MODE_NAME    = 1;
+    public static final int SEARCH_MODE_NUMBER  = 2;
+  
+    public static final int CARD_SUB1 = MSimConstants.SUB1; 
+    public static final int CARD_SUB2 = MSimConstants.SUB2; 
+    public static final int STORE_ME = 1;
+    public static final int STORE_SM = 2;
+    public static boolean sIsIccLoaded  = false;
+    private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
 
+    /** Free space (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_FREE      = 0;
+    /** Received and read (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_READ      = 1;
+    /** Received and unread (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_UNREAD    = 3;
+    /** Stored and sent (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_SENT      = 5;
+    /** Stored and unsent (TS 51.011 10.5.3). */
+    static public final int STATUS_ON_SIM_UNSENT    = 7;
+    
+    //max short message count , add for cmcc test
+    public static int MAX_SMS_MESSAGE_COUNT = 2000;
+    // the remaining space , format as MB
+    public static final int MAX_AVAILABLE_SPACE_MMS = 2;
+    // add for obtaining all short message count,  cmcc test 
+    public static final Uri MAILBOX_SMS_MESSAGES_COUNT = 
+        Uri.parse("content://mms-sms/messagescount");
+    
+    // add for obtaining icc uri when copying messages to card
+    public static final Uri ICC_URI = Uri.parse("content://sms/icc");
+    public static final Uri ICC1_URI = Uri.parse("content://sms/icc1");
+    public static final Uri ICC2_URI = Uri.parse("content://sms/icc2");
+    //add for query unread message count from iccsms table, used in MessagingNotification.java
+    public static final Uri ICC_SMS_URI = Uri.parse("content://sms/iccsms");
+    // add for obtain mms data path
+    private static final String MMS_DATA_DIR = "/data/phonedata";    
+    private static final String MMS_DATA_DATA_DIR = "/data/data";
+    
+    // add for getting result whether icc card is full or will full when copying to card
+    public static final String COPY_SUCCESS_FULL = "content://sms/sim/full/success";
+    public static final String COPY_FAILURE_FULL = "content://sms/sim/full/failure";
+    public static final String MULTI_SEL_KEY = "com.android.contacts.MULTI_SEL_KEY";
+    public static int MAX_RECIPIENT = 100;
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
     // display names.
@@ -428,6 +505,9 @@ public class MessageUtils {
             if (slide.hasImage()) {
                 return WorkingMessage.IMAGE;
             }
+            if (slide.hasVcard()) {
+                return WorkingMessage.VCARD;
+            }
 
             if (slide.hasText()) {
                 return WorkingMessage.TEXT;
@@ -572,7 +652,24 @@ public class MessageUtils {
             mm = slide.getImage();
         } else if (slide.hasVideo()) {
             mm = slide.getVideo();
-        }
+        }else if (slide.hasVcard()) {
+                    mm = slide.getVcard();
+                    String lookupUri = ((VcardModel) mm).getLookupUri();
+        
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    if (!TextUtils.isEmpty(lookupUri)) {
+                        // if the uri is from the contact, we suggest to view the contact.
+                        intent.setData(Uri.parse(lookupUri));
+                    } else {
+                        // we need open the saved part.
+                        intent.setDataAndType(mm.getUri(), ContentType.TEXT_VCARD.toLowerCase());
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    }
+                    // distinguish view vcard from mms or contacts.
+                    intent.putExtra(VIEW_VCARD, true);
+                    context.startActivity(intent);
+                    return;
+                }
 
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -720,24 +817,34 @@ public class MessageUtils {
         if (threadIds != null) {
             String threadIdSelection = null;
             StringBuilder buf = new StringBuilder();
-            selectionArgs = new String[threadIds.size()];
+            //selectionArgs = new String[threadIds.size()];
             int i = 0;
 
             for (long threadId : threadIds) {
+                /*
                 if (i > 0) {
                     buf.append(" OR ");
                 }
                 buf.append(Mms.THREAD_ID).append("=?");
                 selectionArgs[i++] = Long.toString(threadId);
-            }
-            threadIdSelection = buf.toString();
+                */
+                if (i++ > 0) {
+                    //buf.append(" OR ");
+                    buf.append(",");
+                    
+                }
+                buf.append(Long.toString(threadId));              
 
+            }
+            //threadIdSelection = buf.toString();
+            threadIdSelection = Mms.THREAD_ID + " IN " + "("+buf.toString()+")";
+            
             selectionBuilder.append(" AND (" + threadIdSelection + ")");
         }
 
         final Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
                         Mms.Inbox.CONTENT_URI, new String[] {Mms._ID, Mms.MESSAGE_ID},
-                        selectionBuilder.toString(), selectionArgs, null);
+                        selectionBuilder.toString(), null, null);
 
         if (c == null) {
             return;
@@ -843,6 +950,107 @@ public class MessageUtils {
             accumulator.add(spans[i].getURL());
         }
         return accumulator;
+    }
+
+    /**
+      * @parameter recipientIds space-separated list of ids
+      */
+    public static String getRecipientsByIds(Context context, String recipientIds,
+                                            boolean allowQuery) {
+        String value = sRecipientAddress.get(recipientIds);
+        if (value != null) {
+            return value;
+        }
+        if (!TextUtils.isEmpty(recipientIds)) {
+            StringBuilder addressBuf = extractIdsToAddresses(
+                    context, recipientIds, allowQuery);
+            if (addressBuf == null) {
+                // temporary error?  Don't memoize.
+                return "";
+            }
+            value = addressBuf.toString();
+        } else {
+            value = "";
+        }
+        sRecipientAddress.put(recipientIds, value);
+        return value;
+    }
+
+    private static StringBuilder extractIdsToAddresses(Context context, String recipients,
+                                                       boolean allowQuery) {
+        StringBuilder addressBuf = new StringBuilder();
+        String[] recipientIds = recipients.split(" ");
+        boolean firstItem = true;
+        for (String recipientId : recipientIds) {
+            String value = sRecipientAddress.get(recipientId);
+
+            if (value == null) {
+                if (!allowQuery) {
+                    // when allowQuery is false, if any value from sRecipientAddress.get() is null,
+                    // return null for the whole thing. We don't want to stick partial result
+                    // into sRecipientAddress for multiple recipient ids.
+                    return null;
+                }
+
+                Uri uri = Uri.parse("content://mms-sms/canonical-address/" + recipientId);
+                Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
+                                               uri, null, null, null, null);
+                if (c != null) {
+                    try {
+                        if (c.moveToFirst()) {
+                            value = c.getString(0);
+                            sRecipientAddress.put(recipientId, value);
+                        }
+                    } finally {
+                        c.close();
+                    }
+                }
+            }
+            if (value == null) {
+                continue;
+            }
+            if (firstItem) {
+                firstItem = false;
+            } else {
+                addressBuf.append(";");
+            }
+            addressBuf.append(value);
+        }
+
+        return (addressBuf.length() == 0) ? null : addressBuf;
+    }
+
+    public static String getAddressByThreadId(Context context, long threadId)
+    {
+        String[] projection = new String[] { Threads.RECIPIENT_IDS };
+
+        Uri.Builder builder = Threads.CONTENT_URI.buildUpon();
+        builder.appendQueryParameter("simple", "true");
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                                            builder.build(), projection,
+                                            Threads._ID + "=" + threadId, null, null);
+
+        if (cursor != null)
+        {
+            try
+            {
+                
+                if ((cursor.getCount() == 1) && cursor.moveToFirst())
+                {
+                    String address = getRecipientsByIds(context,
+                                                        cursor.getString(0), true /* allow query */);
+                    if (!TextUtils.isEmpty(address))
+                    {
+                        return address;
+                    }
+                }
+            }
+            finally
+            {
+                cursor.close();
+            }
+        }
+        return null;
     }
 
     /**
@@ -1015,6 +1223,577 @@ public class MessageUtils {
 
         // it's not a valid MMS address, return null
         return null;
+    }
+
+    
+    public static void dialRecipient(Context context, String address, int subscription) {
+        if (!Mms.isEmailAddress(address)) {           
+            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + address));
+            if(isMultiSimEnabledMms())
+            {
+                dialIntent.putExtra(SUB_KEY, subscription);
+            }
+            context.startActivity(dialIntent);
+        }
+    }
+
+    public static String getAddressByName(Context context, String name)
+    {    
+        String resultAddr = "";
+        Uri nameUri = null;
+        if (TextUtils.isEmpty(name)) 
+        {
+            return resultAddr;
+        }
+
+        Cursor c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+            new String[] {ContactsContract.Data.RAW_CONTACT_ID},
+                ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME + " =? "  ,                    
+            new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
+
+        if (c == null) 
+        {            
+            return resultAddr;
+        }
+        
+        if (!c.moveToFirst())
+        {       
+            c.close();
+            return resultAddr;
+        }
+        
+        final int SUMMARY_ID_COLUMN_INDEX = 0;
+        final long raw_contact_id = c.getLong(SUMMARY_ID_COLUMN_INDEX);       
+        c.close();        
+
+        resultAddr = queryPhoneNumbersWithRaw(context, raw_contact_id);        
+        Log.d(TAG, "getAddressByName : raw_contact_id = " + 
+            raw_contact_id +  ",resultAddr = " + resultAddr);
+        
+        return resultAddr;        
+    }
+
+    private static String queryPhoneNumbersWithRaw(Context context, long rawContactId) 
+    {
+        Cursor c = null;        
+        String addrs = "";        
+        try
+        {
+                
+            c = context.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                    new String[] {Phone.NUMBER}, Phone.RAW_CONTACT_ID + " = " + rawContactId,
+                    null, null);
+
+            if (c != null && c.moveToFirst()) 
+            { 
+                int i = 0;
+                while (!c.isAfterLast())
+                {
+                    String addrValue = c.getString(0);
+                    if (!TextUtils.isEmpty(addrValue))
+                    {
+                        if (i == 0)
+                        {
+                            addrs = addrValue;
+                        }
+                        else
+                        {
+                            addrs = addrs + "," + addrValue;
+                        }                        
+                        i++;
+                    }
+                    c.moveToNext();
+                }                
+            } 
+        }
+        finally 
+        {
+            if (c != null) {
+                c.close();
+            }
+        }  
+        return addrs;        
+    }
+    
+     /**
+      * Return the activated card number
+      */
+    public static int getActivatedIccCardCount() {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        int count = 0;
+        for (int i = 0; i < tm.getPhoneCount(); i++) {
+            // Because the status of slot1/2 will return SIM_STATE_UNKNOWN under airplane mode.
+            // So we add check about SIM_STATE_UNKNOWN.
+            if ((tm.getSimState(i) != TelephonyManager.SIM_STATE_ABSENT) &&
+                    (tm.getSimState(i) != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState(i) != TelephonyManager.SIM_STATE_UNKNOWN)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+     /**
+      * Return whether the card is activated according to Subscription
+      * used for DSDS
+      */
+    public static boolean isIccCardActivated(int subscription) {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        
+        return (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_ABSENT) &&
+                    (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_UNKNOWN);
+    }
+
+     /**
+      * Return whether the card is activated 
+      * used for single card product
+      */
+    public static boolean isIccCardActivated() {
+        TelephonyManager tm = TelephonyManager.getDefault();
+        
+        return (tm.getSimState() != TelephonyManager.SIM_STATE_ABSENT) &&
+                    (tm.getSimState() != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState() != TelephonyManager.SIM_STATE_UNKNOWN);
+    }
+     
+     /**
+      * Return whether it has card in according slot
+      *-the input subscription is 0 or 1
+      *-It is only used in DSDS 
+      */
+    public static boolean isHasCard(int subscription)
+    {
+        boolean hasCard = false;
+        if(isMultiSimEnabledMms())
+        {
+            MSimTelephonyManager msimTelephonyManager = MSimTelephonyManager.getDefault();
+            hasCard = msimTelephonyManager.hasIccCard(subscription);
+        }
+        else
+        {
+            TelephonyManager telephonyManager = TelephonyManager.getDefault();
+            if(subscription == telephonyManager.getDefaultSubscription())
+            {
+                hasCard = telephonyManager.hasIccCard();
+            }
+        }
+
+        return hasCard;
+
+    }
+
+     /**
+      * Return whether it has card no matter in DSDS or not
+      */
+    public static boolean isHasCard()
+    { 
+        return TelephonyManager.getDefault().hasIccCard();
+    }
+
+    /**
+      * Decide whether the current product  is DSDS in MMS
+      */
+    public static boolean isMultiSimEnabledMms(){
+        return MSimTelephonyManager.getDefault().isMultiSimEnabled();
+    }
+
+    /**
+      * Return the default subscription for single card product
+      */
+    public static int getDefaultSubscription(){
+        return MSimSmsManager.getDefault().getPreferredSmsSubscription();
+    }
+
+    public static String getMultiSimName(Context context, int subscription) {
+        String name = Settings.System.getString(context.getContentResolver(),
+            Settings.System.MULTI_SIM_NAME[subscription]);
+        if(name == null)
+        {
+            if(isMultiSimEnabledMms())
+            {
+                name = subscription == MessageUtils.SUB1 ? context.getString(R.string.type_slot1) 
+                    : context.getString(R.string.type_slot2);
+            }
+            else 
+            {
+                name = context.getString(R.string.sim_card);
+            }
+        }
+
+        return name;
+    }
+        
+    /**
+      * Return the icc uri according to subscription
+      */
+    public static Uri getIccUriBySubscription(int subscription) {
+        switch (subscription) {
+            case MSimConstants.SUB1:
+                return ICC1_URI;
+            case MSimConstants.SUB2:
+                return ICC2_URI;
+            default:
+                return ICC_URI;
+        }
+    }
+
+    private static String getMmsDataDir()
+    {
+        File data_file = new File(MMS_DATA_DIR);
+        
+        if (data_file.exists())
+        {          
+            return MMS_DATA_DIR; 
+        }        
+        
+        return MMS_DATA_DATA_DIR;
+    }
+    
+    public static long getStoreUnused()
+    {
+        File path = new File(getMmsDataDir());
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long availableBlocks = stat.getAvailableBlocks();
+        return availableBlocks*blockSize;
+    }
+
+    public static long getStoreAll()
+    {
+        File path = new File(getMmsDataDir());
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long allBlocks = stat.getBlockCount();
+        return allBlocks*blockSize;
+    }
+
+    public static long getStoreUsed()
+    {
+        return getStoreAll() - getStoreUnused();
+    }
+
+    public static boolean isPhoneMemoryFull()
+    {
+        long available = getStoreUnused();
+
+        if (available < MAX_AVAILABLE_SPACE_MMS*1024*1024)
+        {
+            return true;
+        }
+        
+        return false;
+    }
+
+    public static boolean isSmsMessageJustFull(Context context)
+    {
+        int msgCount = getSmsMessageCount(context);
+        if (isCMCCTest() && msgCount >= MAX_SMS_MESSAGE_COUNT)
+        {
+            return true;
+        }
+        
+        return false;
+    }  
+
+    /* Used for judge weather have memory for save mms */
+    public static boolean isMmsMemoryFull(Context context){
+        boolean isCountFull = isSmsMessageJustFull(context);
+        boolean isMemoryFull = isPhoneMemoryFull();
+        if(isCountFull ||isMemoryFull){
+            Log.d(TAG, "isMmsMemoryFull : isCountFull = " + isCountFull + ", isMemoryFull = " + isMemoryFull);
+            return true;
+        }
+        return false;
+    }
+    
+    public static int getSmsMessageCount(Context context)
+    {
+        int msgCount = -1;
+        Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
+                        MAILBOX_SMS_MESSAGES_COUNT, null, null, null, null);
+        
+        if (c == null)
+        {
+            return msgCount;
+        }
+
+        if (c.moveToFirst())
+        {
+            msgCount = c.getInt(0);
+            c.close();
+            Log.d(TAG, "getSmsMessageCount : msgCount = " + msgCount);
+            return msgCount;
+        }
+        c.close();
+
+        return msgCount;
+    }
+
+    public static boolean isIccCardFull(Context context, int subscription)
+    {
+        if ((!isMultiSimEnabledMms() && !isHasCard()) 
+            || (isMultiSimEnabledMms() && !isHasCard(subscription)))
+        {
+            return true;
+        }   
+        
+        Uri uri = getIccUriBySubscription(subscription);
+
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                            uri, null, null, null, null);
+
+        if (cursor != null)
+        {
+            try
+            {
+                if (cursor.moveToFirst())
+                {
+                    int iccCountUsed = cursor.getCount();
+                    int iccCountAll = 0;
+  
+                    if(isMultiSimEnabledMms())
+                    {
+                        iccCountAll = MSimSmsManager.getDefault().getSmsCapCountOnIcc(subscription);
+                    }
+                    else
+                    {
+                        iccCountAll = SmsManager.getDefault().getSmsCapCountOnIcc();
+                    }
+
+                    Log.d(TAG, "isIccCardFull : iccCountUsed = "
+                        + iccCountUsed + ",iccCountAll = " + iccCountAll);
+                    
+                    if (iccCountAll < 0)
+                    {
+                        return false;
+                    }
+                    
+                    return iccCountUsed >= iccCountAll;
+                } 
+            }
+            finally
+            {
+                cursor.close();
+            }
+        }
+        else
+        {
+            Log.e(TAG, "isIccCardFull : cursor is null!");
+            return true;
+        }
+        
+        return false;
+    }
+    
+    public static String formatMemorySize(long size)
+    {
+        String suffix = null;
+        String kbStr = null;
+        boolean hasMb = false;
+        DecimalFormat formatter = new DecimalFormat();
+
+        // add KB or MB suffix if size is greater than 1K or 1M
+        if (size >= 1024)
+        {
+            suffix = " KB";
+            size /= 1024;
+            kbStr = formatter.format(size);
+            if (size >= 1024)
+            {
+                suffix = " MB";
+                size /= 1024;
+                hasMb = true;
+            }
+        }
+
+        formatter.setGroupingSize(3);
+        String result = formatter.format(size);
+
+        if (suffix != null)
+        {
+            if (hasMb && kbStr != null)
+            {
+                result = result + suffix + " (" + kbStr + " KB)";
+            }
+            else
+            {
+                result = result + suffix;
+            }
+        }
+        return result;
+    }
+
+    public static int getCurSmsPreferStore(Context context){
+        return getCurSmsPreferStore(context, SUB_INVALID);
+    }
+    
+    public static int getCurSmsPreferStore(Context context, int subcription){
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
+        int preferStore = STORE_ME;
+
+        if(isMultiSimEnabledMms())
+        {
+            if(subcription == SUB1)
+            {
+                preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store_card1", "1"));
+            }
+            else
+            {
+                preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store_card2", "1"));
+            }
+        }
+        else
+        {
+            preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store", "1"));
+        }
+
+        return preferStore;
+    }
+
+    private static void checkModifyPreStore(Context context, boolean isPhoneFull, int subscription)
+    {
+        int curPreStore = getCurSmsPreferStore(context, subscription);
+        boolean isIccCardFull = isIccCardFull(context, subscription);
+        
+        Log.d(TAG, "checkModifyPreStore : curPreStore = "
+            + curPreStore + ",isIccCardFull = " + isIccCardFull);
+        
+        if(isMultiSimEnabledMms())
+        {
+            MSimSmsManager smsManager = MSimSmsManager.getDefault();
+            if (curPreStore == STORE_SM)
+            {
+                if (isIccCardFull && !isPhoneFull)
+                {
+                    smsManager.setSmsPreStore(STORE_ME, true, subscription);
+                }        
+                else
+                {
+                    smsManager.setSmsPreStore(STORE_SM, true, subscription);
+                }
+            }
+            else
+            {
+                if (!isPhoneFull)
+                {
+                    smsManager.setSmsPreStore(STORE_ME, true, subscription);
+                }
+                else
+                {
+                    smsManager.setSmsPreStore(STORE_SM, true, subscription);
+                }
+            }
+        }
+        else
+        {
+            SmsManager smsManager = SmsManager.getDefault();
+            if (curPreStore == STORE_SM)
+            {
+                if (isIccCardFull && !isPhoneFull)
+                {
+                    smsManager.setSmsPreStore(STORE_ME, true);
+                }        
+                else
+                {
+                    smsManager.setSmsPreStore(STORE_SM, true);
+                }
+            }
+            else
+            {
+                if (!isPhoneFull)
+                {
+                    smsManager.setSmsPreStore(STORE_ME, true);
+                }
+                else
+                {
+                    smsManager.setSmsPreStore(STORE_SM, true);
+                }
+            }
+        }
+    }
+    
+    public static void checkModifyPreStoreWhenBoot(Context context) {
+        if (!isIccCardActivated()) {
+            return;
+        }
+        SmsManager smsmanager = SmsManager.getDefault();
+        int curPreStore = getCurSmsPreferStore(context);
+
+        if (curPreStore == STORE_SM) {      
+            smsmanager.setSmsPreStore(STORE_SM, true);
+        } else {         
+            smsmanager.setSmsPreStore(STORE_ME, true);           
+        }
+    }
+
+    public static void checkModifyPreStoreWhenBoot(Context context,int subscription) {
+        if (!isIccCardActivated(subscription)) {
+            return;
+        }
+        MSimSmsManager smsmanager = MSimSmsManager.getDefault();
+        int curPreStore = getCurSmsPreferStore(context,subscription);
+
+        if (curPreStore == STORE_SM) {      
+            smsmanager.setSmsPreStore(STORE_SM, true, subscription);
+        } else {         
+            smsmanager.setSmsPreStore(STORE_ME, true, subscription); 
+        }
+    }
+
+    /* check to see whether short message count is up to 2000, add for cmcc test */
+    public static void checkIsPhoneMessageFull(Context context)
+    {
+        if(!isCMCCTest())
+        {
+            Log.d(TAG, "checkIsPhoneMessageFull : It's not in cmcc test!");
+            return;
+        }
+        
+        if(isMultiSimEnabledMms())
+        {
+            checkIsSmsMessageFull(context, SUB1);
+            checkIsSmsMessageFull(context, SUB2);
+        }
+        else
+        {
+            checkIsSmsMessageFull(context, SUB_INVALID);
+        }
+    }
+
+    public static void checkIsSmsMessageFull(Context context, int subscription)
+    {
+        if ((!isMultiSimEnabledMms() && !isHasCard()) 
+            || (isMultiSimEnabledMms() && !isHasCard(subscription)))
+        {
+            return;
+        }    
+
+        int msgCount = getSmsMessageCount(context);
+        boolean isPhoneMemoryFull = isPhoneMemoryFull();
+        boolean isPhoneSmsCountFull = (msgCount >= MAX_SMS_MESSAGE_COUNT);
+        boolean isPhoneFull = (isPhoneMemoryFull || isPhoneSmsCountFull);
+        Log.d(TAG, "checkIsSmsMessageFull : isPhoneMemoryFull = " + isPhoneMemoryFull
+            + ",isPhoneSmsCountFull = " + isPhoneSmsCountFull);
+        checkModifyPreStore(context, isPhoneFull, subscription);
+                
+        if (isPhoneSmsCountFull)
+        {
+            MessagingNotification.updateSmsMessageFullIndicator(context, true);
+        }
+        else
+        {
+            MessagingNotification.updateSmsMessageFullIndicator(context, false);
+        }
+    }
+    
+    public static void setIsIccLoaded(boolean isIccLoaded){
+        sIsIccLoaded = isIccLoaded;
+    }
+
+    /* whether is in cmcc test mode,  0 is false ,1 is true */
+    public static boolean isCMCCTest(){
+        return SystemProperties.getInt("ro.cmcc.test", 0) == 1;
     }
 
     private static void log(String msg) {

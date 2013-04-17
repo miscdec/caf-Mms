@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" 
+    android:paddingLeft="8dip"
+    android:paddingRight="8dip"
+    android:scrollbars="vertical">
+    <FrameLayout android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingLeft="2dip"
+            android:paddingRight="2dip">         
+            <TextView
+                android:id="@+id/search_type_label"
+                android:layout_width="match_parent"
+                android:layout_height="35dip"   
+                android:text="@string/search_mode"
+                android:textColor="#ffffffff"
+                android:textStyle="bold"
+                android:paddingTop="5dip"
+                android:background="#cccccc"/>        
+            <LinearLayout 
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">            
+                <Spinner android:id="@+id/search_mode"
+                    style="?android:attr/textAppearanceMedium"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginRight="2dip"
+                    android:entries="@array/entries_list_search_type"/>
+            </LinearLayout>
+            
+            <TextView
+                android:id="@+id/search_key_label"
+                android:layout_width="match_parent"
+                android:layout_height="35dip"   
+                android:text="@string/search_key"
+                android:textColor="#ffffffff"
+                android:textStyle="bold"
+                android:paddingTop="5dip"
+                android:background="#cccccc"/>
+            <EditText
+                android:id="@+id/search_key_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:autoText="true"
+                android:capitalize="sentences"
+                android:maxLines="4"
+                android:minLines="2" 
+                android:maxLength="1024"
+                android:inputType="textShortMessage|textAutoCorrect|textCapSentences|textMultiLine"
+                android:imeOptions="actionDone|flagNoEnterAction"
+                android:scrollbars="vertical"    
+                android:scrollbarStyle="outsideInset"/>   
+        </LinearLayout>
+    </FrameLayout>
+</ScrollView>
+
