@@ -1098,6 +1098,17 @@ public class MailBoxMessageList extends ListActivity
 
             if(size > 0)
             {
+                Cursor cursor = (Cursor) mListAdapter.getItem(booleanArray.keyAt(0));
+                if(size ==1 && (cursor.getString(COLUMN_MSG_TYPE).equals("mms") 
+                    || "Browser Information".equals(cursor.getString(cursor.getColumnIndexOrThrow("address")))))
+                {
+                    Message msg = Message.obtain();
+                    msg.what = SHOW_TOAST;
+                    msg.obj = getString(R.string.copy_MMS_failure);
+                    uihandler.sendMessage(msg);
+                    return;                     
+                }
+                
                 for (int j = 0; j < size; j++)
                 {
                     int position = booleanArray.keyAt(j);
@@ -1110,6 +1121,7 @@ public class MailBoxMessageList extends ListActivity
                     {
                         return;
                     }
+                    
                     mSelectedPositions.add(position);
                 }
             }
@@ -1295,7 +1307,7 @@ public class MailBoxMessageList extends ListActivity
                 return;
             }
         }
-
+        
         if(mShowSuccessToast)
         {
             Message msg = Message.obtain();

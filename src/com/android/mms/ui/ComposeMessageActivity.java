@@ -1066,7 +1066,9 @@ public class ComposeMessageActivity extends Activity
             } else {
                 sendMessage(true);
                 if(isMms)
-                    goToConversationList();
+                {
+                     finish();
+                }
             }
         }
     }
