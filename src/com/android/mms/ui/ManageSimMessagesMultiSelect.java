@@ -360,28 +360,41 @@ public class ManageSimMessagesMultiSelect extends Activity
 
     private void copyMessages(boolean isCopyToPhone)
     {
-        for (Cursor c : mSelectedCursors)
+        SparseBooleanArray booleanArray = mMsgListView.getCheckedItemPositions();
+        int size = booleanArray.size();
+
+        if(size > 0)
         {
-            if (c == null)
+            for (int j = 0; j < size; j++)
             {
-                return;
-            } 
-            
-            if(isCopyToPhone)
-            {
-                copyToPhoneMemory(c);       
+                int position = booleanArray.keyAt(j);
+                if (!mMsgListView.isItemChecked(position))
+                {
+                    continue;
+                }
+                Cursor c = (Cursor) mMsgListAdapter.getItem(position);
+                if (c == null)
+                {
+                    return;
+                }
+                
+                if(isCopyToPhone)
+                {
+                    copyToPhoneMemory(c);       
+                }
+                else
+                {
+                    copyToCard(c, mSubscription == SUB1 ? SUB2 : SUB1);
+                } 
+                
+                if(!mShowSuccessToast)
+                {
+                    break;
+                }  
+
             }
-            else
-            {
-                copyToCard(c, mSubscription == SUB1 ? SUB2 : SUB1);
-            } 
-            
-            if(!mShowSuccessToast)
-            {
-                break;
-            }          
         }
-        
+
         if(mShowSuccessToast)
         {
             Message msg = Message.obtain();

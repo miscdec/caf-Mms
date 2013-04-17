@@ -48,6 +48,7 @@ import android.os.SystemProperties;
 import android.provider.MediaStore;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.provider.Telephony.Sms.Intents;
 import android.provider.Telephony.Threads;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
@@ -1568,7 +1569,12 @@ public class MessageUtils {
                     {
                         return false;
                     }
-                    
+
+                    if(iccCountUsed >= iccCountAll)
+                    {
+                        Intent intent = new Intent(Intents.SIM_FULL_ACTION);
+                        context.sendBroadcast(intent, "android.permission.RECEIVE_SMS");
+                    }
                     return iccCountUsed >= iccCountAll;
                 } 
             }

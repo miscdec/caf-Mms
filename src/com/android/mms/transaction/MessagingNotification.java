@@ -192,7 +192,9 @@ public class MessagingNotification {
      * Keeps track of the thread ID of the conversation that's currently displayed to the user
      */
     private static long sCurrentlyDisplayedThreadId;
+    private static boolean sCurrentlyDisplayedCardList = false;
     private static final Object sCurrentlyDisplayedThreadLock = new Object();
+    private static final Object sCurrentlyDisplayedCardLock = new Object();
 
     private static OnDeletedReceiver sNotificationDeletedReceiver = new OnDeletedReceiver();
     private static Intent sNotificationOnDeleteIntent;
@@ -235,6 +237,15 @@ public class MessagingNotification {
     public static void setCurrentlyDisplayedThreadId(long threadId) {
         synchronized (sCurrentlyDisplayedThreadLock) {
             sCurrentlyDisplayedThreadId = threadId;
+            if (DEBUG) {
+                Log.d(TAG, "setCurrentlyDisplayedThreadId: " + sCurrentlyDisplayedThreadId);
+            }
+        }
+    }
+
+    public static void setCurrentlyDisplayedCardList(boolean isShowing) {
+        synchronized (sCurrentlyDisplayedCardLock) {
+            sCurrentlyDisplayedCardList = isShowing;
             if (DEBUG) {
                 Log.d(TAG, "setCurrentlyDisplayedThreadId: " + sCurrentlyDisplayedThreadId);
             }
@@ -366,8 +377,19 @@ public class MessagingNotification {
         if (notificationSet.isEmpty()) {
             cancelNotification(context, getNotificationIDBySubscription(subscription));
         } else {
+            if (DEBUG || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                Log.d(TAG, "blockingUpdateNewMessageOnIccIndicator: count=" + notificationSet.size());
+            }
+            synchronized (sCurrentlyDisplayedCardLock) {
+                if (sCurrentlyDisplayedCardList) {
+                    playInConversationNotificationSound(context);
+                    return;
+                }
+            }
+            
             updateIccNotification(context, true, notificationSet, subscription);
         }
+        
         MmsSmsDeliveryInfo delivery = getSmsNewDeliveryInfo(context);
         if (delivery != null) {
             delivery.deliver(context, false);
