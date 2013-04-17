@@ -1524,6 +1524,7 @@ public class WorkingMessage {
 
         // Resize all the resizeable attachments (e.g. pictures) to fit
         // in the remaining space in the slideshow.
+        /*
         int error = 0;
         try {
             slideshow.finalResize(mmsUri);
@@ -1537,7 +1538,7 @@ public class WorkingMessage {
             mStatusListener.onAttachmentError(error);
             return;
         }
-
+*/
         ContentValues values = new ContentValues(1);
         values.put(Mms.SUB_ID, mCurrentConvSub);
 
