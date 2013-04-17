@@ -44,9 +44,10 @@ import com.android.mms.MmsApp;
 public class MmsSystemEventReceiver extends BroadcastReceiver {
     private static final String TAG = "MmsSystemEventReceiver";
     private static MmsSystemEventReceiver sMmsSystemEventReceiver;
+    private static final boolean DEBUG = true;
 
     private static void wakeUpService(Context context) {
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "wakeUpService: start transaction service ...");
         }
 
