@@ -808,7 +808,6 @@ public static String getMessageDetails(Context context, Cursor cursor, int size)
     }
 
     int type = cursor.getInt(14);
-    Log.w("huangzengzhi","mobilepaper807 type="+type);
     switch (type) {
         case PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF:
         case PduHeaders.MESSAGE_TYPE_SEND_REQ:

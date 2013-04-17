@@ -35,8 +35,8 @@ public class MmsConfig {
     private static final String DEFAULT_HTTP_KEY_X_WAP_PROFILE = "x-wap-profile";
     private static final String DEFAULT_USER_AGENT = "Android-Mms/2.0";
 
-    private static final int MAX_IMAGE_HEIGHT = 480;
-    private static final int MAX_IMAGE_WIDTH = 640;
+    private static final int MAX_IMAGE_HEIGHT = 960;
+    private static final int MAX_IMAGE_WIDTH = 720;
     private static final int MAX_TEXT_LENGTH = 2000;
 
     /**

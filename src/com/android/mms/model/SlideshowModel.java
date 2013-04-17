@@ -615,7 +615,6 @@ public class SlideshowModel extends Model
             }
             */
         }
-        
     }
 
     public void sync(PduBody pb) {

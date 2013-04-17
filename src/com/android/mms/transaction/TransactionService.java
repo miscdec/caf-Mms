@@ -259,12 +259,12 @@ public class TransactionService extends Service implements Observer {
 
     public void onNewIntent(Intent intent, int serviceId) {
         mConnMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        boolean noNetwork = !isNetworkAvailable();
+        boolean noNetwork = false;//!isNetworkAvailable(); judge on connection
 
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "onNewIntent: serviceId: " + serviceId + ": " + intent.getExtras() +
                     " intent=" + intent);
-            Log.v(TAG, "    networkAvailable=" + !noNetwork);
+            Log.v(TAG, "    networkAvailable=" + isNetworkAvailable());
         }
 
         Bundle extras = intent.getExtras();
@@ -452,6 +452,7 @@ public class TransactionService extends Service implements Observer {
 
     private boolean isNetworkAvailable() {
         NetworkInfo ni = mConnMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
+        Log.w(TAG, "-----ni= " + ni);
         return (ni == null ? false : ni.isAvailable());
     }
 
@@ -746,7 +747,7 @@ public class TransactionService extends Service implements Observer {
 
                 case EVENT_CONTINUE_MMS_CONNECTIVITY:
                     synchronized (mProcessing) {
-                        if (mProcessing.isEmpty()) {
+                        if (mPending.isEmpty()) {  /* mProcessing -> mPending*/
                             return;
                         }
                     }
@@ -762,6 +763,7 @@ public class TransactionService extends Service implements Observer {
                                     " instead of APN_ALREADY_ACTIVE");
                             // Just wait for connectivity startup without
                             // any new request of APN switch.
+                            renewMmsConnectivity();
                             return;
                         }
                     } catch (IOException e) {
@@ -990,6 +992,8 @@ public class TransactionService extends Service implements Observer {
                 int connectivityResult = beginMmsConnectivity();
                 if (connectivityResult == PhoneConstants.APN_REQUEST_STARTED) {
                     mPending.add(transaction);
+                    // Must ensure mms connectivity successfully
+                    renewMmsConnectivity();
                     if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "processTransaction: connResult=APN_REQUEST_STARTED, " +
                                 "defer transaction pending MMS connectivity");
@@ -1004,8 +1008,7 @@ public class TransactionService extends Service implements Observer {
             }
 
             // Set a timer to keep renewing our "lease" on the MMS connection
-            sendMessageDelayed(obtainMessage(EVENT_CONTINUE_MMS_CONNECTIVITY),
-                               APN_EXTENSION_WAIT);
+            renewMmsConnectivity();
 
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.v(TAG, "processTransaction: starting transaction " + transaction);

@@ -134,6 +134,7 @@ public class ImageModel extends RegionMediaModel {
     protected void checkContentRestriction() throws ContentRestrictionException {
         ContentRestriction cr = ContentRestrictionFactory.getContentRestriction();
         cr.checkImageContentType(mContentType);
+        cr.checkResolution(mWidth, mHeight);
     }
 
     public ItemLoadedFuture loadThumbnailBitmap(ItemLoadedCallback callback) {
@@ -185,6 +186,9 @@ public class ImageModel extends RegionMediaModel {
     @Override
     protected void resizeMedia(int byteLimit, long messageId) throws MmsException {
         UriImage image = new UriImage(mContext, getUri());
+        if (image == null) {
+            throw new ExceedMessageSizeException("No room to resize picture: " + getUri());
+        }
 
         int widthLimit = MmsConfig.getMaxImageWidth();
         int heightLimit = MmsConfig.getMaxImageHeight();

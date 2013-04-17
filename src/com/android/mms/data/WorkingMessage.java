@@ -544,21 +544,21 @@ public class WorkingMessage {
             // Set HAS_ATTACHMENT if we need it.
             updateState(HAS_ATTACHMENT, hasAttachment(), true);
         }
-		
-		 if(hasAttachment()){
-			 PduPersister persister = PduPersister.getPduPersister(mActivity);
-			 SendReq sendReq = makeSendReq(mConversation, mSubject);
-			 if (mMessageUri == null) {
-				 mMessageUri = createDraftMmsMessage(persister, sendReq, mSlideshow,null,mActivity,null);
-			 } else {
-				 updateDraftMmsMessage(mMessageUri, persister, mSlideshow, sendReq,null);
-			 }
-		 } else{
-			 if(mMessageUri != null){
-				 asyncDelete(mMessageUri, null, null);
-				 mMessageUri = null;
-			 }
-		 }
+            
+             if(hasAttachment()){
+                 PduPersister persister = PduPersister.getPduPersister(mActivity);
+                 SendReq sendReq = makeSendReq(mConversation, mSubject);
+                 if (mMessageUri == null) {
+                                     mMessageUri = createDraftMmsMessage(persister, sendReq, mSlideshow,null,mActivity,null);
+                 } else {
+                                     updateDraftMmsMessage(mMessageUri, persister, mSlideshow, sendReq,null);
+                 }
+             } else{
+                 if(mMessageUri != null){
+                                     asyncDelete(mMessageUri, null, null);
+                                     mMessageUri = null;
+                 }
+             }
         return result;
     }
 
@@ -1481,7 +1481,7 @@ public class WorkingMessage {
 
             // If user tries to send the message, it's a signal the inputted text is
             // what they wanted.
-            UserHappinessSignals.userAcceptedImeText(mActivity);
+          //  UserHappinessSignals.userAcceptedImeText(mActivity);
 
             // First make sure we don't have too many outstanding unsent message.
             cursor = SqliteWrapper.query(mActivity, mContentResolver,
@@ -1524,6 +1524,7 @@ public class WorkingMessage {
 
         // Resize all the resizeable attachments (e.g. pictures) to fit
         // in the remaining space in the slideshow.
+        /*
         int error = 0;
         try {
             slideshow.finalResize(mmsUri);
@@ -1537,9 +1538,10 @@ public class WorkingMessage {
             mStatusListener.onAttachmentError(error);
             return;
         }
-
+*/
         ContentValues values = new ContentValues(1);
         values.put(Mms.SUB_ID, mCurrentConvSub);
+        values.put(Mms.MESSAGE_TYPE, PduHeaders.MESSAGE_TYPE_SEND_REQ);
 
         SqliteWrapper.update(mActivity, mContentResolver, mmsUri, values, null, null);
 
