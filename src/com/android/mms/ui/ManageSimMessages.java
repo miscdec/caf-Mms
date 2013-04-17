@@ -19,7 +19,6 @@ package com.android.mms.ui;
 
 import com.android.mms.R;
 import com.android.mms.data.Contact;
-import android.database.sqlite.SqliteWrapper;
 import com.android.mms.LogTag;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.util.Recycler;
@@ -72,7 +71,6 @@ import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.TelephonyIntents;
 
 import java.util.ArrayList;
-import com.android.mms.transaction.MessagingNotification;
 
 /**
  * Displays a list of the SMS messages stored on the ICC.
@@ -139,7 +137,6 @@ public class ManageSimMessages extends Activity
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-
         mSubscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY, SUB_INVALID);
         mIccUri = MessageUtils.getIccUriBySubscription(mSubscription);
 
@@ -164,13 +161,13 @@ public class ManageSimMessages extends Activity
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
-
         init();
     }
 
     private void init() {
         MessagingNotification.cancelNotification(getApplicationContext(),
                 SIM_FULL_NOTIFICATION_ID);
+        MessagingNotification.setCurrentlyDisplayedCardList(true);
         updateState(SHOW_BUSY);
         if(MessageUtils.sIsIccLoaded)
         {
@@ -206,7 +203,7 @@ public class ManageSimMessages extends Activity
     
     private void setMessageRead(Context context, String indexString)
     {
-        Log.d(TAG, "setMessageRead : mSubscription="+mSubscription);
+        Log.d(TAG, "setMessageRead : mSubscription="+mSubscription+",indexString="+indexString);
 
         ContentValues values = new ContentValues(1);
         values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);
@@ -606,6 +603,7 @@ public class ManageSimMessages extends Activity
         mContentResolver.unregisterContentObserver(simChangeObserver);
         mContentResolver.unregisterContentObserver(mContactsChangedObserver);
         unregisterReceiver(mIccStateChangedReceiver);
+        MessagingNotification.setCurrentlyDisplayedCardList(false);
         super.onDestroy();
         if(mCursor != null)
         {
@@ -671,7 +669,7 @@ public class ManageSimMessages extends Activity
 
     private boolean isIncomingMessage(Cursor cursor) {
         int messageStatus = cursor.getInt(
-                cursor.getColumnIndexOrThrow("status"));
+                cursor.getColumnIndexOrThrow("status_on_icc"));
             
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
@@ -888,6 +886,7 @@ public class ManageSimMessages extends Activity
      * from ManagerSimMessages
      */
     private boolean updateContacts() {
+        
         int count = mSimList.getCount();
         int number = 0;
 

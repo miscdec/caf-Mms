@@ -111,12 +111,12 @@ public class SlideshowActivity extends Activity implements EventListener {
     private SlideView mSlideView;
     private int mSlideCount;
     
-    private static final int MENU_NORMALSHOW             =  1;
-    private static final int MENU_REPLY             =  2;
-    private static final int MENU_REPLY_BY_MMS              =3;
-    private static final int MENU_RESEND              =4;
-    private static final int MENU_MMS_FORWARD                    = 5;
-    private static final int MENU_DELETE                    = 6;
+    private static final int MENU_NORMALSHOW        = 1;
+    private static final int MENU_REPLY             = 2;
+    private static final int MENU_REPLY_BY_MMS      = 3;
+    private static final int MENU_RESEND            = 4;
+    private static final int MENU_MMS_FORWARD       = 5;
+    private static final int MENU_DELETE            = 6;
 
     private static final int MENU_TWO_CALL                 = 9;   
     private static final int MENU_SAVE_TO_CONTACT          = 13; 
@@ -1057,8 +1057,14 @@ public class SlideshowActivity extends Activity implements EventListener {
           return result;
       }
 
-      
-          
+      private void showDeliveryReport(long messageId, String type) {
+          Intent intent = new Intent(this, DeliveryReportActivity.class);
+          intent.putExtra("message_id", messageId);
+          intent.putExtra("message_type", type);
+  
+          startActivity(intent);
+      }
+           
       public static void viewMmsMessageAttachmentMobilepaper(Context context, Uri msgUri,
                   SlideshowModel slideshow, PduPersister persister, ArrayList<String> allIdList,boolean report)
           {
@@ -1109,9 +1115,16 @@ public class SlideshowActivity extends Activity implements EventListener {
     
             }         
                  
-          if (haveSomethingToCopyToSDCard(mUri)){
+           if (haveSomethingToCopyToSDCard(mUri)){
                  menu.add(0, MENU_COPY_TO_SDCARD, 0, R.string.copy_to_sdcard);
-             }
+           }
+
+           if((Mms.MESSAGE_BOX_SENT == mMailboxId)){
+               if (getIntent().getBooleanExtra("mms_report", false)) {
+                   menu.add(0, MENU_DELIVERY_REPORT, 0, R.string.view_delivery_report);
+               }  
+           }  
+           
            if ((PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF == msgType || PduHeaders.MESSAGE_TYPE_SEND_REQ == msgType)
                 && !(Mms.MESSAGE_BOX_DRAFTS == mMailboxId)){
     
@@ -1198,6 +1211,9 @@ public class SlideshowActivity extends Activity implements EventListener {
             }).start();
             break;
         }
+        case MENU_DELIVERY_REPORT:
+            showDeliveryReport(ContentUris.parseId(mUri),"mms");
+            break;  
         case MENU_SAVE_TO_CONTACT:
             addToContact();
             break;

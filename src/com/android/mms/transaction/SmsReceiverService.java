@@ -282,7 +282,7 @@ public class SmsReceiverService extends Service {
                     }
                     
                     if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)) {
-                        handleIccAbsent(subscription);
+                        //handleIccAbsent(subscription);
                     }
                     else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
                         MessageUtils.setIsIccLoaded(true);

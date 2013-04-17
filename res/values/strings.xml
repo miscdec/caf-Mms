@@ -152,6 +152,7 @@
     <string name="view_setting_phone">Phone</string>
     <string name="no_select_message">No messages be selected.</string>        
     <string name="operation_exceed">Max items exceed! Max count is: <xliff:g id="max_num">%s</xliff:g>.</string>
+    <string name="failed_to_add_attachment">You can\'t add more attachments to your message.</string>
     <string name="operation_operating">Operating ...</string>
     <string name="no_select">No selected items! </string>
     <string name="key_empty">Please input the keyword</string>    

@@ -560,7 +560,7 @@ public class SlideView extends LinearLayout implements
         if (null != mVideoView) {
             stopVideo();
             mVideoView.setVisibility(View.GONE);
-            mVideoView = null;
+          //  mVideoView = null;
         }
 
         if (null != mTextView) {

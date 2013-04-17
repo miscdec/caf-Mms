@@ -404,6 +404,8 @@ public class ContactGroup extends ListActivity
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         final Intent intent = getIntent();
+        int number = intent.getIntExtra("recipientscount", 0);
+        mMultiselMaxitems = MessageUtils.MAX_RECIPIENT - number;
 
         setContentView(R.layout.recent_calls);
         LinearLayout bt_layout = (LinearLayout)findViewById(R.id.bottom_panel);
@@ -458,7 +460,7 @@ public class ContactGroup extends ListActivity
                             mSelectedCount++;
                         }
                     }
-                    if(((index + 1) < mAdapter.getCount())) {
+                    if((mSelectedCount == mMultiselMaxitems) && ((index + 1) < mAdapter.getCount())) {
                         Toast.makeText(ContactGroup.this, getString(R.string.operation_exceed, mMultiselMaxitems),
                                        Toast.LENGTH_SHORT).show();
                         break;
