@@ -1098,8 +1098,10 @@ public class SlideshowActivity extends Activity implements EventListener {
                     menu.add(0, MENU_ONE_CALL, 0, R.string.menu_call);  
                }
             }
-            if(Mms.MESSAGE_BOX_INBOX == mMailboxId||mMailboxId==Mms.MESSAGE_BOX_SENT){
+            if(Mms.MESSAGE_BOX_INBOX == mMailboxId){
                 menu.add(0, MENU_REPLY, 0, R.string.menu_reply);
+                }
+            if(Mms.MESSAGE_BOX_INBOX == mMailboxId||mMailboxId==Mms.MESSAGE_BOX_SENT){
                 menu.add(0, MENU_MMS_FORWARD, 0, R.string.menu_forward);     
             }        
             if(Mms.MESSAGE_BOX_OUTBOX == mMailboxId || Mms.MESSAGE_BOX_SENT == mMailboxId){
