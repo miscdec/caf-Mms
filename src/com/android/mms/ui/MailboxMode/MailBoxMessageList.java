@@ -43,7 +43,9 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContentUris;
@@ -190,6 +192,7 @@ public class MailBoxMessageList extends ListActivity
     private String mMmsWhereDelete = "";    
     private boolean mHasLocked = false;
     private boolean mShowSuccessToast = true;
+    private int mNonSMSCount = 0;
     private AsyncDialog mAsyncDialog;   // Used for background tasks.
     ArrayList<Integer> mSelectedPositions = new ArrayList<Integer>();
     private ProgressDialog mProgressDialog = null;
@@ -264,7 +267,7 @@ public class MailBoxMessageList extends ListActivity
                                     Toast.LENGTH_LONG).show();
 
                     MessagingNotification.blockingUpdateNewMessageIndicator(
-                        MailBoxMessageList.this, MessagingNotification.THREAD_ALL, false);
+                        MailBoxMessageList.this, MessagingNotification.THREAD_NONE, false);
                     //Update the notification for text message memory may not be full, add for cmcc test
                     MessageUtils.checkIsPhoneMessageFull(MailBoxMessageList.this);
                     mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
@@ -539,7 +542,7 @@ public class MailBoxMessageList extends ListActivity
                              uri, values, null, null);
         
         MessagingNotification.blockingUpdateNewMessageIndicator(
-                this, MessagingNotification.THREAD_ALL, false);
+                this, MessagingNotification.THREAD_NONE, false);
     }
 
     AsyncDialog getAsyncDialog() {
@@ -1032,6 +1035,18 @@ public class MailBoxMessageList extends ListActivity
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
                 break;
+            case R.id.action_cell_broadcasts:
+                Intent cellBroadcastIntent = new Intent(Intent.ACTION_MAIN);
+                cellBroadcastIntent.setComponent(new ComponentName(
+                        "com.android.cellbroadcastreceiver",
+                        "com.android.cellbroadcastreceiver.CellBroadcastListActivity"));
+                cellBroadcastIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    startActivity(cellBroadcastIntent);
+                } catch (ActivityNotFoundException ignored) {
+                    Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
+                }
+                return true;
             case android.R.id.home:
                 finish();
                 break;
@@ -1296,7 +1311,8 @@ public class MailBoxMessageList extends ListActivity
     {   
         SparseBooleanArray booleanArray = mListView.getCheckedItemPositions();
         int size = booleanArray.size();
-
+        mNonSMSCount = 0;
+        
         if(size > 0)
         {
             for (int j = 0; j < size; j++)
@@ -1322,6 +1338,15 @@ public class MailBoxMessageList extends ListActivity
             }
         }
 
+        if(mNonSMSCount == size)
+        {
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.copy_MMS_failure);
+            uihandler.sendMessage(msg);
+            return;   
+        }
+        
         if(mShowSuccessToast)
         {
             Message msg = Message.obtain();
@@ -1339,6 +1364,7 @@ public class MailBoxMessageList extends ListActivity
         if (type.equals("mms") || "Browser Information".equals(address))
         {
             Log.d(TAG, "copyToCard : this message is not a normal SMS!");
+            mNonSMSCount++;
             return;                            
         }
         
