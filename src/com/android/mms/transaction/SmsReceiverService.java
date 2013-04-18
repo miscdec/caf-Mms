@@ -282,6 +282,7 @@ public class SmsReceiverService extends Service {
                     }
                     
                     if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
                         handleIccAbsent(subscription);
                     }
                     else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
@@ -498,7 +499,15 @@ public class SmsReceiverService extends Service {
                     ", body: " + sms.getMessageBody()/**/);
         }
 
+        
         MessageUtils.checkIsPhoneMessageFull(this);
+        
+        if(MessageUtils.isIccCardFull(this, subscription))
+        {
+            Intent fullintent = new Intent(Intents.SIM_FULL_ACTION);
+            this.sendBroadcast(fullintent, "android.permission.RECEIVE_SMS");
+            Log.d(TAG, "isIccCardFull : send broadcast of SIM_FULL_ACTION!");
+        }
         
         if ((messageUri != null)&&(indexOnIcc<0)) {
             long threadId = MessagingNotification.getSmsThreadId(this, messageUri);

@@ -63,7 +63,7 @@ public class SimFullReceiver extends BroadcastReceiver {
             nm.notify(ManageSimMessages.SIM_FULL_NOTIFICATION_ID, notification);
 
             Log.d("SimFullReceiver", "SIM card is full!");
-            MessageUtils.checkIsPhoneMessageFull(context);
+            //MessageUtils.checkIsPhoneMessageFull(context);
        }
     }
 

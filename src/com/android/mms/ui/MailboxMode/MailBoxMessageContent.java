@@ -926,6 +926,8 @@ public class MailBoxMessageContent extends Activity
                     String toastStr = (String) msg.obj;
                     Toast.makeText(MailBoxMessageContent.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(MailBoxMessageContent.this);
 
                     break; 
                 }

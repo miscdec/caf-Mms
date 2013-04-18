@@ -48,6 +48,7 @@ import android.os.SystemProperties;
 import android.provider.MediaStore;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.provider.Telephony.Sms.Intents;
 import android.provider.Telephony.Threads;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
@@ -466,7 +467,7 @@ public class MessageUtils {
         return details.toString();
     }
 
-    static private String getPriorityDescription(Context context, int PriorityValue) {
+    static public String getPriorityDescription(Context context, int PriorityValue) {
         Resources res = context.getResources();
         switch(PriorityValue) {
             case PduHeaders.PRIORITY_HIGH:
@@ -934,7 +935,7 @@ public class MessageUtils {
         }
     }
 
-    private static String extractEncStr(Context context, EncodedStringValue value) {
+    public static String extractEncStr(Context context, EncodedStringValue value) {
         if (value != null) {
             return value.getString();
         } else {

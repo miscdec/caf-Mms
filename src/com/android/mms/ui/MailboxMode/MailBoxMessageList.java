@@ -43,7 +43,9 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContentUris;
@@ -190,6 +192,7 @@ public class MailBoxMessageList extends ListActivity
     private String mMmsWhereDelete = "";    
     private boolean mHasLocked = false;
     private boolean mShowSuccessToast = true;
+    private int mNonSMSCount = 0;
     private AsyncDialog mAsyncDialog;   // Used for background tasks.
     ArrayList<Integer> mSelectedPositions = new ArrayList<Integer>();
     private ProgressDialog mProgressDialog = null;
@@ -264,10 +267,12 @@ public class MailBoxMessageList extends ListActivity
                                     Toast.LENGTH_LONG).show();
 
                     MessagingNotification.blockingUpdateNewMessageIndicator(
-                        MailBoxMessageList.this, MessagingNotification.THREAD_ALL, false);
+                        MailBoxMessageList.this, MessagingNotification.THREAD_NONE, false);
                     //Update the notification for text message memory may not be full, add for cmcc test
                     MessageUtils.checkIsPhoneMessageFull(MailBoxMessageList.this);
-                     
+                    mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+                    mShowSuccessToast = true;
+                    
                     if (mProgressDialog != null)
                     {
                         mProgressDialog.dismiss();
@@ -537,7 +542,7 @@ public class MailBoxMessageList extends ListActivity
                              uri, values, null, null);
         
         MessagingNotification.blockingUpdateNewMessageIndicator(
-                this, MessagingNotification.THREAD_ALL, false);
+                this, MessagingNotification.THREAD_NONE, false);
     }
 
     AsyncDialog getAsyncDialog() {
@@ -729,7 +734,7 @@ public class MailBoxMessageList extends ListActivity
                                 mSearchKeyStr).build();
                     queryUri = queryUri.buildUpon().appendQueryParameter("match_whole", 
                                 Integer.toString(mMatchWhole)).build();                                    
-                               
+                    
                     if (true || LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {                     
                         Log.d(TAG,"startAsyncQuery : queryUri = " + queryUri);
                     }
@@ -825,9 +830,11 @@ public class MailBoxMessageList extends ListActivity
                         if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
                         {
                             int count = cursor.getCount();
+                            String searchKeyStr = mSearchKeyStr;
+                            
                             if(mMatchWhole == 1)
                             {
-                                mSearchKeyStr = Contact.get(mSearchKeyStr, true).getName();
+                                searchKeyStr = Contact.get(mSearchKeyStr, true).getName();
                             }
                             
                             if(count > 0)
@@ -836,7 +843,7 @@ public class MailBoxMessageList extends ListActivity
                                     R.plurals.search_results_title,
                                     count,
                                     count,
-                                    mSearchKeyStr));
+                                    searchKeyStr));
                                 
                             }
                             else
@@ -845,7 +852,7 @@ public class MailBoxMessageList extends ListActivity
                                     R.plurals.search_results_title,
                                     0,
                                     0,
-                                    mSearchKeyStr));
+                                    searchKeyStr));
 
                                 emptyView.setText(getString(R.string.search_empty));
                             } 
@@ -880,10 +887,11 @@ public class MailBoxMessageList extends ListActivity
                             if(mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
                             {
                                 int count = mCursor.getCount();
-                                int size = cursor.getCount();
+                                String searchKeyStr = mSearchKeyStr;
+
                                 if(mMatchWhole == 1)
                                 {
-                                    mSearchKeyStr = Contact.get(mSearchKeyStr, true).getName();
+                                    searchKeyStr = Contact.get(mSearchKeyStr, true).getName();
                                 }
                                 
                                 if(count > 0)
@@ -892,7 +900,7 @@ public class MailBoxMessageList extends ListActivity
                                         R.plurals.search_results_title,
                                         count,
                                         count,
-                                        mSearchKeyStr));
+                                        searchKeyStr));
                                     
                                 }
                                 else
@@ -901,7 +909,7 @@ public class MailBoxMessageList extends ListActivity
                                         R.plurals.search_results_title,
                                         0,
                                         0,
-                                        mSearchKeyStr));
+                                        searchKeyStr));
                                 }                        
                             }
                             else
@@ -1030,6 +1038,18 @@ public class MailBoxMessageList extends ListActivity
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
                 break;
+            case R.id.action_cell_broadcasts:
+                Intent cellBroadcastIntent = new Intent(Intent.ACTION_MAIN);
+                cellBroadcastIntent.setComponent(new ComponentName(
+                        "com.android.cellbroadcastreceiver",
+                        "com.android.cellbroadcastreceiver.CellBroadcastListActivity"));
+                cellBroadcastIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    startActivity(cellBroadcastIntent);
+                } catch (ActivityNotFoundException ignored) {
+                    Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
+                }
+                return true;
             case android.R.id.home:
                 finish();
                 break;
@@ -1098,6 +1118,17 @@ public class MailBoxMessageList extends ListActivity
 
             if(size > 0)
             {
+                Cursor cursor = (Cursor) mListAdapter.getItem(booleanArray.keyAt(0));
+                if(size ==1 && (cursor.getString(COLUMN_MSG_TYPE).equals("mms") 
+                    || "Browser Information".equals(cursor.getString(cursor.getColumnIndexOrThrow("address")))))
+                {
+                    Message msg = Message.obtain();
+                    msg.what = SHOW_TOAST;
+                    msg.obj = getString(R.string.copy_MMS_failure);
+                    uihandler.sendMessage(msg);
+                    return;                     
+                }
+                
                 for (int j = 0; j < size; j++)
                 {
                     int position = booleanArray.keyAt(j);
@@ -1110,6 +1141,7 @@ public class MailBoxMessageList extends ListActivity
                     {
                         return;
                     }
+                    
                     mSelectedPositions.add(position);
                 }
             }
@@ -1279,22 +1311,45 @@ public class MailBoxMessageList extends ListActivity
     }
 
     private void copyMessages(int subscription)
-    {          
-        for (Integer position : mSelectedPositions)
-        { 
-            Cursor c = (Cursor) mListAdapter.getItem(position);
-            if (c == null)
+    {   
+        SparseBooleanArray booleanArray = mListView.getCheckedItemPositions();
+        int size = booleanArray.size();
+        mNonSMSCount = 0;
+        
+        if(size > 0)
+        {
+            for (int j = 0; j < size; j++)
             {
-                return;
-            }
+                int position = booleanArray.keyAt(j);
+                if (!mListView.isItemChecked(position))
+                {
+                    continue;
+                }
+                Cursor c = (Cursor) mListAdapter.getItem(position);
+                if (c == null)
+                {
+                    return;
+                }
+                
+                copyToCard(c, subscription);
+          
+                if(!mShowSuccessToast)
+                {
+                    break;
+                }  
 
-            copyToCard(c, subscription);
-            if(!mShowSuccessToast)
-            {
-                return;
             }
         }
 
+        if(mNonSMSCount == size)
+        {
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.copy_MMS_failure);
+            uihandler.sendMessage(msg);
+            return;   
+        }
+        
         if(mShowSuccessToast)
         {
             Message msg = Message.obtain();
@@ -1306,14 +1361,16 @@ public class MailBoxMessageList extends ListActivity
 
     private void copyToCard(Cursor cursor, int subscription)
     {        
-        final String type = cursor.getString(COLUMN_MSG_TYPE);
-        if (type.equals("mms"))
+        final String type = cursor.getString(COLUMN_MSG_TYPE);        
+        final String address = cursor.getString(
+                cursor.getColumnIndexOrThrow("address"));
+        if (type.equals("mms") || "Browser Information".equals(address))
         {
+            Log.d(TAG, "copyToCard : this message is not a normal SMS!");
+            mNonSMSCount++;
             return;                            
         }
         
-        final String address = cursor.getString(
-                cursor.getColumnIndexOrThrow("address"));
         final String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
         final Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
         final int boxId = cursor.getInt(cursor.getColumnIndexOrThrow("type"));
@@ -1345,6 +1402,10 @@ public class MailBoxMessageList extends ListActivity
             values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
             Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
             
+            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                Log.d(TAG, "copyToCard:content="+content+",address="+address);
+            }
+           
             Uri retUri = SqliteWrapper.insert(MailBoxMessageList.this, getContentResolver(),
                                               uriStr, values);
             if (uriStr != null && retUri != null) {
@@ -1395,10 +1456,6 @@ public class MailBoxMessageList extends ListActivity
             {
                 int delSmsCount = SqliteWrapper.delete(this, getContentResolver(),
                     Uri.parse("content://sms"), whereClause, null);
-                if(delSmsCount <= 0)
-                {
-                    mShowSuccessToast = false;
-                }
             }
         }
         
@@ -1415,20 +1472,13 @@ public class MailBoxMessageList extends ListActivity
             {
                 int delMmsCount = SqliteWrapper.delete(this, getContentResolver(),
                                      Uri.parse("content://mms"), whereClause, null);
-                if(delMmsCount <= 0)
-                {
-                    mShowSuccessToast = false;
-                }
             }
         }
 
-        if(mShowSuccessToast)
-        {
-            Message msg = Message.obtain();
-            msg.what = SHOW_TOAST;
-            msg.obj = getString(R.string.operate_success);   
-            uihandler.sendMessage(msg);
-        }
+        Message msg = Message.obtain();
+        msg.what = SHOW_TOAST;
+        msg.obj = getString(R.string.operate_success);   
+        uihandler.sendMessage(msg);
     }
     
     private void calcuteSelect()
@@ -1625,11 +1675,11 @@ public class MailBoxMessageList extends ListActivity
                 case MENU_DELETE_SELECT:
                     mAction = ACTION_DELETE;
                     confirmMultiAction();
-                    break;
+                    return true;
                 case MENU_COPY_SELECT:
                     mAction = ACTION_COPY;
                     confirmMultiAction();
-                    break;
+                    return true;
                 default:
                     break;
             }
