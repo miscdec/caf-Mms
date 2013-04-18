@@ -74,9 +74,6 @@ public class MemoryStatusActivity extends Activity
     TextView m_Card2Detail;
     TextView m_Card2Label;
     TextView phoneAll;
-    TextView phoneSmsLabel;  //only shown in cmcc test
-    TextView phoneMmsLabel;  //only shown in cmcc test
-    TextView MmsCountView;  //only shown in cmcc test
     TextView usedDetail;
     TextView unusedDetail;
     TextView countView;
@@ -120,12 +117,9 @@ public class MemoryStatusActivity extends Activity
     private void initUi()
     {
         phoneAll = (TextView) findViewById(R.id.phone);
-        phoneSmsLabel = (TextView) findViewById(R.id.phonesmslabel);  //only shown in cmcc test
-        phoneMmsLabel = (TextView) findViewById(R.id.phonemmslabel);  //only shown in cmcc test
         usedDetail = (TextView) findViewById(R.id.useddetail);
         unusedDetail = (TextView) findViewById(R.id.unuseddetail);
         countView = (TextView) findViewById(R.id.phonecount);
-        MmsCountView= (TextView) findViewById(R.id.phonecountmms);  //only shown in cmcc test
         usedView = (TextView) findViewById(R.id.phoneused);
         unusedView = (TextView) findViewById(R.id.phoneunused);
         
@@ -230,6 +224,7 @@ public class MemoryStatusActivity extends Activity
     {
         try
         {
+            /*
             if(MessageUtils.isCMCCTest())
             {
                 mQueryHandler.startQuery(MAILBOX_QUERY_ID, null, MAILBOX_URI_SMS, 
@@ -240,6 +235,9 @@ public class MemoryStatusActivity extends Activity
                 mQueryHandler.startQuery(MAILBOX_QUERY_ID, null, MAILBOX_URI, 
                     null, null, null, null);
             }
+            */
+            mQueryHandler.startQuery(MAILBOX_QUERY_ID, null, MAILBOX_URI, 
+                null, null, null, null);
 
         }
         catch (SQLiteException e)
@@ -293,6 +291,13 @@ public class MemoryStatusActivity extends Activity
                         +getString(R.string.type_outbox)+" : "+Integer.toString(outboxCount)+"\n"
                         +getString(R.string.type_draft)+" : "+Integer.toString(draftsCount)+"\n"
                         +getString(R.string.phonecount)+" : "+Integer.toString(phoneAllCount);
+
+                    if(MessageUtils.isCMCCTest())
+                    {   
+                        int smsAllCount = MessageUtils.getSmsMessageCount(MemoryStatusActivity.this);
+                        phoneCountStr += "\n\n" + getString(R.string.pref_sms_settings_title)+" : "
+                            +Integer.toString(smsAllCount)+"/"+Integer.toString(MessageUtils.MAX_SMS_MESSAGE_COUNT);
+                    }
                     
                     countView.setText(phoneCountStr);
 
@@ -349,12 +354,7 @@ public class MemoryStatusActivity extends Activity
                 usedView.setVisibility(View.VISIBLE);
                 unusedView.setVisibility(View.VISIBLE);
                 CardLabel.setVisibility(View.VISIBLE);
-                if(MessageUtils.isCMCCTest())
-                {
-                    phoneSmsLabel.setVisibility(View.VISIBLE);
-                    phoneMmsLabel.setVisibility(View.VISIBLE);
-                    //MmsCountView.setVisibility(View.VISIBLE);
-                }
+                
                 
                 int allCount = -1;
 
@@ -416,9 +416,7 @@ public class MemoryStatusActivity extends Activity
                 CardLabel.setVisibility(View.GONE);
                 m_Card1Label.setVisibility(View.GONE);
                 m_Card2Label.setVisibility(View.GONE);
-                phoneSmsLabel.setVisibility(View.GONE);
-                phoneMmsLabel.setVisibility(View.GONE);
-                //MmsCountView.setVisibility(View.GONE);
+                
                 mIsIccOver = false;
                 mIsIcc2Over = false;
                 

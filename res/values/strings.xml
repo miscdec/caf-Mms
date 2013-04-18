@@ -968,6 +968,7 @@
     <string name="no_message">No messages</string>
     <string name="operate_failure">Operate unsuccessfully!</string>
     <string name="operate_success">Operate successfully!</string>
+    <string name="copy_MMS_failure">Cannot copy MMS or WAP PUSH message.</string>
     <string name="change_mode">Change mode</string>
     <string name="sim_capacity">SIM capacity</string>
     <string name="sim_card">SIM card</string>
