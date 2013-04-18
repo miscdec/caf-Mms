@@ -406,6 +406,8 @@ public class ComposeMessageActivity extends Activity
                     String toastStr = (String) msg.obj;
                     Toast.makeText(ComposeMessageActivity.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(ComposeMessageActivity.this);
 
                     break; 
                 }
