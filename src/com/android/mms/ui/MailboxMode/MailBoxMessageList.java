@@ -734,7 +734,7 @@ public class MailBoxMessageList extends ListActivity
                                 mSearchKeyStr).build();
                     queryUri = queryUri.buildUpon().appendQueryParameter("match_whole", 
                                 Integer.toString(mMatchWhole)).build();                                    
-                               
+                    
                     if (true || LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {                     
                         Log.d(TAG,"startAsyncQuery : queryUri = " + queryUri);
                     }
@@ -830,9 +830,11 @@ public class MailBoxMessageList extends ListActivity
                         if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
                         {
                             int count = cursor.getCount();
+                            String searchKeyStr = mSearchKeyStr;
+                            
                             if(mMatchWhole == 1)
                             {
-                                mSearchKeyStr = Contact.get(mSearchKeyStr, true).getName();
+                                searchKeyStr = Contact.get(mSearchKeyStr, true).getName();
                             }
                             
                             if(count > 0)
@@ -841,7 +843,7 @@ public class MailBoxMessageList extends ListActivity
                                     R.plurals.search_results_title,
                                     count,
                                     count,
-                                    mSearchKeyStr));
+                                    searchKeyStr));
                                 
                             }
                             else
@@ -850,7 +852,7 @@ public class MailBoxMessageList extends ListActivity
                                     R.plurals.search_results_title,
                                     0,
                                     0,
-                                    mSearchKeyStr));
+                                    searchKeyStr));
 
                                 emptyView.setText(getString(R.string.search_empty));
                             } 
@@ -885,10 +887,11 @@ public class MailBoxMessageList extends ListActivity
                             if(mMailboxId == Sms.MESSAGE_TYPE_SEARCH)
                             {
                                 int count = mCursor.getCount();
-                                int size = cursor.getCount();
+                                String searchKeyStr = mSearchKeyStr;
+
                                 if(mMatchWhole == 1)
                                 {
-                                    mSearchKeyStr = Contact.get(mSearchKeyStr, true).getName();
+                                    searchKeyStr = Contact.get(mSearchKeyStr, true).getName();
                                 }
                                 
                                 if(count > 0)
@@ -897,7 +900,7 @@ public class MailBoxMessageList extends ListActivity
                                         R.plurals.search_results_title,
                                         count,
                                         count,
-                                        mSearchKeyStr));
+                                        searchKeyStr));
                                     
                                 }
                                 else
@@ -906,7 +909,7 @@ public class MailBoxMessageList extends ListActivity
                                         R.plurals.search_results_title,
                                         0,
                                         0,
-                                        mSearchKeyStr));
+                                        searchKeyStr));
                                 }                        
                             }
                             else
