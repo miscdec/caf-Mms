@@ -425,7 +425,7 @@
     <string name="no_message">无信息</string>
     <string name="operate_failure">操作失败！</string>
     <string name="operate_success">操作成功！</string>
-    <string name="copy_MMS_failure">不能复制彩信或WAP PUSH消息.</string>
+    <string name="copy_MMS_failure">不能复制彩信或WAP PUSH消息</string>
     <string name="change_mode">切换模式</string>
     <string name="sim_capacity">卡容量</string>
     <string name="sim_card">SIM卡</string>
