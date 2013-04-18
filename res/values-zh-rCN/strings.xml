@@ -364,6 +364,7 @@
     <string name="menu_clearall">取消</string>
     <string name="operation_exceed">超出最大数目！最大限制条数：<xliff:g id="max_num">%s</xliff:g>。</string>
     <string name="failed_to_add_attachment">"该信息太大，无法添加附件。"</string>
+    <string name="no_select">没有选中任何条目！</string>
 
     <string name="batch_operate">批量操作</string>
     <string name="copy_to_phone_success">保存成功</string>
