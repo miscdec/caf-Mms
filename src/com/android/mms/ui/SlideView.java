@@ -49,6 +49,7 @@ import android.widget.FrameLayout;
 import java.io.InputStream;
 import android.content.ContentResolver;
 import android.text.util.Linkify;
+import android.text.TextUtils;
 /**
  * A basic view to show the contents of a slide.
  */
@@ -398,31 +399,26 @@ public class SlideView extends LinearLayout implements
     }
 
     public void setText(String name, String text) {
-        if (!mConformanceMode) {
-            if (null == mScrollText) {
-                mScrollText = new ScrollView(mContext);
-                mScrollText.setScrollBarStyle(SCROLLBARS_OUTSIDE_INSET);
-                addView(mScrollText, new LayoutParams(
-                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-                if (DEBUG) {
-                    mScrollText.setBackgroundColor(0xFF00FF00);
-                }
-            }
-            if (null == mTextView) {
-                mTextView = new TextView(mContext);
-                mTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
-                mScrollText.addView(mTextView);
-            }
-            mScrollText.requestFocus();
+        if (null == name && (null == text || TextUtils.isEmpty(text))){
+            removeView(mTextView);
+            mTextView = null;
         }
+        if (null == mTextView) {
+
+            mTextView = new TextView(mContext);
+            mTextView.setTextIsSelectable(true);
+            addView(mTextView);
+
+        }
+
         mTextView.setAutoLinkMask(Linkify.ALL);
         mTextView.setLinksClickable(true);
+        mTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+        
         mTextView.setTelUrl("tels:");
-        mTextView.setWebUrl("www_custom:");
-        mTextView.setVisibility(View.VISIBLE);
-        mTextView.setTextExt(text);
-        // Let the text in Mms can be selected.
-        mTextView.setTextIsSelectable(true);
+        mTextView.setWebUrl("www_custom:");            
+        mTextView.requestFocus();
+        mTextView.setTextExt(text + "\n");
     }
 
     public void setTextRegion(int left, int top, int width, int height) {
