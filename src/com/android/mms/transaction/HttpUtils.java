@@ -49,7 +49,7 @@ import com.android.mms.MmsConfig;
 public class HttpUtils {
     private static final String TAG = LogTag.TRANSACTION;
 
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     private static final boolean LOCAL_LOGV = DEBUG ? Config.LOGD : Config.LOGV;
 
     public static final int HTTP_POST_METHOD = 1;
@@ -98,7 +98,7 @@ public class HttpUtils {
             throw new IllegalArgumentException("URL must not be null.");
         }
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)||DEBUG) {
             Log.v(TAG, "httpConnection: params list");
             Log.v(TAG, "\ttoken\t\t= " + token);
             Log.v(TAG, "\turl\t\t= " + url);
@@ -307,11 +307,12 @@ public class HttpUtils {
         // set the socket timeout
         int soTimeout = MmsConfig.getHttpSocketTimeout();
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) ||DEBUG) {
             Log.d(TAG, "[HttpUtils] createHttpClient w/ socket timeout " + soTimeout + " ms, "
                     + ", UA=" + userAgent);
         }
         HttpConnectionParams.setSoTimeout(params, soTimeout);
+        HttpConnectionParams.setSocketBufferSize(params, 2 * 1024); 
         return client;
     }
 

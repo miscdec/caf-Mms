@@ -156,7 +156,6 @@ public class SlideView extends LinearLayout implements
             Log.v(TAG,"uri = " + uri);
             return false;
         }
-/*Start of  zhuzhongwei 2011.4.28*/
         int imageHeight = bitmap.getHeight();
         int imageWidth = bitmap.getWidth();        
         int newWidth = LayoutManager.getInstance().getLayoutParameters().getWidth();
@@ -201,7 +200,6 @@ public class SlideView extends LinearLayout implements
         Log.v(TAG," newHeight = " + newHeight
             + ";newWidth = " + newWidth
             + ";screenWidth = " + screenWidth);            
-/*End   of  zhuzhongwei 2011.4.28*/
         
         if (mImageView != null 
             && (mImageView instanceof GIFView)
