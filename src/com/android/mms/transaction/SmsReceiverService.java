@@ -217,12 +217,18 @@ public class SmsReceiverService extends Service {
             {
                 case TOKEN_QUERY_ICC1:
                     MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB1);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(SmsReceiverService.this);
                     return;
                 case TOKEN_QUERY_ICC2:
                     MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB2);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(SmsReceiverService.this);
                     return;
                 case TOKEN_QUERY_ICC:
                     MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB_INVALID);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(SmsReceiverService.this);
                     return;
             }            
         }
