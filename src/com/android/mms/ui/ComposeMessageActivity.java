@@ -175,6 +175,9 @@ import com.google.android.mms.pdu.PduHeaders;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import android.os.StatFs;
 
 
 /**
@@ -386,6 +389,9 @@ public class ComposeMessageActivity extends Activity
     private int mMmsCurrentSize = 0;
 
     private Handler mHandler = new Handler();
+    private File mCurrentPhotoFile;
+    private static final File PHOTO_LOCAL_DIR  =new File(
+            Environment.getInternalStorageDirectory() + "/Picture/Photo");
 
     // keys for extras and icicles
     public final static String THREAD_ID = "thread_id";
@@ -3564,9 +3570,31 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case AttachmentTypeSelectorAdapter.TAKE_PICTURE: {
-                MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
-                break;
-            }
+                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+                    intent.putExtra("android.intent.extras.CAMERA_FACING", android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK);
+                    if(sdcardCanuse()){
+                       // intent.putExtra(MediaStore.EXTRA_OUTPUT, Mms.ScrapSpace.CONTENT_URI);
+                       MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
+                       return;
+                    }
+                    else
+                    {
+                        mCurrentPhotoFile = new File(PHOTO_LOCAL_DIR, getPhotoFileName());
+                        try{
+
+                            if (!PHOTO_LOCAL_DIR.exists() || !PHOTO_LOCAL_DIR.isDirectory ()) {
+                                    PHOTO_LOCAL_DIR.mkdirs();
+                                }
+                            android.os.FileUtils.setPermissions(mCurrentPhotoFile.getPath(),  0777 , -1, -1);
+                        }catch (Exception e){};
+                        Log.w("huangzengzhi","compose5132 mCurrentPhotoFile="+Uri.fromFile(mCurrentPhotoFile));
+                        //intent.putExtra(MediaStore.EXTRA_OUTPUT, Mms.ScrapSpace.CONTENT_URI);
+                        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(mCurrentPhotoFile));
+                    }
+                    startActivityForResult(intent, REQUEST_CODE_TAKE_PICTURE);
+                    break;
+                    }
 
             case AttachmentTypeSelectorAdapter.ADD_VIDEO:
                 MessageUtils.selectVideo(this, REQUEST_CODE_ATTACH_VIDEO);
@@ -3720,13 +3748,19 @@ public class ComposeMessageActivity extends Activity
                 // create a file based uri and pass to addImage(). We want to read the JPEG
                 // data directly from file (using UriImage) instead of decoding it into a Bitmap,
                 // which takes up too much memory and could easily lead to OOM.
-                File file = new File(TempFileProvider.getScrapPath(this));
-                Uri uri = Uri.fromFile(file);
-
-                // Remove the old captured picture's thumbnail from the cache
-                MmsApp.getApplication().getThumbnailManager().removeThumbnail(uri);
-
-                addImageAsync(uri, false);
+                if(sdcardCanuse())
+                    {
+                    File file = new File(TempFileProvider.getScrapPath(this));
+                    Uri uri = Uri.fromFile(file);
+                    
+                    // Remove the old captured picture's thumbnail from the cache
+                    MmsApp.getApplication().getThumbnailManager().removeThumbnail(uri);
+                    
+                    addImageAsync(uri, false);
+                    }
+                else
+                    addImageAsync(Uri.fromFile(mCurrentPhotoFile), false);
+                    
                 break;
             }
 
@@ -5312,6 +5346,37 @@ public class ComposeMessageActivity extends Activity
         return false;
     }
 
+    private String getPhotoFileName() {
+        Date date = new Date(System.currentTimeMillis());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("'IMG'_yyyyMMdd_HHmmss");
+        return dateFormat.format(date) + ".jpg";
+    }    
+    private final boolean isSDCardExist() {
+        boolean ret = true;
+        String status = Environment.getExternalStorageState();
+        if (status.equals(Environment.MEDIA_REMOVED) 
+            ||status.equals(Environment.MEDIA_BAD_REMOVAL)
+            ||status.equals(Environment.MEDIA_CHECKING)
+            ||status.equals(Environment.MEDIA_SHARED)
+            ||status.equals(Environment.MEDIA_UNMOUNTED)
+            ||status.equals(Environment.MEDIA_NOFS)
+            ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
+            ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
+            ret = false; 
+        }
+        return ret;
+    }  
+    private boolean sdcardCanuse(){
+    
+     if(isSDCardExist()){
+         File mVcardDirectory = new File("/sdcard/"); 
+         StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
+         long blocks = fs.getAvailableBlocks();
+         long blockSize = fs.getBlockSize();
+         return (blocks*blockSize)>(50*1024);
+     }
+     return false;
+    }
     private void startSendingService(boolean sent) {
         if ( mbResendMms && null != mstrMsgId ) {
             Uri uri = null;

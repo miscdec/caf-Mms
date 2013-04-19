@@ -112,6 +112,8 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
     }
 
     public void setVideo(String name, Uri video) {
+        if(video==null)
+            return;
         if (name != null) {
             mAttachmentName.setText(name);
             mAttachmentIcon.setImageResource(R.drawable.movie);

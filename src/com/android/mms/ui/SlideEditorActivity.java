@@ -63,6 +63,11 @@ import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import android.provider.MediaStore;
+import java.util.Date;
+import android.os.Environment;
+import android.os.StatFs;
+import java.text.SimpleDateFormat;
+import java.io.File;
 
 /**
  * This activity allows user to edit the contents of a slide.
@@ -125,6 +130,9 @@ public class SlideEditorActivity extends Activity {
 
     private final static String MESSAGE_URI = "message_uri";
     private AsyncDialog mAsyncDialog;   // Used for background tasks.
+	    private static final File PHOTO_LOCAL_DIR  =new File(
+            Environment.getInternalStorageDirectory() + "/Picture/");
+    private File mCurrentPhotoFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -441,8 +449,30 @@ public class SlideEditorActivity extends Activity {
                 break;
 
             case MENU_TAKE_PICTURE:
-                MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
-                break;
+                {
+                    if(sdcardCanuse()){
+                        MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
+                        break;
+                    }
+                    else
+                    {
+                        Intent intent1 = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+                        intent1.putExtra("android.intent.extras.CAMERA_FACING", android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK);
+                        mCurrentPhotoFile = new File(PHOTO_LOCAL_DIR, getPhotoFileName());
+                        try{
+
+                        if (!PHOTO_LOCAL_DIR.exists() || !PHOTO_LOCAL_DIR.isDirectory ()) {
+                            PHOTO_LOCAL_DIR.mkdirs();
+                        }
+                        android.os.FileUtils.setPermissions(mCurrentPhotoFile.getPath(),  0777 , -1, -1);
+                        }catch (Exception e){};
+                        //intent.putExtra(MediaStore.EXTRA_OUTPUT, Mms.ScrapSpace.CONTENT_URI);
+                            intent1.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(mCurrentPhotoFile));
+                            startActivityForResult(intent1, REQUEST_CODE_TAKE_PICTURE);
+                        break;
+                    }
+                }
 
             case MENU_DEL_PICTURE:
                 mSlideshowEditor.removeImage(mPosition);
@@ -599,9 +629,12 @@ public class SlideEditorActivity extends Activity {
                 Uri pictureUri = null;
                 boolean showError = false;
                 try {
-                    pictureUri = TempFileProvider.renameScrapFile(".jpg",
+                    if(sdcardCanuse())
+                        pictureUri = TempFileProvider.renameScrapFile(".jpg",
                             Integer.toString(mPosition), this);
 
+                    else
+                        pictureUri = Uri.fromFile(mCurrentPhotoFile);
                     if (pictureUri == null) {
                         showError = true;
                     } else {
@@ -806,4 +839,37 @@ public class SlideEditorActivity extends Activity {
             setReplaceButtonText(R.string.add_picture);
         }
     }
+    
+     private final boolean isSDCardExist() {
+         boolean ret = true;
+         String status = Environment.getExternalStorageState();
+         if (status.equals(Environment.MEDIA_REMOVED) 
+             ||status.equals(Environment.MEDIA_BAD_REMOVAL)
+             ||status.equals(Environment.MEDIA_CHECKING)
+             ||status.equals(Environment.MEDIA_SHARED)
+             ||status.equals(Environment.MEDIA_UNMOUNTED)
+             ||status.equals(Environment.MEDIA_NOFS)
+             ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
+             ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
+             ret = false; 
+         }
+         return ret;
+     }  
+    
+        private boolean sdcardCanuse(){
+    
+     if(isSDCardExist()){
+         File mVcardDirectory = new File("/sdcard/"); 
+         StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
+         long blocks = fs.getAvailableBlocks();
+         long blockSize = fs.getBlockSize();
+         return (blocks*blockSize)>(50*1024);
+     }
+     return false;
+    }
+    private String getPhotoFileName() {
+        Date date = new Date(System.currentTimeMillis());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("'IMG'_yyyyMMdd_HHmmss");
+        return dateFormat.format(date) + ".jpg";
+    }    
 }

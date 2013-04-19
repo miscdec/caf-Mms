@@ -328,6 +328,7 @@ public class MobilePaperShowActivity extends Activity
                 text = (TextView) view.findViewById(R.id.slide_number_text);
                 text.setFocusable(false);
                 text.setFocusableInTouchMode(false);
+                text.setTextSize(18);              
                 text.setTextExt(getString(R.string.slide_number, index + 1));                
                 rootView.addView(view);
             }
