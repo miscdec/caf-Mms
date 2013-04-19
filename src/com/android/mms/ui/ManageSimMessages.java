@@ -162,7 +162,11 @@ public class ManageSimMessages extends Activity
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
-        init();      
+        ///init();   
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                SIM_FULL_NOTIFICATION_ID);        
+        updateState(SHOW_BUSY);
+        startQuery();
     }
 
     private void init() {
@@ -187,10 +191,11 @@ public class ManageSimMessages extends Activity
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
-                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " + intent); 
+            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {        
                 int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
                 String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " 
+                    + intent + ", stateExtra = " + stateExtra); 
                 
                 if(!MessageUtils.isMultiSimEnabledMms())
                 {

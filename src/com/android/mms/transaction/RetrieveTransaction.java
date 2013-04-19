@@ -83,6 +83,7 @@ public class RetrieveTransaction extends Transaction implements Runnable {
         if (uri.startsWith("content://")) {
             mUri = Uri.parse(uri); // The Uri of the M-Notification.ind
             mId = mContentLocation = getContentLocation(context, mUri);
+            mTransactionState.setContentUri(mUri);  //add for onConnectivityFailed()
             if (LOCAL_LOGV) {
                 Log.v(TAG, "X-Mms-Content-Location: " + mContentLocation);
             }
@@ -180,6 +181,7 @@ public class RetrieveTransaction extends Transaction implements Runnable {
                 // Copy over the locked flag from the M-Notification.ind in case
                 // the user locked the message before activating the download.
                 updateContentLocation(mContext, msgUri, mContentLocation, mLocked);
+                Log.d(TAG, "RetrieveTransaction successfull. msgUri = " + msgUri.toString());
             }
 
             // Delete the corresponding M-Notification.ind.

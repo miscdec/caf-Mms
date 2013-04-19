@@ -42,7 +42,7 @@ import com.google.android.mms.pdu.PduPersister;
 
 public class RetryScheduler implements Observer {
     private static final String TAG = "RetryScheduler";
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     private static final boolean LOCAL_LOGV = false;
 
     private final Context mContext;
@@ -69,11 +69,12 @@ public class RetryScheduler implements Observer {
     }
 
     public void update(Observable observable) {
+
         Transaction t = (Transaction) observable;
         TransactionState state = t.getState();
+        Uri msgUri = null;        
         try {
-
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG ) {
                 Log.v(TAG, "[RetryScheduler] update " + observable);
             }
 
@@ -87,6 +88,7 @@ public class RetryScheduler implements Observer {
                     //TransactionState state = t.getState();
                     if (state.getState() == TransactionState.FAILED) {
                         Uri uri = state.getContentUri();
+                        msgUri = uri;
                         if (uri != null) {
                             scheduleRetry(uri);
                         }
@@ -97,7 +99,9 @@ public class RetryScheduler implements Observer {
             }
         } finally {
             if ((state.getState() == TransactionState.FAILED)/*isConnected()*/) {
-                setRetryAlarm(mContext);
+                if (msgUri != null) {
+                    setRetryAlarm(mContext, msgUri);
+                }
             }
         }
     }
@@ -173,8 +177,8 @@ public class RetryScheduler implements Observer {
                     if ((retryIndex < scheme.getRetryLimit()) && retry) {
                         long retryAt = current + scheme.getWaitingInterval();
 
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
-                            Log.v(TAG, "scheduleRetry: retry for " + uri + " is scheduled at "
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) ||DEBUG) {
+                            Log.v(TAG, "scheduleRetry: retryIndex = " + retryIndex + ", retry for " + uri + " is scheduled at "
                                     + (retryAt - System.currentTimeMillis()) + "ms from now");
                         }
 
@@ -186,7 +190,9 @@ public class RetryScheduler implements Observer {
                                     uri, DownloadManager.STATE_TRANSIENT_FAILURE);
                         }
                     } else {
+                        Log.v(TAG, "Can't retry again , isRetryDownloading  " + isRetryDownloading);
                         errorType = MmsSms.ERR_TYPE_GENERIC_PERMANENT;
+                            retryIndex = 1; /* let permanent error mms canbe retry 3times again lixin add 20120906 */
                         if (isRetryDownloading) {
                             Cursor c = SqliteWrapper.query(mContext, mContext.getContentResolver(), uri,
                                     new String[] { Mms.THREAD_ID }, null, null, null);
@@ -276,6 +282,59 @@ public class RetryScheduler implements Observer {
         return retrieveStatus;
     }
 
+    public static void setRetryAlarm(Context context, Uri msgUri) {
+        if (msgUri == null){
+            return;
+        }
+        /*
+        Cursor cursor = PduPersister.getPduPersister(context).getPendingMessages(
+                Long.MAX_VALUE);
+                */
+        long msgId = ContentUris.parseId(msgUri);
+        Log.v(TAG, "setRetryAlarm msgUri = " + msgUri);
+
+        Uri.Builder uriBuilder = PendingMessages.CONTENT_URI.buildUpon();
+        uriBuilder.appendQueryParameter("protocol", "mms");
+        uriBuilder.appendQueryParameter("message", String.valueOf(msgId));
+
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                uriBuilder.build(), null, null, null, null);
+
+                
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    // The result of getPendingMessages() is order by due time.
+                    long retryAt = cursor.getLong(cursor.getColumnIndexOrThrow(
+                            PendingMessages.DUE_TIME));
+                    Log.v(TAG,"msgid = " + cursor.getString(cursor.getColumnIndexOrThrow(
+                            PendingMessages.MSG_ID)) + ", retryAt = " + retryAt);
+                    if ((retryAt - System.currentTimeMillis()) < 0)
+                    {
+                        Log.v(TAG, "Out of current date, cancel retry scheduler !");
+                        return;
+                    }
+                    Intent service = new Intent(TransactionService.ACTION_ONALARM,
+                                        null, context, TransactionService.class);
+                    service.putExtra("msg_id", msgId);
+                    PendingIntent operation = PendingIntent.getService(
+                            context, 0, service, PendingIntent.FLAG_ONE_SHOT);
+                    AlarmManager am = (AlarmManager) context.getSystemService(
+                            Context.ALARM_SERVICE);
+                    am.set(AlarmManager.RTC, retryAt, operation);
+
+                    //if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) 
+                    {
+                        Log.v(TAG, "Next retry is scheduled at "
+                                + (retryAt - System.currentTimeMillis()) + " ms from now");
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+    }
+
     public static void setRetryAlarm(Context context) {
         Cursor cursor = PduPersister.getPduPersister(context).getPendingMessages(
                 Long.MAX_VALUE);
@@ -294,7 +353,7 @@ public class RetryScheduler implements Observer {
                             Context.ALARM_SERVICE);
                     am.set(AlarmManager.RTC, retryAt, operation);
 
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                         Log.v(TAG, "Next retry is scheduled at"
                                 + (retryAt - System.currentTimeMillis()) + "ms from now");
                     }
