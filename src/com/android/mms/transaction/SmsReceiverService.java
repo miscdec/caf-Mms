@@ -217,12 +217,18 @@ public class SmsReceiverService extends Service {
             {
                 case TOKEN_QUERY_ICC1:
                     MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB1);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(SmsReceiverService.this);
                     return;
                 case TOKEN_QUERY_ICC2:
                     MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB2);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(SmsReceiverService.this);
                     return;
                 case TOKEN_QUERY_ICC:
                     MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB_INVALID);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(SmsReceiverService.this);
                     return;
             }            
         }
@@ -282,7 +288,8 @@ public class SmsReceiverService extends Service {
                     }
                     
                     if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)) {
-                        //handleIccAbsent(subscription);
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
                     }
                     else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
                         MessageUtils.setIsIccLoaded(true);
@@ -498,7 +505,15 @@ public class SmsReceiverService extends Service {
                     ", body: " + sms.getMessageBody()/**/);
         }
 
+        
         MessageUtils.checkIsPhoneMessageFull(this);
+        
+        if(MessageUtils.isIccCardFull(this, subscription))
+        {
+            Intent fullintent = new Intent(Intents.SIM_FULL_ACTION);
+            this.sendBroadcast(fullintent, "android.permission.RECEIVE_SMS");
+            Log.d(TAG, "isIccCardFull : send broadcast of SIM_FULL_ACTION!");
+        }
         
         if ((messageUri != null)&&(indexOnIcc<0)) {
             long threadId = MessagingNotification.getSmsThreadId(this, messageUri);

@@ -87,6 +87,7 @@ import android.provider.ContactsContract.Intents;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
+import android.provider.MediaStore.Audio;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
@@ -405,6 +406,8 @@ public class ComposeMessageActivity extends Activity
                     String toastStr = (String) msg.obj;
                     Toast.makeText(ComposeMessageActivity.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(ComposeMessageActivity.this);
 
                     break; 
                 }
@@ -1066,7 +1069,9 @@ public class ComposeMessageActivity extends Activity
             } else {
                 sendMessage(true);
                 if(isMms)
-                    goToConversationList();
+                {
+                     finish();
+                }
             }
         }
     }
@@ -4110,6 +4115,8 @@ public class ComposeMessageActivity extends Activity
     private static final String mVideoUri = Video.Media.getContentUri("external").toString();
     // mImageUri will look like this: content://media/external/images/media
     private static final String mImageUri = Images.Media.getContentUri("external").toString();
+    // mAudioUri will look like this: content://media/external/audio/media
+    private static final String mAudioUri = Audio.Media.getContentUri("external").toString();
 
     private void addAttachment(String type, Uri uri, boolean append) {
         if (uri != null) {
@@ -4124,6 +4131,9 @@ public class ComposeMessageActivity extends Activity
             } else if (type.startsWith("video/") ||
                     (wildcard && uri.toString().startsWith(mVideoUri))) {
                 addVideo(uri, append);
+            }else if (type.startsWith("audio/") ||
+                    (wildcard && uri.toString().startsWith(mAudioUri))) {
+                addAudio(uri);
             }else if (type.equals("text/x-vcard")
                     || (wildcard && isVcardFile(uri))) {
                 addVcard(uri);

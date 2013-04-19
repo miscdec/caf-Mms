@@ -70,7 +70,14 @@ public class VideoModel extends RegionMediaModel {
     }
 
     private void initFromFile(Uri uri) {
-        mSrc = uri.getPath();
+       String path = uri.getPath();
+        // Some carriers not support long file name contain "/".
+        mSrc = path.substring(path.lastIndexOf('/') + 1);
+        // If the file name starts with ".", remove it.
+        if (mSrc.startsWith(".") && mSrc.length() > 1) {
+            mSrc = mSrc.substring(1);
+        }
+        mSrc = mSrc.replace(' ', '_');
         MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
         String extension = MimeTypeMap.getFileExtensionFromUrl(mSrc);
         if (TextUtils.isEmpty(extension)) {
@@ -82,8 +89,12 @@ public class VideoModel extends RegionMediaModel {
             }
         }
         mContentType = mimeTypeMap.getMimeTypeFromExtension(extension);
-        // It's ok if mContentType is null. Eventually we'll show a toast telling the
-        // user the video couldn't be attached.
+        // if mContentType is null , it will cause a RuntimeException, to avoid
+        // this, set it as empty.
+        if (null == mContentType) {
+            Log.e(TAG,"initFromFile: mContentType is null!");
+            mContentType = "";
+        }
 
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             Log.v(TAG, "New VideoModel initFromFile created:"

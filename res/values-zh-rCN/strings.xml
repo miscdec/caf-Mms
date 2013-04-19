@@ -364,6 +364,7 @@
     <string name="menu_clearall">取消</string>
     <string name="operation_exceed">超出最大数目！最大限制条数：<xliff:g id="max_num">%s</xliff:g>。</string>
     <string name="failed_to_add_attachment">"该信息太大，无法添加附件。"</string>
+    <string name="no_select">没有选中任何条目！</string>
 
     <string name="batch_operate">批量操作</string>
     <string name="copy_to_phone_success">保存成功</string>
@@ -425,6 +426,7 @@
     <string name="no_message">无信息</string>
     <string name="operate_failure">操作失败！</string>
     <string name="operate_success">操作成功！</string>
+    <string name="copy_MMS_failure">不能复制彩信或WAP PUSH消息</string>
     <string name="change_mode">切换模式</string>
     <string name="sim_capacity">卡容量</string>
     <string name="sim_card">SIM卡</string>

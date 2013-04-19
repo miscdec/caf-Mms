@@ -340,7 +340,7 @@ public class MobilePaperShowActivity extends Activity
                 mUri, values, null, null);
          
          MessagingNotification.blockingUpdateNewMessageIndicator(
-                 this, MessagingNotification.THREAD_ALL, false);
+                 this, MessagingNotification.THREAD_NONE, false);
          
         }        
         // Register a BroadcastReceiver to listen on HTTP I/O process.

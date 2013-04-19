@@ -149,7 +149,7 @@ public class MessagingNotification {
 
     private static final String NEW_INCOMING_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
-            + " AND " + Sms.SEEN + " = 0)";
+            + " AND " + Sms.READ + " = 0)";
 
     private static final String NEW_INCOMING_ICC_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX

@@ -1569,12 +1569,7 @@ public class MessageUtils {
                     {
                         return false;
                     }
-
-                    if(iccCountUsed >= iccCountAll)
-                    {
-                        Intent intent = new Intent(Intents.SIM_FULL_ACTION);
-                        context.sendBroadcast(intent, "android.permission.RECEIVE_SMS");
-                    }
+                    
                     return iccCountUsed >= iccCountAll;
                 } 
             }

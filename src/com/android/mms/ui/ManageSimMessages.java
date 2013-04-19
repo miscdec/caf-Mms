@@ -111,6 +111,7 @@ public class ManageSimMessages extends Activity
     private AsyncQueryHandler mQueryHandler = null;
     private ProgressDialog mProgressDialog = null;
     private boolean mIsDeleteAll = false;
+    ArrayList<String> mSelectedIndexs = new ArrayList<String>();
 
     public static final int SIM_FULL_NOTIFICATION_ID = 234;
 
@@ -161,12 +162,18 @@ public class ManageSimMessages extends Activity
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
-        init();
+        ///init();   
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                SIM_FULL_NOTIFICATION_ID);        
+        updateState(SHOW_BUSY);
+        startQuery();
     }
 
     private void init() {
         MessagingNotification.cancelNotification(getApplicationContext(),
                 SIM_FULL_NOTIFICATION_ID);
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                MessagingNotification.getNotificationIDBySubscription(mSubscription));
         MessagingNotification.setCurrentlyDisplayedCardList(true);
         updateState(SHOW_BUSY);
         if(MessageUtils.sIsIccLoaded)
@@ -184,10 +191,11 @@ public class ManageSimMessages extends Activity
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
-                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " + intent); 
+            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {        
                 int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
                 String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " 
+                    + intent + ", stateExtra = " + stateExtra); 
                 
                 if(!MessageUtils.isMultiSimEnabledMms())
                 {
@@ -269,30 +277,37 @@ public class ManageSimMessages extends Activity
                         }
                     });
                     updateState(SHOW_LIST);
+
+                    /*  set messages as read  */
+                    String indexString;
+                    String statusString;
+                    do
+                    {
+                        indexString = cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
+                        statusString = cursor.getString(cursor.getColumnIndexOrThrow("status_on_icc"));
+                        
+                        if(statusString.equals(Integer.toString(MessageUtils.STATUS_ON_SIM_UNREAD)))
+                        {
+                            mSelectedIndexs.add(indexString);
+                        }                   
+                    }while (cursor.moveToNext());  
+
+                    new Thread(new Runnable() {
+                        public void run() {
+                            for(String indexString : mSelectedIndexs)
+                            {
+                                setMessageRead(ManageSimMessages.this, indexString);
+                            }
+
+                            //MessagingNotification.blockingUpdateNewMessageOnIccIndicator(ManageSimMessages.this, mSubscription);                            
+                        }
+                    }).start();  
+                            
                 } else {
                     mListAdapter.changeCursor(mCursor);
                     updateState(SHOW_LIST);
                 }
-                            
-                if (mCursor != null && mCursor.moveToFirst()){
-                    do
-                    {
-                        final String indexString = mCursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
-                        String statusString = mCursor.getString(cursor.getColumnIndexOrThrow("status_on_icc"));
-                        
-                        if(statusString.equals(Integer.toString(MessageUtils.STATUS_ON_SIM_UNREAD)))
-                        {
-                            new Thread(new Runnable() {
-                                public void run() {
-                                    setMessageRead(ManageSimMessages.this, indexString);              
-                                }
-                            }).start();  
-                        }                   
-
-                    }while (mCursor.moveToNext());
-                }
-                
-                MessagingNotification.blockingUpdateNewMessageOnIccIndicator(ManageSimMessages.this, mSubscription);
+                                           
                 //startManagingCursor(mCursor);
             } else {
                 // Let user know the SIM is empty
