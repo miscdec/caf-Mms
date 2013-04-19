@@ -190,7 +190,7 @@ public class PushReceiver extends BroadcastReceiver {
                         values.put(Mms.THREAD_ID, threadId);
                         SqliteWrapper.update(mContext, cr, uri, values, null, null);
                         if (type == MESSAGE_TYPE_DELIVERY_IND){
-                            showNotificationMmsDeliveryStatus((DeliveryInd)pdu);
+                            showNotificationMmsDeliveryStatus((DeliveryInd)pdu, uri);
                         }
                         break;
                     }
@@ -413,9 +413,10 @@ public class PushReceiver extends BroadcastReceiver {
         return false;
     }
 
-    private void showNotificationMmsDeliveryStatus(DeliveryInd pdu) {
+    private void showNotificationMmsDeliveryStatus(DeliveryInd pdu, Uri uri) {
         Log.v(TAG, "showNotificationMmsDeliveryStatus = " + pdu.getStatus());
         String ct = null;
+        
         switch (pdu.getStatus()) {
             case 0: // No delivery report received so far.
                 ct = mContext.getString(R.string.status_pending);
@@ -435,7 +436,7 @@ public class PushReceiver extends BroadcastReceiver {
                 break;
         }
         
-        MessagingNotification.updateMmsDeliveryNotification(mContext, ct);
+        MessagingNotification.updateMmsDeliveryNotification(mContext, ct, uri);
     }    
     
 }
