@@ -64,6 +64,7 @@ public class SendTransaction extends Transaction implements Runnable {
             int transId, TransactionSettings connectionSettings, String uri) {
         super(context, transId, connectionSettings);
         mSendReqURI = Uri.parse(uri);
+        mTransactionState.setContentUri(mSendReqURI);
         mId = uri;
 
         // Attach the transaction to the instance of RetryScheduler.
@@ -158,13 +159,14 @@ public class SendTransaction extends Transaction implements Runnable {
 
             mTransactionState.setState(TransactionState.SUCCESS);
             mTransactionState.setContentUri(uri);
+            Log.v(TAG, "Send successfully. uri = " + uri.toString());
         } catch (Throwable t) {
             Log.e(TAG, Log.getStackTraceString(t));
         } finally {
             if (mTransactionState.getState() != TransactionState.SUCCESS) {
                 mTransactionState.setState(TransactionState.FAILED);
                 mTransactionState.setContentUri(mSendReqURI);
-                Log.e(TAG, "Delivery failed.");
+                Log.e(TAG, "Delivery failed. mSendReqURI = " + mSendReqURI.toString());
             }
             notifyObservers();
         }
