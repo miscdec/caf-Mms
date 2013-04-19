@@ -144,6 +144,8 @@ public class ThumbnailManager extends BackgroundLoaderManager {
         if (thumbnailExists) {
             if (callbackRequired && !DEBUG_DISABLE_CALLBACK) {
                 ImageLoaded imageLoaded = new ImageLoaded(thumbnail, isVideo);
+                // save image uri
+                imageLoaded.setUri(uri.toString());
                 callback.onItemLoaded(imageLoaded, null);
             }
             return new NullItemLoadedFuture();
@@ -271,6 +273,8 @@ public class ThumbnailManager extends BackgroundLoaderManager {
                             }
                             if (!DEBUG_DISABLE_CALLBACK) {
                                 ImageLoaded imageLoaded = new ImageLoaded(bitmap, mIsVideo);
+                                // save image uri
+                                imageLoaded.setUri(mUri.toString());
                                 callback.onItemLoaded(imageLoaded, null);
                             }
                         }
@@ -522,10 +526,16 @@ public class ThumbnailManager extends BackgroundLoaderManager {
     public static class ImageLoaded {
         public final Bitmap mBitmap;
         public final boolean mIsVideo;
-
+        public  String mUri;
         public ImageLoaded(Bitmap bitmap, boolean isVideo) {
             mBitmap = bitmap;
             mIsVideo = isVideo;
+        }
+        public void setUri(String uri){
+            mUri = uri;
+        }
+        public String getUri(){
+            return mUri;
         }
     }
 }
