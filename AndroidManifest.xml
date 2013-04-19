@@ -180,6 +180,9 @@
         <activity android:name=".ui.DeliveryReportActivity"
             android:label="@string/delivery_report_activity"
             android:theme="@android:style/Theme.Dialog">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
         </activity>
 
         <activity android:name=".ui.WarnOfStorageLimitsActivity"
