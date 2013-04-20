@@ -278,7 +278,7 @@ public class SlideshowActivity extends Activity implements EventListener {
                 // Use SmilHelper.getDocument() to ensure rebuilding the
                 // entire SMIL document.
                 mSmilDoc = SmilHelper.getDocument(model);
-                if (isMMSConformance(mSmilDoc)) {
+                /*if (isMMSConformance(mSmilDoc)) {
                     int imageLeft = 0;
                     int imageTop = 0;
                     int textLeft = 0;
@@ -297,7 +297,7 @@ public class SlideshowActivity extends Activity implements EventListener {
                         }
                     }
                     mSlideView.enableMMSConformanceMode(textLeft, textTop, imageLeft, imageTop);
-                }
+                }*/
                 if (DEBUG) {
                     ByteArrayOutputStream ostream = new ByteArrayOutputStream();
                     SmilXmlSerializer.serialize(mSmilDoc, ostream);

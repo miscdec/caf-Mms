@@ -3588,7 +3588,6 @@ public class ComposeMessageActivity extends Activity
                                 }
                             android.os.FileUtils.setPermissions(mCurrentPhotoFile.getPath(),  0777 , -1, -1);
                         }catch (Exception e){};
-                        Log.w("huangzengzhi","compose5132 mCurrentPhotoFile="+Uri.fromFile(mCurrentPhotoFile));
                         //intent.putExtra(MediaStore.EXTRA_OUTPUT, Mms.ScrapSpace.CONTENT_URI);
                         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(mCurrentPhotoFile));
                     }
