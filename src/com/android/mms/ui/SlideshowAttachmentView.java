@@ -125,7 +125,11 @@ public class SlideshowAttachmentView extends LinearLayout implements
     }
 
     public void reset() {
-        mImageView.setImageURI(null);
+        // Because we call setImageBitmap(actually call setImageDrawable) to set
+        // a Bitmap as the content of this ImageView, so if we call
+        // setImageURI(null) to reset the ImageView, it does not work(Can't
+        // match the condition and will not to update the content).
+        mImageView.setImageDrawable(null);
         mTextView.setText("");
     }
 
