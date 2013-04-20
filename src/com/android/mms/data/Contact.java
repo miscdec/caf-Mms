@@ -92,6 +92,7 @@ public class Contact {
     private boolean mQueryPending;
     private boolean mIsMe;          // true if this contact is me!
     private boolean mSendToVoicemail;   // true if this contact should not put up notification
+    private boolean mUpdatingContact = false;
 
     public interface UpdateListener {
         public void onUpdate(Contact updated);
@@ -245,6 +246,10 @@ public class Contact {
 
     public boolean isNumberModified() {
         return mNumberIsModified;
+    }
+
+    public boolean isUpdatingContact() {
+        return mUpdatingContact;
     }
 
     public boolean getSendToVoicemail() {
@@ -578,6 +583,7 @@ public class Contact {
                 // it off here.
                 if (contact.mIsStale && !contact.mQueryPending) {
                     contact.mIsStale = false;
+                    contact.mUpdatingContact = true;
 
                     if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                         log("async update for " + contact.toString() + " canBlock: " + canBlock +
@@ -777,6 +783,7 @@ public class Contact {
                     c.mQueryPending = false;
                     c.notifyAll();
                 }
+                c.mUpdatingContact = false;
             }
         }
 

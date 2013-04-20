@@ -1034,7 +1034,8 @@ public class ComposeMessageActivity extends Activity
 
     private Uri getContactUriForPhoneNumber(String phoneNumber) {
         Contact contact = Contact.get(phoneNumber, false);
-        if (contact.existsInDatabase()) {
+        // if contact is being updated,so query database instead of don't direct getUri.
+        if (contact.existsInDatabase() && !contact.isUpdatingContact()) {
             return contact.getUri();
         }
         return null;
