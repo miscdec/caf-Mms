@@ -44,6 +44,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
+import android.provider.Settings;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Sms.Inbox;
 import android.provider.Telephony.Sms.Intents;
@@ -262,7 +263,7 @@ public class SmsReceiverService extends Service {
 
                 int error = intent.getIntExtra("errorCode", 0);
 
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
                     Log.v(TAG, "handleMessage action: " + action + " error: " + error);
                 }
 
@@ -437,8 +438,9 @@ public class SmsReceiverService extends Service {
             // Update the notification for failed messages since they may be deleted.
             MessagingNotification.nonBlockingUpdateSendFailedNotification(this);
         } else if ((mResultCode == SmsManager.RESULT_ERROR_RADIO_OFF) ||
-                (mResultCode == SmsManager.RESULT_ERROR_NO_SERVICE)) {
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                (mResultCode == SmsManager.RESULT_ERROR_NO_SERVICE) ||
+                (mResultCode == 0 && isAirplaneMode()) /* add fo radio off long sms */) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
                 Log.v(TAG, "handleSmsSent: no service, queuing message w/ uri: " + uri);
             }
             // We got an error with no service or no radio. Register for state changes so
@@ -447,12 +449,15 @@ public class SmsReceiverService extends Service {
             registerForServiceStateChanges();
             // We couldn't send the message, put in the queue to retry later.
             Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_QUEUED, error);
-            mToastHandler.post(new Runnable() {
-                public void run() {
-                    Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
-                            Toast.LENGTH_SHORT).show();
-                }
-            });
+            if (sendNextMsg) {
+                mToastHandler.post(new Runnable() {
+                    public void run() {
+                        Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
         } else if (mResultCode == SmsManager.RESULT_ERROR_FDN_CHECK_FAILURE) {
             mToastHandler.post(new Runnable() {
                 public void run() {
@@ -678,7 +683,7 @@ public class SmsReceiverService extends Service {
         String selection;
         String[] selectionArgs;
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
             Log.v(TAG, " SmsReceiverService: replaceMessage:");
         }
         selection = Sms.ADDRESS + " = ? AND " +
@@ -920,6 +925,13 @@ public class SmsReceiverService extends Service {
         } catch (IllegalArgumentException e) {
             // Allow un-matched register-unregister calls
         }
+    }
+    
+    private boolean isAirplaneMode() {
+        int isAirplaneMode = Settings.System.getInt(getApplicationContext().getContentResolver(),
+               Settings.Global.AIRPLANE_MODE_ON, 0) ;
+        Log.v(TAG, "isAirplaneMode = " + isAirplaneMode);
+        return (isAirplaneMode == 1) ? true : false;
     }
 
 }
