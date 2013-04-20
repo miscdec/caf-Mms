@@ -170,11 +170,6 @@ public class ManageSimMessages extends Activity
     }
 
     private void init() {
-        MessagingNotification.cancelNotification(getApplicationContext(),
-                SIM_FULL_NOTIFICATION_ID);
-        MessagingNotification.cancelNotification(getApplicationContext(),
-                MessagingNotification.getNotificationIDBySubscription(mSubscription));
-        MessagingNotification.setCurrentlyDisplayedCardList(true);
         updateState(SHOW_BUSY);
         if(MessageUtils.sIsIccLoaded)
         {
@@ -614,11 +609,17 @@ public class ManageSimMessages extends Activity
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        MessagingNotification.setCurrentlyDisplayedCardList(false);
+    }
+
+    @Override
     public void onDestroy() {
         mContentResolver.unregisterContentObserver(simChangeObserver);
         mContentResolver.unregisterContentObserver(mContactsChangedObserver);
         unregisterReceiver(mIccStateChangedReceiver);
-        MessagingNotification.setCurrentlyDisplayedCardList(false);
+
         super.onDestroy();
         if(mCursor != null)
         {
@@ -925,7 +926,12 @@ public class ManageSimMessages extends Activity
     @Override
     protected void onStart() {
         super.onStart();
-        
+        MessagingNotification.setCurrentlyDisplayedCardList(true);
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                SIM_FULL_NOTIFICATION_ID);
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                MessagingNotification.getNotificationIDBySubscription(mSubscription));
+                
         // if updateContacts call before this method, it will doesn't work well,
         // need updateContacts again.
         if (mIsNeedUpdateContacts) {
