@@ -2263,6 +2263,14 @@ public class ComposeMessageActivity extends Activity
 
         mIsRunning = true;
         updateThreadIdIfRunning();
+
+        //refresh autotext state after adding word to dictionary
+        if (mTextEditor.isCursorVisible()) {
+            mTextEditor.setText(mTextEditor.getText());
+        }
+        if (mSubjectTextEditor!= null && mSubjectTextEditor.isCursorVisible()) {
+            mSubjectTextEditor.setText(mSubjectTextEditor.getText());
+        }
         mConversation.markAsRead();
     }
 
