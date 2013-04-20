@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
@@ -58,6 +59,7 @@ import android.text.style.URLSpan;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.mms.data.Contact;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -179,6 +181,25 @@ public class MessageUtils {
     private static final int[] sVideoDuration =
             new int[] {0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120};
 
+    private static final String[] SMS_NEXT_DETAIL_PROJECTION = new String[]
+    {
+        Sms.THREAD_ID,
+        Sms.DATE,
+        Sms.ADDRESS,
+        Sms.BODY,                
+        Sms.SUB_ID,
+        Sms.READ,
+        Sms.TYPE
+    }; 
+
+    private static final int COLUMN_THREAD_ID      = 0;   
+    private static final int COLUMN_DATE           = 1;
+    private static final int COLUMN_SMS_ADDRESS    = 2;
+    private static final int COLUMN_SMS_BODY       = 3;
+    private static final int COLUMN_SMS_SUB_ID     = 4;
+    private static final int COLUMN_SMS_READ       = 5; 
+    private static final int COLUMN_SMS_TYPE       = 6;
+        
     /**
      * MMS address parsing data structures
      */
@@ -1226,6 +1247,178 @@ public class MessageUtils {
         return null;
     }
 
+    public static void goToMmsDetailByUri(Context context, String uri, 
+            ArrayList<String> allIdList, boolean frommms)
+    {       
+        Uri nextUri = Uri.parse(uri);
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+            nextUri, new String[] {Mms.CONTENT_TYPE, Mms.MESSAGE_TYPE, Mms.MESSAGE_BOX, Mms.READ}, 
+            null, null, null);
+        cursor.moveToFirst();
+        int messageType = cursor.getInt(1);
+        long mMailboxId = cursor.getInt(2);
+
+        if (uri.contains("sms"))
+        {
+            goToSmsDetailByUri(context, uri, allIdList, false);
+            return;
+        }
+        
+        String ct = cursor.getString(0);
+
+        if (Mms.MESSAGE_BOX_INBOX == mMailboxId)//Mms.MESSAGE_BOX_INBOX 
+        {
+            int read = cursor.getInt(3);
+
+            if (0 == read)
+            {
+                if (null == nextUri)
+                {
+                    return;
+                }
+
+                ContentValues values = new ContentValues(1);
+                values.put(Mms.READ, MessageUtils.MESSAGE_READ);
+                SqliteWrapper.update(context, context.getContentResolver(),
+                                                    nextUri, values, null, null);
+                MessagingNotification.blockingUpdateNewMessageIndicator(
+                    context, MessagingNotification.THREAD_NONE, false);
+            }
+            cursor.close();
+            
+            Intent intent = new Intent(context, SlideshowActivity.class);
+            intent.putStringArrayListExtra("sms_id_list", allIdList);
+            intent.putExtra("nextorpre", frommms);
+            intent.setData(nextUri);
+            context.startActivity(intent);
+            return;
+            
+        }
+        else 
+        {
+            Intent intent = new Intent(context, SlideshowActivity.class);      
+            intent.putStringArrayListExtra("sms_id_list", allIdList);
+            intent.putExtra("nextorpre", frommms);
+            intent.setData(nextUri);
+            context.startActivity(intent);
+            return;
+        }     
+    }
+    
+    public static void goToSmsDetailByUri(Context context, String uri, 
+            ArrayList<String> allIdList, boolean isOnIcc)
+    {       
+        Cursor cursor = null;
+        Uri nextUri = Uri.parse(uri);
+        if (uri.contains("mms"))
+        {
+            return;
+        }
+
+        long msgThreadId = 0;
+        String msgText = "";
+        String msgFromto = "";
+        long dateLongFormat = 0;
+        int read = 0;
+        int type = 0;
+        int subID = 0;
+        int indexOnIcc = -1;
+        Uri msgUri = nextUri;
+        int msgStatus = -1;
+        String fromtoLabel = context.getString(R.string.from_label);        
+
+        cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                    nextUri, SMS_NEXT_DETAIL_PROJECTION, null, null, null); 
+        if (cursor != null)
+        {
+            if ((cursor.getCount() == 1) && cursor.moveToFirst())
+            {
+                msgThreadId = cursor.getLong(COLUMN_THREAD_ID);
+                msgText = cursor.getString(COLUMN_SMS_BODY);
+                msgFromto = cursor.getString(COLUMN_SMS_ADDRESS);
+                dateLongFormat = cursor.getLong(COLUMN_DATE);
+                read = cursor.getInt(COLUMN_SMS_READ);
+                type = cursor.getInt(COLUMN_SMS_TYPE);  
+                subID = cursor.getInt(COLUMN_SMS_SUB_ID);  
+                if (type == Sms.MESSAGE_TYPE_INBOX)
+                {
+                    fromtoLabel = context.getString(R.string.from_label);
+                }
+                else
+                {
+                    fromtoLabel = context.getString(R.string.to_address_label);
+                }                    
+                
+            }
+            else
+            {
+                cursor.close();
+                return;
+            }
+            cursor.close();
+        }
+        else
+        {
+            return;
+        }
+
+        String displayName = Contact.get(msgFromto, true).getName();
+        String msgDate = formatTimeStampString(context, dateLongFormat, true);
+        
+        Intent i = new Intent(context, MailBoxMessageContent.class);
+        i.putExtra("sms_datelongformat", dateLongFormat);
+        i.putExtra("sms_body", msgText);
+        i.putExtra("sms_fromto", msgFromto);
+        i.putExtra("sms_displayname", displayName);
+        i.putExtra("sms_date", msgDate);
+        i.putExtra("msg_uri", msgUri);
+        i.putExtra("sms_threadid", msgThreadId);
+        i.putExtra("sms_status", msgStatus);
+        i.putExtra("sms_fromtolabel", fromtoLabel);
+        i.putExtra("sms_read", read);
+        i.putExtra("mailboxId", type);
+        i.putExtra("sms_type", type);        
+        i.putExtra("sms_subid", subID);        
+        i.putStringArrayListExtra("sms_id_list", allIdList);     
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(i);        
+    }
+
+    public static boolean isSlideShowMms(Context context, String uri){
+        Uri nextUri = Uri.parse(uri);
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                                            nextUri, new String[] {Mms.CONTENT_TYPE, Mms.MESSAGE_TYPE, Mms.MESSAGE_BOX, Mms.READ}, null, null, null);;
+        cursor.moveToFirst();
+        long mMailboxId = cursor.getInt(2);
+        int messageType = cursor.getInt(1);
+        String ct = cursor.getString(0);
+        cursor.close();
+        //com.google.android.mms.ContentType.MULTIPART_MIXED
+        if ( null != ct && ct.equals(com.google.android.mms.ContentType.MULTIPART_MIXED) )
+        {
+            return false;
+        } 
+        else if (Mms.MESSAGE_BOX_INBOX == mMailboxId)//Mms.MESSAGE_BOX_INBOX 
+        {
+            if (PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND == messageType)
+            {
+                return false;
+            }
+            else if(PduHeaders.MESSAGE_TYPE_DELIVERY_IND == messageType||PduHeaders.MESSAGE_TYPE_READ_ORIG_IND == messageType)
+            {
+                return false;
+            }
+        }
+        else if ( Mms.MESSAGE_BOX_OUTBOX == mMailboxId )
+        {
+            if ( PduHeaders.MESSAGE_TYPE_READ_REC_IND == messageType )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
     
     public static void dialRecipient(Context context, String address, int subscription) {
         if (!Mms.isEmailAddress(address)) {           
