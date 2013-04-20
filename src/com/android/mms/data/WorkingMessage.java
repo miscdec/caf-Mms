@@ -243,8 +243,8 @@ public class WorkingMessage {
                 mModel = SlideshowModel.createFromMessageUri(activity, uri);
                 SendReq sendReq = new SendReq();
                 sendReq.setBody(mModel.makeCopy());
-               // uri = persister.persist(sendReq, Mms.Draft.CONTENT_URI);
-                uri = persister.move(uri, Mms.Draft.CONTENT_URI);
+                uri = persister.persist(sendReq, Mms.Draft.CONTENT_URI);
+               // uri = persister.move(uri, Mms.Draft.CONTENT_URI);
             } catch (MmsException e) {
                 LogTag.error("Can't move %s to drafts", uri);
                 return null;
@@ -278,7 +278,7 @@ public class WorkingMessage {
         return null;
     }
 
-    private void correctAttachmentState() {
+    public void correctAttachmentState() {
         int slideCount = mSlideshow.size();
         SlideModel slide = mSlideshow.get(0);
         // If we get an empty slideshow, tear down all MMS
