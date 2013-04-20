@@ -336,6 +336,17 @@ public class UriImage {
                         int scaledWidth = (int)(outWidth * scaleFactor);
                         int scaledHeight = (int)(outHeight * scaleFactor);
 
+                                // Some special pixel images like 1*3000, when we
+                                // scale it, the scaledWidth will be 0. This will cause
+                                // the following code a exception, so we must use the
+                                // previous outWidth as the final scaledWidth.
+                                if (scaledWidth == 0) {
+                                    scaledWidth = outWidth;
+                                }
+                                if (scaledHeight == 0) {
+                                    scaledHeight = outHeight;
+                                }
+
                         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                             Log.v(TAG, "getResizedImageData: retry scaling using " +
                                     "Bitmap.createScaledBitmap: w=" + scaledWidth +
