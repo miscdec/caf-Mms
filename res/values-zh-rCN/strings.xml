@@ -351,7 +351,8 @@
     <string name="notification_separator" msgid="2334673105226536422">"  "</string>
     <string name="enumeration_comma" msgid="213598026698964628">"、 "</string>
     <string name="message_timestamp_format" msgid="4188999027493614617">"<xliff:g id="STRING_0">%1$s</xliff:g> - <xliff:g id="STRING_1">%2$s</xliff:g>"</string>
-    
+    <string name="mms_exceed_message_size">超过信息最大限制，新编辑的文本不会被保存</string>
+
     <!-- Subscription selection strings -->
     <string name="select_subscription_title">"选择卡槽"</string>
     <string name="subscription1_title">"卡1"</string>

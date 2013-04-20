@@ -109,6 +109,7 @@
     <string name="starredList">Starred</string>
     <string name="frequentList">Frequent</string>
     <string name="memory_card">Card</string>
+    <string name="mms_exceed_message_size">Message size limit reached, the text input just now will not be saved</string>
 
     <string name="operation_success">Done!</string>
     <string name="operation_cancel">Canceled !</string>
