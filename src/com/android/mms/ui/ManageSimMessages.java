@@ -206,6 +206,7 @@ public class ManageSimMessages extends Activity
                         updateState(SHOW_BUSY);
                         deleteFromSim(cursor);
                         dialog.dismiss();
+                        invalidateOptionsMenu();
                     }
                 }, R.string.confirm_delete_SIM_message);
                 return true;
