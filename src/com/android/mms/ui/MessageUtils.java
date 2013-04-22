@@ -2123,6 +2123,90 @@ public class MessageUtils {
         return CODEC_UNICODE;
     }
 
+    /**
+    check whether the part contains music media
+    */
+    public static boolean isMusic(PduPart part){
+        String ct = new String(part.getContentType());
+
+        //we only supervise the type of application/oct-stream
+        if (!ct.equals("application/oct-stream")
+            && !ct.equals("application/octet-stream")){
+                                    if(ct.contains("ogg"))
+                                            return true;
+            return false;
+        }
+        
+        //mp3|wav|aac|amr|mid|ogg
+        byte[] location = part.getContentLocation();
+                
+        if (location == null) {
+            location = part.getName();
+        }
+        if (location == null) {
+            location = part.getFilename();
+        }
+
+        if (location == null){
+            return false;
+        }
+
+        String name = new String(location);
+
+        if (name.contains(".mp3")
+            || name.contains(".wav")
+            || name.contains(".aac")
+            || name.contains(".amr")
+            || name.contains(".mid")
+            || name.contains(".wma")
+            || name.contains(".ogg")){
+            Log.v(TAG,"is music");
+            return true;
+        }
+
+        return false;
+    }
+
+    
+    /**
+    check whether the part contains video media
+    */
+    public static boolean isVideo(PduPart part){
+        String ct = new String(part.getContentType());
+
+        //we only supervise the type of application/oct-stream
+        if (!ct.equals("application/oct-stream")
+            && !ct.equals("application/octet-stream")){
+            return false;
+        }
+        
+        //mp3|wav|aac|amr|mid|ogg
+        byte[] location = part.getContentLocation();
+                
+        if (location == null) {
+            location = part.getName();
+        }
+        if (location == null) {
+            location = part.getFilename();
+        }
+
+        if (location == null){
+            return false;
+        }
+
+        String name = new String(location);
+
+        //mp4|3gp|3gpp2|3gpp
+        if (name.contains(".mp4")
+            || name.contains(".3gp")
+            || name.contains(".3gpp2")
+            || name.contains(".3gpp")){
+            return true;
+        }
+
+        return false;
+    }
+
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);
     }

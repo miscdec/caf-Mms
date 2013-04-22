@@ -259,10 +259,10 @@ public class AttachmentList extends ListActivity implements OnClickListener{
                             Drawable img = getResources().getDrawable(com.android.internal.R.drawable.unknown_image);
                             ((ImageView)view).setImageDrawable(img);
                         }                        
-                    }else if ( type.indexOf("video") != -1 || isVideo(part)){
+                    }else if ( type.indexOf("video") != -1 || MessageUtils.isVideo(part)){
                         Drawable img = getResources().getDrawable(R.drawable.ic_menu_movie);
                         ((ImageView)view).setImageDrawable(img);
-                    }else if ( type.indexOf("audio") != -1 || -1 != type.indexOf("ogg") || isMusic(part)){
+                    }else if ( type.indexOf("audio") != -1 || -1 != type.indexOf("ogg") || MessageUtils.isMusic(part)){
                         Drawable img = getResources().getDrawable(R.drawable.ic_mms_music);
                         ((ImageView)view).setImageDrawable(img);
                     }/*else if ( type.indexOf(VCARD) != -1 || isVcard(part)){
@@ -342,7 +342,7 @@ public class AttachmentList extends ListActivity implements OnClickListener{
                     android.R.drawable.ic_menu_save);
                 String type = new String(part.getContentType());
 
-                if ( type.indexOf("audio") != -1 || -1 != type.indexOf("ogg") || isMusic(part)){
+                if ( type.indexOf("audio") != -1 || -1 != type.indexOf("ogg") || MessageUtils.isMusic(part)){
                     if ( null != mAudioPlayer && mAudioPlayer.isPlaying()){
                         menu.add(0, MENU_PLAY, 0, R.string.stop).setIcon(R.drawable.ic_launcher_musicplayer_2);
                     }else{
@@ -358,7 +358,7 @@ public class AttachmentList extends ListActivity implements OnClickListener{
                         menu.add(0, MENU_SET_AS_RINGTONE, 0, R.string.set_as_ringtone).setIcon(R.drawable.ic_launcher_musicplayer_2);
                 }else if ( type.indexOf("image") != -1 || isImage(part)){                                    
                     menu.add(0, MENU_VIEW, 0, R.string.view).setIcon(R.drawable.ic_launcher_video_player);
-                }else if ( type.indexOf("video") != -1 || isVideo(part)){
+                }else if ( type.indexOf("video") != -1 || MessageUtils.isVideo(part)){
                     menu.add(0, MENU_PLAY, 0, R.string.play).setIcon(R.drawable.ic_launcher_video_player);
                 }
             }
@@ -416,9 +416,9 @@ public class AttachmentList extends ListActivity implements OnClickListener{
                 save(part);
             } else if ( -1 != type.indexOf( IMAGE ) || isImage(part)){
                 viewImage(part);
-            } else if ( -1 != type.indexOf( AUDIO ) || isMusic(part)){
+            } else if ( -1 != type.indexOf( AUDIO ) || MessageUtils.isMusic(part)){
                 playMusic(part);
-            } else if ( -1 != type.indexOf( VIDEO ) || isVideo(part)){
+            } else if ( -1 != type.indexOf( VIDEO ) || MessageUtils.isVideo(part)){
                 playVideo(part);
             } else if ( -1 != type.indexOf( "text/plain" ) ){
                 viewText(part);
@@ -482,90 +482,6 @@ public class AttachmentList extends ListActivity implements OnClickListener{
             }        
         }
     };
-
-    /**
-    check whether the part contains music media
-    */
-    private boolean isMusic(PduPart part){
-        String ct = new String(part.getContentType());
-
-        //we only supervise the type of application/oct-stream
-        if (!ct.equals("application/oct-stream")
-            && !ct.equals("application/octet-stream")){
-                                    if(ct.contains("ogg"))
-                                            return true;
-            return false;
-        }
-        
-        //mp3|wav|aac|amr|mid|ogg
-        byte[] location = part.getContentLocation();
-                
-        if (location == null) {
-            location = part.getName();
-        }
-        if (location == null) {
-            location = part.getFilename();
-        }
-
-        if (location == null){
-            return false;
-        }
-
-        String name = new String(location);
-
-        if (name.contains(".mp3")
-            || name.contains(".wav")
-            || name.contains(".aac")
-            || name.contains(".amr")
-            || name.contains(".mid")
-            || name.contains(".wma")
-            || name.contains(".ogg")){
-            Log.v(TAG,"is music");
-            return true;
-        }
-
-        return false;
-    }
-
-    
-    /**
-    check whether the part contains video media
-    */
-    private boolean isVideo(PduPart part){
-        String ct = new String(part.getContentType());
-
-        //we only supervise the type of application/oct-stream
-        if (!ct.equals("application/oct-stream")
-            && !ct.equals("application/octet-stream")){
-            return false;
-        }
-        
-        //mp3|wav|aac|amr|mid|ogg
-        byte[] location = part.getContentLocation();
-                
-        if (location == null) {
-            location = part.getName();
-        }
-        if (location == null) {
-            location = part.getFilename();
-        }
-
-        if (location == null){
-            return false;
-        }
-
-        String name = new String(location);
-
-        //mp4|3gp|3gpp2|3gpp
-        if (name.contains(".mp4")
-            || name.contains(".3gp")
-            || name.contains(".3gpp2")
-            || name.contains(".3gpp")){
-            return true;
-        }
-
-        return false;
-    }
 
     /**
     check whether the part contains image media
@@ -984,7 +900,7 @@ public class AttachmentList extends ListActivity implements OnClickListener{
             case MENU_PLAY:
                 final String type = new String(mPart.getContentType());
                 
-                if (-1 != type.indexOf( VIDEO ) || isVideo(mPart)){
+                if (-1 != type.indexOf( VIDEO ) || MessageUtils.isVideo(mPart)){
                     playVideo(mPart);
                 }else{
                     playMusic(mPart);
@@ -1053,9 +969,9 @@ public class AttachmentList extends ListActivity implements OnClickListener{
 
                 if(mimeType.startsWith("image")){
                     subPath = "/Picture/";
-                }else if(mimeType.startsWith("audio") || isMusic(part)){
+                }else if(mimeType.startsWith("audio") || MessageUtils.isMusic(part)){
                     subPath = "/Audio/";
-                }else if(mimeType.startsWith("video") || isVideo(part)){
+                }else if(mimeType.startsWith("video") || MessageUtils.isVideo(part)){
                     subPath = "/Video/";
                 }else if(-1 != mimeType.indexOf(VCALENDAR)){
                     subPath = "/Other/vCalendar/";
