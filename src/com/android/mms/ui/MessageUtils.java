@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
@@ -58,6 +59,7 @@ import android.text.style.URLSpan;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.mms.data.Contact;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -179,6 +181,25 @@ public class MessageUtils {
     private static final int[] sVideoDuration =
             new int[] {0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120};
 
+    private static final String[] SMS_NEXT_DETAIL_PROJECTION = new String[]
+    {
+        Sms.THREAD_ID,
+        Sms.DATE,
+        Sms.ADDRESS,
+        Sms.BODY,                
+        Sms.SUB_ID,
+        Sms.READ,
+        Sms.TYPE
+    }; 
+
+    private static final int COLUMN_THREAD_ID      = 0;   
+    private static final int COLUMN_DATE           = 1;
+    private static final int COLUMN_SMS_ADDRESS    = 2;
+    private static final int COLUMN_SMS_BODY       = 3;
+    private static final int COLUMN_SMS_SUB_ID     = 4;
+    private static final int COLUMN_SMS_READ       = 5; 
+    private static final int COLUMN_SMS_TYPE       = 6;
+        
     /**
      * MMS address parsing data structures
      */
@@ -395,7 +416,9 @@ public class MessageUtils {
         // Message size: *** KB
         details.append('\n');
         details.append(res.getString(R.string.message_size_label));
-        details.append((size - 1)/1000 + 1);
+        if(size>MmsConfig.getMaxMessageSize())
+           size=MmsConfig.getMaxMessageSize();
+        details.append((size+1023)/1024 );
         details.append(" KB");
 
         return details.toString();
@@ -1226,6 +1249,178 @@ public class MessageUtils {
         return null;
     }
 
+    public static void goToMmsDetailByUri(Context context, String uri, 
+            ArrayList<String> allIdList, boolean frommms)
+    {       
+        Uri nextUri = Uri.parse(uri);
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+            nextUri, new String[] {Mms.CONTENT_TYPE, Mms.MESSAGE_TYPE, Mms.MESSAGE_BOX, Mms.READ}, 
+            null, null, null);
+        cursor.moveToFirst();
+        int messageType = cursor.getInt(1);
+        long mMailboxId = cursor.getInt(2);
+
+        if (uri.contains("sms"))
+        {
+            goToSmsDetailByUri(context, uri, allIdList, false);
+            return;
+        }
+        
+        String ct = cursor.getString(0);
+
+        if (Mms.MESSAGE_BOX_INBOX == mMailboxId)//Mms.MESSAGE_BOX_INBOX 
+        {
+            int read = cursor.getInt(3);
+
+            if (0 == read)
+            {
+                if (null == nextUri)
+                {
+                    return;
+                }
+
+                ContentValues values = new ContentValues(1);
+                values.put(Mms.READ, MessageUtils.MESSAGE_READ);
+                SqliteWrapper.update(context, context.getContentResolver(),
+                                                    nextUri, values, null, null);
+                MessagingNotification.blockingUpdateNewMessageIndicator(
+                    context, MessagingNotification.THREAD_NONE, false);
+            }
+            cursor.close();
+            
+            Intent intent = new Intent(context, SlideshowActivity.class);
+            intent.putStringArrayListExtra("sms_id_list", allIdList);
+            intent.putExtra("nextorpre", frommms);
+            intent.setData(nextUri);
+            context.startActivity(intent);
+            return;
+            
+        }
+        else 
+        {
+            Intent intent = new Intent(context, SlideshowActivity.class);      
+            intent.putStringArrayListExtra("sms_id_list", allIdList);
+            intent.putExtra("nextorpre", frommms);
+            intent.setData(nextUri);
+            context.startActivity(intent);
+            return;
+        }     
+    }
+    
+    public static void goToSmsDetailByUri(Context context, String uri, 
+            ArrayList<String> allIdList, boolean isOnIcc)
+    {       
+        Cursor cursor = null;
+        Uri nextUri = Uri.parse(uri);
+        if (uri.contains("mms"))
+        {
+            return;
+        }
+
+        long msgThreadId = 0;
+        String msgText = "";
+        String msgFromto = "";
+        long dateLongFormat = 0;
+        int read = 0;
+        int type = 0;
+        int subID = 0;
+        int indexOnIcc = -1;
+        Uri msgUri = nextUri;
+        int msgStatus = -1;
+        String fromtoLabel = context.getString(R.string.from_label);        
+
+        cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                    nextUri, SMS_NEXT_DETAIL_PROJECTION, null, null, null); 
+        if (cursor != null)
+        {
+            if ((cursor.getCount() == 1) && cursor.moveToFirst())
+            {
+                msgThreadId = cursor.getLong(COLUMN_THREAD_ID);
+                msgText = cursor.getString(COLUMN_SMS_BODY);
+                msgFromto = cursor.getString(COLUMN_SMS_ADDRESS);
+                dateLongFormat = cursor.getLong(COLUMN_DATE);
+                read = cursor.getInt(COLUMN_SMS_READ);
+                type = cursor.getInt(COLUMN_SMS_TYPE);  
+                subID = cursor.getInt(COLUMN_SMS_SUB_ID);  
+                if (type == Sms.MESSAGE_TYPE_INBOX)
+                {
+                    fromtoLabel = context.getString(R.string.from_label);
+                }
+                else
+                {
+                    fromtoLabel = context.getString(R.string.to_address_label);
+                }                    
+                
+            }
+            else
+            {
+                cursor.close();
+                return;
+            }
+            cursor.close();
+        }
+        else
+        {
+            return;
+        }
+
+        String displayName = Contact.get(msgFromto, true).getName();
+        String msgDate = formatTimeStampString(context, dateLongFormat, true);
+        
+        Intent i = new Intent(context, MailBoxMessageContent.class);
+        i.putExtra("sms_datelongformat", dateLongFormat);
+        i.putExtra("sms_body", msgText);
+        i.putExtra("sms_fromto", msgFromto);
+        i.putExtra("sms_displayname", displayName);
+        i.putExtra("sms_date", msgDate);
+        i.putExtra("msg_uri", msgUri);
+        i.putExtra("sms_threadid", msgThreadId);
+        i.putExtra("sms_status", msgStatus);
+        i.putExtra("sms_fromtolabel", fromtoLabel);
+        i.putExtra("sms_read", read);
+        i.putExtra("mailboxId", type);
+        i.putExtra("sms_type", type);        
+        i.putExtra("sms_subid", subID);        
+        i.putStringArrayListExtra("sms_id_list", allIdList);     
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(i);        
+    }
+
+    public static boolean isSlideShowMms(Context context, String uri){
+        Uri nextUri = Uri.parse(uri);
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                                            nextUri, new String[] {Mms.CONTENT_TYPE, Mms.MESSAGE_TYPE, Mms.MESSAGE_BOX, Mms.READ}, null, null, null);;
+        cursor.moveToFirst();
+        long mMailboxId = cursor.getInt(2);
+        int messageType = cursor.getInt(1);
+        String ct = cursor.getString(0);
+        cursor.close();
+        //com.google.android.mms.ContentType.MULTIPART_MIXED
+        if ( null != ct && ct.equals(com.google.android.mms.ContentType.MULTIPART_MIXED) )
+        {
+            return false;
+        } 
+        else if (Mms.MESSAGE_BOX_INBOX == mMailboxId)//Mms.MESSAGE_BOX_INBOX 
+        {
+            if (PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND == messageType)
+            {
+                return false;
+            }
+            else if(PduHeaders.MESSAGE_TYPE_DELIVERY_IND == messageType||PduHeaders.MESSAGE_TYPE_READ_ORIG_IND == messageType)
+            {
+                return false;
+            }
+        }
+        else if ( Mms.MESSAGE_BOX_OUTBOX == mMailboxId )
+        {
+            if ( PduHeaders.MESSAGE_TYPE_READ_REC_IND == messageType )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
     
     public static void dialRecipient(Context context, String address, int subscription) {
         if (!Mms.isEmailAddress(address)) {           
@@ -1795,6 +1990,221 @@ public class MessageUtils {
     /* whether is in cmcc test mode,  0 is false ,1 is true */
     public static boolean isCMCCTest(){
         return SystemProperties.getInt("ro.cmcc.test", 0) == 1;
+    }
+    private static boolean isSDCardExist() {
+        boolean ret = true;
+        String status = Environment.getExternalStorageState();
+        if (status.equals(Environment.MEDIA_REMOVED) 
+            ||status.equals(Environment.MEDIA_BAD_REMOVAL)
+            ||status.equals(Environment.MEDIA_CHECKING)
+            ||status.equals(Environment.MEDIA_SHARED)
+            ||status.equals(Environment.MEDIA_UNMOUNTED)
+            ||status.equals(Environment.MEDIA_NOFS)
+            ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
+            ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
+            ret = false; 
+        }
+        return ret;
+    }  
+   public static boolean sdcardCanuse(){
+   
+        if(isSDCardExist()){
+            File mVcardDirectory = new File("/sdcard/"); 
+            StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
+            long blocks = fs.getAvailableBlocks();
+            long blockSize = fs.getBlockSize();
+            return (blocks*blockSize)>(50*1024);
+        }
+        return false;
+   }     
+    public static String getTextcodecFromContent(byte[] str, int size)
+    {
+        final String CODEC_UNICODE = "UNICODE";
+        final String CODEC_UTF8 = "UTF-8";
+        final String CODEC_GB2312 = "GB2312";
+        final String CODEC_BIG5 = "Big5-HKSCS";
+        final String CODEC_GBK = "GBK";
+        if(str ==null || str.length <= 0)
+        {
+            return null;
+        }
+        if (str[0]=='\0' || size<=0){
+            return null;
+        }
+
+        boolean bIsUtf8 = true;
+        boolean bIsGbk = true;
+        boolean bIsGb2312 = true;
+
+        if((str[0]==(byte)0xff && str[1]==(byte)0xfe)||(str[0]==(byte)0xfe && str[1]==(byte)0xff)){
+                        return CODEC_UNICODE;
+        }
+        
+        if(str[0]==0){
+                        return CODEC_UNICODE;
+        }
+
+        for (int i = 0; i < size; ) {
+            if(str[i] >= 0 && str[i]<=0x7f){
+                            i++;
+            }
+            else if((i + 1 <size)
+                && ((str[i] & (byte)0xe0) == (byte)0xc0) 
+                            && ((str[i+1] & (byte)0xc0) == (byte)0x80)){
+                            i+=2;
+            }
+            else if((i + 2 <size)
+                && ((str[i] & (byte)0xf0) == (byte)0xe0) 
+                            && ((str[i+1] & (byte)0xc0) == (byte)0x80) 
+                            && ((str[i+2] & (byte)0xc0) == (byte)0x80)){
+                            i+=3;
+            }
+            else{
+                            bIsUtf8 = false;
+                            break;
+            }
+        }
+        
+        if(bIsUtf8){                
+            return CODEC_UTF8;
+        }
+
+        for (int i = 0; i+2 < size; )
+        {
+            if(str[i] >= 0 && str[i]<=0x7f){
+                i++;
+            }
+            else if(str[i] < 0 && str[i] >= (byte)0x81){                
+                if(str[i] != (byte)0xff){                
+                    if((str[i] >= 0 && str[i]<=0x7f) 
+                    || (str[i] < 0 && str[i] < (byte)0xa1)){                
+                        bIsGb2312 = false;
+                    }
+                    if(str[i+1] >= 0x40 || str[i+1] < 0){                
+                        if((str[i+1] != (byte)0xff) && (str[i+1] != 0x7f)){                
+                            if((str[i+1] >= 0 && str[i+1]<=0x7f) 
+                            || (str[i+1] < 0 && str[i+1] < (byte)0xa1)){                
+                            bIsGb2312 = false;
+                            }
+                            i += 2;
+                        }
+                        else{                
+                            bIsGbk = false;
+                            bIsGb2312 = false;
+                            break;
+                        }
+                    }
+                    else{                
+                    bIsGbk = false;
+                    bIsGb2312 = false;
+                    break;
+                    }
+                }
+                else{                
+                bIsGbk = false;
+                bIsGb2312 = false;
+                break;
+            }
+                }
+            else{                
+            bIsGbk = false;
+            bIsGb2312 = false;
+            break;
+            }
+        }
+                    
+        if(bIsGb2312){                
+            return CODEC_GB2312;
+        }
+        if(bIsGbk){
+            return CODEC_GBK;
+        }
+
+        return CODEC_UNICODE;
+    }
+
+    /**
+    check whether the part contains music media
+    */
+    public static boolean isMusic(PduPart part){
+        String ct = new String(part.getContentType());
+
+        //we only supervise the type of application/oct-stream
+        if (!ct.equals("application/oct-stream")
+            && !ct.equals("application/octet-stream")){
+                                    if(ct.contains("ogg"))
+                                            return true;
+            return false;
+        }
+        
+        //mp3|wav|aac|amr|mid|ogg
+        byte[] location = part.getContentLocation();
+                
+        if (location == null) {
+            location = part.getName();
+        }
+        if (location == null) {
+            location = part.getFilename();
+        }
+
+        if (location == null){
+            return false;
+        }
+
+        String name = new String(location);
+
+        if (name.contains(".mp3")
+            || name.contains(".wav")
+            || name.contains(".aac")
+            || name.contains(".amr")
+            || name.contains(".mid")
+            || name.contains(".wma")
+            || name.contains(".ogg")){
+            Log.v(TAG,"is music");
+            return true;
+        }
+
+        return false;
+    }
+
+    
+    /**
+    check whether the part contains video media
+    */
+    public static boolean isVideo(PduPart part){
+        String ct = new String(part.getContentType());
+
+        //we only supervise the type of application/oct-stream
+        if (!ct.equals("application/oct-stream")
+            && !ct.equals("application/octet-stream")){
+            return false;
+        }
+        
+        //mp3|wav|aac|amr|mid|ogg
+        byte[] location = part.getContentLocation();
+                
+        if (location == null) {
+            location = part.getName();
+        }
+        if (location == null) {
+            location = part.getFilename();
+        }
+
+        if (location == null){
+            return false;
+        }
+
+        String name = new String(location);
+
+        //mp4|3gp|3gpp2|3gpp
+        if (name.contains(".mp4")
+            || name.contains(".3gp")
+            || name.contains(".3gpp2")
+            || name.contains(".3gpp")){
+            return true;
+        }
+
+        return false;
     }
 
     private static void log(String msg) {

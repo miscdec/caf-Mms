@@ -17,30 +17,35 @@
 
 package com.android.mms.layout;
 
-import android.content.Context;
+import android.util.Config;
 import android.util.Log;
+import com.android.mms.ui.MessageUtils;
+import android.content.Context;
 import android.util.DisplayMetrics;
+import android.app.Application;
+import android.view.WindowManager;
+
 
 public class HVGALayoutParameters implements LayoutParameters {
     private static final String TAG = "HVGALayoutParameters";
     private static final boolean DEBUG = false;
-    private static final boolean LOCAL_LOGV = true;
+    private static final boolean LOCAL_LOGV = DEBUG ? Config.LOGD : Config.LOGV;
+    private Context mcontext = null;
+    private DisplayMetrics dm = null;
 
     private int mType = -1;
-
-    private static int mImageHeightLandscape;
-    private static int mTextHeightLandscape;
-    private static int mImageHeightPortrait;
-    private static int mTextHeightPortrait;
-    private static int mMaxHeight;
-    private static int mMaxWidth;
+/*
+    private static final int IMAGE_HEIGHT_LANDSCAPE = 240;
+    private static final int TEXT_HEIGHT_LANDSCAPE  = 80;
+    private static final int IMAGE_HEIGHT_PORTRAIT  = 320;
+    private static final int TEXT_HEIGHT_PORTRAIT   = 160;
+*/
     private static int IMAGE_HEIGHT_LANDSCAPE = 180;
     private static int TEXT_HEIGHT_LANDSCAPE  =  60;
     private static int IMAGE_HEIGHT_PORTRAIT  = 240;
     private static int TEXT_HEIGHT_PORTRAIT   =  80;
-	private Context mcontext = null;
 
-    public HVGALayoutParameters(Context context, int type) {
+    public HVGALayoutParameters(int type) {
         if ((type != HVGA_LANDSCAPE) && (type != HVGA_PORTRAIT)) {
             throw new IllegalArgumentException(
                     "Bad layout type detected: " + type);
@@ -50,21 +55,39 @@ public class HVGALayoutParameters implements LayoutParameters {
             Log.v(TAG, "HVGALayoutParameters.<init>(" + type + ").");
         }
         mType = type;
-		mcontext=context;
+        
+        {
+            IMAGE_HEIGHT_LANDSCAPE = 180;
+            TEXT_HEIGHT_LANDSCAPE  =  60;
+            IMAGE_HEIGHT_PORTRAIT  = 240;
+            TEXT_HEIGHT_PORTRAIT   =  80;
+        }
+    }
 
-        DisplayMetrics scale = getDefaultDisplay();
-
-		IMAGE_HEIGHT_LANDSCAPE = scale.widthPixels/2;
-		TEXT_HEIGHT_LANDSCAPE  = scale.widthPixels/2;
-		IMAGE_HEIGHT_PORTRAIT  = scale.heightPixels/2;
-		TEXT_HEIGHT_PORTRAIT   = scale.heightPixels/2;
+    public HVGALayoutParameters(int type, Context context) {
+        
+        if ((type != HVGA_LANDSCAPE) && (type != HVGA_PORTRAIT)) {
+            throw new IllegalArgumentException(
+                    "Bad layout type detected: " + type);
+        }
 
         if (LOCAL_LOGV) {
-            Log.v(TAG, "HVGALayoutParameters IMAGE_HEIGHT_LANDSCAPE: " + IMAGE_HEIGHT_LANDSCAPE +
-                    " TEXT_HEIGHT_LANDSCAPE: " + TEXT_HEIGHT_LANDSCAPE +
-                    " IMAGE_HEIGHT_PORTRAIT: " + IMAGE_HEIGHT_PORTRAIT +
-                    " TEXT_HEIGHT_PORTRAIT: " + TEXT_HEIGHT_PORTRAIT);
+            Log.v(TAG, "HVGALayoutParameters.<init>(" + type + ").");
         }
+        mType = type;
+        mcontext = context;
+        dm = getDefaultDisplay();
+        IMAGE_HEIGHT_LANDSCAPE = dm.widthPixels/2;
+        TEXT_HEIGHT_LANDSCAPE  = dm.widthPixels/2;
+        IMAGE_HEIGHT_PORTRAIT  = dm.heightPixels/2;
+        TEXT_HEIGHT_PORTRAIT   = dm.heightPixels/2;
+
+    }
+
+    private DisplayMetrics getDefaultDisplay(){
+        DisplayMetrics dm =mcontext.getResources().getDisplayMetrics();
+        
+        return dm;
 
     }
 
@@ -95,9 +118,4 @@ public class HVGALayoutParameters implements LayoutParameters {
     public String getTypeDescription() {
         return mType == HVGA_LANDSCAPE ? "HVGA-L" : "HVGA-P";
     }
-	private DisplayMetrics getDefaultDisplay(){
-		DisplayMetrics dm =mcontext.getResources().getDisplayMetrics();
-		
-		return dm;
-		}
 }

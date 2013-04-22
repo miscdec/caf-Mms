@@ -104,8 +104,7 @@
         <activity android:name=".ui.MailBoxMessageContent"
             android:label="@string/message_detail"
             android:theme="@style/MmsHoloTheme"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:launchMode="singleTop" >   
+            android:configChanges="orientation|screenSize|keyboardHidden">   
         </activity>  
         
         <activity android:name=".ui.ComposeMessageActivity"
@@ -253,6 +252,19 @@
             </intent-filter>             
         </activity>  
         
+        <activity android:name=".ui.AttachmentList"
+            android:label="@string/view_attachment"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".ui.MessageContent"
+            android:label="@string/app_label"
+            android:uiOptions="splitActionBarWhenNarrow" 
+            android:configChanges="orientation|keyboardHidden">             
+        </activity>   
         <receiver android:name=".transaction.PushReceiver"
             android:permission="android.permission.BROADCAST_WAP_PUSH">
             <intent-filter>

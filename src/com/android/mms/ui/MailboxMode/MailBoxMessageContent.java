@@ -705,14 +705,15 @@ public class MailBoxMessageContent extends Activity
         mTimeTextView = (TextView) findViewById(R.id.TextViewTime);
         mTimeDetailTextView = (TextView) findViewById(R.id.TextViewTimeDetail);  
         mSlotTypeView = (TextView) findViewById(R.id.TextViewSlotType);
-
-        mGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener(){ });
-        mGestureDetector.setOnDoubleTapListener(null); 
-
+        
+        mGestureDetector = new GestureDetector(this, new ModeGestureListener());
+        //mGestureDetector.setOnDoubleTapListener(null); 
+        
         if (null != intent.getAction())
         {
             String type = intent.getType();
             String uriString = intent.getStringExtra("message_uri");
+            
             mMessageUri = Uri.parse(uriString);
             if (mMessageUri == null)
             {
@@ -1018,6 +1019,7 @@ public class MailBoxMessageContent extends Activity
     private float mScaleFactor = 1;
     private  ScaleGestureDetector mScaleDetector;
     private  GestureDetector mGestureDetector;
+    private static int HORIZONTAL_SCROLL_THRESHOLD = 50;
     private int mHandlerMsg = -1;
     private final int ZOOMIN = 0;
     private final int ZOOMOUT = 1;
@@ -1068,6 +1070,126 @@ public class MailBoxMessageContent extends Activity
         Log.d(TAG,"+++++++++++zoomin:" + mTextSize);
     }    
 
+    private void showPreviousMsg()
+    {
+        if (m_AllIdList == null || mMessageUri == null)
+        {
+            finish();
+            return;            
+        }
+        else if (m_AllIdList.size() <= 1)
+        {
+            finish();
+            return;
+        }
+        int size = m_AllIdList.size();
+        int pos = m_AllIdList.indexOf(mMessageUri.toString());
+
+        if (pos == 0)
+        {
+            if (size == 1)
+            {
+                finish();
+                return;
+            }
+            pos = size;
+        }
+
+        int j = pos - 1;        
+        String nextUri = null;
+        
+        for (;j >= 0;j--)
+        {
+            nextUri = m_AllIdList.get(j);
+            if (TextUtils.isEmpty(nextUri))
+            {
+                finish();
+                return;
+            }
+            if (nextUri.contains("sms"))
+            {
+                boolean isOnIcc = false;
+                if (nextUri.contains("iccsms"))
+                {
+                    isOnIcc = true;
+                }
+                MessageUtils.goToSmsDetailByUri(this, nextUri, m_AllIdList, isOnIcc);
+                overridePendingTransition(R.anim.slide_right_enter, R.anim.slide_left_exit);
+                return;
+            }            
+            else if (nextUri.contains("mms"))
+            {
+                if (!MessageUtils.isSlideShowMms(this, nextUri))
+                {
+                    continue;
+                }
+                else
+                {                
+                    MessageUtils.goToMmsDetailByUri(this, nextUri, m_AllIdList, false);
+                    overridePendingTransition(R.anim.slide_right_enter, R.anim.slide_left_exit);
+                    finish();
+                    return;
+                }
+            }            
+        }
+    }
+
+    private void showNextMsg()
+    {
+        if (m_AllIdList == null || mMessageUri == null)
+        {
+            finish();
+            return;            
+        }
+        else if (m_AllIdList.size() <= 1)
+        {
+            finish();
+            return;
+        }
+        int size = m_AllIdList.size();
+        int pos = m_AllIdList.indexOf(mMessageUri.toString());
+
+        if ((pos + 1) == size)
+        {
+            pos = -1;
+        }
+        
+        int j = pos + 1;
+        String nextUri = null;
+        
+        for (;j < size;j++)
+        {
+            nextUri = m_AllIdList.get(j);
+            if (TextUtils.isEmpty(nextUri))
+            {
+                finish();
+                return;            
+            }
+            if (nextUri.contains("sms"))
+            {
+                boolean isOnIcc = false;
+                if (nextUri.contains("iccsms"))
+                {
+                    isOnIcc = true;
+                }
+                MessageUtils.goToSmsDetailByUri(this, nextUri, m_AllIdList, isOnIcc);         
+                overridePendingTransition(R.anim.slide_left_enter, R.anim.slide_right_exit);
+                return;
+            }            
+            else if (nextUri.contains("mms"))
+            {
+                if (!MessageUtils.isSlideShowMms(this, nextUri)){
+                    continue;
+                } else{
+                    MessageUtils.goToMmsDetailByUri(this, nextUri, m_AllIdList, false);
+                    overridePendingTransition(R.anim.slide_left_enter, R.anim.slide_right_exit);
+                    finish();
+                    return;
+                }
+            }            
+        }          
+    }
+    
     private class MyScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
         
         @Override
@@ -1099,6 +1221,63 @@ public class MailBoxMessageContent extends Activity
             }
         }
     }
+
+    class ModeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onSingleTapUp(MotionEvent ev) {
+            return false;
+        }
+
+        @Override
+        public void onLongPress(MotionEvent ev) {
+        
+        }
+
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            return false;
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            if (e1 == null || e2 == null)
+            {              
+                return false;
+            }            
+
+            int deltaX = (int) e2.getX() - (int) e1.getX();
+            int distanceX = Math.abs(deltaX);    
+            int deltaY = (int) e2.getY() - (int) e1.getY();
+            int distanceY = Math.abs(deltaY);            
+            final float absX = Math.abs(velocityX);
+            Log.d(TAG, "++++++++onFling : distanceX = " + distanceX + ",distanceY = " + distanceY);
+            
+            if ((distanceX >= HORIZONTAL_SCROLL_THRESHOLD) && (distanceX > distanceY) && (deltaX >= 0)) 
+            {
+                showPreviousMsg();                
+
+                return true;
+            }      
+            if ((distanceX >= HORIZONTAL_SCROLL_THRESHOLD) && (distanceX > distanceY) && (deltaX < 0)) 
+            {
+                showNextMsg();                
+
+                return true;
+            }      
+            
+            return false;
+        }
+
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            return super.onSingleTapConfirmed(e); 
+        }
+
+        @Override
+        public boolean onDown(MotionEvent ev) {
+            return false;
+        }
+    }    
 
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         mScaleDetector.onTouchEvent(ev);

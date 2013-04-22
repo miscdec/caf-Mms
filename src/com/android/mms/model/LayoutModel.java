@@ -218,6 +218,27 @@ public class LayoutModel extends Model {
     }
 
     public int getLayoutType() {
+        if (mTextRegion.getTop() == 0)
+        {
+            mLayoutType = LAYOUT_TOP_TEXT;
+        }
+        else if (mTextRegion != null && mImageRegion != null)
+        {
+            if (mTextRegion.getTop() < mImageRegion.getTop())
+            {
+                mLayoutType = LAYOUT_TOP_TEXT;
+            }
+            else
+            {
+                mLayoutType = LAYOUT_BOTTOM_TEXT;
+            }
+        }
+        else
+        {
+            mLayoutType = LAYOUT_BOTTOM_TEXT;
+        }
+        
+        //mLayoutType = (mTextRegion.getTop() == 0 ? LAYOUT_TOP_TEXT : LAYOUT_BOTTOM_TEXT);        
         return mLayoutType;
     }
 

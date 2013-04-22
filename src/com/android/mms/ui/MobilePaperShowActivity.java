@@ -907,7 +907,9 @@ public static String getMessageDetails(Context context, Cursor cursor, int size)
         // Message size: *** KB
         details.append('\n');
         details.append(res.getString(R.string.message_size_label));
-        details.append((size - 1)/1000 + 1);
+        if(size>MmsConfig.getMaxMessageSize())
+           size=MmsConfig.getMaxMessageSize();
+        details.append((size+1023)/1024);
         details.append(" KB");
 
         return details.toString();

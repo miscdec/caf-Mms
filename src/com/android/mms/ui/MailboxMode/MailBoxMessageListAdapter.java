@@ -241,7 +241,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter
             Log.v(TAG, "bindView: contacts.addListeners " + this);
         }
         Contact.addListener(this);
-        cleanItemCache();
+        //cleanItemCache();
         
         final String type = cursor.getString(COLUMN_MSG_TYPE);
         mMsgType = type;
