@@ -215,7 +215,7 @@ public class GIFView extends ImageView implements GifAction{
         else
         {
             //h small, w small;
-            canvas.drawBitmap(currentImage, (W - imageWidth) / 2, 0, null);
+            canvas.drawBitmap(currentImage, 0, 0, null);
         }
         canvas.restoreToCount(saveCount);
     }

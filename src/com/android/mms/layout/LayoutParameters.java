@@ -24,10 +24,10 @@ public interface LayoutParameters {
     public static final int HVGA_PORTRAIT  = 11;
 
     /* Parameters for known layouts */
-    public static final int HVGA_LANDSCAPE_WIDTH  = 480;
-    public static final int HVGA_LANDSCAPE_HEIGHT = 320;
-    public static final int HVGA_PORTRAIT_WIDTH   = 320;
-    public static final int HVGA_PORTRAIT_HEIGHT  = 480;
+    public static final int HVGA_LANDSCAPE_WIDTH  = 540;
+    public static final int HVGA_LANDSCAPE_HEIGHT = 960;
+    public static final int HVGA_PORTRAIT_WIDTH   = 540;
+    public static final int HVGA_PORTRAIT_HEIGHT  = 960;
 
     /**
      * Get the width of current layout.

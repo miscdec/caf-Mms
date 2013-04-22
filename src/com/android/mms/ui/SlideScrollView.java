@@ -235,7 +235,7 @@ public class SlideScrollView extends FrameLayout {
                         mTouchMode = TOUCH_MODE_VSCROLL;
                    }
                 } 
-                scrollBy((int)deltaX, (int)deltaY); // chenxiang 20110831 
+                scrollBy((int)deltaX, (int)deltaY);
                 return true;
             }
 
@@ -261,17 +261,7 @@ public class SlideScrollView extends FrameLayout {
                     } 
                 } else if((mTouchMode & TOUCH_MODE_VSCROLL) != 0){
                     if(absDistanceY>= 2 * absDistanceX){
-                        /* chenxiang 20110831 delete 
-                        if(distanceY > 0){
-                            final int bottomEdge = getHeight() - mPaddingBottom;
-                            final int availableToScroll = getChildAt(0).getBottom() - mScrollY - bottomEdge;
-                            if (availableToScroll > 0) {
-                                scrollBy(0, Math.min(availableToScroll, distanceY));
-                           }
-                        } else if(distanceY < 0){
-                            scrollBy(0, distanceY);
-                        } */
-                        fling((int)(0-velocityY)); // chenxiang 20110831 
+                        fling((int)(0-velocityY)); 
                         mTouchMode = TOUCH_MODE_INITIAL_STATE;
                     }
                 }
@@ -279,7 +269,7 @@ public class SlideScrollView extends FrameLayout {
                 return true;
             }
         });
-        mGestureDetector.setOnDoubleTapListener(null); // chenxiang 20110908 
+        mGestureDetector.setOnDoubleTapListener(null);
     }
 
     @Override
@@ -371,6 +361,10 @@ public class SlideScrollView extends FrameLayout {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+
+        //if (!mFillViewport) {
+          //  return;
+       // }
 
         final int heightMode = MeasureSpec.getMode(heightMeasureSpec);
         if (heightMode == MeasureSpec.UNSPECIFIED) {

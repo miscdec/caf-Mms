@@ -292,6 +292,14 @@ public class SmsReceiverService extends Service {
                         MessageUtils.setIsIccLoaded(false);
                         handleIccAbsent(subscription);
                     }
+                    else if (IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    }
+                    else if (IccCardConstants.INTENT_VALUE_LOCKED_ON_PIN.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    }
                     else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
                         MessageUtils.setIsIccLoaded(true);
                         queryIccSms(subscription);

@@ -416,7 +416,9 @@ public class MessageUtils {
         // Message size: *** KB
         details.append('\n');
         details.append(res.getString(R.string.message_size_label));
-        details.append((size - 1)/1000 + 1);
+        if(size>MmsConfig.getMaxMessageSize())
+           size=MmsConfig.getMaxMessageSize();
+        details.append((size+1023)/1024 );
         details.append(" KB");
 
         return details.toString();
@@ -1988,6 +1990,221 @@ public class MessageUtils {
     /* whether is in cmcc test mode,  0 is false ,1 is true */
     public static boolean isCMCCTest(){
         return SystemProperties.getInt("ro.cmcc.test", 0) == 1;
+    }
+    private static boolean isSDCardExist() {
+        boolean ret = true;
+        String status = Environment.getExternalStorageState();
+        if (status.equals(Environment.MEDIA_REMOVED) 
+            ||status.equals(Environment.MEDIA_BAD_REMOVAL)
+            ||status.equals(Environment.MEDIA_CHECKING)
+            ||status.equals(Environment.MEDIA_SHARED)
+            ||status.equals(Environment.MEDIA_UNMOUNTED)
+            ||status.equals(Environment.MEDIA_NOFS)
+            ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
+            ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
+            ret = false; 
+        }
+        return ret;
+    }  
+   public static boolean sdcardCanuse(){
+   
+        if(isSDCardExist()){
+            File mVcardDirectory = new File("/sdcard/"); 
+            StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
+            long blocks = fs.getAvailableBlocks();
+            long blockSize = fs.getBlockSize();
+            return (blocks*blockSize)>(50*1024);
+        }
+        return false;
+   }     
+    public static String getTextcodecFromContent(byte[] str, int size)
+    {
+        final String CODEC_UNICODE = "UNICODE";
+        final String CODEC_UTF8 = "UTF-8";
+        final String CODEC_GB2312 = "GB2312";
+        final String CODEC_BIG5 = "Big5-HKSCS";
+        final String CODEC_GBK = "GBK";
+        if(str ==null || str.length <= 0)
+        {
+            return null;
+        }
+        if (str[0]=='\0' || size<=0){
+            return null;
+        }
+
+        boolean bIsUtf8 = true;
+        boolean bIsGbk = true;
+        boolean bIsGb2312 = true;
+
+        if((str[0]==(byte)0xff && str[1]==(byte)0xfe)||(str[0]==(byte)0xfe && str[1]==(byte)0xff)){
+                        return CODEC_UNICODE;
+        }
+        
+        if(str[0]==0){
+                        return CODEC_UNICODE;
+        }
+
+        for (int i = 0; i < size; ) {
+            if(str[i] >= 0 && str[i]<=0x7f){
+                            i++;
+            }
+            else if((i + 1 <size)
+                && ((str[i] & (byte)0xe0) == (byte)0xc0) 
+                            && ((str[i+1] & (byte)0xc0) == (byte)0x80)){
+                            i+=2;
+            }
+            else if((i + 2 <size)
+                && ((str[i] & (byte)0xf0) == (byte)0xe0) 
+                            && ((str[i+1] & (byte)0xc0) == (byte)0x80) 
+                            && ((str[i+2] & (byte)0xc0) == (byte)0x80)){
+                            i+=3;
+            }
+            else{
+                            bIsUtf8 = false;
+                            break;
+            }
+        }
+        
+        if(bIsUtf8){                
+            return CODEC_UTF8;
+        }
+
+        for (int i = 0; i+2 < size; )
+        {
+            if(str[i] >= 0 && str[i]<=0x7f){
+                i++;
+            }
+            else if(str[i] < 0 && str[i] >= (byte)0x81){                
+                if(str[i] != (byte)0xff){                
+                    if((str[i] >= 0 && str[i]<=0x7f) 
+                    || (str[i] < 0 && str[i] < (byte)0xa1)){                
+                        bIsGb2312 = false;
+                    }
+                    if(str[i+1] >= 0x40 || str[i+1] < 0){                
+                        if((str[i+1] != (byte)0xff) && (str[i+1] != 0x7f)){                
+                            if((str[i+1] >= 0 && str[i+1]<=0x7f) 
+                            || (str[i+1] < 0 && str[i+1] < (byte)0xa1)){                
+                            bIsGb2312 = false;
+                            }
+                            i += 2;
+                        }
+                        else{                
+                            bIsGbk = false;
+                            bIsGb2312 = false;
+                            break;
+                        }
+                    }
+                    else{                
+                    bIsGbk = false;
+                    bIsGb2312 = false;
+                    break;
+                    }
+                }
+                else{                
+                bIsGbk = false;
+                bIsGb2312 = false;
+                break;
+            }
+                }
+            else{                
+            bIsGbk = false;
+            bIsGb2312 = false;
+            break;
+            }
+        }
+                    
+        if(bIsGb2312){                
+            return CODEC_GB2312;
+        }
+        if(bIsGbk){
+            return CODEC_GBK;
+        }
+
+        return CODEC_UNICODE;
+    }
+
+    /**
+    check whether the part contains music media
+    */
+    public static boolean isMusic(PduPart part){
+        String ct = new String(part.getContentType());
+
+        //we only supervise the type of application/oct-stream
+        if (!ct.equals("application/oct-stream")
+            && !ct.equals("application/octet-stream")){
+                                    if(ct.contains("ogg"))
+                                            return true;
+            return false;
+        }
+        
+        //mp3|wav|aac|amr|mid|ogg
+        byte[] location = part.getContentLocation();
+                
+        if (location == null) {
+            location = part.getName();
+        }
+        if (location == null) {
+            location = part.getFilename();
+        }
+
+        if (location == null){
+            return false;
+        }
+
+        String name = new String(location);
+
+        if (name.contains(".mp3")
+            || name.contains(".wav")
+            || name.contains(".aac")
+            || name.contains(".amr")
+            || name.contains(".mid")
+            || name.contains(".wma")
+            || name.contains(".ogg")){
+            Log.v(TAG,"is music");
+            return true;
+        }
+
+        return false;
+    }
+
+    
+    /**
+    check whether the part contains video media
+    */
+    public static boolean isVideo(PduPart part){
+        String ct = new String(part.getContentType());
+
+        //we only supervise the type of application/oct-stream
+        if (!ct.equals("application/oct-stream")
+            && !ct.equals("application/octet-stream")){
+            return false;
+        }
+        
+        //mp3|wav|aac|amr|mid|ogg
+        byte[] location = part.getContentLocation();
+                
+        if (location == null) {
+            location = part.getName();
+        }
+        if (location == null) {
+            location = part.getFilename();
+        }
+
+        if (location == null){
+            return false;
+        }
+
+        String name = new String(location);
+
+        //mp4|3gp|3gpp2|3gpp
+        if (name.contains(".mp4")
+            || name.contains(".3gp")
+            || name.contains(".3gpp2")
+            || name.contains(".3gpp")){
+            return true;
+        }
+
+        return false;
     }
 
     private static void log(String msg) {

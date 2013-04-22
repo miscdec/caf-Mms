@@ -53,7 +53,9 @@ import com.android.mms.UnsupportContentTypeException;
 import com.android.mms.model.IModelChangedObserver;
 import com.android.mms.model.LayoutModel;
 import com.android.mms.model.Model;
+import com.android.mms.model.CarrierContentRestriction;
 import com.android.mms.model.SlideModel;
+import com.android.mms.model.TextModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.ui.BasicSlideEditorView.OnTextChangedListener;
 import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
@@ -276,9 +278,38 @@ public class SlideEditorActivity extends Activity {
 
     private final OnTextChangedListener mOnTextChangedListener = new OnTextChangedListener() {
         public void onTextChanged(String s) {
-            if (!isFinishing()) {
-                mSlideshowEditor.changeText(mPosition, s);
+            int oldSize = 0, newSize = 0;
+            int limitsize=0;
+            SlideModel slide = mSlideshowModel.get(mPosition);
+
+            if (slide != null){
+                TextModel text = slide.getText();
+
+                if (null != text){
+                    oldSize = text.getMediaSize();
+                }
+
+                if (s != null){
+                    newSize = s.getBytes().length;
+                }
             }
+            if(mSlideshowModel.size()<=10)
+                limitsize=MmsConfig.getMaxheadSize();
+            else if(mSlideshowModel.size()>10)
+                limitsize=MmsConfig.getMaxheadSize()*2;
+            if (mSlideshowModel.getCurrentMessageSize() <= (CarrierContentRestriction.MESSAGE_SIZE_LIMIT-limitsize)|| newSize < oldSize){
+                try{
+                    mSlideshowEditor.changeText(mPosition, s);
+                }catch (ExceedMessageSizeException e) {
+                    MmsConfig.setMaxheadSize(MmsConfig.getHeadSize());
+                    Toast.makeText(SlideEditorActivity.this, R.string.mms_exceed_message_size,
+                            Toast.LENGTH_SHORT).show();
+                }
+            }else{
+                Toast.makeText(SlideEditorActivity.this, R.string.mms_exceed_message_size,
+                            Toast.LENGTH_SHORT).show();
+            }
+        MmsConfig.setMaxheadSize(MmsConfig.getHeadSize());
         }
     };
 
@@ -428,6 +459,11 @@ public class SlideEditorActivity extends Activity {
         return true;
     }
 
+    private String getPhotoFileName() {
+        Date date = new Date(System.currentTimeMillis());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("'IMG'_yyyyMMdd_HHmmss");
+        return dateFormat.format(date) + ".jpg";
+    }    
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -450,7 +486,7 @@ public class SlideEditorActivity extends Activity {
 
             case MENU_TAKE_PICTURE:
                 {
-                    if(sdcardCanuse()){
+                    if(MessageUtils.sdcardCanuse()){
                         MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
                         break;
                     }
@@ -629,7 +665,7 @@ public class SlideEditorActivity extends Activity {
                 Uri pictureUri = null;
                 boolean showError = false;
                 try {
-                    if(sdcardCanuse())
+                    if(MessageUtils.sdcardCanuse())
                         pictureUri = TempFileProvider.renameScrapFile(".jpg",
                             Integer.toString(mPosition), this);
 
@@ -856,20 +892,4 @@ public class SlideEditorActivity extends Activity {
          return ret;
      }  
     
-        private boolean sdcardCanuse(){
-    
-     if(isSDCardExist()){
-         File mVcardDirectory = new File("/sdcard/"); 
-         StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
-         long blocks = fs.getAvailableBlocks();
-         long blockSize = fs.getBlockSize();
-         return (blocks*blockSize)>(50*1024);
-     }
-     return false;
-    }
-    private String getPhotoFileName() {
-        Date date = new Date(System.currentTimeMillis());
-        SimpleDateFormat dateFormat = new SimpleDateFormat("'IMG'_yyyyMMdd_HHmmss");
-        return dateFormat.format(date) + ".jpg";
-    }    
 }

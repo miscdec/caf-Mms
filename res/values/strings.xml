@@ -109,6 +109,28 @@
     <string name="starredList">Starred</string>
     <string name="frequentList">Frequent</string>
     <string name="memory_card">Card</string>
+    <string name="mms_exceed_message_size">Message size limit reached, the text input just now will not be saved</string>
+    <!-- Menu item in Attachment.java. -->
+    <string name="view_attachment">View attachment</string>
+    <string name="set_as_wallpaper">Set as wallpaper</string>
+    <string name="set_as_ringtone">Set as ringtone</string>
+    <string name="set_as_ringtone1">Set as ringtone 1</string>
+    <string name="set_as_ringtone2">Set as ringtone 2</string>
+    <string name="save_ok">Saving to memory card successfully</string>
+    <string name="save_contact_ok">The vcard is saved into contact successfully</string>
+    <string name="import_contact">Import the vcard into contact?</string>
+    <string name="warning">Warning</string>
+    <string name="other">Others</string>
+    <string name="no_attachment">No attachment</string>
+    <string name="no_space_for_save_attachments">No space!</string>
+    <string name="save_btn">Save</string>  
+    <string name="stop">Stop</string>
+    <string name="attachment_options">Attachment options</string>
+    <string name="Directory_NAME_ANDROID"> "Internal storage"</string>
+    <string name="error_mediadb_new_record">Unable to save recorded audio</string>
+    <string name="setRingtone_Ok">The ringtone is set sucessfully</string>
+    <string name="setRingtone_failed">Failed to set the ringtone</string>
+    <string name="setRingtone_failed_no_sd">Failed to set the ringtone.Please check SD Card</string>
 
     <string name="operation_success">Done!</string>
     <string name="operation_cancel">Canceled !</string>
