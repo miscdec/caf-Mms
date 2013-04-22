@@ -374,7 +374,9 @@ public class MessagingNotification {
         SortedSet<NotificationInfo> notificationSet =
                 new TreeSet<NotificationInfo>(INFO_COMPARATOR);
         addSmsOnIccNotificationInfos(context, subscription, notificationSet);
-        Log.d(TAG, "blockingUpdateNewMessageOnIccIndicator:notificationSet="+notificationSet);
+        Log.d(TAG, "blockingUpdateNewMessageOnIccIndicator:notificationSet="+notificationSet
+            + "notificationSet.size() = " + notificationSet.size());
+        
         if (notificationSet.isEmpty()) {
             cancelNotification(context, getNotificationIDBySubscription(subscription));
         } else {
