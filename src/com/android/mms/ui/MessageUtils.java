@@ -1991,6 +1991,137 @@ public class MessageUtils {
     public static boolean isCMCCTest(){
         return SystemProperties.getInt("ro.cmcc.test", 0) == 1;
     }
+    private static boolean isSDCardExist() {
+        boolean ret = true;
+        String status = Environment.getExternalStorageState();
+        if (status.equals(Environment.MEDIA_REMOVED) 
+            ||status.equals(Environment.MEDIA_BAD_REMOVAL)
+            ||status.equals(Environment.MEDIA_CHECKING)
+            ||status.equals(Environment.MEDIA_SHARED)
+            ||status.equals(Environment.MEDIA_UNMOUNTED)
+            ||status.equals(Environment.MEDIA_NOFS)
+            ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
+            ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
+            ret = false; 
+        }
+        return ret;
+    }  
+   public static boolean sdcardCanuse(){
+   
+        if(isSDCardExist()){
+            File mVcardDirectory = new File("/sdcard/"); 
+            StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
+            long blocks = fs.getAvailableBlocks();
+            long blockSize = fs.getBlockSize();
+            return (blocks*blockSize)>(50*1024);
+        }
+        return false;
+   }     
+    public static String getTextcodecFromContent(byte[] str, int size)
+    {
+        final String CODEC_UNICODE = "UNICODE";
+        final String CODEC_UTF8 = "UTF-8";
+        final String CODEC_GB2312 = "GB2312";
+        final String CODEC_BIG5 = "Big5-HKSCS";
+        final String CODEC_GBK = "GBK";
+        if(str ==null || str.length <= 0)
+        {
+            return null;
+        }
+        if (str[0]=='\0' || size<=0){
+            return null;
+        }
+
+        boolean bIsUtf8 = true;
+        boolean bIsGbk = true;
+        boolean bIsGb2312 = true;
+
+        if((str[0]==(byte)0xff && str[1]==(byte)0xfe)||(str[0]==(byte)0xfe && str[1]==(byte)0xff)){
+                        return CODEC_UNICODE;
+        }
+        
+        if(str[0]==0){
+                        return CODEC_UNICODE;
+        }
+
+        for (int i = 0; i < size; ) {
+            if(str[i] >= 0 && str[i]<=0x7f){
+                            i++;
+            }
+            else if((i + 1 <size)
+                && ((str[i] & (byte)0xe0) == (byte)0xc0) 
+                            && ((str[i+1] & (byte)0xc0) == (byte)0x80)){
+                            i+=2;
+            }
+            else if((i + 2 <size)
+                && ((str[i] & (byte)0xf0) == (byte)0xe0) 
+                            && ((str[i+1] & (byte)0xc0) == (byte)0x80) 
+                            && ((str[i+2] & (byte)0xc0) == (byte)0x80)){
+                            i+=3;
+            }
+            else{
+                            bIsUtf8 = false;
+                            break;
+            }
+        }
+        
+        if(bIsUtf8){                
+            return CODEC_UTF8;
+        }
+
+        for (int i = 0; i+2 < size; )
+        {
+            if(str[i] >= 0 && str[i]<=0x7f){
+                i++;
+            }
+            else if(str[i] < 0 && str[i] >= (byte)0x81){                
+                if(str[i] != (byte)0xff){                
+                    if((str[i] >= 0 && str[i]<=0x7f) 
+                    || (str[i] < 0 && str[i] < (byte)0xa1)){                
+                        bIsGb2312 = false;
+                    }
+                    if(str[i+1] >= 0x40 || str[i+1] < 0){                
+                        if((str[i+1] != (byte)0xff) && (str[i+1] != 0x7f)){                
+                            if((str[i+1] >= 0 && str[i+1]<=0x7f) 
+                            || (str[i+1] < 0 && str[i+1] < (byte)0xa1)){                
+                            bIsGb2312 = false;
+                            }
+                            i += 2;
+                        }
+                        else{                
+                            bIsGbk = false;
+                            bIsGb2312 = false;
+                            break;
+                        }
+                    }
+                    else{                
+                    bIsGbk = false;
+                    bIsGb2312 = false;
+                    break;
+                    }
+                }
+                else{                
+                bIsGbk = false;
+                bIsGb2312 = false;
+                break;
+            }
+                }
+            else{                
+            bIsGbk = false;
+            bIsGb2312 = false;
+            break;
+            }
+        }
+                    
+        if(bIsGb2312){                
+            return CODEC_GB2312;
+        }
+        if(bIsGbk){
+            return CODEC_GBK;
+        }
+
+        return CODEC_UNICODE;
+    }
 
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);

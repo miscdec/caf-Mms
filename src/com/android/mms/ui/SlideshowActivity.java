@@ -125,6 +125,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final int MENU_DELIVERY_REPORT  =  20;       
     private static final int MENU_ONE_CALL                 = 21;   
     private static final int MENU_COPY_TO_SDCARD  = 22;  
+    private static final int MENU_MMS_VIEW_ATTACHMENT  = 23;  
  
  private static final int SHOW_TOAST = 10;
  private static final int SHOW_MEDIA_CONTROLLER = 3;
@@ -768,37 +769,6 @@ public class SlideshowActivity extends Activity implements EventListener {
              return mLastPduBody;
         }
     };
-
-      
-      
-      
-      private boolean sdcardCanuse(){
-      
-       if(isSDCardExist()){
-           File mVcardDirectory = new File("/sdcard/"); 
-           StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
-           long blocks = fs.getAvailableBlocks();
-           long blockSize = fs.getBlockSize();
-           return (blocks*blockSize)>(50*1024);
-       }
-       return false;
-      }
-      
-      private final boolean isSDCardExist() {
-              boolean ret = true;
-              String status = Environment.getExternalStorageState();
-              if (status.equals(Environment.MEDIA_REMOVED) 
-                  ||status.equals(Environment.MEDIA_BAD_REMOVAL)
-                  ||status.equals(Environment.MEDIA_CHECKING)
-                  ||status.equals(Environment.MEDIA_SHARED)
-                  ||status.equals(Environment.MEDIA_UNMOUNTED)
-                  ||status.equals(Environment.MEDIA_NOFS)
-                  ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
-                  ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
-                  ret = false; 
-              }
-              return ret;
-          }  
       
       /**
       check whether the part contains video media
@@ -940,7 +910,7 @@ public class SlideshowActivity extends Activity implements EventListener {
                         subPath = "/Other/";
                     }
                     
-                   if(sdcardCanuse())
+                   if(MessageUtils.sdcardCanuse())
                    
                    dir = Environment.getExternalStorageDirectory() + "/"
                               + Environment.DIRECTORY_DOWNLOADS  + "/";
@@ -1107,6 +1077,7 @@ public class SlideshowActivity extends Activity implements EventListener {
             if(Mms.MESSAGE_BOX_OUTBOX == mMailboxId || Mms.MESSAGE_BOX_SENT == mMailboxId){
                 menu.add(0, MENU_RESEND, 0, R.string.menu_resend);
                    } 
+            menu.add(0, MENU_MMS_VIEW_ATTACHMENT, 0, R.string.view_attachment);
             if(mMailboxId != Mms.MESSAGE_BOX_DRAFTS){
     
                 if(cursor.getInt(0) == 0 ){
@@ -1150,6 +1121,14 @@ public class SlideshowActivity extends Activity implements EventListener {
             viewMmsMessageAttachmentMobilepaper(this,msg,null,null,intent.getStringArrayListExtra("sms_id_list"),intent.getBooleanExtra("mms_report", false));
             finish();
             break;    
+        case MENU_MMS_VIEW_ATTACHMENT:{
+                Intent in = new Intent(this, AttachmentList.class);
+                long msgId = ContentUris.parseId(mUri);  
+                in.putExtra("msg_id", msgId);
+                startActivity(in);
+                finish();
+                break;
+            }
         case MENU_ONE_CALL:
             if(MessageUtils.isMultiSimEnabledMms())
             {
@@ -1224,7 +1203,7 @@ public class SlideshowActivity extends Activity implements EventListener {
             
                 int resId = R.string.copy_to_sdcard_direction_success ;
                 String direction1;
-                if(sdcardCanuse())
+                if(MessageUtils.sdcardCanuse())
                      direction1 = getResources().getString(resId) 
                                     + Environment.getExternalStorageDirectory() + "/"
                                     + Environment.DIRECTORY_DOWNLOADS + "/";

@@ -3573,7 +3573,7 @@ public class ComposeMessageActivity extends Activity
                     Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
                     intent.putExtra("android.intent.extras.CAMERA_FACING", android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK);
-                    if(sdcardCanuse()){
+                    if(MessageUtils.sdcardCanuse()){
                        // intent.putExtra(MediaStore.EXTRA_OUTPUT, Mms.ScrapSpace.CONTENT_URI);
                        MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
                        return;
@@ -3747,7 +3747,7 @@ public class ComposeMessageActivity extends Activity
                 // create a file based uri and pass to addImage(). We want to read the JPEG
                 // data directly from file (using UriImage) instead of decoding it into a Bitmap,
                 // which takes up too much memory and could easily lead to OOM.
-                if(sdcardCanuse())
+                if(MessageUtils.sdcardCanuse())
                     {
                     File file = new File(TempFileProvider.getScrapPath(this));
                     Uri uri = Uri.fromFile(file);
@@ -5350,32 +5350,6 @@ public class ComposeMessageActivity extends Activity
         SimpleDateFormat dateFormat = new SimpleDateFormat("'IMG'_yyyyMMdd_HHmmss");
         return dateFormat.format(date) + ".jpg";
     }    
-    private final boolean isSDCardExist() {
-        boolean ret = true;
-        String status = Environment.getExternalStorageState();
-        if (status.equals(Environment.MEDIA_REMOVED) 
-            ||status.equals(Environment.MEDIA_BAD_REMOVAL)
-            ||status.equals(Environment.MEDIA_CHECKING)
-            ||status.equals(Environment.MEDIA_SHARED)
-            ||status.equals(Environment.MEDIA_UNMOUNTED)
-            ||status.equals(Environment.MEDIA_NOFS)
-            ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
-            ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
-            ret = false; 
-        }
-        return ret;
-    }  
-    private boolean sdcardCanuse(){
-    
-     if(isSDCardExist()){
-         File mVcardDirectory = new File("/sdcard/"); 
-         StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
-         long blocks = fs.getAvailableBlocks();
-         long blockSize = fs.getBlockSize();
-         return (blocks*blockSize)>(50*1024);
-     }
-     return false;
-    }
     private void startSendingService(boolean sent) {
         if ( mbResendMms && null != mstrMsgId ) {
             Uri uri = null;
