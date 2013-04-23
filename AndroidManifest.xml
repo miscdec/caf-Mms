@@ -154,11 +154,62 @@
                <category android:name="android.intent.category.DEFAULT" />
                <data android:mimeType="text/plain" />
            </intent-filter>
-           <intent-filter>
-               <action android:name="android.intent.action.SEND_MULTIPLE" />
+	   <intent-filter>
+               <action android:name="android.intent.action.SEND" />
                <category android:name="android.intent.category.DEFAULT" />
-               <data android:mimeType="image/*" />
+               <data android:mimeType="text/x-vCalendar" />
            </intent-filter>
+           <intent-filter>
+               <action android:name="android.intent.action.SEND" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <data android:mimeType="text/x-vCard" />
+           </intent-filter>
+           <intent-filter>
+               <action android:name="android.intent.action.SEND" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <data android:mimeType="text/x-vcard" />
+           </intent-filter>
+           <intent-filter>
+               <action android:name="android.intent.action.SEND" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <data android:mimeType="application/octet-stream" />
+           </intent-filter>           
+           <intent-filter>
+               <action android:name="android.intent.action.SEND" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <data android:mimeType="application/ogg" />
+           </intent-filter>           
+           <intent-filter>                
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SENDTO" />                
+                <action android:name="android.intent.action.VIEW" />
+                <!-- TODO Do a better data match here. -->
+                <data android:scheme="mailto" />
+                <data android:scheme="mms" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+           <intent-filter>
+               <action android:name="android.intent.action.SENDMULTI" />
+               <category android:name="android.intent.category.DEFAULT" />
+           </intent-filter>   
+           <intent-filter>
+               <action android:name="android.intent.action.SENDCONTACT" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <data android:mimeType="text/plain" />
+           </intent-filter>           
+           <intent-filter>
+               <action android:name="android.intent.action.SENDCONTACT" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <data android:mimeType="text/x-vCard" />
+           </intent-filter>
+        </activity>
+        <activity android:name=".ui.TextViewer"
+                android:label="@string/view_attachment"
+                  android:configChanges="orientation">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>            
         </activity>
 
         <activity-alias android:name=".ui.ForwardMessageActivity"
@@ -219,15 +270,6 @@
             android:label="@string/slideshow_activity">
         </activity>
 
-        <activity android:name=".ui.TextViewer"
-                android:label="@string/view_attachment"
-                  android:configChanges="orientation">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>            
-        </activity>
-        
         <activity android:name=".ui.ClassZeroActivity"
             android:label="@string/class_0_message_activity"
             android:theme="@android:style/Theme.Translucent"

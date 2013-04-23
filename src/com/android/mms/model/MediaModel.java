@@ -42,6 +42,9 @@ public abstract class MediaModel extends Model implements EventListener {
     protected static final String TAG = "Mms/media";
 
     private final static String MUSIC_SERVICE_ACTION = "com.android.music.musicservicecommand";
+    protected final static String VCARD = "vcard";
+    protected final static String VCALENDAR = "vcalendar"; 
+    protected final static String FILE = "file";
 
     protected Context mContext;
     protected int mBegin;
@@ -136,6 +139,10 @@ public abstract class MediaModel extends Model implements EventListener {
     public Uri getUri() {
         return mUri;
     }
+    
+    public void setSrc(String src) {
+        mSrc = src;
+    }
 
     public byte[] getData() {
         if (mData != null) {
@@ -144,6 +151,12 @@ public abstract class MediaModel extends Model implements EventListener {
             return data;
         }
         return null;
+    }
+    public boolean isFile(){
+            return mTag.equals(FILE);
+        }
+    public boolean isVcalendar(){
+        return mTag.equals(VCALENDAR);
     }
 
     /**

@@ -48,6 +48,8 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
     private MediaModel mAudio;
     private MediaModel mVideo;
     private MediaModel mVcard;
+    private MediaModel mVcalendar; 
+    private MediaModel mFile;
 
     private boolean mCanAddImage = true;
     private boolean mCanAddAudio = true;
@@ -150,6 +152,12 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 Log.w(TAG, "[SlideModel] content type " + media.getContentType() +
                         " - can't add vcard in this state");
             }
+        }else if (media.isVcalendar()) {
+                internalAddOrReplace(mVcalendar, media);
+                mVcalendar = media;
+        } else if(media.isFile()){
+            internalAddOrReplace(mFile, media);
+            mFile = media;
         }
     }
 
@@ -203,10 +211,14 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 mVideo = null;
                 mCanAddImage = true;
                 mCanAddAudio = true;
-                mCanAddVcard = true;
-            } else if (object instanceof VcardModel) {
-                mVcard = null;
-                mCanAddVideo = true;
+            } else if ( object instanceof MediaModel ){//yinqi add for vcard /vclalendar 2009-4-30
+                if ( ((MediaModel)object).getTag() == MediaModel.VCARD ){
+                    mVcard = null;
+                } else if ( ((MediaModel)object).getTag() == MediaModel.VCALENDAR){
+                    mVcalendar = null;
+                } else if(((MediaModel)object).getTag() == MediaModel.FILE){
+                    mFile = null;
+                }
             }
             // If the media is resizable, at this point consider it to be zero length.
             // Just before we send the slideshow, we take the remaining space in the
@@ -344,6 +356,9 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
 
     public boolean isEmpty() {
         return mMedia.isEmpty();
+    }
+    public FileModel getFile(){
+        return (FileModel) mFile;
     }
 
     public Iterator<MediaModel> iterator() {
@@ -502,6 +517,21 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
         return mText != null;
     }
 
+    //yinqi add begin 2009-4-28
+    public boolean hasVcard() {
+        return mVcard!= null;
+    }
+
+    public boolean hasVcalendar() {
+        return mVcalendar!= null;
+    }
+    //yinqi add end 2009-4-28
+
+
+    public boolean hasFile(){
+        return mFile != null;
+    }
+	
     public boolean hasImage() {
         return mImage != null;
     }
@@ -514,16 +544,17 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
         return mVideo != null;
     }
 
-    public boolean hasVcard() {
-        return mVcard != null;
-    }
-
     public boolean removeText() {
         return remove(mText);
     }
 
     public boolean removeImage() {
         return remove(mImage);
+    }
+
+
+    public boolean removeVcalendar() {
+        return remove(mVcalendar);
     }
 
     public boolean removeAudio() {

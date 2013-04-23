@@ -97,6 +97,8 @@ import android.telephony.TelephonyManager;
 import android.preference.PreferenceManager;
 import com.android.internal.telephony.MSimConstants;
 import com.android.mms.model.VcardModel;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 
 
 /**
@@ -132,6 +134,8 @@ public class MessageUtils {
     public static final int STORE_SM = 2;
     public static boolean sIsIccLoaded  = false;
     private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
+    public static final String TEXT_VCALENDAR    = "text/x-vCalendar";
+    public static final String TEXT_VCARD        = "text/x-vCard";
 
     /** Free space (TS 51.011 10.5.3). */
     static public final int STATUS_ON_SIM_FREE      = 0;
@@ -2207,6 +2211,99 @@ public class MessageUtils {
         return false;
     }
 
+    public static String getStringFromFile(FileInputStream stream){
+         int i=0;
+         try{
+                String val = new String("");
+                String tmpString;
+                byte[] data = new byte[256];
+                boolean getcharset=false;
+                String charset="UTF-8";
+                int len;
+                while ((len=stream.read(data)) != -1) {
+                    
+                if(!getcharset)
+                {
+                     charset= MessageUtils.getTextcodecFromContent(data,256);
+                    if(charset.contains("UNICODE")){
+                        charset = "GBK";
+                    }
+                    getcharset=true;
+                }
+                    Log.w("huangzengzhi","messageutils817 len="+len);
+                    tmpString = new String(data, 0, len, charset);
+                    Log.w("huangzengzhi","messageutils817 tmpString="+tmpString);
+                    val += tmpString;
+                }
+                return val;
+       }catch(FileNotFoundException e){
+                e.printStackTrace();
+            }catch(IOException e ){
+                e.printStackTrace();
+            }catch (OutOfMemoryError ex) {
+                // fall through and return a null bitmap. The callers can handle a null
+                // result and show R.drawable.ic_missing_thumbnail_picture
+            }
+
+        return null;
+    }
+
+    public static String getStringFromFile(String fn){
+        File file = new File(fn);
+
+        if ( file.exists() ){
+            try{
+                FileInputStream stream = new FileInputStream( file );
+                int len = (int)file.length();
+                byte[] data= new byte[len];
+                stream.read(data);
+                String charset = MessageUtils.getTextcodecFromContent(data,len);
+                if(charset == null)
+                    return null;
+                Log.v(TAG,"++++++++++++++++++++++=charset  == "+charset);
+                if(charset.contains("UNICODE")){
+                    charset = "GBK";
+                }
+                return new String(data, 0, len, charset);
+            }catch(FileNotFoundException e){
+                e.printStackTrace();
+            }catch(IOException e ){
+                e.printStackTrace();
+            }catch (OutOfMemoryError ex) {
+                // fall through and return a null bitmap. The callers can handle a null
+                // result and show R.drawable.ic_missing_thumbnail_picture
+            }
+        }else{
+            Log.v(TAG,"file does not exsit");
+        }
+
+        return null;
+    }
+
+    public static boolean isAvaliableUri(Uri stream){
+        MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+        String extension = MimeTypeMap.getFileExtensionFromUrl(stream.toString());
+        String file_type;
+        file_type = mimeTypeMap.getMimeTypeFromExtension(extension);
+        
+        if (file_type == null) {
+            file_type="";
+        }
+        
+        String file_name = stream.getPath();
+        
+        if((file_name.length() - file_name.lastIndexOf('/') -1) == 0){
+            Log.v(TAG, "isAvaliableUri         (file_name.length() - file_name.lastIndexOf('/') -1) == 0" );
+            return false;
+        }
+        Log.v(TAG, "isAvaliableUri         file_name" + file_name);
+        File tmp_file = new File(file_name);
+        
+        if (!tmp_file.exists()){
+            return false; 
+        }
+        return true;
+    }
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);
     }

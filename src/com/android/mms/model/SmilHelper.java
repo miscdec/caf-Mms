@@ -65,6 +65,7 @@ public class SmilHelper {
     public static final String ELEMENT_TAG_AUDIO = "audio";
     public static final String ELEMENT_TAG_VIDEO = "video";
     public static final String ELEMENT_TAG_REF = "ref";
+    public static final String ELEMENT_TAG_FILE = "file";
 
     private SmilHelper() {
         // Never instantiate this class.
