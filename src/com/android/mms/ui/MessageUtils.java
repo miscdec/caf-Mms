@@ -612,7 +612,7 @@ public class MessageUtils {
         intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
         intent.putExtra("android.intent.extra.sizeLimit", sizeLimit);
         intent.putExtra("android.intent.extra.durationLimit", durationLimit);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, TempFileProvider.SCRAP_CONTENT_URI);
+       // intent.putExtra(MediaStore.EXTRA_OUTPUT, TempFileProvider.SCRAP_CONTENT_URI);
         activity.startActivityForResult(intent, requestCode);
     }
 

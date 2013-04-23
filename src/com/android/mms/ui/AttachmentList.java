@@ -175,12 +175,12 @@ public class AttachmentList extends ListActivity implements OnClickListener{
         boolean showMms = intent.getBooleanExtra("show",false);
         
         int partNum = body.getPartsNum();
-        //Log.v(TAG, "getPartsNum="+partNum);
+        Log.v(TAG, "getPartsNum="+partNum);
         for(int i = 0; i < partNum; i++) {
             PduPart part = body.getPart(i);
             String type = new String(part.getContentType());
             HashMap<String, Object> entry = new HashMap<String, Object>();
-            //Log.v(TAG, "type = "+type);
+            Log.v(TAG, "type = "+type);
             //:TODO: add octet-stream support later
             if ( type.equals( ContentType.APP_SMIL ) == false ) {  
 

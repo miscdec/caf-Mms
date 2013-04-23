@@ -157,7 +157,7 @@ public class MessageItem {
             mSubscription = cursor.getInt(columnsMap.mColumnSubId);
             // Unless the message is currently in the progress of being sent, it gets a time stamp.
             if (!isOutgoingMessage()) {
-                if (mBoxId == Sms.MESSAGE_TYPE_SENT) {
+                if (mBoxId == Sms.MESSAGE_TYPE_SENT || mBoxId == Sms.MESSAGE_TYPE_DRAFT) {
                     // Set "sent" time stamp
                     mDate = cursor.getLong(columnsMap.mColumnSmsDate);
                     //cdma sms stored in UIM card don not have timestamp

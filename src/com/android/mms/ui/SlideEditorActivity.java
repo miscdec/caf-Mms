@@ -750,27 +750,28 @@ public class SlideEditorActivity extends Activity {
                 break;
 
             case REQUEST_CODE_TAKE_VIDEO:
-                try {
-                    Uri videoUri = TempFileProvider.renameScrapFile(".3gp",
-                            Integer.toString(mPosition), this);
+            /*
+                    try {
+                        Uri videoUri = TempFileProvider.renameScrapFile(".3gp",
+                                Integer.toString(mPosition), this);
 
-                    mSlideshowEditor.changeVideo(mPosition, videoUri);
-                } catch (MmsException e) {
-                    notifyUser("add video failed");
-                    Toast.makeText(SlideEditorActivity.this,
-                            getResourcesString(R.string.failed_to_add_media, getVideoString()),
-                            Toast.LENGTH_SHORT).show();
-                } catch (UnsupportContentTypeException e) {
-                    MessageUtils.showErrorDialog(SlideEditorActivity.this,
-                            getResourcesString(R.string.unsupported_media_format, getVideoString()),
-                            getResourcesString(R.string.select_different_media, getVideoString()));
-                } catch (ExceedMessageSizeException e) {
-                    MessageUtils.showErrorDialog(SlideEditorActivity.this,
-                            getResourcesString(R.string.exceed_message_size_limitation),
-                            getResourcesString(R.string.failed_to_add_media, getVideoString()));
-                }
-                break;
-
+                        mSlideshowEditor.changeVideo(mPosition, videoUri);
+                    } catch (MmsException e) {
+                        notifyUser("add video failed");
+                        Toast.makeText(SlideEditorActivity.this,
+                                getResourcesString(R.string.failed_to_add_media, getVideoString()),
+                                Toast.LENGTH_SHORT).show();
+                    } catch (UnsupportContentTypeException e) {
+                        MessageUtils.showErrorDialog(SlideEditorActivity.this,
+                                getResourcesString(R.string.unsupported_media_format, getVideoString()),
+                                getResourcesString(R.string.select_different_media, getVideoString()));
+                    } catch (ExceedMessageSizeException e) {
+                        MessageUtils.showErrorDialog(SlideEditorActivity.this,
+                                getResourcesString(R.string.exceed_message_size_limitation),
+                                getResourcesString(R.string.failed_to_add_media, getVideoString()));
+                    }
+                    break;
+                */
             case REQUEST_CODE_CHANGE_VIDEO:
                 try {
                     mSlideshowEditor.changeVideo(mPosition, data.getData());
