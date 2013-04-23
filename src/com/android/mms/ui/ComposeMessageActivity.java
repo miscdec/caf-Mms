@@ -3803,12 +3803,6 @@ public class ComposeMessageActivity extends Activity
             }
 
             case REQUEST_CODE_TAKE_VIDEO:
-                Uri videoUri = TempFileProvider.renameScrapFile(".3gp", null, this);
-                // Remove the old captured video's thumbnail from the cache
-                MmsApp.getApplication().getThumbnailManager().removeThumbnail(videoUri);
-
-                addVideoAsync(videoUri, false);      // can handle null videoUri
-                break;
 
             case REQUEST_CODE_ATTACH_VIDEO:
                 if (data != null) {
