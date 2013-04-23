@@ -830,6 +830,12 @@ public class SlideshowModel extends Model
                 }
             }
         }
+        for(MediaModel media : mMedia){
+            PduPart part = pb.getPartByContentLocation(media.getSrc());
+            if (part != null) {
+                media.setUri(part.getDataUri());
+            }
+        }
     }
 
     public void checkMessageSize(int increaseSize) throws ContentRestrictionException {

@@ -2175,7 +2175,9 @@ public class ComposeMessageActivity extends Activity
         int partNum = body.getPartsNum();
         for(int i = 0; i < partNum; i++) {
             PduPart part = body.getPart(i);
-
+            String mimeType = new String(part.getContentType());
+             if(mimeType.equals("application/smil"))
+                continue;
             // all parts have to be successful for a valid result.
             result &= copyPart(part, Long.toHexString(msgId));
         }
@@ -2228,10 +2230,8 @@ public class ComposeMessageActivity extends Activity
                     subPath = "/Other/";
                 }
                 if(MessageUtils.sdcardCanuse())
-               //  dir = "/sdcard" + subPath;
-                                                
-                                                dir = Environment.getExternalStorageDirectory() + "/"
-                                                                           + Environment.DIRECTORY_DOWNLOADS  + "/";
+                    dir = Environment.getExternalStorageDirectory() + "/"
+                                               + Environment.DIRECTORY_DOWNLOADS  + "/";
                 else
                 {
                      dir = Environment.getInternalStorageDirectory() + "/"+subPath;
@@ -2244,10 +2244,6 @@ public class ComposeMessageActivity extends Activity
 
                 }
                     
-                /*
-                String fileName = new String(location);
-                String dir = "/sdcard/download/";
-                */
                 String extension;
                 int index;
                 if ((index = fileName.indexOf(".")) == -1) {

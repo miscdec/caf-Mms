@@ -2230,9 +2230,7 @@ public class MessageUtils {
                     }
                     getcharset=true;
                 }
-                    Log.w("huangzengzhi","messageutils817 len="+len);
                     tmpString = new String(data, 0, len, charset);
-                    Log.w("huangzengzhi","messageutils817 tmpString="+tmpString);
                     val += tmpString;
                 }
                 return val;

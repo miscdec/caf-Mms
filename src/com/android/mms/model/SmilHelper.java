@@ -205,7 +205,7 @@ public class SmilHelper {
         boolean hasMedia = false;
         for (int i = 0; i < partsNum; i++) {
             // Create new <par> element.
-            if ((par == null) || (hasMedia && hasText)) {
+            if ((par == null) || (hasMedia || hasText)) {
                 par = addPar(document);
                 hasText = false;
                 hasMedia = false;
