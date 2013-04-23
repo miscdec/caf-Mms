@@ -214,6 +214,17 @@ public class ManageSimMessages extends Activity
             Uri.parse(MessageUtils.getIccUriBySubscription(mSubscription).toString()+"/"+indexString),
             values, null, null);
     }  
+
+    private void setMessageRead(Context context)
+    {
+        Log.d(TAG, "setMessageRead : mSubscription="+mSubscription);
+        
+        ContentValues values = new ContentValues(1);
+        values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);
+        SqliteWrapper.update(context, getContentResolver(),
+            MessageUtils.getIccUriBySubscription(mSubscription),
+            values, null, null);
+    }  
     
     private Handler uihandler = new Handler()
     {
@@ -272,32 +283,6 @@ public class ManageSimMessages extends Activity
                         }
                     });
                     updateState(SHOW_LIST);
-
-                    /*  set messages as read  */
-                    String indexString;
-                    String statusString;
-                    do
-                    {
-                        indexString = cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
-                        statusString = cursor.getString(cursor.getColumnIndexOrThrow("status_on_icc"));
-                        
-                        if(statusString.equals(Integer.toString(MessageUtils.STATUS_ON_SIM_UNREAD)))
-                        {
-                            mSelectedIndexs.add(indexString);
-                        }                   
-                    }while (cursor.moveToNext());  
-
-                    new Thread(new Runnable() {
-                        public void run() {
-                            for(String indexString : mSelectedIndexs)
-                            {
-                                setMessageRead(ManageSimMessages.this, indexString);
-                            }
-
-                            //MessagingNotification.blockingUpdateNewMessageOnIccIndicator(ManageSimMessages.this, mSubscription);                            
-                        }
-                    }).start();  
-                            
                 } else {
                     mListAdapter.changeCursor(mCursor);
                     updateState(SHOW_LIST);
@@ -612,6 +597,10 @@ public class ManageSimMessages extends Activity
     protected void onStop() {
         super.onStop();
         MessagingNotification.setCurrentlyDisplayedCardList(false);
+        
+        if (mCursor != null && !mCursor.isClosed()) {
+            mCursor.close();
+        }
     }
 
     @Override
@@ -621,10 +610,6 @@ public class ManageSimMessages extends Activity
         unregisterReceiver(mIccStateChangedReceiver);
 
         super.onDestroy();
-        if(mCursor != null)
-        {
-            mCursor.close();
-        }
     }
 
     @Override
@@ -931,7 +916,8 @@ public class ManageSimMessages extends Activity
                 SIM_FULL_NOTIFICATION_ID);
         MessagingNotification.cancelNotification(getApplicationContext(),
                 MessagingNotification.getNotificationIDBySubscription(mSubscription));
-                
+        setMessageRead(this);
+        
         // if updateContacts call before this method, it will doesn't work well,
         // need updateContacts again.
         if (mIsNeedUpdateContacts) {

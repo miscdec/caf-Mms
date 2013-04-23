@@ -1593,12 +1593,10 @@ public class MailBoxMessageList extends ListActivity
         menu.add(0, MENU_DELETE_SELECT,  0, R.string.delete)
             .setIcon(R.drawable.ic_menu_trash_holo_dark)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        if(mQueryBoxType != TYPE_DRAFTBOX)
-        {
-            menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
+
+        menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
                 .setIcon(R.drawable.ic_menu_copy)
                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS); 
-        } 
     }
     
     private class ModeCallback implements ListView.MultiChoiceModeListener {

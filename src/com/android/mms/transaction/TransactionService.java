@@ -795,7 +795,7 @@ public class TransactionService extends Service implements Observer {
 
                 case EVENT_CONTINUE_MMS_CONNECTIVITY:
                     synchronized (mProcessing) {
-                        if (mPending.isEmpty()) {  /* mProcessing -> mPending*/
+                        if (mPending.isEmpty() && mProcessing.isEmpty()) {  /* mProcessing -> mPending*/
                             return;
                         }
                     }
@@ -1076,6 +1076,7 @@ public class TransactionService extends Service implements Observer {
     }
 
     private void renewMmsConnectivity() {
+        mServiceHandler.removeMessages(EVENT_CONTINUE_MMS_CONNECTIVITY);
         // Set a timer to keep renewing our "lease" on the MMS connection
         mServiceHandler.sendMessageDelayed(
                 mServiceHandler.obtainMessage(EVENT_CONTINUE_MMS_CONNECTIVITY),

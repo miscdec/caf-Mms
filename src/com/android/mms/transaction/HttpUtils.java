@@ -150,6 +150,10 @@ public class HttpUtils {
                 ConnRouteParams.setDefaultProxy(
                         params, new HttpHost(proxyHost, proxyPort));
             }
+            HttpConnectionParams.setConnectionTimeout(params, 2 * 60 * 1000);
+            HttpConnectionParams.setSoTimeout(params, 2 * 60 * 1000);        
+            HttpConnectionParams.setSocketBufferSize(params, 2 * 1024); 
+            Log.d(TAG, "transaction we set socket timeout 2 minutes");
             req.setParams(params);
 
             // Set necessary HTTP headers for MMS transmission.
@@ -305,14 +309,13 @@ public class HttpUtils {
         HttpProtocolParams.setContentCharset(params, "UTF-8");
 
         // set the socket timeout
-        int soTimeout = MmsConfig.getHttpSocketTimeout();
+        /*int soTimeout = MmsConfig.getHttpSocketTimeout();
 
         if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) ||DEBUG) {
             Log.d(TAG, "[HttpUtils] createHttpClient w/ socket timeout " + soTimeout + " ms, "
                     + ", UA=" + userAgent);
         }
-        HttpConnectionParams.setSoTimeout(params, soTimeout);
-        HttpConnectionParams.setSocketBufferSize(params, 2 * 1024); 
+        HttpConnectionParams.setSoTimeout(params, soTimeout); */
         return client;
     }
 
