@@ -206,7 +206,7 @@ public class ManageSimMessages extends Activity
     
     private void setMessageRead(Context context, String indexString)
     {
-        Log.d(TAG, "setMessageRead : mSubscription="+mSubscription+",indexString="+indexString);
+        Log.d(TAG, "setMessageRead : mSubscription=" + mSubscription + ",indexString = " + indexString);
 
         ContentValues values = new ContentValues(1);
         values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);
@@ -217,7 +217,7 @@ public class ManageSimMessages extends Activity
 
     private void setMessageRead(Context context)
     {
-        Log.d(TAG, "setMessageRead : mSubscription="+mSubscription);
+        Log.d(TAG, "setMessageRead : mSubscription = " + mSubscription);
         
         ContentValues values = new ContentValues(1);
         values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);

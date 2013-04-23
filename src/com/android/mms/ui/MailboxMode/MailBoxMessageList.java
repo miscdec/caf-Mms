@@ -649,10 +649,11 @@ public class MailBoxMessageList extends ListActivity
 
                 }
                 startAsyncQuery();
+                
                 if (oldQueryType != mQueryBoxType){
-                    unCheckAll();
                     onResume();
                 }
+               
             }
     
             @Override

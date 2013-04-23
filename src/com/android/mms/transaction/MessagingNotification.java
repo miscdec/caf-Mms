@@ -37,6 +37,7 @@ import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -386,6 +387,7 @@ public class MessagingNotification {
             synchronized (sCurrentlyDisplayedCardLock) {
                 if (sCurrentlyDisplayedCardList) {
                     playInConversationNotificationSound(context);
+                    setIccMessagesRead(context, subscription);
                     return;
                 }
             }
@@ -399,6 +401,17 @@ public class MessagingNotification {
         }
     }
 
+    public static void setIccMessagesRead(Context context, int subscription)
+    {
+        Log.d(TAG, "setIccMessagesRead : subscription=" + subscription);
+        
+        ContentValues values = new ContentValues(1);
+        values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);
+        SqliteWrapper.update(context, context.getContentResolver(),
+            MessageUtils.getIccUriBySubscription(subscription),
+            values, null, null);
+    }  
+    
 
     /**
      * Play the in-conversation notification sound (it's the regular notification sound, but
