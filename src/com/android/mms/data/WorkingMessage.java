@@ -1723,7 +1723,8 @@ public class WorkingMessage {
             // we will lose track of the original draft and be unable to delete
             // it later.  The message will be re-saved if necessary upon exit of
             // the activity.
-            clearConversation(conv, true);
+            // Clean out drafts for this thread but no need clearThreadId.
+            clearConversation(conv, false);
         }
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             LogTag.debug("readDraftSmsMessage haveDraft: ", !TextUtils.isEmpty(body));
