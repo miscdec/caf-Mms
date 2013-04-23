@@ -368,6 +368,7 @@
     <string name="setRingtone_Ok">设置铃声成功</string>
     <string name="setRingtone_failed">设置铃声失败</string>
     <string name="setRingtone_failed_no_sd">设置铃声失败，请检查SD卡是否存在</string>
+    <string name="max_recipient">收件人最多100个！</string>           
 
     <!-- Subscription selection strings -->
     <string name="select_subscription_title">"选择卡槽"</string>
