@@ -219,6 +219,15 @@
             android:label="@string/slideshow_activity">
         </activity>
 
+        <activity android:name=".ui.TextViewer"
+                android:label="@string/view_attachment"
+                  android:configChanges="orientation">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>            
+        </activity>
+        
         <activity android:name=".ui.ClassZeroActivity"
             android:label="@string/class_0_message_activity"
             android:theme="@android:style/Theme.Translucent"
