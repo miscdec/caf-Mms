@@ -292,6 +292,11 @@ public class SmsReceiverService extends Service {
                         MessageUtils.setIsIccLoaded(false);
                         handleIccAbsent(subscription);
                     }
+                    
+                    if (IccCardConstants.INTENT_VALUE_ICC_UNKNOWN.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    }
                     else if (IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(stateExtra)) {
                         MessageUtils.setIsIccLoaded(false);
                         handleIccAbsent(subscription);
@@ -334,6 +339,8 @@ public class SmsReceiverService extends Service {
     private void handleServiceStateChanged(Intent intent) {
         // If service just returned, start sending out the queued messages
         ServiceState serviceState = ServiceState.newFromBundle(intent.getExtras());
+        Log.d(TAG, "handleServiceStateChanged : serviceState.getState() = " + serviceState.getState());
+        
         int subscription = intent.getIntExtra(SUBSCRIPTION_KEY, 0);
         int prefSubscription = MSimSmsManager.getDefault().getPreferredSmsSubscription();
         // if service state is IN_SERVICE & current subscription is same as
