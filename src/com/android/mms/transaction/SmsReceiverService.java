@@ -435,16 +435,15 @@ public class SmsReceiverService extends Service {
             if (LogTag.DEBUG_SEND || Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "handleSmsSent move message to sent folder uri: " + uri);
             }
-            if (!Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_SENT, error)) {
-                Log.e(TAG, "handleSmsSent: failed to move message " + uri + " to sent folder");
-            }
             // Current message sent out, send next one if necessary.
             if (sendNextMsg) {
+                if (!Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_SENT, error)) {
+                    Log.e(TAG, "handleSmsSent: failed to move message " + uri + " to sent folder");
+                }
                 sendNextMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0));
+                // Update the notification for failed messages since they may be deleted.
+                MessagingNotification.nonBlockingUpdateSendFailedNotification(this);
             }
-
-            // Update the notification for failed messages since they may be deleted.
-            MessagingNotification.nonBlockingUpdateSendFailedNotification(this);
         } else if ((mResultCode == SmsManager.RESULT_ERROR_RADIO_OFF) ||
                 (mResultCode == SmsManager.RESULT_ERROR_NO_SERVICE) ||
                 (mResultCode == 0 && isAirplaneMode()) /* add fo radio off long sms */) {
@@ -455,9 +454,9 @@ public class SmsReceiverService extends Service {
             // when the status of the connection/radio changes, we can try to send the
             // queued up messages.
             registerForServiceStateChanges();
-            // We couldn't send the message, put in the queue to retry later.
-            Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_QUEUED, error);
-            if (sendNextMsg) {
+            if (!isSmsTypeMatched(uri, Sms.MESSAGE_TYPE_QUEUED)) {
+                // We couldn't send the message, put in the queue to retry later.
+                Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_QUEUED, error);
                 mToastHandler.post(new Runnable() {
                     public void run() {
                         Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
@@ -484,8 +483,10 @@ public class SmsReceiverService extends Service {
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
             Log.v(TAG, "messageFailedToSend msg failed uri: " + uri + " error: " + error);
         }
-        Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_FAILED, error);
-        MessagingNotification.notifySendFailed(getApplicationContext(), true);
+        if (!isSmsTypeMatched(uri, Sms.MESSAGE_TYPE_FAILED)) {
+            Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_FAILED, error);
+            MessagingNotification.notifySendFailed(getApplicationContext(), true);
+        }
     }
 
     /**
@@ -940,6 +941,20 @@ public class SmsReceiverService extends Service {
                Settings.Global.AIRPLANE_MODE_ON, 0) ;
         Log.v(TAG, "isAirplaneMode = " + isAirplaneMode);
         return (isAirplaneMode == 1) ? true : false;
+    }
+
+    private boolean isSmsTypeMatched(Uri uri, int type) {
+        Context context = getApplicationContext();
+        boolean result = false;
+        Cursor cursor = SqliteWrapper.query(context, getContentResolver(),
+                uri, null, Sms.TYPE + "=" + type, null, null);
+        
+        if(cursor.getCount()>0) {
+            result = true;
+            Log.v(TAG, "isSmsTypeMatched spec uri = " + uri.toString() + ", count = " + cursor.getCount());
+        }
+        cursor.close();
+        return result;        
     }
 
 }
