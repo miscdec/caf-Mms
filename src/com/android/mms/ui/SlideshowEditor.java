@@ -27,6 +27,7 @@ import com.android.mms.model.RegionModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.TextModel;
+import com.android.mms.model.FileModel;
 import com.android.mms.model.VideoModel;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
@@ -182,6 +183,12 @@ public class SlideshowEditor {
         SlideModel slide = mModel.get(position);
         slide.add(video);
         slide.updateDuration(video.getDuration());
+    }
+    public void changeFile(int position, Uri newFile) throws MmsException {
+        FileModel file = new FileModel(mContext, newFile);
+        SlideModel slide = mModel.get(position);
+        slide.add(file);
+        slide.updateDuration(file.getDuration());
     }
 
     public void changeVcard(int position, Uri newVcard) throws MmsException {

@@ -156,7 +156,7 @@ public class GIFView extends ImageView implements GifAction{
         setImageURI(null);
         int saveCount = canvas.getSaveCount();
         canvas.save();
-        canvas.translate(getPaddingLeft(), getPaddingTop());
+        canvas.translate((W - currentImage.getWidth()) / 2, 7);
 //        canvas.drawBitmap(currentImage, (W - currentImage.getWidth()) / 2, (W - currentImage.getHeight() - 40)/8, null);
         
         Rect sRect = null;        

@@ -57,8 +57,14 @@ import com.android.mms.ResolutionException;
 import com.android.mms.UnsupportContentTypeException;
 import com.android.mms.model.ImageModel;
 import com.android.mms.model.SlideModel;
+import com.android.mms.model.MediaModel;
 import com.android.mms.model.SlideshowModel;
+import com.android.mms.model.VideoModel;
 import com.android.mms.model.TextModel;
+import com.android.mms.model.VCalModel;
+import com.android.mms.model.FileModel;
+import com.android.mms.model.AudioModel;
+import com.android.mms.model.VcardModel;
 import com.android.mms.transaction.MessageSender;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.transaction.SmsMessageSender;
@@ -81,6 +87,8 @@ import com.google.android.mms.pdu.SendReq;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.MSimSmsManager;
 import android.telephony.TelephonyManager;
+import static com.google.android.mms.pdu.CharacterSets.*;
+import android.database.sqlite.SQLiteException;
 
 /**
  * Contains all state related to a message being edited by the user.
@@ -127,6 +135,8 @@ public class WorkingMessage {
     public static final int AUDIO = 3;
     public static final int SLIDESHOW = 4;
     public static final int VCARD = 5;
+    public static final int VCAlENDAR_ATTACHMENT = 6;
+    public static final int FILE = 7;
 
     // Current attachment type of the message; one of the above values.
     private int mAttachmentType;
@@ -471,94 +481,65 @@ public class WorkingMessage {
      * @param append true if we should add the attachment to a new slide
      * @return An error code such as {@link UNKNOWN_ERROR} or {@link OK} if successful
      */
-    public int setAttachment(int type, Uri dataUri, boolean append) {
+    public int setAttachment(int type, Uri dataUri, byte[] data, boolean append) {
+       Log.w(TAG,"z409 setAttachment type= " + type 
+            + ";uri =" + dataUri + ";append = " + append);
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             LogTag.debug("setAttachment type=%d uri %s", type, dataUri);
         }
         int result = OK;
-        SlideshowEditor slideShowEditor = new SlideshowEditor(mActivity, mSlideshow);
-
-        // Special case for deleting a slideshow. When ComposeMessageActivity gets told to
-        // remove an attachment (search for AttachmentEditor.MSG_REMOVE_ATTACHMENT), it calls
-        // this function setAttachment with a type of TEXT and a null uri. Basically, it's turning
-        // the working message from an MMS back to a simple SMS. The various attachment types
-        // use slide[0] as a special case. The call to ensureSlideshow below makes sure there's
-        // a slide zero. In the case of an already attached slideshow, ensureSlideshow will do
-        // nothing and the slideshow will remain such that if a user adds a slideshow again, they'll
-        // see their old slideshow they previously deleted. Here we really delete the slideshow.
-        if (type == TEXT && mAttachmentType == SLIDESHOW && mSlideshow != null && dataUri == null
-                && !append) {
-            slideShowEditor.removeAllSlides();
-        }
 
         // Make sure mSlideshow is set up and has a slide.
-        ensureSlideshow();      // mSlideshow can be null before this call, won't be afterwards
-        slideShowEditor.setSlideshow(mSlideshow);
+        ensureSlideshow();
 
-        // Change the attachment
-        result = append ? appendMedia(type, dataUri, slideShowEditor)
-                : changeMedia(type, dataUri, slideShowEditor);
+        // Change the attachment and translate the various underlying
+        // exceptions into useful error codes.
+        try {
+            if (append) {
+                appendMedia(type, dataUri, data);
+            } else {
+                changeMedia(type, dataUri, data);
+            }
+        } catch (MmsException e) {
+            result = UNKNOWN_ERROR;
+        } catch (UnsupportContentTypeException e) {
+            Log.v(TAG, "-----------------------------UnsupportContentTypeException");
+            result = UNSUPPORTED_TYPE;
+        } catch (ExceedMessageSizeException e) {
+            result = MESSAGE_SIZE_EXCEEDED;
+        } catch (ResolutionException e) {
+            result = IMAGE_TOO_LARGE;
+        }
 
         // If we were successful, update mAttachmentType and notify
         // the listener than there was a change.
         if (result == OK) {
             mAttachmentType = type;
-        }
-        correctAttachmentState();   // this can remove the slideshow if there are no attachments
-
-        if (mSlideshow != null && type == IMAGE) {
-            // Prime the image's cache; helps A LOT when the image is coming from the network
-            // (e.g. Picasa album). See b/5445690.
-            int numSlides = mSlideshow.size();
-            if (numSlides > 0) {
-                ImageModel imgModel = mSlideshow.get(numSlides - 1).getImage();
-                if (imgModel != null) {
-                    cancelThumbnailLoading();
-                    imgModel.loadThumbnailBitmap(null);
-                }
-            }
+            mStatusListener.onAttachmentChanged();
+        } else if (append) {
+            // We added a new slide and what we attempted to insert on the slide failed.
+            // Delete that slide, otherwise we could end up with a bunch of blank slides.
+            SlideshowEditor slideShowEditor = new SlideshowEditor(mActivity, mSlideshow);
+            slideShowEditor.removeSlide(mSlideshow.size() - 1);
         }
 
-        mStatusListener.onAttachmentChanged();  // have to call whether succeeded or failed,
-                                                // because a replace that fails, removes the slide
-
-        if (!append && mAttachmentType == TEXT && type == TEXT) {
-            int[] params = SmsMessage.calculateLength(getText(), false);
-            /* SmsMessage.calculateLength returns an int[4] with:
-             *   int[0] being the number of SMS's required,
-             *   int[1] the number of code units used,
-             *   int[2] is the number of code units remaining until the next message.
-             *   int[3] is the encoding type that should be used for the message.
-             */
-            int smsSegmentCount = params[0];
-
-            if (!MmsConfig.getMultipartSmsEnabled()) {
-                // The provider doesn't support multi-part sms's so as soon as the user types
-                // an sms longer than one segment, we have to turn the message into an mms.
-                setLengthRequiresMms(smsSegmentCount > 1, false);
+       // correctAttachmentState();
+        if(hasAttachment()){
+            PduPersister persister = PduPersister.getPduPersister(mActivity);
+            SendReq sendReq = makeSendReq(mConversation, mSubject);
+            updateState(HAS_ATTACHMENT, hasAttachment(), true);	
+            if (mMessageUri == null) {
+                mMessageUri = createDraftMmsMessage(persister, sendReq, mSlideshow);
             } else {
-                int threshold = MmsConfig.getSmsToMmsTextThreshold();
-                setLengthRequiresMms(threshold > 0 && smsSegmentCount > threshold, false);
+                updateDraftMmsMessage(mMessageUri, persister, mSlideshow, sendReq);
             }
-        } else {
-            // Set HAS_ATTACHMENT if we need it.
-            updateState(HAS_ATTACHMENT, hasAttachment(), true);
+        } else{
+            if(mMessageUri != null){
+                asyncDelete(mMessageUri, null, null);
+                mMessageUri = null;
+            }
         }
-            
-             if(hasAttachment()){
-                 PduPersister persister = PduPersister.getPduPersister(mActivity);
-                 SendReq sendReq = makeSendReq(mConversation, mSubject);
-                 if (mMessageUri == null) {
-                                     mMessageUri = createDraftMmsMessage(persister, sendReq, mSlideshow,null,mActivity,null);
-                 } else {
-                                     updateDraftMmsMessage(mMessageUri, persister, mSlideshow, sendReq,null);
-                 }
-             } else{
-                 if(mMessageUri != null){
-                                     asyncDelete(mMessageUri, null, null);
-                                     mMessageUri = null;
-                 }
-             }
+        correctAttachmentState();
         return result;
     }
 
@@ -617,54 +598,13 @@ public class WorkingMessage {
     }
 
     /**
-     * Change the message's attachment to the data in the specified Uri.
-     * Used only for single-slide ("attachment mode") messages. If the attachment fails to
-     * attach, restore the slide to its original state.
-     */
-    private int changeMedia(int type, Uri uri, SlideshowEditor slideShowEditor) {
-        SlideModel originalSlide = mSlideshow.get(0);
-        if (originalSlide != null) {
-            slideShowEditor.removeSlide(0);     // remove the original slide
-        }
-        slideShowEditor.addNewSlide(0);
-        SlideModel slide = mSlideshow.get(0);   // get the new empty slide
-        int result = OK;
-
-        if (slide == null) {
-            Log.w(LogTag.TAG, "[WorkingMessage] changeMedia: no slides!");
-            return result;
-        }
-
-        // Clear the attachment type since we removed all the attachments. If this isn't cleared
-        // and the slide.add fails (for instance, a selected video could be too big), we'll be
-        // left in a state where we think we have an attachment, but it's been removed from the
-        // slide.
-        mAttachmentType = TEXT;
-
-        // If we're changing to text, just bail out.
-        if (type == TEXT) {
-            return result;
-        }
-
-        result = internalChangeMedia(type, uri, 0, slideShowEditor);
-        if (result != OK) {
-            slideShowEditor.removeSlide(0);             // remove the failed slide
-            if (originalSlide != null) {
-                slideShowEditor.addSlide(0, originalSlide); // restore the original slide.
-            }
-        }
-        return result;
-    }
-
-    /**
      * Add the message's attachment to the data in the specified Uri to a new slide.
      */
-    private int appendMedia(int type, Uri uri, SlideshowEditor slideShowEditor) {
-        int result = OK;
+    private void appendMedia(int type, Uri uri, byte[] data) throws MmsException {
 
         // If we're changing to text, just bail out.
         if (type == TEXT) {
-            return result;
+            return;
         }
 
         // The first time this method is called, mSlideshow.size() is going to be
@@ -673,24 +613,101 @@ public class WorkingMessage {
         // function is called, we've got to create a new slide and add the picture/video
         // to that new slide.
         boolean addNewSlide = true;
-        if (mSlideshow.size() == 1 && !mSlideshow.isSimple()) {
+        if (mSlideshow.size() == 1 && !mSlideshow.isSimpleAttach()) {
             addNewSlide = false;
         }
         if (addNewSlide) {
+            SlideshowEditor slideShowEditor = new SlideshowEditor(mActivity, mSlideshow);
             if (!slideShowEditor.addNewSlide()) {
-                return result;
+                return;
             }
         }
-        int slideNum = mSlideshow.size() - 1;
-        result = internalChangeMedia(type, uri, slideNum, slideShowEditor);
-        if (result != OK) {
-            // We added a new slide and what we attempted to insert on the slide failed.
-            // Delete that slide, otherwise we could end up with a bunch of blank slides.
-            // It's ok that we're removing the slide even if we didn't add it (because it was
-            // the first default slide). If adding the first slide fails, we want to remove it.
-            slideShowEditor.removeSlide(slideNum);
+        // Make a correct MediaModel for the type of attachment.
+        MediaModel media;
+        SlideModel slide = mSlideshow.get(mSlideshow.size() - 1);
+        if (type == IMAGE) {
+            media = new ImageModel(mActivity, uri, mSlideshow.getLayout().getImageRegion());
+        } else if (type == VIDEO) {
+            media = new VideoModel(mActivity, uri, mSlideshow.getLayout().getImageRegion());
+        } else if (type == AUDIO) {
+            media = new AudioModel(mActivity, uri);
+        } else if(type == FILE){
+            media = new FileModel(mActivity, uri);
+        } else if(type == VCARD){
+            media = new VcardModel(mActivity, MessageUtils.TEXT_VCARD, "vcard.vcf", UTF_8, data);
+        } else if(type == VCAlENDAR_ATTACHMENT){
+            media = new VCalModel(mActivity, MessageUtils.TEXT_VCALENDAR, "vcalendar.vcs", UTF_8, data);
+        } else {
+            throw new IllegalArgumentException("changeMedia type=" + type + ", uri=" + uri);
         }
-        return result;
+
+        if(!(type == IMAGE || type == VIDEO || type == AUDIO)){
+            mSlideshow.add(media);
+            return;
+        }
+        // Add it to the slide.
+        slide.add(media);
+
+        // For video and audio, set the duration of the slide to
+        // that of the attachment.
+        if (type == VIDEO || type == AUDIO) {
+            slide.updateDuration(media.getDuration());
+        }
+    }
+
+    /**
+     * Change the message's attachment to the data in the specified Uri.
+     * Used only for single-slide ("attachment mode") messages.
+     */
+    private void changeMedia(int type, Uri uri, byte[] data) throws MmsException {
+        SlideModel slide = mSlideshow.get(0);
+        MediaModel media;
+
+        if (slide == null) {
+            Log.w(LogTag.TAG, "[WorkingMessage] changeMedia: no slides!");
+            return;
+        }
+
+        // Remove any previous attachments.
+        if(type == IMAGE || type == VIDEO || type == AUDIO){
+            slide.removeImage();
+            slide.removeVideo();
+            slide.removeAudio();
+        }
+
+        // If we're changing to text, just bail out.
+        if (type == TEXT) {
+            return;
+        }
+
+        // Make a correct MediaModel for the type of attachment.
+        if (type == IMAGE) {
+            media = new ImageModel(mActivity, uri, mSlideshow.getLayout().getImageRegion());
+        } else if (type == VIDEO) {
+            media = new VideoModel(mActivity, uri, mSlideshow.getLayout().getImageRegion());
+        } else if (type == AUDIO) {
+            media = new AudioModel(mActivity, uri);
+        } else if(type == FILE){
+            media = new FileModel(mActivity, uri);
+        } else if(type == VCARD){
+            media = new VcardModel(mActivity, MessageUtils.TEXT_VCARD, "vcard.vcf", UTF_8, data);
+        } else if(type == VCAlENDAR_ATTACHMENT){
+            media = new VCalModel(mActivity, MessageUtils.TEXT_VCALENDAR, "vcalendar.vcs", UTF_8, data);
+        } else {
+            throw new IllegalArgumentException("changeMedia type=" + type + ", uri=" + uri);
+        }
+        if(!(type == IMAGE || type == VIDEO || type == AUDIO)){
+            mSlideshow.add(media);
+            return;
+        }
+        // Add it to the slide.
+        slide.add(media);
+
+        // For video and audio, set the duration of the slide to
+        // that of the attachment.
+        if (type == VIDEO || type == AUDIO) {
+            slide.updateDuration(media.getDuration());
+        }
     }
 
     private int internalChangeMedia(int type, Uri uri, int slideNum,
@@ -705,6 +722,8 @@ public class WorkingMessage {
                 slideShowEditor.changeAudio(slideNum, uri);
             } else if (type == VCARD) {  
                 slideShowEditor.changeVcard(slideNum, uri);
+            } else if (type == FILE) {  
+                slideShowEditor.changeFile(slideNum, uri);
             } else {
                 result = UNSUPPORTED_TYPE;
             }
@@ -1671,6 +1690,22 @@ public class WorkingMessage {
         }
     }
 
+    private static Uri createDraftMmsMessage(PduPersister persister, SendReq sendReq,
+            SlideshowModel slideshow) {
+        if (slideshow == null) {
+            return null;
+        }
+        try {
+            PduBody pb = slideshow.toPduBody();
+            sendReq.setBody(pb);
+            Uri res = persister.persist(sendReq, Mms.Draft.CONTENT_URI);
+            slideshow.sync(pb);
+            return res;
+        } catch (MmsException e) {
+            return null;
+        }
+    }
+
     private void asyncUpdateDraftMmsMessage(final Conversation conv, final boolean isStopping) {
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             LogTag.debug("asyncUpdateDraftMmsMessage conv=%s mMessageUri=%s", conv, mMessageUri);
@@ -1728,6 +1763,35 @@ public class WorkingMessage {
 
         try {
             persister.updateParts(uri, pb, preOpenedFiles);
+        } catch (MmsException e) {
+            Log.e(TAG, "updateDraftMmsMessage: cannot update message " + uri);
+        }
+
+        slideshow.sync(pb);
+    }
+
+    private static void updateDraftMmsMessage(Uri uri, PduPersister persister,
+            SlideshowModel slideshow, SendReq sendReq) {
+        if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+            LogTag.debug("updateDraftMmsMessage uri=%s", uri);
+        }
+        if (uri == null) {
+            Log.e(TAG, "updateDraftMmsMessage null uri");
+            return;
+        }
+        try
+        {
+            persister.updateHeaders(uri, sendReq);
+        }
+        catch(SQLiteException ex)
+        {
+            Log.e(TAG, "updateDraftMmsMessage: cannot update message " + ex);
+        }
+        
+        final PduBody pb = slideshow.toPduBody();
+
+        try {
+            persister.updateParts(uri, pb);
         } catch (MmsException e) {
             Log.e(TAG, "updateDraftMmsMessage: cannot update message " + uri);
         }

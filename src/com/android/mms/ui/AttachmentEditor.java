@@ -145,7 +145,8 @@ public class AttachmentEditor extends LinearLayout {
         boolean inPortrait = inPortraitMode();
 
         SlideModel slide = mSlideshow.get(0);
-        if (mSlideshow.size() > 1 || (mSlideshow.size() == 1 && (slide.hasImage() || slide.hasVideo() || slide.hasAudio()))) {
+        if (mSlideshow.size() > 1 || (mSlideshow.size() == 1 && (slide.hasImage() || slide.hasVideo() || slide.hasAudio())) 
+			|| mSlideshow.hasOctstream()) {
             return createSlideshowView(inPortrait);
         }
         if (slide.hasImage()) {
@@ -173,7 +174,13 @@ public class AttachmentEditor extends LinearLayout {
                     R.id.view_vcard_button,
                     R.id.remove_vcard_button,
                     MSG_SEND_SLIDESHOW,MSG_VIEW_VCARD, MSG_REMOVE_ATTACHMENT);
-        } else {
+        } else if (slide.hasFile()){
+            return createMediaView(
+                    R.id.image_attachment_view_stub,
+                    R.id.image_attachment_view,
+                    R.id.view_image_button, R.id.replace_image_button, R.id.remove_image_button,
+                    MSG_VIEW_IMAGE, MSG_REPLACE_IMAGE, MSG_REMOVE_ATTACHMENT);
+        }else {
             throw new IllegalArgumentException();
         }
     }
