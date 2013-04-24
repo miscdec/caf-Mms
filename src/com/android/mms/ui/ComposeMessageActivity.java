@@ -2030,7 +2030,6 @@ public class ComposeMessageActivity extends Activity
         for(int i = 0; i < partNum; i++) {
             PduPart part = body.getPart(i);
             String type = new String(part.getContentType());
-
             if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 log("[CMA] haveSomethingToCopyToSDCard: part[" + i + "] contentType=" + type);
             }

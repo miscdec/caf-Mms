@@ -1002,18 +1002,16 @@ public class WorkingMessage {
 
         // Mark this message as discarded in order to make saveDraft() no-op.
         mDiscarded = true;
-
-        cancelThumbnailLoading();
-
-        // Delete any associated drafts if there are any.
-        if (mHasMmsDraft) {
-            asyncDeleteDraftMmsMessage(mConversation);
-            // Remove cache
-            removeThumbnailsFromCache(mSlideshow);
-            updateWidget();
+/*
+        // Delete our MMS message, if there is one.
+        if (mMessageUri != null) {
+            asyncDelete(mMessageUri, null, null);
         }
-        if (mHasSmsDraft) {
-            asyncDeleteDraftSmsMessage(mConversation);
+
+        */
+        
+        if (mMessageUri != null) {
+            asyncDelete(mMessageUri, null, null);
         }
         clearConversation(mConversation, true);
     }

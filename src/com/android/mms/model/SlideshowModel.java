@@ -813,11 +813,10 @@ public class SlideshowModel extends Model
                     mCurrentMessageSize += m.getMediaSize();
                 }
             }
-/*
+
             for (MediaModel m : mMedia) {
                 mCurrentMessageSize += m.getMediaSize();
             }
-            */
         }
     }
 
