@@ -127,6 +127,9 @@ public class SmsReceiverService extends Service {
     static final int TOKEN_DELETE_ICC2 = 4101;
     static final int TOKEN_DELETE_ICC  = 4102;
 
+    private static final int EVENT_SEND_NEXT_MESSAGE = 1;
+    private static final int SEND_NEXT_MESSAGE_WAIT = 2* 1000;
+    
     private int mResultCode;
 
     @Override
@@ -189,9 +192,9 @@ public class SmsReceiverService extends Service {
     @Override
     public void onDestroy() {
         // Temporarily removed for this duplicate message track down.
-//        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
-//            Log.v(TAG, "onDestroy");
-//        }
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
+            Log.v(TAG, "onDestroy");
+        }
         mServiceLooper.quit();
     }
 
@@ -254,6 +257,7 @@ public class SmsReceiverService extends Service {
         public void handleMessage(Message msg) {
             int serviceId = msg.arg1;
             Intent intent = (Intent)msg.obj;
+            boolean canStopService = true;
 
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "handleMessage serviceId: " + serviceId + " intent: " + intent);
@@ -268,7 +272,7 @@ public class SmsReceiverService extends Service {
                 }
 
                 if (MESSAGE_SENT_ACTION.equals(intent.getAction())) {
-                    handleSmsSent(intent, error);
+                    canStopService = handleSmsSent(intent, error, serviceId);
                 } else if (SMS_RECEIVED_ACTION.equals(action)
                         || ICC_SMS_RECEIVED_ACTION.equals(action)) {
                     handleSmsReceived(intent, error);
@@ -311,9 +315,17 @@ public class SmsReceiverService extends Service {
                     }
                   }
             }
+            else{
+                if (msg.what == EVENT_SEND_NEXT_MESSAGE) {
+                    sendNextMessage(msg.arg2);
+                }
+            }
             // NOTE: We MUST not call stopSelf() directly, since we need to
             // make sure the wake lock acquired by AlertReceiver is released.
-            SmsReceiver.finishStartingService(SmsReceiverService.this, serviceId);
+            if (canStopService) {
+                Log.d(TAG, "Stop service id = " + serviceId);
+                SmsReceiver.finishStartingService(SmsReceiverService.this, serviceId);
+            }
         }
     }
 
@@ -427,9 +439,10 @@ public class SmsReceiverService extends Service {
         }
     }
 
-    private void handleSmsSent(Intent intent, int error) {
+    private boolean handleSmsSent(Intent intent, int error, int serviceId) {
         Uri uri = intent.getData();
         mSending = false;
+        boolean canStopService = true; /* add for long sms delay process */
         boolean sendNextMsg = intent.getBooleanExtra(EXTRA_MESSAGE_SENT_SEND_NEXT, false);
 
         if (LogTag.DEBUG_SEND) {
@@ -447,7 +460,8 @@ public class SmsReceiverService extends Service {
                 if (!Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_SENT, error)) {
                     Log.e(TAG, "handleSmsSent: failed to move message " + uri + " to sent folder");
                 }
-                sendNextMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0));
+                //sendNextMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0));
+                canStopService = !delaySendNextMessage(serviceId, intent.getIntExtra(SUBSCRIPTION_KEY, 0));  //mod for delay 5 seconds
                 // Update the notification for failed messages since they may be deleted.
                 MessagingNotification.nonBlockingUpdateSendFailedNotification(this);
             }
@@ -482,8 +496,10 @@ public class SmsReceiverService extends Service {
         } else {
             messageFailedToSend(uri, error);
             // Current message send failed, need send next one.
-            sendNextMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0));
+            //sendNextMessage(intent.getIntExtra(SUBSCRIPTION_KEY, 0));
+            canStopService = !delaySendNextMessage(serviceId, intent.getIntExtra(SUBSCRIPTION_KEY, 0));  //mod for delay 5 seconds
         }
+        return canStopService;
     }
 
     private void messageFailedToSend(Uri uri, int error) {
@@ -508,6 +524,16 @@ public class SmsReceiverService extends Service {
             sendFirstQueuedMessage();
         }
 
+    }
+
+    private boolean delaySendNextMessage(int serviceId, int subscription) {
+        Message msg = mServiceHandler.obtainMessage(EVENT_SEND_NEXT_MESSAGE);
+        msg.arg1 = serviceId;
+        msg.arg2 = subscription;
+        Log.v(TAG, "delaySendNextMessage subscription = " + subscription);
+        
+        mServiceHandler.sendMessageDelayed(msg, SEND_NEXT_MESSAGE_WAIT);
+        return true;
     }
 
     private void handleSmsReceived(Intent intent, int error) {
