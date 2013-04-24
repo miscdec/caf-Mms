@@ -2030,6 +2030,7 @@ public class ComposeMessageActivity extends Activity
         for(int i = 0; i < partNum; i++) {
             PduPart part = body.getPart(i);
             String type = new String(part.getContentType());
+
             if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 log("[CMA] haveSomethingToCopyToSDCard: part[" + i + "] contentType=" + type);
             }
@@ -4235,9 +4236,13 @@ public class ComposeMessageActivity extends Activity
             }else if (type.startsWith("audio/") ||
                     (wildcard && uri.toString().startsWith(mAudioUri))) {
                 addAudio(uri);
-            }else if (type.equals("text/x-vcard")
-                    || (wildcard && isVcardFile(uri))) {
-                addVcard(uri);
+            }else if (type.startsWith(com.google.android.mms.ContentType.TEXT_VCARD)) {
+
+                String fn =uri.getPath();
+                fn = MessageUtils.getStringFromFile(fn);
+                if(fn == null)
+                    return;
+                addVcard(fn.getBytes());   
             }else if (type.startsWith("text/x-vcard")){
                 InputStream vcardSream;
                 try{
