@@ -220,7 +220,7 @@ public class PushReceiver extends BroadcastReceiver {
                             // don't allow persist() to create a thread for the notificationInd
                             // because it causes UI jank.
                             Uri uri = p.persist(pdu, Inbox.CONTENT_URI,
-                                    !MessageUtils.isMmsMemoryFull(mContext), /*!NotificationTransaction.allowAutoDownload() ||*/
+                                    true, /*!NotificationTransaction.allowAutoDownload() ||!MessageUtils.isMmsMemoryFull(mContext)*/
                                     MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
                                     null);
 
