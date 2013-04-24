@@ -45,6 +45,10 @@ public class MmsConfig {
     private static boolean mTransIdEnabled = false;
     private static int mMmsEnabled = 1;                         // default to true
     private static int mMaxMessageSize = 300 * 1024;            // default to 300k max size
+ 
+    private static int mHeadSize = 2 * 1024;            // default to 2 max head size
+    private static int mMaxHeadSize =mHeadSize;
+
     private static String mUserAgent = DEFAULT_USER_AGENT;
     private static String mUaProfTagName = DEFAULT_HTTP_KEY_X_WAP_PROFILE;
     private static String mUaProfUrl = null;
@@ -121,12 +125,21 @@ public class MmsConfig {
     }
 
     public static int getMaxMessageSize() {
-        if (LOCAL_LOGV) {
-            Log.v(TAG, "MmsConfig.getMaxMessageSize(): " + mMaxMessageSize);
-        }
-       return mMaxMessageSize;
+        return mMaxMessageSize;
     }
 
+    
+    public static int getHeadSize() {
+        return mHeadSize;
+    }
+    public static int getMaxheadSize() {
+        return mMaxHeadSize;
+    }
+    
+     public static void setMaxheadSize(int headSize) {
+             mMaxHeadSize = headSize;
+     }
+   
     /**
      * This function returns the value of "enabledTransID" present in mms_config file.
      * In case of single segment wap push message, this "enabledTransID" indicates whether

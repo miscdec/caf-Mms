@@ -53,7 +53,9 @@ import com.android.mms.UnsupportContentTypeException;
 import com.android.mms.model.IModelChangedObserver;
 import com.android.mms.model.LayoutModel;
 import com.android.mms.model.Model;
+import com.android.mms.model.CarrierContentRestriction;
 import com.android.mms.model.SlideModel;
+import com.android.mms.model.TextModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.ui.BasicSlideEditorView.OnTextChangedListener;
 import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
@@ -63,6 +65,11 @@ import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import android.provider.MediaStore;
+import java.util.Date;
+import android.os.Environment;
+import android.os.StatFs;
+import java.text.SimpleDateFormat;
+import java.io.File;
 
 /**
  * This activity allows user to edit the contents of a slide.
@@ -125,6 +132,9 @@ public class SlideEditorActivity extends Activity {
 
     private final static String MESSAGE_URI = "message_uri";
     private AsyncDialog mAsyncDialog;   // Used for background tasks.
+	    private static final File PHOTO_LOCAL_DIR  =new File(
+            Environment.getInternalStorageDirectory() + "/Picture/");
+    private File mCurrentPhotoFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -268,9 +278,38 @@ public class SlideEditorActivity extends Activity {
 
     private final OnTextChangedListener mOnTextChangedListener = new OnTextChangedListener() {
         public void onTextChanged(String s) {
-            if (!isFinishing()) {
-                mSlideshowEditor.changeText(mPosition, s);
+            int oldSize = 0, newSize = 0;
+            int limitsize=0;
+            SlideModel slide = mSlideshowModel.get(mPosition);
+
+            if (slide != null){
+                TextModel text = slide.getText();
+
+                if (null != text){
+                    oldSize = text.getMediaSize();
+                }
+
+                if (s != null){
+                    newSize = s.getBytes().length;
+                }
             }
+            if(mSlideshowModel.size()<=10)
+                limitsize=MmsConfig.getMaxheadSize();
+            else if(mSlideshowModel.size()>10)
+                limitsize=MmsConfig.getMaxheadSize()*2;
+            if (mSlideshowModel.getCurrentMessageSize() <= (CarrierContentRestriction.MESSAGE_SIZE_LIMIT-limitsize)|| newSize < oldSize){
+                try{
+                    mSlideshowEditor.changeText(mPosition, s);
+                }catch (ExceedMessageSizeException e) {
+                    MmsConfig.setMaxheadSize(MmsConfig.getHeadSize());
+                    Toast.makeText(SlideEditorActivity.this, R.string.mms_exceed_message_size,
+                            Toast.LENGTH_SHORT).show();
+                }
+            }else{
+                Toast.makeText(SlideEditorActivity.this, R.string.mms_exceed_message_size,
+                            Toast.LENGTH_SHORT).show();
+            }
+        MmsConfig.setMaxheadSize(MmsConfig.getHeadSize());
         }
     };
 
@@ -420,6 +459,11 @@ public class SlideEditorActivity extends Activity {
         return true;
     }
 
+    private String getPhotoFileName() {
+        Date date = new Date(System.currentTimeMillis());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("'IMG'_yyyyMMdd_HHmmss");
+        return dateFormat.format(date) + ".jpg";
+    }    
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -441,8 +485,30 @@ public class SlideEditorActivity extends Activity {
                 break;
 
             case MENU_TAKE_PICTURE:
-                MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
-                break;
+                {
+                    if(MessageUtils.sdcardCanuse()){
+                        MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
+                        break;
+                    }
+                    else
+                    {
+                        Intent intent1 = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+                        intent1.putExtra("android.intent.extras.CAMERA_FACING", android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK);
+                        mCurrentPhotoFile = new File(PHOTO_LOCAL_DIR, getPhotoFileName());
+                        try{
+
+                        if (!PHOTO_LOCAL_DIR.exists() || !PHOTO_LOCAL_DIR.isDirectory ()) {
+                            PHOTO_LOCAL_DIR.mkdirs();
+                        }
+                        android.os.FileUtils.setPermissions(mCurrentPhotoFile.getPath(),  0777 , -1, -1);
+                        }catch (Exception e){};
+                        //intent.putExtra(MediaStore.EXTRA_OUTPUT, Mms.ScrapSpace.CONTENT_URI);
+                            intent1.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(mCurrentPhotoFile));
+                            startActivityForResult(intent1, REQUEST_CODE_TAKE_PICTURE);
+                        break;
+                    }
+                }
 
             case MENU_DEL_PICTURE:
                 mSlideshowEditor.removeImage(mPosition);
@@ -599,9 +665,12 @@ public class SlideEditorActivity extends Activity {
                 Uri pictureUri = null;
                 boolean showError = false;
                 try {
-                    pictureUri = TempFileProvider.renameScrapFile(".jpg",
+                    if(MessageUtils.sdcardCanuse())
+                        pictureUri = TempFileProvider.renameScrapFile(".jpg",
                             Integer.toString(mPosition), this);
 
+                    else
+                        pictureUri = Uri.fromFile(mCurrentPhotoFile);
                     if (pictureUri == null) {
                         showError = true;
                     } else {
@@ -806,4 +875,21 @@ public class SlideEditorActivity extends Activity {
             setReplaceButtonText(R.string.add_picture);
         }
     }
+    
+     private final boolean isSDCardExist() {
+         boolean ret = true;
+         String status = Environment.getExternalStorageState();
+         if (status.equals(Environment.MEDIA_REMOVED) 
+             ||status.equals(Environment.MEDIA_BAD_REMOVAL)
+             ||status.equals(Environment.MEDIA_CHECKING)
+             ||status.equals(Environment.MEDIA_SHARED)
+             ||status.equals(Environment.MEDIA_UNMOUNTED)
+             ||status.equals(Environment.MEDIA_NOFS)
+             ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
+             ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
+             ret = false; 
+         }
+         return ret;
+     }  
+    
 }

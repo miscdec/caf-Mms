@@ -46,6 +46,7 @@ import com.android.mms.model.SlideshowModel;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduPersister;
+import com.android.mms.ExceedMessageSizeException;
 
 /**
  * A list of slides which allows user to edit each item in it.
@@ -143,7 +144,13 @@ public class SlideshowEditActivity extends ListActivity {
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
         if (position == (l.getCount() - 1)) {
-            addNewSlide();
+            try {
+                addNewSlide();
+            } catch (ExceedMessageSizeException e) {
+                MessageUtils.showErrorDialog(SlideshowEditActivity.this,
+                        getString(R.string.exceed_message_size_limitation),
+                        getString(R.string.failed_to_add_attachment));
+            }
         } else {
             openSlide(position);
         }

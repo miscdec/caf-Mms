@@ -459,7 +459,6 @@ public class MailBoxMessageList extends ListActivity
         String displayName;
         String fromtoLabel;
         String sendLabel;
-        long person_id = -1;
 
         // Set Time Stamp
         Long date = c.getLong(COLUMN_SMS_DATE);
@@ -518,7 +517,6 @@ public class MailBoxMessageList extends ListActivity
         i.putExtra("sms_status", smstatus);
         i.putExtra("sms_read", msgRead);
         i.putExtra("mailboxId", smsType);
-        i.putExtra("sms_personId", person_id);
         i.putExtra("sms_id", c.getInt(COLUMN_ID));
         i.putExtra("sms_uri_str", msgUriStr);
         i.putExtra("sms_on_uim", false);
@@ -651,10 +649,11 @@ public class MailBoxMessageList extends ListActivity
 
                 }
                 startAsyncQuery();
+                
                 if (oldQueryType != mQueryBoxType){
-                    unCheckAll();
                     onResume();
                 }
+               
             }
     
             @Override
@@ -1595,12 +1594,10 @@ public class MailBoxMessageList extends ListActivity
         menu.add(0, MENU_DELETE_SELECT,  0, R.string.delete)
             .setIcon(R.drawable.ic_menu_trash_holo_dark)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        if(mQueryBoxType != TYPE_DRAFTBOX)
-        {
-            menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
+
+        menu.add(0, MENU_COPY_SELECT,  0, R.string.menu_copy_to)
                 .setIcon(R.drawable.ic_menu_copy)
                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS); 
-        } 
     }
     
     private class ModeCallback implements ListView.MultiChoiceModeListener {

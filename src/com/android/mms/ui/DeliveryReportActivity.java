@@ -41,6 +41,7 @@ import android.view.Window;
 import android.widget.ListView;
 
 import com.android.mms.R;
+import com.android.mms.transaction.MessagingNotification;
 import com.google.android.mms.pdu.PduHeaders;
 
 /**
@@ -95,11 +96,13 @@ public class DeliveryReportActivity extends ListActivity {
         super.onCreate(icicle);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.delivery_report_activity);
-
+        
         Intent intent = getIntent();
         mMessageId = getMessageId(icicle, intent);
         mMessageType = getMessageType(icicle, intent);
 
+        MessagingNotification.cancelNotification(this,
+                MessagingNotification.NOTIFICATION_MMS_DELIVERY_ID);
         initListView();
         initListAdapter();
     }

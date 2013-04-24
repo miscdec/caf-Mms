@@ -237,6 +237,12 @@ public abstract class MediaModel extends Model implements EventListener {
         ContentResolver cr = mContext.getContentResolver();
         InputStream input = null;
         try {
+
+            // if mUri is null. There will cause a null point exception in
+            // openInputStream().
+            if (null == mUri) {
+                throw new MmsException("mUri is null before we call function openInputStream()");
+            }
             input = cr.openInputStream(mUri);
             if (input instanceof FileInputStream) {
                 // avoid reading the whole stream to get its length

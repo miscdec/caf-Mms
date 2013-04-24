@@ -87,6 +87,7 @@ import android.provider.ContactsContract.Intents;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
+import android.provider.MediaStore.Audio;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
@@ -174,6 +175,9 @@ import com.google.android.mms.pdu.PduHeaders;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import android.os.StatFs;
 
 
 /**
@@ -385,6 +389,9 @@ public class ComposeMessageActivity extends Activity
     private int mMmsCurrentSize = 0;
 
     private Handler mHandler = new Handler();
+    private File mCurrentPhotoFile;
+    private static final File PHOTO_LOCAL_DIR  =new File(
+            Environment.getInternalStorageDirectory() + "/Picture/Photo");
 
     // keys for extras and icicles
     public final static String THREAD_ID = "thread_id";
@@ -393,6 +400,7 @@ public class ComposeMessageActivity extends Activity
     public static final String ACTION_GET_CONTENTS =
     "com.android.contacts.action.ACTION_GET_CONTENTS";
     private final IntentFilter mGetRecipientFilter = new IntentFilter("com.android.mms.selectedrecipients");
+    private static final String VCALENDAR               = "vCalendar";
    
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
@@ -2173,63 +2181,83 @@ public class ComposeMessageActivity extends Activity
 
     private boolean copyPart(PduPart part, String fallback) {
         Uri uri = part.getDataUri();
-        String type = new String(part.getContentType());
-        boolean isDrm = DrmUtils.isDrmType(type);
-        if (isDrm) {
-            type = MmsApp.getApplication().getDrmManagerClient()
-                    .getOriginalMimeType(part.getDataUri());
-        }
-        if (!ContentType.isImageType(type) && !ContentType.isVideoType(type) &&
-                !ContentType.isAudioType(type)&& !(ContentType.TEXT_VCARD.toLowerCase().equals(type.toLowerCase()))) {
-            return true;    // we only save pictures, videos, and sounds. Skip the text parts,
-                            // the app (smil) parts, and other type that we can't handle.
-                            // Return true to pretend that we successfully saved the part so
-                            // the whole save process will be counted a success.
-        }
+        String dir ;
         InputStream input = null;
         FileOutputStream fout = null;
-        try {
-            input = mContentResolver.openInputStream(uri);
-            if (input instanceof FileInputStream) {
-                FileInputStream fin = (FileInputStream) input;
-
-                byte[] location = part.getName();
+        String mimeType = new String(part.getContentType());
+        try { 
+                byte[] location = part.getContentLocation();
+                if (location == null) {
+                    location = part.getName();
+                }
                 if (location == null) {
                     location = part.getFilename();
                 }
-                if (location == null) {
-                    location = part.getContentLocation();
-                }
 
-                String fileName;
-                if (location == null) {
-                    // Use fallback name.
-                    fileName = fallback;
-                } else {
-                    // For locally captured videos, fileName can end up being something like this:
-                    //      /mnt/sdcard/Android/data/com.android.mms/cache/.temp1.3gp
-                    fileName = new String(location);
+                if (null == location){
+                    Log.w(TAG,"can't get file name");
+                    location = new String("Unknown").getBytes();
                 }
-                File originalFile = new File(fileName);
-                fileName = originalFile.getName();  // Strip the full path of where the "part" is
-                                                    // stored down to just the leaf filename.
-
+                                                
                 // Depending on the location, there may be an
-                // extension already on the name or not. If we've got audio, put the attachment
-                // in the Ringtones directory.
-                String dir = Environment.getExternalStorageDirectory() + "/"
-                                + (ContentType.isAudioType(type) ? Environment.DIRECTORY_RINGTONES :
-                                    Environment.DIRECTORY_DOWNLOADS)  + "/";
+                // extension already on the name or not
+                //wxj modify 
+                String fileName = new String(location);
+                String subPath;
+
+                if(mimeType.startsWith("image")){
+                    subPath = "/Picture/";
+                }else if(mimeType.startsWith("audio") || MessageUtils.isMusic(part)){
+                    subPath = "/Audio/";
+                }else if(mimeType.startsWith("video") || MessageUtils.isVideo(part)){
+                    subPath = "/Video/";
+                }else if(-1 != mimeType.indexOf(VCALENDAR)){
+                    subPath = "/Other/vCalendar/";
+                    final String dir_vcal_path="/sdcard/Other/vCalendar/";
+                    File dirFile=new File(dir_vcal_path);
+                    if(!dirFile.exists()){
+                        if(!dirFile.mkdirs()){
+                            //
+                            return false;
+                        }
+                    }
+                }else{
+                    subPath = "/Other/";
+                }
+                if(MessageUtils.sdcardCanuse())
+               //  dir = "/sdcard" + subPath;
+                                                
+                                                dir = Environment.getExternalStorageDirectory() + "/"
+                                                                           + Environment.DIRECTORY_DOWNLOADS  + "/";
+                else
+                {
+                     dir = Environment.getInternalStorageDirectory() + "/"+subPath;
+                    File dirFile1=new File(dir);
+                        if(!dirFile1.exists()){
+                        if(!dirFile1.mkdirs()){
+                            return false;
+                        }
+                    }
+
+                }
+                    
+                /*
+                String fileName = new String(location);
+                String dir = "/sdcard/download/";
+                */
                 String extension;
                 int index;
-                if ((index = fileName.lastIndexOf('.')) == -1) {
+                if ((index = fileName.indexOf(".")) == -1) {
+                    String type = new String(part.getContentType());
                     extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(type);
                 } else {
                     extension = fileName.substring(index + 1, fileName.length());
                     fileName = fileName.substring(0, index);
                 }
-                if (isDrm) {
-                    extension += DrmUtils.getConvertExtension(type);
+                if(fileName.contains("/") || fileName.contains("*") || fileName.contains("?")
+                            || fileName.contains("\\") || fileName.contains("<") || fileName.contains(">")
+                            || fileName.contains("|") || fileName.contains(":")){
+                            fileName ="rename";
                 }
                 File file = getUniqueDestination(dir + fileName, extension);
 
@@ -2242,17 +2270,28 @@ public class ComposeMessageActivity extends Activity
 
                 fout = new FileOutputStream(file);
 
-                byte[] buffer = new byte[8000];
-                int size = 0;
-                while ((size=fin.read(buffer)) != -1) {
-                    fout.write(buffer, 0, size);
-                }
+                if(mimeType.startsWith("text/plain")){
+                    fout.write(part.getData());
+                    // Notify other applications listening to scanner events
+                    // that a media file has been added to the sd card
+                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                            Uri.fromFile(file)));
+                } else{
+                    input = getContentResolver().openInputStream(uri);
+                    if (input instanceof FileInputStream) {
+                        FileInputStream fin = (FileInputStream) input;
+                        byte[] buffer = new byte[8000];
+                        int len = 0;
+                        while((len = fin.read(buffer)) != -1) {
+                            fout.write(buffer, 0, len);
+                        }
 
-                // Notify other applications listening to scanner events
-                // that a media file has been added to the sd card
-                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                        Uri.fromFile(file)));
-            }
+                        // Notify other applications listening to scanner events
+                        // that a media file has been added to the sd card
+                        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                                Uri.fromFile(file)));
+                    }
+                }
         } catch (IOException e) {
             // Ignore
             Log.e(TAG, "IOException caught while opening or reading stream", e);
@@ -3563,9 +3602,30 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case AttachmentTypeSelectorAdapter.TAKE_PICTURE: {
-                MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
-                break;
-            }
+                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+                    intent.putExtra("android.intent.extras.CAMERA_FACING", android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK);
+                    if(MessageUtils.sdcardCanuse()){
+                       // intent.putExtra(MediaStore.EXTRA_OUTPUT, Mms.ScrapSpace.CONTENT_URI);
+                       MessageUtils.capturePicture(this, REQUEST_CODE_TAKE_PICTURE);
+                       return;
+                    }
+                    else
+                    {
+                        mCurrentPhotoFile = new File(PHOTO_LOCAL_DIR, getPhotoFileName());
+                        try{
+
+                            if (!PHOTO_LOCAL_DIR.exists() || !PHOTO_LOCAL_DIR.isDirectory ()) {
+                                    PHOTO_LOCAL_DIR.mkdirs();
+                                }
+                            android.os.FileUtils.setPermissions(mCurrentPhotoFile.getPath(),  0777 , -1, -1);
+                        }catch (Exception e){};
+                        //intent.putExtra(MediaStore.EXTRA_OUTPUT, Mms.ScrapSpace.CONTENT_URI);
+                        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(mCurrentPhotoFile));
+                    }
+                    startActivityForResult(intent, REQUEST_CODE_TAKE_PICTURE);
+                    break;
+                    }
 
             case AttachmentTypeSelectorAdapter.ADD_VIDEO:
                 MessageUtils.selectVideo(this, REQUEST_CODE_ATTACH_VIDEO);
@@ -3719,13 +3779,19 @@ public class ComposeMessageActivity extends Activity
                 // create a file based uri and pass to addImage(). We want to read the JPEG
                 // data directly from file (using UriImage) instead of decoding it into a Bitmap,
                 // which takes up too much memory and could easily lead to OOM.
-                File file = new File(TempFileProvider.getScrapPath(this));
-                Uri uri = Uri.fromFile(file);
-
-                // Remove the old captured picture's thumbnail from the cache
-                MmsApp.getApplication().getThumbnailManager().removeThumbnail(uri);
-
-                addImageAsync(uri, false);
+                if(MessageUtils.sdcardCanuse())
+                    {
+                    File file = new File(TempFileProvider.getScrapPath(this));
+                    Uri uri = Uri.fromFile(file);
+                    
+                    // Remove the old captured picture's thumbnail from the cache
+                    MmsApp.getApplication().getThumbnailManager().removeThumbnail(uri);
+                    
+                    addImageAsync(uri, false);
+                    }
+                else
+                    addImageAsync(Uri.fromFile(mCurrentPhotoFile), false);
+                    
                 break;
             }
 
@@ -4114,6 +4180,8 @@ public class ComposeMessageActivity extends Activity
     private static final String mVideoUri = Video.Media.getContentUri("external").toString();
     // mImageUri will look like this: content://media/external/images/media
     private static final String mImageUri = Images.Media.getContentUri("external").toString();
+    // mAudioUri will look like this: content://media/external/audio/media
+    private static final String mAudioUri = Audio.Media.getContentUri("external").toString();
 
     private void addAttachment(String type, Uri uri, boolean append) {
         if (uri != null) {
@@ -4128,6 +4196,9 @@ public class ComposeMessageActivity extends Activity
             } else if (type.startsWith("video/") ||
                     (wildcard && uri.toString().startsWith(mVideoUri))) {
                 addVideo(uri, append);
+            }else if (type.startsWith("audio/") ||
+                    (wildcard && uri.toString().startsWith(mAudioUri))) {
+                addAudio(uri);
             }else if (type.equals("text/x-vcard")
                     || (wildcard && isVcardFile(uri))) {
                 addVcard(uri);
@@ -5306,6 +5377,11 @@ public class ComposeMessageActivity extends Activity
         return false;
     }
 
+    private String getPhotoFileName() {
+        Date date = new Date(System.currentTimeMillis());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("'IMG'_yyyyMMdd_HHmmss");
+        return dateFormat.format(date) + ".jpg";
+    }    
     private void startSendingService(boolean sent) {
         if ( mbResendMms && null != mstrMsgId ) {
             Uri uri = null;

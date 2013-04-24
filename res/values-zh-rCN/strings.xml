@@ -351,7 +351,25 @@
     <string name="notification_separator" msgid="2334673105226536422">"  "</string>
     <string name="enumeration_comma" msgid="213598026698964628">"、 "</string>
     <string name="message_timestamp_format" msgid="4188999027493614617">"<xliff:g id="STRING_0">%1$s</xliff:g> - <xliff:g id="STRING_1">%2$s</xliff:g>"</string>
-    
+    <string name="mms_exceed_message_size">超过信息最大限制，新编辑的文本不会被保存</string>
+    <!-- Menu item in Attachment.java. -->
+    <string name="view_attachment">查看附件</string>
+    <string name="set_as_wallpaper">设为壁纸</string>
+    <string name="set_as_ringtone">设为来电音</string>
+    <string name="set_as_ringtone1">设为卡1来电铃声</string>
+    <string name="set_as_ringtone2">设为卡2来电铃声</string>
+    <string name="no_attachment">无附件</string>
+    <string name="no_space_for_save_attachments">空间不足!</string>
+    <string name="save_btn">保存</string>  
+    <string name="stop">停止</string>
+    <string name="attachment_options" msgid="6838806653341967550">"附件选项"</string>
+    <string name="Directory_NAME_ANDROID"> "SD卡"</string>
+    <string name="error_mediadb_new_record">"无法保存录制的音频"</string>
+    <string name="setRingtone_Ok">设置铃声成功</string>
+    <string name="setRingtone_failed">设置铃声失败</string>
+    <string name="setRingtone_failed_no_sd">设置铃声失败，请检查SD卡是否存在</string>
+    <string name="max_recipient">收件人最多100个！</string>           
+
     <!-- Subscription selection strings -->
     <string name="select_subscription_title">"选择卡槽"</string>
     <string name="subscription1_title">"卡1"</string>
@@ -364,6 +382,7 @@
     <string name="menu_clearall">取消</string>
     <string name="operation_exceed">超出最大数目！最大限制条数：<xliff:g id="max_num">%s</xliff:g>。</string>
     <string name="failed_to_add_attachment">"该信息太大，无法添加附件。"</string>
+    <string name="no_select">没有选中任何条目！</string>
 
     <string name="batch_operate">批量操作</string>
     <string name="copy_to_phone_success">保存成功</string>

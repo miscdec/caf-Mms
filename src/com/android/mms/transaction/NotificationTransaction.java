@@ -89,6 +89,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
         try {
             mNotificationInd = (NotificationInd)
                     PduPersister.getPduPersister(context).load(mUri);
+            mTransactionState.setContentUri(mUri);  //add for onConnectivityFailed()
         } catch (MmsException e) {
             Log.e(TAG, "Failed to load NotificationInd from: " + uriString, e);
             throw new IllegalArgumentException();
@@ -115,6 +116,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
             mUri = PduPersister.getPduPersister(context).persist(
                         ind, Inbox.CONTENT_URI, !allowAutoDownload(),
                         MessagingPreferenceActivity.getIsGroupMmsEnabled(context), null);
+            mTransactionState.setContentUri(mUri);  //add for onConnectivityFailed()
         } catch (MmsException e) {
             Log.e(TAG, "Failed to save NotificationInd in constructor.", e);
             throw new IllegalArgumentException();
@@ -258,6 +260,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
                 // Always mark the transaction successful for deferred
                 // download since any error here doesn't make sense.
                 mTransactionState.setState(SUCCESS);
+                Log.v(TAG, "NotificationTransaction successfull. mUri = " + mUri.toString());
             }
             if (mTransactionState.getState() != SUCCESS) {
                 mTransactionState.setState(FAILED);

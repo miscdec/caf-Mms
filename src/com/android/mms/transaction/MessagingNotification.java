@@ -37,6 +37,7 @@ import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -75,6 +76,7 @@ import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.ConversationList;
+import com.android.mms.ui.DeliveryReportActivity;
 import com.android.mms.ui.ManageSimMessages;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
@@ -373,7 +375,9 @@ public class MessagingNotification {
         SortedSet<NotificationInfo> notificationSet =
                 new TreeSet<NotificationInfo>(INFO_COMPARATOR);
         addSmsOnIccNotificationInfos(context, subscription, notificationSet);
-        Log.d(TAG, "blockingUpdateNewMessageOnIccIndicator:notificationSet="+notificationSet);
+        Log.d(TAG, "blockingUpdateNewMessageOnIccIndicator:notificationSet="+notificationSet
+            + "notificationSet.size() = " + notificationSet.size());
+        
         if (notificationSet.isEmpty()) {
             cancelNotification(context, getNotificationIDBySubscription(subscription));
         } else {
@@ -383,6 +387,7 @@ public class MessagingNotification {
             synchronized (sCurrentlyDisplayedCardLock) {
                 if (sCurrentlyDisplayedCardList) {
                     playInConversationNotificationSound(context);
+                    setIccMessagesRead(context, subscription);
                     return;
                 }
             }
@@ -396,6 +401,17 @@ public class MessagingNotification {
         }
     }
 
+    public static void setIccMessagesRead(Context context, int subscription)
+    {
+        Log.d(TAG, "setIccMessagesRead : subscription=" + subscription);
+        
+        ContentValues values = new ContentValues(1);
+        values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);
+        SqliteWrapper.update(context, context.getContentResolver(),
+            MessageUtils.getIccUriBySubscription(subscription),
+            values, null, null);
+    }  
+    
 
     /**
      * Play the in-conversation notification sound (it's the regular notification sound, but
@@ -982,17 +998,30 @@ public class MessagingNotification {
         nm.notify(FULL_NOTIFICATION_ID, notification);
     }
 
-    public static void updateMmsDeliveryNotification(Context context, String statusStr) {
+    public static void updateMmsDeliveryNotification(Context context, String statusStr, Uri uri) {
         NotificationManager nm = (NotificationManager)context.getSystemService(
                 Context.NOTIFICATION_SERVICE);
         nm.cancel(NOTIFICATION_MMS_DELIVERY_ID);
         String title = context.getString(R.string.pref_title_mms_delivery_reports);
         String description = statusStr;
-        PendingIntent intent = PendingIntent.getActivity(context, 0,  new Intent(), 0);        
+
+        String msgId = uri.getPathSegments().get(1);
+        Intent viewSimIntent = new Intent(context, DeliveryReportActivity.class);   
+        viewSimIntent.putExtra("message_id", Long.parseLong(msgId));
+        viewSimIntent.putExtra("message_type", "mms");
+        viewSimIntent.putExtra("sub_id", MessageUtils.SUB_INVALID);
+        viewSimIntent.setAction(Intent.ACTION_VIEW);
+        //viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, 0, viewSimIntent, 0);
+        
         Notification notification = new Notification();
         notification.icon = android.R.drawable.stat_notify_chat;
         notification.tickerText = title;
-        notification.setLatestEventInfo(context, title, description, intent);
+        notification.setLatestEventInfo(context, title, description, pendingIntent);
         nm.notify(NOTIFICATION_MMS_DELIVERY_ID, notification);
     }
      

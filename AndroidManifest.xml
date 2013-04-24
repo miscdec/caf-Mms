@@ -44,6 +44,7 @@
     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
     <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
     <uses-permission android:name="android.permission.DEVICE_POWER" />
+    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
 
     <application android:name="MmsApp"
             android:label="@string/app_label"
@@ -103,8 +104,7 @@
         <activity android:name=".ui.MailBoxMessageContent"
             android:label="@string/message_detail"
             android:theme="@style/MmsHoloTheme"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:launchMode="singleTop" >   
+            android:configChanges="orientation|screenSize|keyboardHidden">   
         </activity>  
         
         <activity android:name=".ui.ComposeMessageActivity"
@@ -142,6 +142,16 @@
            <intent-filter>
                <action android:name="android.intent.action.SEND" />
                <category android:name="android.intent.category.DEFAULT" />
+               <data android:mimeType="audio/*" />
+           </intent-filter>
+           <intent-filter>
+               <action android:name="android.intent.action.SEND" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <data android:mimeType="video/*" />
+           </intent-filter>
+           <intent-filter>
+               <action android:name="android.intent.action.SEND" />
+               <category android:name="android.intent.category.DEFAULT" />
                <data android:mimeType="text/plain" />
            </intent-filter>
            <intent-filter>
@@ -169,6 +179,9 @@
         <activity android:name=".ui.DeliveryReportActivity"
             android:label="@string/delivery_report_activity"
             android:theme="@android:style/Theme.Dialog">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
         </activity>
 
         <activity android:name=".ui.WarnOfStorageLimitsActivity"
@@ -206,6 +219,15 @@
             android:label="@string/slideshow_activity">
         </activity>
 
+        <activity android:name=".ui.TextViewer"
+                android:label="@string/view_attachment"
+                  android:configChanges="orientation">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>            
+        </activity>
+        
         <activity android:name=".ui.ClassZeroActivity"
             android:label="@string/class_0_message_activity"
             android:theme="@android:style/Theme.Translucent"
@@ -239,6 +261,19 @@
             </intent-filter>             
         </activity>  
         
+        <activity android:name=".ui.AttachmentList"
+            android:label="@string/view_attachment"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".ui.MessageContent"
+            android:label="@string/app_label"
+            android:uiOptions="splitActionBarWhenNarrow" 
+            android:configChanges="orientation|keyboardHidden">             
+        </activity>   
         <receiver android:name=".transaction.PushReceiver"
             android:permission="android.permission.BROADCAST_WAP_PUSH">
             <intent-filter>
@@ -318,6 +353,12 @@
             </intent-filter>
             <intent-filter>                
                 <action android:name="android.intent.action.SIM_STATE_CHANGED" />
+            </intent-filter>  
+            <intent-filter>                
+                <action android:name="android.intent.action.SIM_STATE_CHANGED0" />
+            </intent-filter>            
+            <intent-filter>                
+                <action android:name="android.intent.action.SIM_STATE_CHANGED1" />
             </intent-filter>  
         </receiver>
 

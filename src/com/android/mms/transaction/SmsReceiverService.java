@@ -44,6 +44,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
+import android.provider.Settings;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Sms.Inbox;
 import android.provider.Telephony.Sms.Intents;
@@ -217,12 +218,18 @@ public class SmsReceiverService extends Service {
             {
                 case TOKEN_QUERY_ICC1:
                     MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB1);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(SmsReceiverService.this);
                     return;
                 case TOKEN_QUERY_ICC2:
                     MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB2);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(SmsReceiverService.this);
                     return;
                 case TOKEN_QUERY_ICC:
                     MessagingNotification.blockingUpdateNewMessageOnIccIndicator(SmsReceiverService.this, MessageUtils.SUB_INVALID);
+                    //Update the notification for text message memory may not be full, add for cmcc test
+                    MessageUtils.checkIsPhoneMessageFull(SmsReceiverService.this);
                     return;
             }            
         }
@@ -256,7 +263,7 @@ public class SmsReceiverService extends Service {
 
                 int error = intent.getIntExtra("errorCode", 0);
 
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
                     Log.v(TAG, "handleMessage action: " + action + " error: " + error);
                 }
 
@@ -285,11 +292,53 @@ public class SmsReceiverService extends Service {
                         MessageUtils.setIsIccLoaded(false);
                         handleIccAbsent(subscription);
                     }
+                    
+                    if (IccCardConstants.INTENT_VALUE_ICC_UNKNOWN.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    }
+                    else if (IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    }
+                    else if (IccCardConstants.INTENT_VALUE_LOCKED_ON_PIN.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    }
                     else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
                         MessageUtils.setIsIccLoaded(true);
                         queryIccSms(subscription);
                     }
                   }
+                  else if (MessageUtils.ACTION_SIM_STATE_CHANGED0.equals(action)
+                      || MessageUtils.ACTION_SIM_STATE_CHANGED1.equals(action))
+                  {
+                        int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, MessageUtils.SUB_INVALID);
+
+                        String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+
+                        if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(false);
+                            handleIccAbsent(subscription);
+                        }
+                        
+                        if (IccCardConstants.INTENT_VALUE_ICC_UNKNOWN.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(false);
+                            handleIccAbsent(subscription);
+                        }
+                        else if (IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(false);
+                            handleIccAbsent(subscription);
+                        }
+                        else if (IccCardConstants.INTENT_VALUE_LOCKED_ON_PIN.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(false);
+                            handleIccAbsent(subscription);
+                        }
+                        else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(true);
+                            queryIccSms(subscription);
+                        }                              
+                  }   
             }
             // NOTE: We MUST not call stopSelf() directly, since we need to
             // make sure the wake lock acquired by AlertReceiver is released.
@@ -319,6 +368,8 @@ public class SmsReceiverService extends Service {
     private void handleServiceStateChanged(Intent intent) {
         // If service just returned, start sending out the queued messages
         ServiceState serviceState = ServiceState.newFromBundle(intent.getExtras());
+        Log.d(TAG, "handleServiceStateChanged : serviceState.getState() = " + serviceState.getState());
+        
         int subscription = intent.getIntExtra(SUBSCRIPTION_KEY, 0);
         int prefSubscription = MSimSmsManager.getDefault().getPreferredSmsSubscription();
         // if service state is IN_SERVICE & current subscription is same as
@@ -337,7 +388,6 @@ public class SmsReceiverService extends Service {
             } else {
                 sendFirstQueuedMessage();
             }
-
         }
     }
 
@@ -431,8 +481,9 @@ public class SmsReceiverService extends Service {
             // Update the notification for failed messages since they may be deleted.
             MessagingNotification.nonBlockingUpdateSendFailedNotification(this);
         } else if ((mResultCode == SmsManager.RESULT_ERROR_RADIO_OFF) ||
-                (mResultCode == SmsManager.RESULT_ERROR_NO_SERVICE)) {
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                (mResultCode == SmsManager.RESULT_ERROR_NO_SERVICE) ||
+                (mResultCode == 0 && isAirplaneMode()) /* add fo radio off long sms */) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
                 Log.v(TAG, "handleSmsSent: no service, queuing message w/ uri: " + uri);
             }
             // We got an error with no service or no radio. Register for state changes so
@@ -441,12 +492,15 @@ public class SmsReceiverService extends Service {
             registerForServiceStateChanges();
             // We couldn't send the message, put in the queue to retry later.
             Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_QUEUED, error);
-            mToastHandler.post(new Runnable() {
-                public void run() {
-                    Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
-                            Toast.LENGTH_SHORT).show();
-                }
-            });
+            if (sendNextMsg) {
+                mToastHandler.post(new Runnable() {
+                    public void run() {
+                        Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
         } else if (mResultCode == SmsManager.RESULT_ERROR_FDN_CHECK_FAILURE) {
             mToastHandler.post(new Runnable() {
                 public void run() {
@@ -672,7 +726,7 @@ public class SmsReceiverService extends Service {
         String selection;
         String[] selectionArgs;
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
             Log.v(TAG, " SmsReceiverService: replaceMessage:");
         }
         selection = Sms.ADDRESS + " = ? AND " +
@@ -914,6 +968,13 @@ public class SmsReceiverService extends Service {
         } catch (IllegalArgumentException e) {
             // Allow un-matched register-unregister calls
         }
+    }
+    
+    private boolean isAirplaneMode() {
+        int isAirplaneMode = Settings.System.getInt(getApplicationContext().getContentResolver(),
+               Settings.Global.AIRPLANE_MODE_ON, 0) ;
+        Log.v(TAG, "isAirplaneMode = " + isAirplaneMode);
+        return (isAirplaneMode == 1) ? true : false;
     }
 
 }

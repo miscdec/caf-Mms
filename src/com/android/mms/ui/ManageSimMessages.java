@@ -154,23 +154,23 @@ public class ManageSimMessages extends Activity
 
         init();
         registerSimChangeObserver();
-        registerReceiver(mIccStateChangedReceiver, 
-            new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
+        registerReceiver(mIccStateChangedReceiver, new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
+        registerReceiver(mIccStateChangedReceiver, new IntentFilter(MessageUtils.ACTION_SIM_STATE_CHANGED0));
+        registerReceiver(mIccStateChangedReceiver, new IntentFilter(MessageUtils.ACTION_SIM_STATE_CHANGED1));
 
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
-        init();      
+        ///init();   
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                SIM_FULL_NOTIFICATION_ID);        
+        updateState(SHOW_BUSY);
+        startQuery();
     }
 
     private void init() {
-        MessagingNotification.cancelNotification(getApplicationContext(),
-                SIM_FULL_NOTIFICATION_ID);
-        MessagingNotification.cancelNotification(getApplicationContext(),
-                MessagingNotification.getNotificationIDBySubscription(mSubscription));
-        MessagingNotification.setCurrentlyDisplayedCardList(true);
         updateState(SHOW_BUSY);
         if(MessageUtils.sIsIccLoaded)
         {
@@ -187,10 +187,11 @@ public class ManageSimMessages extends Activity
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
-                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " + intent); 
+            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {        
                 int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
                 String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " 
+                    + intent + ", stateExtra = " + stateExtra); 
                 
                 if(!MessageUtils.isMultiSimEnabledMms())
                 {
@@ -201,17 +202,48 @@ public class ManageSimMessages extends Activity
                     startQuery();
                 }
             }
+            else if (MessageUtils.ACTION_SIM_STATE_CHANGED0.equals(action)) {        
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " 
+                    + intent + ", stateExtra = " + stateExtra); 
+                             
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) && subscription == mSubscription) {
+                    startQuery();
+                }
+            }
+            else if (MessageUtils.ACTION_SIM_STATE_CHANGED1.equals(action)) {        
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " 
+                    + intent + ", stateExtra = " + stateExtra);
+                
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) && subscription == mSubscription) {
+                    startQuery();
+                }
+            }
         }
     };
     
     private void setMessageRead(Context context, String indexString)
     {
-        Log.d(TAG, "setMessageRead : mSubscription="+mSubscription+",indexString="+indexString);
+        Log.d(TAG, "setMessageRead : mSubscription=" + mSubscription + ",indexString = " + indexString);
 
         ContentValues values = new ContentValues(1);
         values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);
         SqliteWrapper.update(context, getContentResolver(),
             Uri.parse(MessageUtils.getIccUriBySubscription(mSubscription).toString()+"/"+indexString),
+            values, null, null);
+    }  
+
+    private void setMessageRead(Context context)
+    {
+        Log.d(TAG, "setMessageRead : mSubscription = " + mSubscription);
+        
+        ContentValues values = new ContentValues(1);
+        values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);
+        SqliteWrapper.update(context, getContentResolver(),
+            MessageUtils.getIccUriBySubscription(mSubscription),
             values, null, null);
     }  
     
@@ -272,32 +304,6 @@ public class ManageSimMessages extends Activity
                         }
                     });
                     updateState(SHOW_LIST);
-
-                    /*  set messages as read  */
-                    String indexString;
-                    String statusString;
-                    do
-                    {
-                        indexString = cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
-                        statusString = cursor.getString(cursor.getColumnIndexOrThrow("status_on_icc"));
-                        
-                        if(statusString.equals(Integer.toString(MessageUtils.STATUS_ON_SIM_UNREAD)))
-                        {
-                            mSelectedIndexs.add(indexString);
-                        }                   
-                    }while (cursor.moveToNext());  
-
-                    new Thread(new Runnable() {
-                        public void run() {
-                            for(String indexString : mSelectedIndexs)
-                            {
-                                setMessageRead(ManageSimMessages.this, indexString);
-                            }
-
-                            //MessagingNotification.blockingUpdateNewMessageOnIccIndicator(ManageSimMessages.this, mSubscription);                            
-                        }
-                    }).start();  
-                            
                 } else {
                     mListAdapter.changeCursor(mCursor);
                     updateState(SHOW_LIST);
@@ -609,16 +615,22 @@ public class ManageSimMessages extends Activity
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        MessagingNotification.setCurrentlyDisplayedCardList(false);
+        
+        if (mCursor != null && !mCursor.isClosed()) {
+            mCursor.close();
+        }
+    }
+
+    @Override
     public void onDestroy() {
         mContentResolver.unregisterContentObserver(simChangeObserver);
         mContentResolver.unregisterContentObserver(mContactsChangedObserver);
         unregisterReceiver(mIccStateChangedReceiver);
-        MessagingNotification.setCurrentlyDisplayedCardList(false);
+
         super.onDestroy();
-        if(mCursor != null)
-        {
-            mCursor.close();
-        }
     }
 
     @Override
@@ -920,6 +932,12 @@ public class ManageSimMessages extends Activity
     @Override
     protected void onStart() {
         super.onStart();
+        MessagingNotification.setCurrentlyDisplayedCardList(true);
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                SIM_FULL_NOTIFICATION_ID);
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                MessagingNotification.getNotificationIDBySubscription(mSubscription));
+        setMessageRead(this);
         
         // if updateContacts call before this method, it will doesn't work well,
         // need updateContacts again.

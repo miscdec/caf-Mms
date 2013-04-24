@@ -125,6 +125,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final int MENU_DELIVERY_REPORT  =  20;       
     private static final int MENU_ONE_CALL                 = 21;   
     private static final int MENU_COPY_TO_SDCARD  = 22;  
+    private static final int MENU_MMS_VIEW_ATTACHMENT  = 23;  
  
  private static final int SHOW_TOAST = 10;
  private static final int SHOW_MEDIA_CONTROLLER = 3;
@@ -278,7 +279,7 @@ public class SlideshowActivity extends Activity implements EventListener {
                 // Use SmilHelper.getDocument() to ensure rebuilding the
                 // entire SMIL document.
                 mSmilDoc = SmilHelper.getDocument(model);
-                if (isMMSConformance(mSmilDoc)) {
+                /*if (isMMSConformance(mSmilDoc)) {
                     int imageLeft = 0;
                     int imageTop = 0;
                     int textLeft = 0;
@@ -297,7 +298,7 @@ public class SlideshowActivity extends Activity implements EventListener {
                         }
                     }
                     mSlideView.enableMMSConformanceMode(textLeft, textTop, imageLeft, imageTop);
-                }
+                }*/
                 if (DEBUG) {
                     ByteArrayOutputStream ostream = new ByteArrayOutputStream();
                     SmilXmlSerializer.serialize(mSmilDoc, ostream);
@@ -768,37 +769,6 @@ public class SlideshowActivity extends Activity implements EventListener {
              return mLastPduBody;
         }
     };
-
-      
-      
-      
-      private boolean sdcardCanuse(){
-      
-       if(isSDCardExist()){
-           File mVcardDirectory = new File("/sdcard/"); 
-           StatFs fs = new StatFs(mVcardDirectory.getAbsolutePath());
-           long blocks = fs.getAvailableBlocks();
-           long blockSize = fs.getBlockSize();
-           return (blocks*blockSize)>(50*1024);
-       }
-       return false;
-      }
-      
-      private final boolean isSDCardExist() {
-              boolean ret = true;
-              String status = Environment.getExternalStorageState();
-              if (status.equals(Environment.MEDIA_REMOVED) 
-                  ||status.equals(Environment.MEDIA_BAD_REMOVAL)
-                  ||status.equals(Environment.MEDIA_CHECKING)
-                  ||status.equals(Environment.MEDIA_SHARED)
-                  ||status.equals(Environment.MEDIA_UNMOUNTED)
-                  ||status.equals(Environment.MEDIA_NOFS)
-                  ||status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
-                  ||status.equals(Environment.MEDIA_UNMOUNTABLE)) {
-                  ret = false; 
-              }
-              return ret;
-          }  
       
       /**
       check whether the part contains video media
@@ -893,121 +863,145 @@ public class SlideshowActivity extends Activity implements EventListener {
           return file;
       }
        private boolean copyPart(PduPart part, String fallback) {
-          Uri uri = part.getDataUri();
-          String dir;
-          String subPath;
-      
-          InputStream input = null;
-          FileOutputStream fout = null;
-          String mimeType = new String(part.getContentType());
-          try {
-              input = getContentResolver().openInputStream(uri);
-              if (input instanceof FileInputStream) {
-                  FileInputStream fin = (FileInputStream) input;
-      
-                  byte[] location = part.getName();
-                  if (location == null) {
-                      location = part.getFilename();
-                  }
-                  if (location == null) {
-                      location = part.getContentLocation();
-                  }
-      
-                  String fileName;
-                  if (location == null) {
-                      // Use fallback name.
-                      fileName = fallback;
-                  } else {
-                      fileName = new String(location);
-                  }
-      
-                    if(mimeType.startsWith("image")){
-                        subPath = "/Picture/";
-                    }else if(mimeType.startsWith("audio") || isMusic(part)){
-                        subPath = "/Audio/";
-                    }else if(mimeType.startsWith("video") || isVideo(part)){
-                        subPath = "/Video/";
-                    }else if(-1 != mimeType.indexOf(VCALENDAR)){
-                        subPath = "/Other/vCalendar/";
-                        final String dir_vcal_path="/sdcard/Other/vCalendar/";
-                        File dirFile=new File(dir_vcal_path);
-                        if(!dirFile.exists()){
-                            if(!dirFile.mkdirs()){
-                                return false;
-                            }
+        Uri uri = part.getDataUri();
+        String dir ;
+        InputStream input = null;
+        FileOutputStream fout = null;
+        String mimeType = new String(part.getContentType());
+        try { 
+                byte[] location = part.getContentLocation();
+                if (location == null) {
+                    location = part.getName();
+                }
+                if (location == null) {
+                    location = part.getFilename();
+                }
+
+                if (null == location){
+                    Log.w(TAG,"can't get file name");
+                    location = new String("Unknown").getBytes();
+                }
+                                                
+                // Depending on the location, there may be an
+                // extension already on the name or not
+                //wxj modify 
+                String fileName = new String(location);
+                String subPath;
+
+                if(mimeType.startsWith("image")){
+                    subPath = "/Picture/";
+                }else if(mimeType.startsWith("audio") || isMusic(part)){
+                    subPath = "/Audio/";
+                }else if(mimeType.startsWith("video") || isVideo(part)){
+                    subPath = "/Video/";
+                }else if(-1 != mimeType.indexOf(VCALENDAR)){
+                    subPath = "/Other/vCalendar/";
+                    final String dir_vcal_path="/sdcard/Other/vCalendar/";
+                    File dirFile=new File(dir_vcal_path);
+                    if(!dirFile.exists()){
+                        if(!dirFile.mkdirs()){
+                            //
+                            return false;
                         }
-                    }else{
-                        subPath = "/Other/";
                     }
+                }else{
+                    subPath = "/Other/";
+                }
+                if(MessageUtils.sdcardCanuse())
+               //  dir = "/sdcard" + subPath;
+                                                
+                                                dir = Environment.getExternalStorageDirectory() + "/"
+                                                                           + Environment.DIRECTORY_DOWNLOADS  + "/";
+                else
+                {
+                     dir = Environment.getInternalStorageDirectory() + "/"+subPath;
+                    File dirFile1=new File(dir);
+                        if(!dirFile1.exists()){
+                        if(!dirFile1.mkdirs()){
+                            return false;
+                        }
+                    }
+
+                }
                     
-                   if(sdcardCanuse())
-                   
-                   dir = Environment.getExternalStorageDirectory() + "/"
-                              + Environment.DIRECTORY_DOWNLOADS  + "/";
-                   else
-                   {
-                       return false;
-                  
-                   }
-                  String extension;
-                  int index;
-                  if ((index = fileName.indexOf(".")) == -1) {
-                      String type = new String(part.getContentType());
-                      extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(type);
-                  } else {
-                      extension = fileName.substring(index + 1, fileName.length());
-                      fileName = fileName.substring(0, index);
-                  }
-      
-                  File file = getUniqueDestination(dir + fileName, extension);
-                  direction = file.getAbsolutePath();//dir + fileName;
-      
-                  // make sure the path is valid and directories created for this file.
-                  File parentFile = file.getParentFile();
-                  if (!parentFile.exists() && !parentFile.mkdirs()) {
-                      Log.e(TAG, "[MMS] copyPart: mkdirs for " + parentFile.getPath() + " failed!");
-                      return false;
-                  }
-      
-                  fout = new FileOutputStream(file);
-      
-                  byte[] buffer = new byte[8000];
-                  int size = 0;
-                  while ((size=fin.read(buffer)) != -1) {
-                      fout.write(buffer, 0, size);
-                  }
-      
-                  // Notify other applications listening to scanner events
-                  // that a media file has been added to the sd card
-                  sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                          Uri.fromFile(file)));
-              }
-          } catch (IOException e) {
-              // Ignore
-              Log.e(TAG, "IOException caught while opening or reading stream", e);
-              return false;
-          } finally {
-              if (null != input) {
-                  try {
-                      input.close();
-                  } catch (IOException e) {
-                      // Ignore
-                      Log.e(TAG, "IOException caught while closing stream", e);
-                      return false;
-                  }
-              }
-              if (null != fout) {
-                  try {
-                      fout.close();
-                  } catch (IOException e) {
-                      // Ignore
-                      Log.e(TAG, "IOException caught while closing stream", e);
-                      return false;
-                  }
-              }
-          }
-          return true;
-      }
+                /*
+                String fileName = new String(location);
+                String dir = "/sdcard/download/";
+                */
+                String extension;
+                int index;
+                if ((index = fileName.indexOf(".")) == -1) {
+                    String type = new String(part.getContentType());
+                    extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(type);
+                } else {
+                    extension = fileName.substring(index + 1, fileName.length());
+                    fileName = fileName.substring(0, index);
+                }
+                if(fileName.contains("/") || fileName.contains("*") || fileName.contains("?")
+                            || fileName.contains("\\") || fileName.contains("<") || fileName.contains(">")
+                            || fileName.contains("|") || fileName.contains(":")){
+                            fileName ="rename";
+                }
+                File file = getUniqueDestination(dir + fileName, extension);
+                direction = file.getAbsolutePath();//dir + fileName;
+
+                // make sure the path is valid and directories created for this file.
+                File parentFile = file.getParentFile();
+                if (!parentFile.exists() && !parentFile.mkdirs()) {
+                    Log.e(TAG, "[MMS] copyPart: mkdirs for " + parentFile.getPath() + " failed!");
+                    return false;
+                }
+
+                fout = new FileOutputStream(file);
+
+                if(mimeType.startsWith("text/plain")){
+                    fout.write(part.getData());
+                    // Notify other applications listening to scanner events
+                    // that a media file has been added to the sd card
+                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                            Uri.fromFile(file)));
+                } else{
+                    input = getContentResolver().openInputStream(uri);
+                    if (input instanceof FileInputStream) {
+                        FileInputStream fin = (FileInputStream) input;
+                        byte[] buffer = new byte[8000];
+                        int len = 0;
+                        while((len = fin.read(buffer)) != -1) {
+                            fout.write(buffer, 0, len);
+                        }
+
+                        // Notify other applications listening to scanner events
+                        // that a media file has been added to the sd card
+                        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                                Uri.fromFile(file)));
+                    }
+                }
+        } catch (IOException e) {
+            // Ignore
+            Log.e(TAG, "IOException caught while opening or reading stream", e);
+            return false;
+        } finally {
+            if (null != input) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    // Ignore
+                    Log.e(TAG, "IOException caught while closing stream", e);
+                    return false;
+                }
+            }
+            if (null != fout) {
+                try {
+                    fout.close();
+                } catch (IOException e) {
+                    // Ignore
+                    Log.e(TAG, "IOException caught while closing stream", e);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
         private boolean copyMedia(Uri uri) {
           boolean result = true;
           PduBody body = PduBodyCache.getPduBody(this, uri);
@@ -1098,13 +1092,16 @@ public class SlideshowActivity extends Activity implements EventListener {
                     menu.add(0, MENU_ONE_CALL, 0, R.string.menu_call);  
                }
             }
-            if(Mms.MESSAGE_BOX_INBOX == mMailboxId||mMailboxId==Mms.MESSAGE_BOX_SENT){
+            if(Mms.MESSAGE_BOX_INBOX == mMailboxId){
                 menu.add(0, MENU_REPLY, 0, R.string.menu_reply);
+                }
+            if(Mms.MESSAGE_BOX_INBOX == mMailboxId||mMailboxId==Mms.MESSAGE_BOX_SENT){
                 menu.add(0, MENU_MMS_FORWARD, 0, R.string.menu_forward);     
             }        
             if(Mms.MESSAGE_BOX_OUTBOX == mMailboxId || Mms.MESSAGE_BOX_SENT == mMailboxId){
                 menu.add(0, MENU_RESEND, 0, R.string.menu_resend);
                    } 
+            menu.add(0, MENU_MMS_VIEW_ATTACHMENT, 0, R.string.view_attachment);
             if(mMailboxId != Mms.MESSAGE_BOX_DRAFTS){
     
                 if(cursor.getInt(0) == 0 ){
@@ -1148,6 +1145,14 @@ public class SlideshowActivity extends Activity implements EventListener {
             viewMmsMessageAttachmentMobilepaper(this,msg,null,null,intent.getStringArrayListExtra("sms_id_list"),intent.getBooleanExtra("mms_report", false));
             finish();
             break;    
+        case MENU_MMS_VIEW_ATTACHMENT:{
+                Intent in = new Intent(this, AttachmentList.class);
+                long msgId = ContentUris.parseId(mUri);  
+                in.putExtra("msg_id", msgId);
+                startActivity(in);
+                finish();
+                break;
+            }
         case MENU_ONE_CALL:
             if(MessageUtils.isMultiSimEnabledMms())
             {
@@ -1222,7 +1227,7 @@ public class SlideshowActivity extends Activity implements EventListener {
             
                 int resId = R.string.copy_to_sdcard_direction_success ;
                 String direction1;
-                if(sdcardCanuse())
+                if(MessageUtils.sdcardCanuse())
                      direction1 = getResources().getString(resId) 
                                     + Environment.getExternalStorageDirectory() + "/"
                                     + Environment.DIRECTORY_DOWNLOADS + "/";

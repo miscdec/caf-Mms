@@ -49,6 +49,7 @@ import android.widget.FrameLayout;
 import java.io.InputStream;
 import android.content.ContentResolver;
 import android.text.util.Linkify;
+import android.text.TextUtils;
 /**
  * A basic view to show the contents of a slide.
  */
@@ -78,6 +79,7 @@ public class SlideView extends LinearLayout implements
     private boolean mConformanceMode;
     private MediaController mMediaController;
 
+    private int mVideoPosition = -1;
     MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
         public void onPrepared(MediaPlayer mp) {
             mIsPrepared = true;
@@ -133,7 +135,6 @@ public class SlideView extends LinearLayout implements
         
         if (mImageView == null) {
             mImageView = new ImageView(mContext);
-            mImageView.setPadding(0, 5, 0, 5);
             addView(mImageView, new LayoutParams(
                     LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             if (DEBUG) {
@@ -155,7 +156,6 @@ public class SlideView extends LinearLayout implements
             Log.v(TAG,"uri = " + uri);
             return false;
         }
-/*Start of  zhuzhongwei 2011.4.28*/
         int imageHeight = bitmap.getHeight();
         int imageWidth = bitmap.getWidth();        
         int newWidth = LayoutManager.getInstance().getLayoutParameters().getWidth();
@@ -200,7 +200,6 @@ public class SlideView extends LinearLayout implements
         Log.v(TAG," newHeight = " + newHeight
             + ";newWidth = " + newWidth
             + ";screenWidth = " + screenWidth);            
-/*End   of  zhuzhongwei 2011.4.28*/
         
         if (mImageView != null 
             && (mImageView instanceof GIFView)
@@ -398,73 +397,71 @@ public class SlideView extends LinearLayout implements
     }
 
     public void setText(String name, String text) {
-        if (!mConformanceMode) {
-            if (null == mScrollText) {
-                mScrollText = new ScrollView(mContext);
-                mScrollText.setScrollBarStyle(SCROLLBARS_OUTSIDE_INSET);
-                addView(mScrollText, new LayoutParams(
-                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-                if (DEBUG) {
-                    mScrollText.setBackgroundColor(0xFF00FF00);
-                }
-            }
-            if (null == mTextView) {
-                mTextView = new TextView(mContext);
-                mTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
-                mScrollText.addView(mTextView);
-            }
-            mScrollText.requestFocus();
+        if (null == name && (null == text || TextUtils.isEmpty(text))){
+            removeView(mTextView);
+            mTextView = null;
         }
+        if (null == mTextView) {
+
+            mTextView = new TextView(mContext);
+            mTextView.setTextIsSelectable(true);
+            addView(mTextView);
+
+        }
+
         mTextView.setAutoLinkMask(Linkify.ALL);
         mTextView.setLinksClickable(true);
+        mTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+        
         mTextView.setTelUrl("tels:");
-        mTextView.setWebUrl("www_custom:");
-        mTextView.setVisibility(View.VISIBLE);
-        mTextView.setTextExt(text);
-        // Let the text in Mms can be selected.
-        mTextView.setTextIsSelectable(true);
+        mTextView.setWebUrl("www_custom:");            
+        mTextView.requestFocus();
+        mTextView.setTextExt(text + "\n");
     }
 
     public void setTextRegion(int left, int top, int width, int height) {
-        // Ignore any requirement of layout change once we are in MMS conformance mode.
-        if (mScrollText != null && !mConformanceMode) {
-            mScrollText.setLayoutParams(new LayoutParams(width, height));
+        if (mTextView != null) {
+         int W = LayoutManager.getInstance().getLayoutParameters().getWidth();
+            if (left >= W){
+                left = 0;
+            }
+            
+            if (width > W){
+                width = W;                
+            }
+            mTextView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+            mTextView.setTextIsSelectable(true);
+            mTextView.setTextSize(18);              
         }
     }
 
     public void setVideoRegion(int left, int top, int width, int height) {
-        if (mVideoView != null && !mConformanceMode) {
-            mVideoView.setLayoutParams(new LayoutParams(width, height));
+        if (mVideoView != null) {
+            int W = LayoutManager.getInstance().getLayoutParameters().getWidth();
+            int H = LayoutManager.getInstance().getLayoutParameters().getHeight();
+            Log.v(TAG,"setVideoRegion " + left + " " + top + " " + width + " " + height + " Height=" + H + "w=" +W );
+
+            height = H / 2;
+            Log.v(TAG,"w = "+W+"height ="+height);
+            mVideoView.setLayoutParams(new LayoutParams(W, height));
         }
     }
 
     public void setImageVisibility(boolean visible) {
         if (mImageView != null) {
-            if (mConformanceMode) {
-                mImageView.setVisibility(visible ? View.VISIBLE : View.GONE);
-            } else {
-                mImageView.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
-            }
+            mImageView.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
         }
     }
 
     public void setTextVisibility(boolean visible) {
-        if (mConformanceMode) {
-            if (mTextView != null) {
-                mTextView.setVisibility(visible ? View.VISIBLE : View.GONE);
-            }
-        } else if (mScrollText != null) {
-            mScrollText.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+        if (mTextView != null) {
+            mTextView.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
         }
     }
 
     public void setVideoVisibility(boolean visible) {
         if (mVideoView != null) {
-            if (mConformanceMode) {
-                mVideoView.setVisibility(visible ? View.VISIBLE : View.GONE);
-            } else {
-                mVideoView.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
-            }
+            mVideoView.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
         }
     }
 
@@ -545,8 +542,14 @@ public class SlideView extends LinearLayout implements
     }
 
     public void reset() {
-        if (null != mScrollText) {
-            mScrollText.setVisibility(View.GONE);
+        ((FrameLayout)getParent()).scrollTo(0, 0);
+        ((FrameLayout)getParent()).scrollBy(0, 1);
+        setOrientation(VERTICAL);
+        setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        if (null != mTextView) {
+            //removeView(mTextView);
+            //mTextView = null;
+            mTextView.setVisibility(View.GONE);
         }
 
         if (null != mImageView) {
@@ -559,20 +562,11 @@ public class SlideView extends LinearLayout implements
 
         if (null != mVideoView) {
             stopVideo();
+            mVideoPosition = indexOfChild(mVideoView);
             mVideoView.setVisibility(View.GONE);
-          //  mVideoView = null;
+            mVideoView = null;
         }
-
-        if (null != mTextView) {
-            mTextView.setVisibility(View.GONE);
-        }
-
-        if (mScrollViewPort != null) {
-            mScrollViewPort.scrollTo(0, 0);
-            mScrollViewPort.setLayoutParams(
-                    new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        }
-
+        
     }
 
     public void setVisibility(boolean visible) {
@@ -594,136 +588,10 @@ public class SlideView extends LinearLayout implements
     public void setOnSizeChangedListener(OnSizeChangedListener l) {
         mSizeChangedListener = l;
     }
-
-    private class Position {
-        public Position(int left, int top) {
-            mTop = top;
-            mLeft = left;
-        }
-        public int mTop;
-        public int mLeft;
-    }
-
-    /**
-     * Makes the SlideView working on  MMSConformance Mode. The view will be
-     * re-layout to the linear view.
-     * <p>
-     * This is Chinese requirement about mms conformance.
-     * The most popular Mms service in China is newspaper which is MMS conformance,
-     * normally it mixes the image and text and has a number of slides. The
-     * AbsoluteLayout doesn't have good user experience for this kind of message,
-     * for example,
-     *
-     * 1. AbsoluteLayout exactly follows the smil's layout which is not optimized,
-     * and actually, no other MMS applications follow the smil's layout, they adjust
-     * the layout according their screen size. MMS conformance doc also allows the
-     * implementation to adjust the layout.
-     *
-     * 2. The TextView is fixed in the small area of screen, and other part of screen
-     * is empty once there is no image in the current slide.
-     *
-     * 3. The TextView is scrollable in a small area of screen and the font size is
-     * small which make the user experience bad.
-     *
-     * The better UI for the MMS conformance message could be putting the image/video
-     * and text in a linear layout view and making them scrollable together.
-     *
-     * Another reason for only applying the LinearLayout to the MMS conformance message
-     * is that the AbsoluteLayout has ability to play image and video in a same screen.
-     * which shouldn't be broken.
-     */
-    public void enableMMSConformanceMode(int textLeft, int textTop,
-            int imageLeft, int imageTop) {
-        mConformanceMode = true;
-        if (mScrollViewPort == null) {
-            mScrollViewPort = new ScrollView(mContext) {
-                private int mBottomY;
-                @Override
-                protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-                    super.onLayout(changed, left, top, right, bottom);
-                    if (getChildCount() > 0) {
-                        int childHeight = getChildAt(0).getHeight();
-                        int height = getHeight();
-                        mBottomY = height < childHeight ? childHeight - height : 0;
-                    }
-                }
-                @Override
-                protected void onScrollChanged(int l, int t, int oldl, int oldt) {
-                    // Shows MediaController when the view is scrolled to the top/bottom of itself.
-                    if (t == 0 || t >= mBottomY){
-                        if (mMediaController != null
-                                && !((SlideshowActivity) mContext).isFinishing()) {
-                            mMediaController.show();
-                        }
-                    }
-                }
-            };
-            mScrollViewPort.setScrollBarStyle(SCROLLBARS_INSIDE_OVERLAY);
-            mViewPort = new LinearLayout(mContext);
-            mViewPort.setOrientation(LinearLayout.VERTICAL);
-            mViewPort.setGravity(Gravity.CENTER);
-            mViewPort.setOnClickListener(new OnClickListener() {
-                public void onClick(View v) {
-                    if (mMediaController != null) {
-                        mMediaController.show();
-                    }
-                }
-            });
-            mScrollViewPort.addView(mViewPort, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT,
-                    LayoutParams.WRAP_CONTENT));
-            addView(mScrollViewPort);
-        }
-        // Layout views to fit the LinearLayout from left to right, then top to
-        // bottom.
-        TreeMap<Position, View> viewsByPosition = new TreeMap<Position, View>(new Comparator<Position>() {
-            public int compare(Position p1, Position p2) {
-                int l1 = p1.mLeft;
-                int t1 = p1.mTop;
-                int l2 = p2.mLeft;
-                int t2 = p2.mTop;
-                int res = t1 - t2;
-                if (res == 0) {
-                    res = l1 - l2;
-                }
-                if (res == 0) {
-                    // A view will be lost if return 0.
-                    return -1;
-                }
-                return res;
-            }
-        });
-        if (textLeft >=0 && textTop >=0) {
-            mTextView = new TextView(mContext);
-            mTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
-            mTextView.setTextSize(18);
-            mTextView.setPadding(5, 5, 5, 5);
-            viewsByPosition.put(new Position(textLeft, textTop), mTextView);
-        }
-
-        if (imageLeft >=0 && imageTop >=0) {
-            mImageView = new ImageView(mContext);
-            mImageView.setPadding(0, 5, 0, 5);
-            viewsByPosition.put(new Position(imageLeft, imageTop), mImageView);
-            // According MMS Conformance Document, the image and video should use the same
-            // region. So, put the VideoView below the ImageView.
-            mVideoView = new VideoView(mContext);
-            viewsByPosition.put(new Position(imageLeft + 1, imageTop), mVideoView);
-        }
-        for (View view : viewsByPosition.values()) {
-            if (view instanceof VideoView) {
-                mViewPort.addView(view, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
-                        LayoutManager.getInstance().getLayoutParameters().getHeight()));
-            } else {
-                mViewPort.addView(view, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
-                        LayoutParams.WRAP_CONTENT));
-            }
-            view.setVisibility(View.GONE);
-        }
-    }
-
+    @Override
     public void setVideoThumbnail(String name, Bitmap bitmap) {
     }
-    
+
     @Override
     public void setVcard(Uri lookupUri, String name) {
     }
