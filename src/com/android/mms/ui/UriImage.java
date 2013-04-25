@@ -249,7 +249,7 @@ public class UriImage {
         return part;
     }
 
-    private static final int NUMBER_OF_RESIZE_ATTEMPTS = 4;
+    private static final int NUMBER_OF_RESIZE_ATTEMPTS = 5;
 
     /**
      * Resize and recompress the image such that it fits the given limits. The resulting byte
