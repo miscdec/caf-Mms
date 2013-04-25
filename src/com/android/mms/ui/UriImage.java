@@ -53,6 +53,7 @@ public class UriImage {
     private String mSrc;
     private int mWidth;
     private int mHeight;
+	public static final String IMAGE_BMP        = "image/bmp";
 
     public UriImage(Context context, Uri uri) {
         if ((null == context) || (null == uri)) {
@@ -63,59 +64,73 @@ public class UriImage {
         if (scheme.equals("content")) {
             initFromContentUri(context, uri);
         } else if (uri.getScheme().equals("file")) {
-            initFromFile(context, uri);
+            initFromFile(uri);
         }
 
-        mContext = context;
-        mUri = uri;
-
-        decodeBoundsInfo();
-
-        if (LOCAL_LOGV) {
-            Log.v(TAG, "UriImage uri: " + uri + " mPath: " + mPath + " mWidth: " + mWidth +
-                    " mHeight: " + mHeight);
-        }
-    }
-
-    private void initFromFile(Context context, Uri uri) {
-        mPath = uri.getPath();
-        MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
-        String extension = MimeTypeMap.getFileExtensionFromUrl(mPath);
-        if (TextUtils.isEmpty(extension)) {
-            // getMimeTypeFromExtension() doesn't handle spaces in filenames nor can it handle
-            // urlEncoded strings. Let's try one last time at finding the extension.
-            int dotPos = mPath.lastIndexOf('.');
-            if (0 <= dotPos) {
-                extension = mPath.substring(dotPos + 1);
-            }
-        }
-        mContentType = mimeTypeMap.getMimeTypeFromExtension(extension);
-        // It's ok if mContentType is null. Eventually we'll show a toast telling the
-        // user the picture couldn't be attached.
-
-        buildSrcFromPath();
-    }
-
-    private void buildSrcFromPath() {
         mSrc = mPath.substring(mPath.lastIndexOf('/') + 1);
-
-        if(mSrc.startsWith(".") && mSrc.length() > 1) {
-            mSrc = mSrc.substring(1);
-        }
 
         // Some MMSCs appear to have problems with filenames
         // containing a space.  So just replace them with
         // underscores in the name, which is typically not
         // visible to the user anyway.
         mSrc = mSrc.replace(' ', '_');
+
+        mContext = context;
+        mUri = uri;
+
+        decodeBoundsInfo();
+    }
+
+    private String getFileExtensionFromUrl(String url){
+        if (url != null && url.length() > 0) {
+            int query = url.lastIndexOf('?');
+            if (query > 0) {
+                url = url.substring(0, query);
+            }
+            int filenamePos = url.lastIndexOf('/');
+            String filename =
+                0 <= filenamePos ? url.substring(filenamePos + 1) : url;
+
+            // if the filename contains special characters, we don't
+            // consider it valid for our matching purposes:
+            if (filename.length() > 0 ) {
+                int dotPos = filename.lastIndexOf('.');
+                if (0 <= dotPos) {
+                    return filename.substring(dotPos + 1);
+                }
+            }
+        }
+
+        return "";
+    }
+	
+    //private void initFromFile(Context context, Uri uri) {
+    private void initFromFile(Uri uri) {    
+        mPath = uri.getPath();
+        MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+        String extension = getFileExtensionFromUrl(uri.getPath().replace(' ', '_')).toLowerCase();
+        Log.v(TAG, "-------------extension =" + extension);
+        if (extension.equals("bmp")){
+            mContentType = IMAGE_BMP;
+        }else{
+            if (TextUtils.isEmpty(extension)) {
+                // getMimeTypeFromExtension() doesn't handle spaces in filenames nor can it handle
+                // urlEncoded strings. Let's try one last time at finding the extension.
+                int dotPos = mPath.lastIndexOf('.');
+                if (0 <= dotPos) {
+                    extension = mPath.substring(dotPos + 1);
+                }
+            }
+            mContentType = mimeTypeMap.getMimeTypeFromExtension(extension);
+            // It's ok if mContentType is null. Eventually we'll show a toast telling the
+            // user the picture couldn't be attached.
+        }  
     }
 
     private void initFromContentUri(Context context, Uri uri) {
-        ContentResolver resolver = context.getContentResolver();
-        Cursor c = SqliteWrapper.query(context, resolver,
+        Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
                             uri, null, null, null, null);
 
-        mSrc = null;
         if (c == null) {
             throw new IllegalArgumentException(
                     "Query on " + uri + " returns null result.");
@@ -137,33 +152,10 @@ public class UriImage {
                 mContentType = c.getString(
                         c.getColumnIndexOrThrow(Part.CONTENT_TYPE));
             } else {
-                filePath = uri.getPath();
-                try {
-                    mContentType = c.getString(
-                            c.getColumnIndexOrThrow(Images.Media.MIME_TYPE)); // mime_type
-                } catch (IllegalArgumentException e) {
-                    try {
-                        mContentType = c.getString(c.getColumnIndexOrThrow("mimetype"));
-                    } catch (IllegalArgumentException ex) {
-                        mContentType = resolver.getType(uri);
-                        Log.v(TAG, "initFromContentUri: " + uri + ", getType => " + mContentType);
-                    }
-                }
-
-                // use the original filename if possible
-                int nameIndex = c.getColumnIndex(Images.Media.DISPLAY_NAME);
-                if (nameIndex != -1) {
-                    mSrc = c.getString(nameIndex);
-                    if (!TextUtils.isEmpty(mSrc)) {
-                        // Some MMSCs appear to have problems with filenames
-                        // containing a space.  So just replace them with
-                        // underscores in the name, which is typically not
-                        // visible to the user anyway.
-                        mSrc = mSrc.replace(' ', '_');
-                    } else {
-                        mSrc = null;
-                    }
-                }
+                filePath = c.getString(
+                        c.getColumnIndexOrThrow(Images.Media.DATA));
+                mContentType = c.getString(
+                        c.getColumnIndexOrThrow(Images.Media.MIME_TYPE));
             }
             mPath = filePath;
             if (mSrc == null) {
@@ -409,6 +401,20 @@ public class UriImage {
         }
     }
 
+	private void buildSrcFromPath() {
+        mSrc = mPath.substring(mPath.lastIndexOf('/') + 1);
+
+        if(mSrc.startsWith(".") && mSrc.length() > 1) {
+            mSrc = mSrc.substring(1);
+        }
+
+        // Some MMSCs appear to have problems with filenames
+        // containing a space.  So just replace them with
+        // underscores in the name, which is typically not
+        // visible to the user anyway.
+        mSrc = mSrc.replace(' ', '_');
+    }
+		
     private byte[] getResizedImageData(int widthLimit, int heightLimit, int byteLimit) {
         int outWidth = mWidth;
         int outHeight = mHeight;
