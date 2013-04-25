@@ -40,6 +40,7 @@ public class AttachmentTypeSelectorAdapter extends IconListAdapter {
     public final static int RECORD_SOUND            = 5;
     public final static int ADD_SLIDESHOW           = 6;
     public final static int ADD_CONTACT_AS_VCARD           = 7;
+    public final static int ADD_OTHERS           = 8;
     
 
     public AttachmentTypeSelectorAdapter(Context context, int mode) {
@@ -80,6 +81,8 @@ public class AttachmentTypeSelectorAdapter extends IconListAdapter {
         addItem(data, context.getString(R.string.attach_add_contact_as_vcard),
                 R.drawable.ic_attach_capture_contact_vcard_holo_light, ADD_CONTACT_AS_VCARD);
 
+        addItem(data, context.getString(R.string.other),
+                R.drawable.ic_attachment_universal_small, ADD_OTHERS);
         return data;
     }
 

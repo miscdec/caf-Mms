@@ -131,6 +131,10 @@
     <string name="setRingtone_Ok">The ringtone is set sucessfully</string>
     <string name="setRingtone_failed">Failed to set the ringtone</string>
     <string name="setRingtone_failed_no_sd">Failed to set the ringtone.Please check SD Card</string>
+    <string name="type_file" msgid="8521556159545168441">"File"</string>
+    <string name="type_vcalendar" msgid="8521556159545168441">"Vcalendar"</string>
+    <string name="add_attachment_other">Add</string>
+    <string name="bt_file_not_exist">File is not exist or there is illegal char in the file name.</string>
 
     <string name="operation_success">Done!</string>
     <string name="operation_cancel">Canceled !</string>

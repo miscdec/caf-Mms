@@ -42,11 +42,15 @@ import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 
 import org.w3c.dom.events.Event;
+import com.google.android.mms.pdu.CharacterSets;
+import java.io.UnsupportedEncodingException;
 
 public class VcardModel extends MediaModel {
     private static final String TAG = MediaModel.TAG;
 
     private String mLookupUri = null;
+    private final int mCharset;    
+    private CharSequence mText;
 
     public VcardModel(Context context, Uri uri) throws MmsException {
         this(context, null, null, uri);
@@ -55,11 +59,60 @@ public class VcardModel extends MediaModel {
 
     public VcardModel(Context context, String contentType, String src, Uri uri) throws MmsException {
         super(context, SmilHelper.ELEMENT_TAG_REF, contentType, src, uri);
+        mCharset = CharacterSets.ISO_8859_1;
         if (!TextUtils.isEmpty(src)) {
             initLookupUri(uri);
         }
     }
+    public VcardModel(Context context, String contentType, String src,
+            int charset, byte[] data ) {
+        super(context, VCARD, contentType, src, data);
 
+        if (charset == CharacterSets.ANY_CHARSET) {
+            // By default, we use ISO_8859_1 to decode the data
+            // which character set wasn't set.
+            charset = CharacterSets.ISO_8859_1;
+        }
+        mCharset = charset;
+        mText = extractTextFromData(data);
+    }
+
+
+    public String getText() {
+        if (mText == null) {
+            mText = extractTextFromData(getData());
+        }
+        
+        // If our internal CharSequence is not already a String,
+        // re-save it as a String so subsequent calls to getText will
+        // be less expensive.
+        if (!(mText instanceof String)) {
+            mText = mText.toString();
+        }
+        
+        return mText.toString();
+    }
+
+    public int getCharset() {
+        return mCharset;
+    }
+
+    private CharSequence extractTextFromData(byte[] data) {
+        if (data != null) {
+            try {
+                if (CharacterSets.ANY_CHARSET == mCharset) {
+                    return new String(data); // system default encoding.
+                } else {
+                    String name = CharacterSets.getMimeName(mCharset);
+                    return new String(data, name);
+                }
+            } catch (UnsupportedEncodingException e) {
+                Log.e(TAG, "Unsupported encoding: " + mCharset, e);
+                return new String(data); // system default encoding.
+            }
+        }
+        return "";
+    }
     private void initModelFromUri(Uri uri) throws MmsException {
         mContentType = ContentType.TEXT_VCARD;
 
