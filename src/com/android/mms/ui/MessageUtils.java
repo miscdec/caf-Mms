@@ -681,6 +681,7 @@ public class MessageUtils {
         } else if (slide.hasVideo()) {
             mm = slide.getVideo();
         }else if (slide.hasVcard()) {
+        /*
                     mm = slide.getVcard();
                     String lookupUri = ((VcardModel) mm).getLookupUri();
         
@@ -696,6 +697,7 @@ public class MessageUtils {
                     // distinguish view vcard from mms or contacts.
                     intent.putExtra(VIEW_VCARD, true);
                     context.startActivity(intent);
+                    */
                     return;
                 }
 

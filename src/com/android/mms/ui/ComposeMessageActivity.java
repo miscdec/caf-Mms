@@ -3854,7 +3854,23 @@ public class ComposeMessageActivity extends Activity
                     String extraVCard = data.getStringExtra(MultiPickContactsActivity.EXTRA_VCARD);
                     if (extraVCard != null) {
                         Uri vcard = Uri.parse(extraVCard);
-                        addVcard(vcard);
+                        {
+                        InputStream vcardSream;
+                        try{
+                        vcardSream= getContentResolver().openInputStream(vcard);
+                        }catch (FileNotFoundException e) {
+                            Log.e(TAG, "Can't open file for OUTBOUND info " );
+                            return;
+                        } catch (SecurityException e) {
+                            Log.e(TAG, "Exception:");
+                            return;
+                        }
+                        FileInputStream fin = (FileInputStream) vcardSream;
+                        String fn = MessageUtils.getStringFromFile(fin);
+                        if(fn == null)
+                        return;
+                        addVcard(fn.getBytes());   
+                        }
                     }
                 }
                 break;
