@@ -171,6 +171,11 @@ public class MessageUtils {
     public static final String COPY_FAILURE_FULL = "content://sms/sim/full/failure";
     public static final String MULTI_SEL_KEY = "com.android.contacts.MULTI_SEL_KEY";
     public static int MAX_RECIPIENT = 100;
+
+    /*Ext action define as TelephonyIntents.ACTION_SIM_STATE_CHANGED + subID*/
+    public static final String ACTION_SIM_STATE_CHANGED0 = "android.intent.action.SIM_STATE_CHANGED0";
+    public static final String ACTION_SIM_STATE_CHANGED1 = "android.intent.action.SIM_STATE_CHANGED1";
+    
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
     // display names.
@@ -1997,6 +2002,7 @@ public class MessageUtils {
     public static boolean isCMCCTest(){
         return SystemProperties.getInt("ro.cmcc.test", 0) == 1;
     }
+    
     private static boolean isSDCardExist() {
         boolean ret = true;
         String status = Environment.getExternalStorageState();
