@@ -217,7 +217,6 @@ public class SlideshowModel extends Model
         for(int i = 0; i < num; i++){
             
             part = pb.getPart(i);
-            //moushanli mod 2012.3.20 for vcard canbe save by conversation mod
             Log.v(TAG,"partType  ="+new String(part.getContentType()));
             byte[] location = part.getName();
             
