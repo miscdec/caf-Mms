@@ -154,8 +154,9 @@ public class ManageSimMessages extends Activity
 
         init();
         registerSimChangeObserver();
-        registerReceiver(mIccStateChangedReceiver, 
-            new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
+        registerReceiver(mIccStateChangedReceiver, new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
+        registerReceiver(mIccStateChangedReceiver, new IntentFilter(MessageUtils.ACTION_SIM_STATE_CHANGED0));
+        registerReceiver(mIccStateChangedReceiver, new IntentFilter(MessageUtils.ACTION_SIM_STATE_CHANGED1));
 
     }
 
@@ -196,6 +197,26 @@ public class ManageSimMessages extends Activity
                 {
                     subscription = MessageUtils.SUB_INVALID;
                 }
+                
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) && subscription == mSubscription) {
+                    startQuery();
+                }
+            }
+            else if (MessageUtils.ACTION_SIM_STATE_CHANGED0.equals(action)) {        
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " 
+                    + intent + ", stateExtra = " + stateExtra); 
+                             
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) && subscription == mSubscription) {
+                    startQuery();
+                }
+            }
+            else if (MessageUtils.ACTION_SIM_STATE_CHANGED1.equals(action)) {        
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " 
+                    + intent + ", stateExtra = " + stateExtra);
                 
                 if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) && subscription == mSubscription) {
                     startQuery();

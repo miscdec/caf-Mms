@@ -414,7 +414,7 @@ public class PushReceiver extends BroadcastReceiver {
     }
 
     private void showNotificationMmsDeliveryStatus(DeliveryInd pdu, Uri uri) {
-        Log.v(TAG, "showNotificationMmsDeliveryStatus = " + pdu.getStatus());
+        Log.v(TAG, "showNotificationMmsDeliveryStatus = " + pdu.getStatus()+ ", uri.toString() = " + uri.toString());
         String ct = null;
         
         switch (pdu.getStatus()) {

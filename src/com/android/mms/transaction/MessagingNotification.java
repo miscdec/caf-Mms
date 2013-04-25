@@ -1011,7 +1011,10 @@ public class MessagingNotification {
         viewSimIntent.putExtra("message_type", "mms");
         viewSimIntent.putExtra("sub_id", MessageUtils.SUB_INVALID);
         viewSimIntent.setAction(Intent.ACTION_VIEW);
-        viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        //viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, 0, viewSimIntent, 0);
                   

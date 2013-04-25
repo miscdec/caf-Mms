@@ -382,7 +382,7 @@ public class SlideshowPresenter extends Presenter {
             // TODO:
         } else if (model instanceof SlideModel) {
             if (((SlideModel) model).isVisible()) {
-                mSlideModel = (SlideModel) model;//yinqi 2010-1-5
+                mSlideModel = (SlideModel) model;
                 mHandler.removeCallbacksAndMessages(null);
                 mHandler.post(new Runnable() {
                     public void run() {

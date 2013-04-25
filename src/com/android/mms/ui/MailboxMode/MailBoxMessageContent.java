@@ -139,6 +139,7 @@ public class MailBoxMessageContent extends Activity
     private int     mMailboxId;
     private int     mMsgType = Sms.MESSAGE_TYPE_INBOX;    
     private String  mTitle; 
+    private float mTextSize = 27;
     private boolean mLock = false;
     
     private int mSubID = MessageUtils.SUB_INVALID;
@@ -152,6 +153,7 @@ public class MailBoxMessageContent extends Activity
     private TextView mTimeDetailTextView;    
     private TextView mNumberView;   
     private TextView mSlotTypeView; 
+    MessageContentScrollView mScrollView;
 
     private static final int MENU_CALL_RECIPIENT    = Menu.FIRST;
     private static final int MENU_DELETE            = Menu.FIRST + 1;
@@ -165,10 +167,14 @@ public class MailBoxMessageContent extends Activity
     
     private BackgroundQueryHandler mBackgroundQueryHandler; 
     private static final int DELETE_MESSAGE_TOKEN  = 6701;
-    
-    private static final int OPERATE_DEL_SINGLE_OVER = 1;
-    private static final int UPDATE_TITLE            = 2;
+
+    private static final int SHOWPREMSG              = 1;
+    private static final int SHOWNEXTMSG             = 2;
     private static final int SHOW_TOAST              = 3;
+    private static final int ZOOMIN                  = 4;
+    private static final int ZOOMOUT                 = 5;
+    private static final int OPERATE_DEL_SINGLE_OVER = 6;
+    private static final int UPDATE_TITLE            = 7;
 
     ProgressDialog mProgressDialog = null; 
     private SetReadThread mSetReadThread = null;//new SetReadThread();
@@ -698,16 +704,15 @@ public class MailBoxMessageContent extends Activity
         mBodyTextView.setTextIsSelectable(true);
         mBodyTextView.setTelUrl("tels:");
         mBodyTextView.setWebUrl("www_custom:");
-        mScaleDetector = new ScaleGestureDetector(this, new MyScaleListener());
+        mScrollView = (MessageContentScrollView) findViewById(R.id.scroll_view);     
+        mScrollView.setHandler(this, uihandler);
+        
         mFromTextView = (TextView) findViewById(R.id.TextViewFrom);
         mNumberView = (TextView) findViewById(R.id.TextViewNumber); 
         mNumberView.setTelUrl("tels:"); 
         mTimeTextView = (TextView) findViewById(R.id.TextViewTime);
         mTimeDetailTextView = (TextView) findViewById(R.id.TextViewTimeDetail);  
         mSlotTypeView = (TextView) findViewById(R.id.TextViewSlotType);
-        
-        mGestureDetector = new GestureDetector(this, new ModeGestureListener());
-        //mGestureDetector.setOnDoubleTapListener(null); 
         
         if (null != intent.getAction())
         {
@@ -950,6 +955,29 @@ public class MailBoxMessageContent extends Activity
                     finish();
                     break;
                 }
+
+                case ZOOMIN:
+                {
+                    zoomIn();
+                    mScrollView.invalidate();
+                    break;
+                }
+                
+                case ZOOMOUT:
+                {
+                    zoomOut();
+                    mScrollView.invalidate();
+                    break;
+                }
+                
+                case SHOWPREMSG:
+                    showPreviousMsg();
+                    break;
+                    
+                case SHOWNEXTMSG:
+                    showNextMsg();
+                    break;
+                
                 default:
                     break;
             }
@@ -1015,39 +1043,6 @@ public class MailBoxMessageContent extends Activity
         super.onRestart();
     }    
 
-    /*Operations for gesture to scale the current text fontsize of content*/
-    private float mScaleFactor = 1;
-    private  ScaleGestureDetector mScaleDetector;
-    private  GestureDetector mGestureDetector;
-    private static int HORIZONTAL_SCROLL_THRESHOLD = 50;
-    private int mHandlerMsg = -1;
-    private final int ZOOMIN = 0;
-    private final int ZOOMOUT = 1;
-    private float mTextSize = 27;
-
-    private Handler mHandler = new Handler()
-    {
-        @Override
-        public void handleMessage(Message msg)
-        {
-            switch (msg.what)
-            {
-                case ZOOMIN:
-                    zoomIn();
-                    mBodyTextView.invalidate();
-                    break;
-                    
-                case ZOOMOUT:
-                    zoomOut();
-                    mBodyTextView.invalidate();
-                    break;
-                    
-                default:
-                    break;
-            }
-        }
-    };
-
     private void zoomIn()
     {
         mTextSize = mTextSize + 9 <= 60 ? mTextSize + 9 : 60;
@@ -1067,7 +1062,7 @@ public class MailBoxMessageContent extends Activity
            mTextSize = 20;
         }           
         mBodyTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,mTextSize);      
-        Log.d(TAG,"+++++++++++zoomin:" + mTextSize);
+        Log.d(TAG,"+++++++++++zoomOut:" + mTextSize);
     }    
 
     private void showPreviousMsg()
@@ -1188,154 +1183,6 @@ public class MailBoxMessageContent extends Activity
                 }
             }            
         }          
-    }
+    } 
     
-    private class MyScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
-        
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-        float scale = detector.getScaleFactor();
-            if(scale < 0.999999 || scale > 1.00001)
-            {
-                mScaleFactor = scale;
-            }
-            return true;
-        }
-
-        @Override
-        public boolean onScaleBegin(ScaleGestureDetector detector) {
-            Log.d(TAG,"+++++++++++++onScaleBegin+++++++++++++++++");
-            return true;
-        }
-
-        @Override
-        public void onScaleEnd(ScaleGestureDetector detector) {
-            float scale = detector.getScaleFactor();
-            if(mScaleFactor > 1.0)
-            {
-                mHandlerMsg = ZOOMIN;
-            }
-            else if(mScaleFactor < 1.0)
-            {
-                mHandlerMsg = ZOOMOUT;
-            }
-        }
-    }
-
-    class ModeGestureListener extends GestureDetector.SimpleOnGestureListener {
-        @Override
-        public boolean onSingleTapUp(MotionEvent ev) {
-            return false;
-        }
-
-        @Override
-        public void onLongPress(MotionEvent ev) {
-        
-        }
-
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            return false;
-        }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            if (e1 == null || e2 == null)
-            {              
-                return false;
-            }            
-
-            int deltaX = (int) e2.getX() - (int) e1.getX();
-            int distanceX = Math.abs(deltaX);    
-            int deltaY = (int) e2.getY() - (int) e1.getY();
-            int distanceY = Math.abs(deltaY);            
-            final float absX = Math.abs(velocityX);
-            Log.d(TAG, "++++++++onFling : distanceX = " + distanceX + ",distanceY = " + distanceY);
-            
-            if ((distanceX >= HORIZONTAL_SCROLL_THRESHOLD) && (distanceX > distanceY) && (deltaX >= 0)) 
-            {
-                showPreviousMsg();                
-
-                return true;
-            }      
-            if ((distanceX >= HORIZONTAL_SCROLL_THRESHOLD) && (distanceX > distanceY) && (deltaX < 0)) 
-            {
-                showNextMsg();                
-
-                return true;
-            }      
-            
-            return false;
-        }
-
-        @Override
-        public boolean onSingleTapConfirmed(MotionEvent e) {
-            return super.onSingleTapConfirmed(e); 
-        }
-
-        @Override
-        public boolean onDown(MotionEvent ev) {
-            return false;
-        }
-    }    
-
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
-        mScaleDetector.onTouchEvent(ev);
-        final int action = ev.getAction();
-        switch (action) {
-            case MotionEvent.ACTION_DOWN:
-                mGestureDetector.onTouchEvent(ev);
-                return false;
-
-            case MotionEvent.ACTION_MOVE:
-               mGestureDetector.onTouchEvent(ev);
-               return false;
-
-            case MotionEvent.ACTION_UP:
-                mGestureDetector.onTouchEvent(ev); 
-                Message msg = Message.obtain();
-                msg.what = mHandlerMsg;
-                mHandler.sendMessage(msg);
-                mHandlerMsg = -1;
-                return false;
-        }
-        return true;
-    }
-
-    public boolean onTouchEvent(MotionEvent ev) {   
-        mScaleDetector.onTouchEvent(ev);
-        final int action = ev.getAction();
-    
-        switch (action) {
-            case MotionEvent.ACTION_DOWN:
-                mGestureDetector.onTouchEvent(ev);
-                return true;
-    
-            case MotionEvent.ACTION_MOVE:
-               mGestureDetector.onTouchEvent(ev);
-               return true;
-               
-            case MotionEvent.ACTION_UP:
-                mGestureDetector.onTouchEvent(ev); 
-                Message msg = Message.obtain();
-                msg.what = mHandlerMsg;
-                mHandler.sendMessage(msg);
-                mHandlerMsg = -1;
-                return true;
-    
-            case MotionEvent.ACTION_CANCEL:
-                
-                mGestureDetector.onTouchEvent(ev);
-                return true;
-                
-            default:
-                if (mGestureDetector.onTouchEvent(ev)) 
-                {
-                    return true;
-                }
-                
-           return true;
-        }
-    }
-
 }
