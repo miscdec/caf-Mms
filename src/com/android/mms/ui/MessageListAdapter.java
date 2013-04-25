@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
- * Copyright (C) 2010-2012, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2010-2013, The Linux Foundation. All rights reserved.
  * Not a Contribution, Apache license notifications and license are retained
  * for attribution purposes only
  *
@@ -310,7 +310,8 @@ public class MessageListAdapter extends CursorAdapter {
             if (cursor.moveToFirst()) {
                 do {
                     long id = cursor.getLong(mRowIDColumn);
-                    if (id == item.mMsgId) {
+                    String type = cursor.getString(mColumnsMap.mColumnMsgType);
+                    if ((id == item.mMsgId) && type.equals(item.mType)) {
                         return cursor;
                     }
                 } while (cursor.moveToNext());
