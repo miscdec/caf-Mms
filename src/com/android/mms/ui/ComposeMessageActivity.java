@@ -3187,6 +3187,11 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor != null) {
             mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
             mRecipientsEditor.setVisibility(View.GONE);
+            if(mRecipientsPicker!=null)
+                mRecipientsPicker.setVisibility(View.GONE);
+            if(mRecipientsPickerGroups!=null)
+                mRecipientsPickerGroups.setVisibility(View.GONE);
+            
             hideOrShowTopPanel();
         }
     }
