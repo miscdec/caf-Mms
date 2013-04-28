@@ -58,7 +58,6 @@ public class MediaModelFactory {
         PduPart part = null;
 
         if (src != null) {
-            src = unescapeXML(src);
             if (src.startsWith("cid:")) {
                 part = pb.getPartByContentId("<" + src.substring("cid:".length()) + ">");
             } else {
@@ -75,7 +74,65 @@ public class MediaModelFactory {
         if (part != null) {
             return part;
         }
+        
+        int partNum = pb.getPartsNum();
+        int index = src.indexOf(".");
+        android.util.Log.v(TAG, "looking for " + src);
+        //android.util.Log.v(TAG,"--------------");
+        for(int i = 0; i < partNum; i++) {
+            part = pb.getPart(i);
+            byte[] location = part.getContentLocation();
 
+            if (location == null) {
+            	location = part.getName();
+            }
+            if (location == null) {
+                location = part.getFilename();
+            }
+            if (location == null){
+            	continue;
+            }   
+            
+            String fileName = new String(location);
+            android.util.Log.v(TAG, "filename="+fileName);
+            
+            if (fileName.equals(src) 
+                || (index >= 0 && src.substring(0, index).equals(fileName))){
+                return part;
+            }
+        }
+        
+        //
+        
+        String cid = "<" + src + ">";            
+        android.util.Log.v(TAG, "now you have to guess cid=" + cid);
+        part = pb.getPartByContentId(cid);
+
+        if (null != part){
+            android.util.Log.v(TAG,"find part by cid");
+            return part;
+        }else{ 
+            /* lixin add for look part with name use cid 2012.7.19 cid: <abc> content Location: abc.jpg */
+            int posEnd = src.lastIndexOf(".");
+            if(posEnd>0){
+                String subStr = src.substring(0, posEnd); /* reduce suffix */
+                String subCid = "<" + subStr + ">";
+                android.util.Log.v(TAG, "Cindy100 reduce suffix cid=" + subCid);
+                part = pb.getPartByContentId(subCid);
+                if (null != part){
+                    android.util.Log.v(TAG,"Cindy100 find part by subCid");
+                    return part;
+                }
+            }
+        } /* lixin add end */
+        
+        if(part == null){
+            part = pb.getPartByContentId(src);
+            if (null != part){
+                return part;
+            } 
+        }
+        
         throw new IllegalArgumentException("No part found for the model.");
     }
 

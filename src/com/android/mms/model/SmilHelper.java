@@ -65,6 +65,7 @@ public class SmilHelper {
     public static final String ELEMENT_TAG_AUDIO = "audio";
     public static final String ELEMENT_TAG_VIDEO = "video";
     public static final String ELEMENT_TAG_REF = "ref";
+    public static final String ELEMENT_TAG_FILE = "file";
 
     private SmilHelper() {
         // Never instantiate this class.
@@ -204,7 +205,7 @@ public class SmilHelper {
         boolean hasMedia = false;
         for (int i = 0; i < partsNum; i++) {
             // Create new <par> element.
-            if ((par == null) || (hasMedia && hasText)) {
+            if ((par == null) || (hasMedia || hasText)) {
                 par = addPar(document);
                 hasText = false;
                 hasMedia = false;

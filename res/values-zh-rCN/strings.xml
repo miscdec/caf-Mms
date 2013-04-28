@@ -369,6 +369,11 @@
     <string name="setRingtone_failed">设置铃声失败</string>
     <string name="setRingtone_failed_no_sd">设置铃声失败，请检查SD卡是否存在</string>
     <string name="max_recipient">收件人最多100个！</string>           
+    <string name="type_file" msgid="8521556159545168441">"文件"</string>
+    <string name="type_vcalendar" msgid="8521556159545168441">"日程"</string>
+    <string name="add_attachment_other">添加</string>
+    <string name="bt_file_not_exist">"文件不存在，或者文件名包含特殊字符。"</string>
+    <string name="other">其它</string>
 
     <!-- Subscription selection strings -->
     <string name="select_subscription_title">"选择卡槽"</string>

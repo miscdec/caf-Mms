@@ -32,6 +32,7 @@ import com.qrd.plugin.feature_query.FeatureQuery;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -208,6 +209,8 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_PICK             = 109;
     public static final int REQUEST_CODE_RECIPIENT_PICKER             = 110;
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD    = 111;
+    public static final int REQUEST_CODE_SELECT_FILE    = 112;
+    
 
     private static final String TAG = "Mms/compose";
 
@@ -2173,7 +2176,9 @@ public class ComposeMessageActivity extends Activity
         int partNum = body.getPartsNum();
         for(int i = 0; i < partNum; i++) {
             PduPart part = body.getPart(i);
-
+            String mimeType = new String(part.getContentType());
+             if(mimeType.equals("application/smil"))
+                continue;
             // all parts have to be successful for a valid result.
             result &= copyPart(part, Long.toHexString(msgId));
         }
@@ -2226,10 +2231,8 @@ public class ComposeMessageActivity extends Activity
                     subPath = "/Other/";
                 }
                 if(MessageUtils.sdcardCanuse())
-               //  dir = "/sdcard" + subPath;
-                                                
-                                                dir = Environment.getExternalStorageDirectory() + "/"
-                                                                           + Environment.DIRECTORY_DOWNLOADS  + "/";
+                    dir = Environment.getExternalStorageDirectory() + "/"
+                                               + Environment.DIRECTORY_DOWNLOADS  + "/";
                 else
                 {
                      dir = Environment.getInternalStorageDirectory() + "/"+subPath;
@@ -2242,10 +2245,6 @@ public class ComposeMessageActivity extends Activity
 
                 }
                     
-                /*
-                String fileName = new String(location);
-                String dir = "/sdcard/download/";
-                */
                 String extension;
                 int index;
                 if ((index = fileName.indexOf(".")) == -1) {
@@ -3668,6 +3667,12 @@ public class ComposeMessageActivity extends Activity
                             REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD);
                     break;
 
+            case AttachmentTypeSelectorAdapter.ADD_OTHERS:{
+                Intent intent = new Intent("com.android.fileexplorer.action.FILE_SINGLE_SEL");
+                intent.putExtra( "ok_text", getString(R.string.add_attachment_other));
+                startActivityForResult(intent, REQUEST_CODE_SELECT_FILE);                
+                break;
+            }
             default:
                 break;
         }
@@ -3804,12 +3809,6 @@ public class ComposeMessageActivity extends Activity
             }
 
             case REQUEST_CODE_TAKE_VIDEO:
-                Uri videoUri = TempFileProvider.renameScrapFile(".3gp", null, this);
-                // Remove the old captured video's thumbnail from the cache
-                MmsApp.getApplication().getThumbnailManager().removeThumbnail(videoUri);
-
-                addVideoAsync(videoUri, false);      // can handle null videoUri
-                break;
 
             case REQUEST_CODE_ATTACH_VIDEO:
                 if (data != null) {
@@ -3856,10 +3855,50 @@ public class ComposeMessageActivity extends Activity
                     String extraVCard = data.getStringExtra(MultiPickContactsActivity.EXTRA_VCARD);
                     if (extraVCard != null) {
                         Uri vcard = Uri.parse(extraVCard);
-                        addVcard(vcard);
+                        {
+                        InputStream vcardSream;
+                        try{
+                        vcardSream= getContentResolver().openInputStream(vcard);
+                        }catch (FileNotFoundException e) {
+                            Log.e(TAG, "Can't open file for OUTBOUND info " );
+                            return;
+                        } catch (SecurityException e) {
+                            Log.e(TAG, "Exception:");
+                            return;
+                        }
+                        FileInputStream fin = (FileInputStream) vcardSream;
+                        String fn = MessageUtils.getStringFromFile(fin);
+                        if(fn == null)
+                        return;
+                        addVcard(fn.getBytes());   
+                        }
                     }
                 }
                 break;
+                case REQUEST_CODE_SELECT_FILE:{
+                    Log.v(TAG,"REQUEST_CODE_SELECT_FILE/addOthers type= " + data.getType());
+                    if(data.getData() == null)
+                    {
+                        return;
+                    }
+                    if(MessageUtils.isAvaliableUri(data.getData())){    
+                        addFile(data.getData());
+                    } else{
+                        AlertDialog receoverDialog=null;
+                            DialogInterface.OnClickListener listener_ok = new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                            
+                                }
+                        };
+                        receoverDialog = new AlertDialog.Builder(this)
+                             .setIcon(R.drawable.ic_dialog_alert_holo_light)
+                             .setMessage(R.string.bt_file_not_exist)
+                             .setPositiveButton(android.R.string.ok, listener_ok)
+                             .show(); 
+                        return;
+                    }
+                    break;
+                }
             default:
                 if (LogTag.VERBOSE) log("bail due to unknown requestCode=" + requestCode);
                 break;
@@ -3976,7 +4015,7 @@ public class ComposeMessageActivity extends Activity
                 try {
                     Uri dataUri = persister.persistPart(part,
                             ContentUris.parseId(messageUri), null);
-                    result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, dataUri, append);
+                    result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, dataUri, null,append);
                     if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                         log("ResizeImageResultCallback: dataUri=" + dataUri);
                     }
@@ -4042,7 +4081,7 @@ public class ComposeMessageActivity extends Activity
             log("addImage: append=" + append + ", uri=" + uri);
         }
 
-        int result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, uri, append);
+        int result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, uri, null,append);
 
         if (result == WorkingMessage.IMAGE_TOO_LARGE ||
             result == WorkingMessage.MESSAGE_SIZE_EXCEEDED) {
@@ -4067,14 +4106,28 @@ public class ComposeMessageActivity extends Activity
 
     private void addVideo(Uri uri, boolean append) {
         if (uri != null) {
-            int result = mWorkingMessage.setAttachment(WorkingMessage.VIDEO, uri, append);
+            int result = mWorkingMessage.setAttachment(WorkingMessage.VIDEO, uri, null,append);
             handleAddAttachmentError(result, R.string.type_video);
         }
     }
 
     private void addAudio(Uri uri) {
-        int result = mWorkingMessage.setAttachment(WorkingMessage.AUDIO, uri, false);
+        int result = mWorkingMessage.setAttachment(WorkingMessage.AUDIO, uri, null,false);
         handleAddAttachmentError(result, R.string.type_audio);
+    }
+
+    private void addFile(Uri uri){
+        if(uri == null)
+            return;
+        int result = mWorkingMessage.setAttachment(WorkingMessage.FILE, uri,null,false);
+        handleAddAttachmentError(result, R.string.type_file);
+    }
+    private void addVcalendar(byte[] data){
+        if(data == null)
+            return;
+        Log.v(TAG, "------addVcalendar    data.length   =" + data.length);
+        int result = mWorkingMessage.setAttachment(WorkingMessage.VCAlENDAR_ATTACHMENT, null, data, false);
+        handleAddAttachmentError(result, R.string.type_vcalendar);
     }
 
     AsyncDialog getAsyncDialog() {
@@ -4200,10 +4253,46 @@ public class ComposeMessageActivity extends Activity
             }else if (type.startsWith("audio/") ||
                     (wildcard && uri.toString().startsWith(mAudioUri))) {
                 addAudio(uri);
-            }else if (type.equals("text/x-vcard")
-                    || (wildcard && isVcardFile(uri))) {
-                addVcard(uri);
-            } 
+            }else if (type.startsWith(com.google.android.mms.ContentType.TEXT_VCARD)) {
+
+                String fn =uri.getPath();
+                fn = MessageUtils.getStringFromFile(fn);
+                if(fn == null)
+                    return;
+                addVcard(fn.getBytes());   
+            }else if (type.startsWith("text/x-vcard")){
+                InputStream vcardSream;
+                try{
+                vcardSream= getContentResolver().openInputStream(uri);
+                }catch (FileNotFoundException e) {
+                        Log.e(TAG, "Can't open file for OUTBOUND info " );
+                        return;
+                    } catch (SecurityException e) {
+                        Log.e(TAG, "Exception:");
+                        return;
+                    }
+                FileInputStream fin = (FileInputStream) vcardSream;
+                String fn = MessageUtils.getStringFromFile(fin);
+                if(fn == null)
+                    return;
+                addVcard(fn.getBytes());   
+            } else if (type.startsWith(com.google.android.mms.ContentType.TEXT_VCALENDAR)){
+                String fn = uri.getPath();
+
+                Log.v(TAG,"__________________fn  = " + fn);
+                fn = MessageUtils.getStringFromFile(fn);
+                if(fn == null)
+                    return;
+                addVcalendar(fn.getBytes()); 
+            }else if(type.startsWith("application/octet-stream"))
+            {
+                addFile(uri);
+            }else if (type.startsWith("text/")) { 
+                        addFile(uri); 
+            }
+            else if (type.startsWith("application/ogg")) { 
+                addAudio(uri); 
+                    }            
         }
     }
     private boolean isVcardFile(Uri uri) {
@@ -4212,7 +4301,14 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void addVcard(Uri uri) {
-        int result = mWorkingMessage.setAttachment(WorkingMessage.VCARD, uri, false);
+        int result = mWorkingMessage.setAttachment(WorkingMessage.VCARD, uri, null,false);
+        handleAddAttachmentError(result, R.string.type_vcard);
+    }
+    private void addVcard(byte[] data){
+        if(data == null)
+            return;
+        Log.v(TAG, "------addVcard     data.length   =" + data.length);
+        int result = mWorkingMessage.setAttachment(WorkingMessage.VCARD, null, data, false);
         handleAddAttachmentError(result, R.string.type_vcard);
     }
 
