@@ -1951,12 +1951,13 @@ public class MessageUtils {
     /* check to see whether short message count is up to 2000, add for cmcc test */
     public static void checkIsPhoneMessageFull(Context context)
     {
+        /*
         if(!isCMCCTest())
         {
             Log.d(TAG, "checkIsPhoneMessageFull : It's not in cmcc test!");
             return;
         }
-        
+        */
         if(isMultiSimEnabledMms())
         {
             checkIsSmsMessageFull(context, SUB1);
@@ -1980,6 +1981,11 @@ public class MessageUtils {
         boolean isPhoneMemoryFull = isPhoneMemoryFull();
         boolean isPhoneSmsCountFull = (msgCount >= MAX_SMS_MESSAGE_COUNT);
         boolean isPhoneFull = (isPhoneMemoryFull || isPhoneSmsCountFull);
+        if(!isCMCCTest())
+        {
+            isPhoneFull = (isPhoneMemoryFull);
+        }
+
         Log.d(TAG, "checkIsSmsMessageFull : isPhoneMemoryFull = " + isPhoneMemoryFull
             + ",isPhoneSmsCountFull = " + isPhoneSmsCountFull);
         checkModifyPreStore(context, isPhoneFull, subscription);
