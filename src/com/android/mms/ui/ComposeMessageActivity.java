@@ -902,7 +902,8 @@ public class ComposeMessageActivity extends Activity
         if (MessageUtils.getActivatedIccCardCount() > 1) {
             int preferredSub = getPreferredSubscription();
             boolean alwaysAsk = (preferredSub != MSimConstants.SUB1 && preferredSub != MSimConstants.SUB2);
-
+            Log.v(TAG,"preferredSub = " + preferredSub + ", alwaysAsk = " + alwaysAsk
+                 + ", mSendSubscription = " + mSendSubscription);
             if (alwaysAsk && mSendSubscription == SUBSCRIPTION_ID_INVALID) {
                 if (mChooseDialog == null || !mChooseDialog.isShowing()) {
                     LaunchChooseDialog(bCheckEcmMode, isMms);
@@ -918,8 +919,8 @@ public class ComposeMessageActivity extends Activity
                 sendMessage(bCheckEcmMode);
             }
         } else {
-            int preferredSmsSub = MSimSmsManager.getDefault().getPreferredSmsSubscription();
-            if(preferredSmsSub == ALWAY_ASK){
+            //int preferredSmsSub = MSimSmsManager.getDefault().getPreferredSmsSubscription();
+            /*if(preferredSmsSub == ALWAY_ASK){*/
                 int availableSub = getAvailableSub();
                 if(availableSub != -1){
                     mWorkingMessage.setCurrentConvSub(availableSub);
@@ -928,11 +929,11 @@ public class ComposeMessageActivity extends Activity
                     Toast.makeText(ComposeMessageActivity.this,R.string.cannot_send_message, Toast.LENGTH_LONG).show();
                     return;
                 }
-            }else{
+            /*}else{
                 mWorkingMessage.setCurrentConvSub(MSimSmsManager.getDefault()
                         .getPreferredSmsSubscription());
                 sendMessage(bCheckEcmMode);
-            }
+            }*/
         }
     }
 
@@ -1003,7 +1004,7 @@ public class ComposeMessageActivity extends Activity
         builder.setCancelable(false);
         if(MessageUtils.isMultiSimEnabledMms())
         {
-            if((MessageUtils.isIccCardActivated(subID))&&(!MessageUtils.isIccCardActivated(1-subID)))
+            //if((MessageUtils.isIccCardActivated(subID))&&(!MessageUtils.isIccCardActivated(1-subID)))
             {
                 builder.setMessage(getString(R.string.message_size_label)
                              + String.valueOf((mMmsCurrentSize+1023) / 1024)
