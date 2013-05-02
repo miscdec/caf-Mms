@@ -1017,7 +1017,7 @@ public class MessagingNotification {
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, 0, viewSimIntent, 0);
-        
+                  
         Notification notification = new Notification();
         notification.icon = android.R.drawable.stat_notify_chat;
         notification.tickerText = title;

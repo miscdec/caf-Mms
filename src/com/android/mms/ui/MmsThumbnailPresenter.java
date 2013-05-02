@@ -31,6 +31,7 @@ import com.android.mms.util.ThumbnailManager.ImageLoaded;
 import com.android.mms.model.VcardModel;
 import android.text.TextUtils;
 import android.net.Uri;
+import android.util.Log;
 
 public class MmsThumbnailPresenter extends Presenter {
     private static final String TAG = "MmsThumbnailPresenter";
@@ -39,6 +40,13 @@ public class MmsThumbnailPresenter extends Presenter {
 
     public MmsThumbnailPresenter(Context context, ViewInterface view, Model model) {
         super(context, view, model);
+    }
+    public void present() {
+        SlideModel slide = ((SlideshowModel) mModel).get(0);
+        if (slide != null) {
+            Log.v("MmsThumbnailPresenter", "_________________________present   slide != null");
+            presentFirstSlide((SlideViewInterface) mView, slide);
+        }
     }
 
     @Override
@@ -54,13 +62,19 @@ public class MmsThumbnailPresenter extends Presenter {
         view.reset();
 
         if (slide.hasImage()) {
+            Log.v("MmsThumbnailPresenter", "_________________________presentFirstSlide  hasImage");
+            view.setImageVisibility(true);
             presentImageThumbnail(view, slide.getImage());
         } else if (slide.hasVideo()) {
+            view.setImageVisibility(true);
             presentVideoThumbnail(view, slide.getVideo());
         } else if (slide.hasAudio()) {
+            Log.v("MmsThumbnailPresenter", "_________________________presentFirstSlide  hasAudio");
+            view.setImageVisibility(false);
             presentAudioThumbnail(view, slide.getAudio());
-        } else if (slide.hasVcard()) {
-            presentVcardThumbnail(view, slide.getVcard());
+        } else{
+            Log.v("MmsThumbnailPresenter", "_________________________presentFirstSlide  null");
+            view.setImageVisibility(false);
         }
     }
 
@@ -68,11 +82,6 @@ public class MmsThumbnailPresenter extends Presenter {
             new ItemLoadedCallback<ImageLoaded>() {
         public void onItemLoaded(ImageLoaded imageLoaded, Throwable exception) {
             if (exception == null) {
-                if (mItemLoadedFuture != null) {
-                    synchronized(mItemLoadedFuture) {
-                        mItemLoadedFuture.setIsDone(true);
-                    }
-                }
                 if (mOnLoadedCallback != null) {
                     mOnLoadedCallback.onItemLoaded(imageLoaded, exception);
                 } else {
