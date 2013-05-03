@@ -238,6 +238,13 @@ public class RecipientsEditor extends RecipientEditTextView {
         return false;
     }
 
+    public boolean hasEmail() {
+        if (TextUtils.indexOf(getText(), '@')>0)
+            return true;
+
+        return false;
+    }
+
     public static CharSequence contactToToken(Contact c) {
         SpannableString s = new SpannableString(c.getNameAndNumber());
         int len = s.length();
