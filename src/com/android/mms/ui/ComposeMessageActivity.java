@@ -2477,6 +2477,12 @@ public class ComposeMessageActivity extends Activity
                     RecipientsEditor editor = (RecipientsEditor) v;
                     ContactList contacts = editor.constructContactsFromInput(false);
                     updateTitle(contacts);
+                    updateTitle(contacts);
+                    if(mWorkingMessage != null && mWorkingMessage.getText() != null)
+                    {
+                        boolean ismms = contacts.containsEmail()||  editor.containsEmail();
+                        mWorkingMessage.setRecipientsRequireMms(ismms, true);
+                    }
                 }
             }
         });

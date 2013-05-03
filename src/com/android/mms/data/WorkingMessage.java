@@ -1159,6 +1159,9 @@ public class WorkingMessage {
                 notify);
     }
 
+    public void setRecipientsRequireMms(boolean RecipientsRequireMms, boolean notify ){
+        updateState(RECIPIENTS_REQUIRE_MMS, RecipientsRequireMms, notify);
+    }
     /**
      * Returns true if this message would require MMS to send.
      */
