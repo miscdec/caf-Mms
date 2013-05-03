@@ -261,6 +261,8 @@
     <string name="notification_failed_multiple" msgid="6192531993698497229">"<xliff:g id="COUNT">%s</xliff:g> 条短信无法发送"</string>
     <string name="notification_failed_multiple_title" msgid="1112032024904397126">"短信未发送"</string>
     <string name="sim_full_title" msgid="1809829051697702810">"SIM 卡已满"</string>
+    <string name="sim1_full_title">"SIM 卡1已满"</string>
+    <string name="sim2_full_title">"SIM 卡2已满"</string>
     <string name="sim_full_body" msgid="6241664980790322925">"删除部分信息以腾出更多空间。"</string>
     <string name="sms_full_title" msgid="6041287140125011854">"短信内存已满"</string>
     <string name="sms_full_body" msgid="4885861852397651868">"存储空间已满，无法接收信息，请删除部分旧信息。"</string>
