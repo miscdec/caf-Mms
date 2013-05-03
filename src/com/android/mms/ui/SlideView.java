@@ -86,6 +86,12 @@ public class SlideView extends LinearLayout implements
             if (mSeekWhenPrepared > 0) {
                 mAudioPlayer.seekTo(mSeekWhenPrepared);
                 mSeekWhenPrepared = 0;
+
+                // When reloading, display audio information
+                displayAudioInfo();
+                if (mMediaController != null) {
+                    mMediaController.show();
+                }
             }
             if (mStartWhenPrepared) {
                 mAudioPlayer.start();
@@ -330,23 +336,17 @@ public class SlideView extends LinearLayout implements
     }
 
     private void initAudioInfoView(String name) {
-        if (null == mAudioInfoView) {
-            LayoutInflater factory = LayoutInflater.from(getContext());
-            mAudioInfoView = factory.inflate(R.layout.playing_audio_info, null);
-            int height = mAudioInfoView.getHeight();
-            if (mConformanceMode) {
-                mViewPort.addView(mAudioInfoView, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
-                        AUDIO_INFO_HEIGHT));
-            } else {
-                addView(mAudioInfoView, new LayoutParams(
-                        LayoutParams.MATCH_PARENT, AUDIO_INFO_HEIGHT+20));
-                if (DEBUG) {
-                    mAudioInfoView.setBackgroundColor(0xFFFF0000);
-                }
-            }
-        }
+        LayoutInflater factory = LayoutInflater.from(getContext());
+        mAudioInfoView = factory.inflate(R.layout.playing_audio_info, null);
+        int height = mAudioInfoView.getHeight();
         TextView audioName = (TextView) mAudioInfoView.findViewById(R.id.name);
         audioName.setText(name);
+        addView(mAudioInfoView, new LayoutParams(
+                LayoutParams.FILL_PARENT, AUDIO_INFO_HEIGHT+20));
+        if (DEBUG) {
+            //mAudioInfoView.setBackgroundColor(0xFFFF0000);
+        }
+
         mAudioInfoView.setVisibility(View.GONE);
     }
 

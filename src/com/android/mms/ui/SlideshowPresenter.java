@@ -54,7 +54,7 @@ public class SlideshowPresenter extends Presenter {
 
     protected float mWidthTransformRatio = 1.0f;
     protected float mHeightTransformRatio = 1.0f;
-    private SlideModel mSlideModel;//yinqi add 2010-1-5
+    private SlideModel mSlideModel;
     private int mWidth = -1;
     private int mHeight = -1;
     //private static Bitmap mImageIcon;
@@ -138,12 +138,10 @@ public class SlideshowPresenter extends Presenter {
     public synchronized void presentSlide(SlideViewInterface view, SlideModel model) {
         setLocation(((SlideshowModel) mModel).indexOf(model));
         try {
-            //validate region(added by yinqi 2010-1-12)
             RegionModel textRm = null;
             RegionModel iRm = null;
             boolean textBottom = true;
             mSlideModel = model;
-			
             if (model.hasText() && (model.hasImage() || model.hasVideo())){
                 for (MediaModel media : model) {
                     if (media instanceof RegionMediaModel) {
@@ -265,7 +263,7 @@ public class SlideshowPresenter extends Presenter {
                 {
                     return;
                 }
-                //yinqi add, if there is no image media show text from the top left corner 2010-1-5
+                // if there is no image media show text from the top left corner 2010-1-5
                 if ( !mSlideModel.hasImage() && !mSlideModel.hasVideo()){
                     Log.v(TAG, "   view.getWidth() = "+view.getWidth()+"   view.getHeight() = "+view.getHeight());
                     ((AdaptableSlideViewInterface) view).setTextRegion(
