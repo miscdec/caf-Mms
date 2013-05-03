@@ -849,21 +849,23 @@ public class SlideshowModel extends Model
      * - It can optionally have a caption
     */
     public boolean isSimple() {
+        if (true)
+        {
+            return false;
+        }        
         // There must be one (and only one) slide.
         if (size() != 1)
             return false;
 
         SlideModel slide = get(0);
-        // The slide must have either an image or video or vcard, but not both.
-        if (!(((slide.hasImage() ? 1 : 0)
-                + (slide.hasVideo() ? 1 : 0)
-                + (slide.hasVcard() ? 1 : 0)) == 1))
+        // The slide must have either an image or video, but not both.
+        if (!(slide.hasImage() ^ slide.hasVideo()))
             return false;
-
+     
         // No audio allowed.
         if (slide.hasAudio())
             return false;
-
+        
         return true;
     }
 
