@@ -679,6 +679,8 @@
 
     <!-- Sim Full Notification dialog title. -->
     <string name="sim_full_title">SIM card full</string>
+    <string name="sim1_full_title">SIM card1 full</string>
+    <string name="sim2_full_title">SIM card2 full</string>
     <!-- Sim Full Notification dialog text. -->
     <string name="sim_full_body">Delete some messages to make room for more.</string>
 

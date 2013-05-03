@@ -211,7 +211,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 mVideo = null;
                 mCanAddImage = true;
                 mCanAddAudio = true;
-            } else if ( object instanceof MediaModel ){//yinqi add for vcard /vclalendar 2009-4-30
+            } else if ( object instanceof MediaModel ){
                 if ( ((MediaModel)object).getTag() == MediaModel.VCARD ){
                     mVcard = null;
                 } else if ( ((MediaModel)object).getTag() == MediaModel.VCALENDAR){
@@ -524,6 +524,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
     public boolean hasVcalendar() {
         return mVcalendar!= null;
     }
+
 
     public boolean hasFile(){
         return mFile != null;

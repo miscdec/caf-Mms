@@ -1,5 +1,4 @@
 /*
- * yinqi add this file for vcard attachment 2009-4-28
  */
 
 package com.android.mms.model;
