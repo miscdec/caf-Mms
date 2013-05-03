@@ -317,10 +317,13 @@ public class SlideView extends LinearLayout implements
     public void setVideo(String name, Uri video) {
         if (mVideoView == null) {
             mVideoView = new VideoView(mContext);
-            addView(mVideoView, new LayoutParams(
+            addView(mVideoView, mVideoPosition, new LayoutParams(
                     LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-            if (DEBUG) {
-                mVideoView.setBackgroundColor(0xFFFF0000);
+            mVideoView.setWillNotDraw(false); 
+                    
+            if (DEBUG) 
+            {
+                //mVideoView.setBackgroundColor(0xFFFF0000);
             }
         }
 
