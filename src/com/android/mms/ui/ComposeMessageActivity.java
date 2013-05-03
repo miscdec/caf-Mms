@@ -1128,7 +1128,7 @@ public class ComposeMessageActivity extends Activity
             mMsgListAdapter.setIsGroupConversation(multiRecipients);
             mWorkingMessage.setHasMultipleRecipients(multiRecipients, true);
             */
-            mWorkingMessage.setHasEmail(mRecipientsEditor.containsEmail(), true);
+            mWorkingMessage.setHasEmail(mRecipientsEditor.containsEmail()||mRecipientsEditor.hasEmail(), true);
 
             checkForTooManyRecipients();
 
@@ -2478,6 +2478,13 @@ public class ComposeMessageActivity extends Activity
                     RecipientsEditor editor = (RecipientsEditor) v;
                     ContactList contacts = editor.constructContactsFromInput(false);
                     updateTitle(contacts);
+                    updateTitle(contacts);
+                    if(mWorkingMessage != null && mWorkingMessage.getText() != null)
+                    {
+                        boolean ismms = contacts.containsEmail() ||  editor.hasEmail();
+                        mWorkingMessage.setRecipientsRequireMms(ismms, false);
+                        updateCounter(mWorkingMessage.getText(), 0, 0, mWorkingMessage.getText().length());
+                    }
                 }
             }
         });
