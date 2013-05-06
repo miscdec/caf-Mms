@@ -1047,13 +1047,14 @@
     <string name="operation_to_phone_memory"> to phone memory</string>
 
 
-    <!-- Settings item description for Mms Validity period  -->
+    <!-- Settings item description for Mms Validity period and long SMS convert-->
     <string name="pref_title_mms_save_time">Validity period</string>
     <string name="mms_one_week">One week</string>
     <string name="mms_two_days">Two days</string>
     <string name="mms_max">Maximum</string>
     <string name="save_description">How long the message will be stored in Server</string>
     <string name="status_expired">Mms expired</string>
-    
+    <string name="pref_summary_longsms_convert_sms">Convert long sms to mms when more than 6.</string>
+    <string name="pref_title_longsms_convert_sms">Long SMS to MMS</string>
 </resources>
 

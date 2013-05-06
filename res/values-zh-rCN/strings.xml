@@ -495,12 +495,14 @@
     <string name="phone_copy_to_card_memory">复制到SIM卡</string>
     <string name="operation_to_card_memory">到SIM卡</string>
     <string name="operation_to_phone_memory">到手机内存</string>
-	
-    <!-- Settings item description for Mms Validity period  -->
+
+    <!-- Settings item description for Mms Validity period and long SMS convert -->
     <string name="pref_title_mms_save_time">信息有效期</string>
     <string name="mms_one_week">一周</string>
     <string name="mms_two_days">两天</string>
     <string name="mms_max">最长</string>
     <string name="save_description">在服务器保存时间</string>
     <string name="status_expired">已过期</string>
+    <string name="pref_summary_longsms_convert_sms">当长短信长度超过6条时转为彩信。</string>
+    <string name="pref_title_longsms_convert_sms">长短信转彩信</string>
 </resources>
