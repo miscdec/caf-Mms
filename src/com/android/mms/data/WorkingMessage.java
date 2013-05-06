@@ -293,7 +293,10 @@ public class WorkingMessage {
         SlideModel slide = mSlideshow.get(0);
         // If we get an empty slideshow, tear down all MMS
         // state and discard the unnecessary message Uri.
-        if (slideCount == 0) {
+        if(mSlideshow.hasOctstream()){
+            mAttachmentType = SLIDESHOW;
+            }
+       else if (slideCount == 0) {
             removeAttachment(false);
         } else if (slideCount > 1) {
             mAttachmentType = SLIDESHOW;
@@ -1156,6 +1159,9 @@ public class WorkingMessage {
                 notify);
     }
 
+    public void setRecipientsRequireMms(boolean RecipientsRequireMms, boolean notify ){
+        updateState(RECIPIENTS_REQUIRE_MMS, RecipientsRequireMms, notify);
+    }
     /**
      * Returns true if this message would require MMS to send.
      */

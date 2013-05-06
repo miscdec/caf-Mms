@@ -2398,8 +2398,10 @@ public class ComposeMessageActivity extends Activity
                                                     // name available.
                 String number = list.get(0).getNumber();
                 if (!title.equals(number)) {
-                    subTitle = PhoneNumberUtils.formatNumber(number, number,
-                            MmsApp.getApplication().getCurrentCountryIso());
+                   // subTitle = PhoneNumberUtils.formatNumber(number, number,
+                      //      MmsApp.getApplication().getCurrentCountryIso());
+                      
+                subTitle = number;
                 }
                 break;
             }
@@ -2477,11 +2479,18 @@ public class ComposeMessageActivity extends Activity
                     RecipientsEditor editor = (RecipientsEditor) v;
                     ContactList contacts = editor.constructContactsFromInput(false);
                     updateTitle(contacts);
+                    updateTitle(contacts);
+                    if(mWorkingMessage != null && mWorkingMessage.getText() != null)
+                    {
+                        boolean ismms = contacts.containsEmail();
+                        mWorkingMessage.setRecipientsRequireMms(ismms, false);
+                        updateCounter(mWorkingMessage.getText(), 0, 0, mWorkingMessage.getText().length());
+                    }
                 }
             }
         });
 
-        PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(this, mRecipientsEditor);
+       // PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(this, mRecipientsEditor);
 
         mTopPanel.setVisibility(View.VISIBLE);
     }
@@ -3187,6 +3196,11 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor != null) {
             mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
             mRecipientsEditor.setVisibility(View.GONE);
+            if(mRecipientsPicker!=null)
+                mRecipientsPicker.setVisibility(View.GONE);
+            if(mRecipientsPickerGroups!=null)
+                mRecipientsPickerGroups.setVisibility(View.GONE);
+            
             hideOrShowTopPanel();
         }
     }
