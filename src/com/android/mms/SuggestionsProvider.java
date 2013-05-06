@@ -17,6 +17,9 @@
 package com.android.mms;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import android.util.Log;
+import java.util.Map;
 
 import android.app.SearchManager;
 import android.content.ContentResolver;
@@ -32,6 +35,14 @@ import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.content.Context;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.Data;
+import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.CommonDataKinds.StructuredName;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.telephony.PhoneNumberUtils;
+import android.provider.ContactsContract.PhoneLookup;
 
 /**
  * Suggestions provider for mms.  Queries the "words" table to provide possible word suggestions.
@@ -39,6 +50,7 @@ import android.text.TextUtils;
 public class SuggestionsProvider extends android.content.ContentProvider {
 
     final static String AUTHORITY = "com.android.mms.SuggestionsProvider";
+    final static String TAG = "SuggestionsProvider";
 //    final static int MODE = DATABASE_MODE_QUERIES + DATABASE_MODE_2LINES;
 
     public SuggestionsProvider() {
@@ -68,22 +80,130 @@ public class SuggestionsProvider extends android.content.ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection,
             String[] selectionArgs, String sortOrder) {
-        Uri u = Uri.parse(String.format(
-                "content://mms-sms/searchSuggest?pattern=%s",
-                selectionArgs[0]));
-        Cursor c = getContext().getContentResolver().query(
-                u,
-                null,
-                null,
-                null,
-                null);
+        String number = getAddressByName(getContext(), selectionArgs[0]);
+		Log.v(TAG, "query : the number:" + number);
+        if(TextUtils.isEmpty(number)){
+			Log.v(TAG, "query : the selectionArgs[0]" + selectionArgs[0]);
+	        Uri u = Uri.parse(String.format(
+	                "content://mms-sms/searchSuggest?pattern=%s",
+	                selectionArgs[0]));
+	        Cursor c = getContext().getContentResolver().query(
+	                u,
+	                null,
+	                null,
+	                null,
+	                null);
+			if (c == null) {
+				return null;
+			}
+	        return new SuggestionsCursor(c, selectionArgs[0]);
+        }else{
+	        Uri u = Uri.parse(String.format(
+	                "content://mms-sms/searchSuggest?pattern=%s",
+	                number));
+	        Cursor c = getContext().getContentResolver().query(
+	                u,
+	                null,
+	                null,
+	                null,
+	                null);
+			if (c == null) {
+				return null;
+			}
+	        return new SuggestionsCursor(c, number);
+        }
 
-        return new SuggestionsCursor(c, selectionArgs[0]);
     }
 
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         return 0;
+    }
+	
+    public static boolean isNumber(String str){
+    	if(str == null)
+		return false;
+    	for(int i=0;i<str.length();i++){
+		if(!Character.isDigit(str.charAt(i))){
+			return false;
+		}
+	}
+	return true;
+    }
+    public static String getAddressByName(Context context, String name)
+    {    
+        Log.d(TAG, "getAddressByName : name = " + name);
+        String resultAddr = "";
+        Uri nameUri = null;
+        if (TextUtils.isEmpty(name)) 
+        {
+            return resultAddr;
+        }
+
+        Cursor c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+            new String[] {ContactsContract.Data.RAW_CONTACT_ID},
+                ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME + " =? "  ,                    
+            new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
+
+        if (c == null) 
+        {              
+            return resultAddr;
+        }
+        
+        if (!c.moveToFirst())
+        {
+            c.close();
+            return resultAddr;
+        }
+        final int SUMMARY_ID_COLUMN_INDEX = 0;
+        final long raw_contact_id = c.getLong(SUMMARY_ID_COLUMN_INDEX);
+        Log.v(TAG, "getAddressByName : raw_contact_id = " + raw_contact_id);        
+        c.close();        
+
+        resultAddr = queryPhoneNumbersWithRaw(context, raw_contact_id);        
+        Log.v(TAG, "getAddressByName : resultAddr = " + resultAddr);
+        return resultAddr;        
+    }
+
+    private static String queryPhoneNumbersWithRaw(Context context, long rawContactId) 
+    {
+        Cursor c = null;        
+        String addrs = "";        
+        try
+        {
+            c = context.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                    new String[] {Phone.NUMBER}, Phone.RAW_CONTACT_ID + " = " + rawContactId,
+                    null, null);
+
+            if (c != null && c.moveToFirst()) 
+            {
+                int i = 0;
+                while (!c.isAfterLast())
+                {
+                    String addrValue = c.getString(0);
+                    if (!TextUtils.isEmpty(addrValue))
+                    {
+                        if (i == 0)
+                        {
+                            addrs = addrValue;
+                        }
+                        else
+                        {
+                            addrs = addrs + "," + addrValue;
+                        }                        
+                        i++;
+                    }
+                    c.moveToNext();
+                }                
+            } 
+        }
+        finally 
+        {
+            if (c != null) {
+                c.close();
+            }
+        }  
+        return addrs;        
     }
 
     private class SuggestionsCursor implements CrossProcessCursor {
@@ -108,20 +228,29 @@ public class SuggestionsProvider extends android.content.ContentProvider {
             }
         }
 
+        public int getType(int columnIndex)
+        {
+            return mDatabaseCursor.getType(columnIndex);
+        }        
+
         public int getCount() {
             return mRows.size();
         }
 
         private class Row {
-            private String mSnippet;
-            private int mRowNumber;
-
-            public Row(int row, String snippet) {
-                mSnippet = snippet.trim();
+            public Row(int row, String text, int startOffset, int endOffset) {
+                mText = text;
                 mRowNumber = row;
+                mStartOffset = startOffset;
+                mEndOffset = endOffset;
             }
-            public String getSnippet() {
-                return mSnippet;
+            String mText;
+            int mRowNumber;
+            int mStartOffset;
+            int mEndOffset;
+
+            public String getWord() {
+                return mText;
             }
         }
 
@@ -131,29 +260,16 @@ public class SuggestionsProvider extends android.content.ContentProvider {
          * FTS3 snippet function does not work so we do it here in the code.
          */
         private void computeRows() {
-            int snippetColumn = mDatabaseCursor.getColumnIndex("snippet");
+            HashSet<String> got = new HashSet<String>();
+            int textColumn = mDatabaseCursor.getColumnIndex("body");
 
             int count = mDatabaseCursor.getCount();
-            String previousSnippet = null;
-
             for (int i = 0; i < count; i++) {
                 mDatabaseCursor.moveToPosition(i);
-                String snippet = mDatabaseCursor.getString(snippetColumn);
-                if (!TextUtils.equals(previousSnippet, snippet)) {
-                    mRows.add(new Row(i, snippet));
-                    previousSnippet = snippet;
-                }
+                String message = mDatabaseCursor.getString(textColumn);
+				mRows.add(new Row(i, message, 0, 0));
             }
-        }
-
-        private int [] computeOffsets(String offsetsString) {
-            String [] vals = offsetsString.split(" ");
-
-            int [] retvals = new int[vals.length];
-            for (int i = retvals.length-1; i >= 0; i--) {
-                retvals[i] = Integer.parseInt(vals[i]);
-            }
-            return retvals;
+                mDatabaseCursor.moveToPosition(-1);            
         }
 
         public void fillWindow(int position, CursorWindow window) {
@@ -296,23 +412,32 @@ public class SuggestionsProvider extends android.content.ContentProvider {
             Row row = mRows.get(mCurrentRow);
             switch (column - mColumnCount) {
                 case INTENT_DATA_COLUMN:
-                    Uri.Builder b = Uri.parse("content://mms-sms/search").buildUpon();
-                    b = b.appendQueryParameter("pattern", row.getSnippet());
-                    Uri u = b.build();
+                    Uri u = Uri.parse("content://mms-sms/search").buildUpon().appendQueryParameter("pattern", row.getWord()).build();
                     return u.toString();
                 case INTENT_ACTION_COLUMN:
                     return Intent.ACTION_SEARCH;
                 case INTENT_EXTRA_DATA_COLUMN:
-                    return row.getSnippet();
+                    return getString(getColumnIndex(SearchManager.SUGGEST_COLUMN_TEXT_1));
                 case INTENT_TEXT_COLUMN:
-                    return row.getSnippet();
+                    return row.getWord();
                 default:
                     return null;
             }
         }
 
+        public void abortUpdates() {
+        }
+
         public void close() {
             mDatabaseCursor.close();
+        }
+
+        public boolean commitUpdates() {
+            return false;
+        }
+
+        public boolean commitUpdates(Map<? extends Long, ? extends Map<String, Object>> values) {
+            return false;
         }
 
         public void copyStringToBuffer(int columnIndex, CharArrayBuffer buffer) {
@@ -321,6 +446,10 @@ public class SuggestionsProvider extends android.content.ContentProvider {
 
         public void deactivate() {
             mDatabaseCursor.deactivate();
+        }
+
+        public boolean deleteRow() {
+            return false;
         }
 
         public byte[] getBlob(int columnIndex) {
@@ -368,6 +497,10 @@ public class SuggestionsProvider extends android.content.ContentProvider {
             return false;
         }
 
+        public boolean hasUpdates() {
+            return false;
+        }
+
         public boolean isAfterLast() {
             return mCurrentRow >= mRows.size();
         }
@@ -386,10 +519,6 @@ public class SuggestionsProvider extends android.content.ContentProvider {
 
         public boolean isLast() {
             return mCurrentRow == mRows.size() - 1;
-        }
-
-        public int getType(int columnIndex) {
-            throw new UnsupportedOperationException();  // TODO revisit
         }
 
         public boolean isNull(int columnIndex) {
@@ -416,6 +545,10 @@ public class SuggestionsProvider extends android.content.ContentProvider {
             mDatabaseCursor.setNotificationUri(cr, uri);
         }
 
+        public boolean supportsUpdates() {
+            return false;
+        }
+
         public void unregisterContentObserver(ContentObserver observer) {
             mDatabaseCursor.unregisterContentObserver(observer);
         }
@@ -423,5 +556,38 @@ public class SuggestionsProvider extends android.content.ContentProvider {
         public void unregisterDataSetObserver(DataSetObserver observer) {
             mDatabaseCursor.unregisterDataSetObserver(observer);
         }
+
+        public boolean updateBlob(int columnIndex, byte[] value) {
+            return false;
+        }
+
+        public boolean updateDouble(int columnIndex, double value) {
+            return false;
+        }
+
+        public boolean updateFloat(int columnIndex, float value) {
+            return false;
+        }
+
+        public boolean updateInt(int columnIndex, int value) {
+            return false;
+        }
+
+        public boolean updateLong(int columnIndex, long value) {
+            return false;
+        }
+
+        public boolean updateShort(int columnIndex, short value) {
+            return false;
+        }
+
+        public boolean updateString(int columnIndex, String value) {
+            return false;
+        }
+
+        public boolean updateToNull(int columnIndex) {
+            return false;
+        }
     }
+    
 }

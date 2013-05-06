@@ -365,8 +365,11 @@ public class ManageSimMessages extends Activity
 
         if (isIncomingMessage(cursor)) {
             String address = cursor.getString(cursor.getColumnIndexOrThrow("address"));
-            Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", address, null));
-            menu.add(0, MENU_REPLY, 0, R.string.menu_reply).setIntent(intent);
+            if(address != null)
+            {
+                Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", address, null));
+                menu.add(0, MENU_REPLY, 0, R.string.menu_reply).setIntent(intent);
+            }
         }
         menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
         //addCallAndContactMenuItems(menu, cursor);
