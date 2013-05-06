@@ -304,7 +304,7 @@ public class SlideView extends LinearLayout implements
                 return;
                 
             } else{
-                mImageView.setScrollY(-7);
+                mImageView.setScrollY(-1);
                 mImageView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             }
         }
