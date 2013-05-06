@@ -179,6 +179,8 @@ import com.android.mms.transaction.TransactionBundle;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import android.os.StatFs;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
 
 /**
@@ -405,6 +407,7 @@ public class ComposeMessageActivity extends Activity
     private final IntentFilter mGetRecipientFilter = new IntentFilter("com.android.mms.selectedrecipients");
     private static final String VCALENDAR               = "vCalendar";
    
+   private boolean mConvertLongSmsMms = true;
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
         @Override
@@ -685,13 +688,17 @@ public class ComposeMessageActivity extends Activity
         int msgCount = params[0];
         int remainingInCurrentMessage = params[2];
 
-        if (!MmsConfig.getMultipartSmsEnabled()) {
+        Log.w("huangzengzhi","compose1030 msgCount="+msgCount);
+        Log.w("huangzengzhi","compose1031 MmsConfig.getSmsToMmsTextThreshold()="+MmsConfig.getSmsToMmsTextThreshold());
+        Log.w("huangzengzhi","compose1032 mConvertLongSmsMms="+mConvertLongSmsMms);
+       /* if (!MmsConfig.getMultipartSmsEnabled()) {
             // The provider doesn't support multi-part sms's so as soon as the user types
             // an sms longer than one segment, we have to turn the message into an mms.
             mWorkingMessage.setLengthRequiresMms(msgCount > 1, true);
-        } else {
+        } else*/
+        {
             int threshold = MmsConfig.getSmsToMmsTextThreshold();
-            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold, true);
+            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold&&mConvertLongSmsMms, true);
         }
 
         // Show the counter only if:
@@ -2538,6 +2545,10 @@ public class ComposeMessageActivity extends Activity
         mBackgroundQueryHandler = new BackgroundQueryHandler(mContentResolver);
 
         initialize(savedInstanceState, 0);
+        SharedPreferences prefs = 
+            PreferenceManager.getDefaultSharedPreferences(ComposeMessageActivity.this);
+        mConvertLongSmsMms = prefs.getBoolean(
+                MessagingPreferenceActivity.CONVERT_LONG_SMS_TO_MMS, true);                
 
         if (TRACE) {
             android.os.Debug.startMethodTracing("compose");
@@ -2821,6 +2832,10 @@ public class ComposeMessageActivity extends Activity
         // while we were paused. This can happen, for example, if a user changes or adds
         // an avatar associated with a contact.
         mWorkingMessage.syncWorkingRecipients();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ComposeMessageActivity.this);
+        mConvertLongSmsMms = prefs.getBoolean(
+                MessagingPreferenceActivity.CONVERT_LONG_SMS_TO_MMS,
+                true);     
 
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             log("update title, mConversation=" + mConversation.toString());
