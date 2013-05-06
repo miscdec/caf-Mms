@@ -1128,7 +1128,7 @@ public class ComposeMessageActivity extends Activity
             mMsgListAdapter.setIsGroupConversation(multiRecipients);
             mWorkingMessage.setHasMultipleRecipients(multiRecipients, true);
             */
-            mWorkingMessage.setHasEmail(mRecipientsEditor.containsEmail()||mRecipientsEditor.hasEmail(), true);
+            mWorkingMessage.setHasEmail(mRecipientsEditor.containsEmail(), true);
 
             checkForTooManyRecipients();
 
@@ -2399,8 +2399,10 @@ public class ComposeMessageActivity extends Activity
                                                     // name available.
                 String number = list.get(0).getNumber();
                 if (!title.equals(number)) {
-                    subTitle = PhoneNumberUtils.formatNumber(number, number,
-                            MmsApp.getApplication().getCurrentCountryIso());
+                   // subTitle = PhoneNumberUtils.formatNumber(number, number,
+                      //      MmsApp.getApplication().getCurrentCountryIso());
+                      
+                subTitle = number;
                 }
                 break;
             }
@@ -2481,7 +2483,7 @@ public class ComposeMessageActivity extends Activity
                     updateTitle(contacts);
                     if(mWorkingMessage != null && mWorkingMessage.getText() != null)
                     {
-                        boolean ismms = contacts.containsEmail() ||  editor.hasEmail();
+                        boolean ismms = contacts.containsEmail();
                         mWorkingMessage.setRecipientsRequireMms(ismms, false);
                         updateCounter(mWorkingMessage.getText(), 0, 0, mWorkingMessage.getText().length());
                     }
@@ -2489,7 +2491,7 @@ public class ComposeMessageActivity extends Activity
             }
         });
 
-        PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(this, mRecipientsEditor);
+       // PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(this, mRecipientsEditor);
 
         mTopPanel.setVisibility(View.VISIBLE);
     }
