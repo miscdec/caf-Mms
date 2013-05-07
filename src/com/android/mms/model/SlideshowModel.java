@@ -319,9 +319,11 @@ public class SlideshowModel extends Model
                     part.setData(((TextModel) media).getText().getBytes());
                 } else if (media.isImage() || media.isVideo() || media.isAudio()|| media.isVcard()) {
                     part.setDataUri(media.getUri());
+					/*
                     if (media.isVcard() && !TextUtils.isEmpty(((VcardModel) media).getLookupUri())) {
                         part.setContentDisposition(((VcardModel) media).getLookupUri().getBytes());
-                        }
+                    }
+                    */
                 } else {
                     Log.w(TAG, "Unsupport media: " + media);
                 }
