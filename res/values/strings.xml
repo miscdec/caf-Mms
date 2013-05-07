@@ -72,8 +72,12 @@
     <string name="view_delivery_report">View report</string>
     <!-- Context menu item on an individual message for deleting only that message -->
     <string name="delete_message">Delete</string>
+    <!-- Time and date a message was sent -->
+    <string name="sent_on">"Sent: <xliff:g id="date">%s</xliff:g>"</string>
     <!-- Time and date a message is due to expire -->
     <string name="expire_on">"Expires: <xliff:g id="date">%s</xliff:g>"</string>
+    <!-- Time and date a message was received -->
+    <string name="received_on">"Received: <xliff:g id="date">%s</xliff:g>"</string>
     <!-- Abbreviation for "kilobyte" -->
     <string name="kilobyte">KB</string>
 
@@ -782,9 +786,9 @@
     <!-- In message list items, this string builds the timestamp line when the message is in a group [CHAR LIMIT=NONE] -->
     <string name="message_timestamp_format"><xliff:g id="string" example="Fred Flinstone">%1$s</xliff:g>\u0020-\u0020<xliff:g id="string" example="9:39AM">%2$s</xliff:g></string>
     <!-- Subscription selection strings -->
-    <string name="select_subscription_title">Select Subscription</string>
-    <string name="subscription1_title">Subscription 1</string>
-    <string name="subscription2_title">Subscription 2</string>
+    <string name="select_subscription_title">Select sim card</string>
+    <string name="subscription1_title">Sim card 1</string>
+    <string name="subscription2_title">Sim card 2</string>
 
     <string name="pending_mms_title">Pending MMS on other subscription.</string>
     <string name="pending_mms">Messaging: One or more MMS are pending.</string>
@@ -797,5 +801,9 @@
     <string name="progress_mms">Messaging: MMS in progress...</string>
     <string name="progress_mms_text ">Touch to retry again</string>
 
+    <string name="menu_reply">Reply</string>
+    <string name="copy_to_sim">Copy message to SIM card</string>
+    <string name="copy_to_sim_success">Message saved</string>
+    <string name="copy_to_sim_fail">Unable to save message</string>
 </resources>
 

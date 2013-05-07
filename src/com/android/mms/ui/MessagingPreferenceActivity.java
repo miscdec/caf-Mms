@@ -51,7 +51,10 @@ import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.transaction.TransactionService;
+import android.telephony.TelephonyManager;
+import android.telephony.MSimTelephonyManager;
 import com.android.mms.util.Recycler;
+import static com.android.internal.telephony.MSimConstants.MAX_PHONE_COUNT_DS;
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -97,6 +100,9 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private Recycler mSmsRecycler;
     private Recycler mMmsRecycler;
     private static final int CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG = 3;
+
+    private static final String TARGET_PACKAGE = "com.android.mms";
+    private static final String TARGET_CLASS = "com.android.mms.ui.ManageSimMessages";
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -149,6 +155,18 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // next time the user runs the Messaging app and it will either turn on the setting
         // by default, or if the user is over the limits, encourage them to turn on the setting
         // manually.
+    }
+
+    private int hasIccCardCount() {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        int count = 0;
+        for (int i = 0; i < tm.getPhoneCount(); i++) {
+            if (tm.hasIccCard(i)) {
+                count++;
+            }
+
+        }
+        return count;
     }
 
     private void setMessagePreferences() {
@@ -286,7 +304,15 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                     mMmsRecycler.getMessageMaxLimit(),
                     R.string.pref_title_mms_delete).show();
         } else if (preference == mManageSimPref) {
-            startActivity(new Intent(this, ManageSimMessages.class));
+            if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                    || hasIccCardCount() < MAX_PHONE_COUNT_DS) {
+                startActivity(new Intent(this, ManageSimMessages.class));
+            } else {
+                Intent intent = new Intent(this, SelectSubscription.class);
+                intent.putExtra(SelectSubscription.PACKAGE, TARGET_PACKAGE);
+                intent.putExtra(SelectSubscription.TARGET_CLASS, TARGET_CLASS);
+                startActivity(intent);
+            }
         } else if (preference == mClearHistoryPref) {
             showDialog(CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG);
             return true;
