@@ -502,4 +502,16 @@
     <string name="mms_max">最长</string>
     <string name="save_description">在服务器保存时间</string>
     <string name="status_expired">已过期</string>
+    
+    <!-- Settings item description for SMS Templates  -->
+    <string name="pref_title_sms_template">常用短语</string>
+    <string name="pref_summary_sms_template">可以插入到信息中的一些常用短语</string>
+    <string name="empty_template">无短语</string>
+    <string name="invalid_template">无效的短语</string>
+    <string name="menu_create">新建</string>
+    <string name="max_template">"常用短语条数最多<xliff:g id="count">%s</xliff:g>条！"</string> 
+    <string name="new_template">新短语</string> 
+    <string name="button_ok">确定</string>
+    <string name="sms_template_title">常用短语</string>
+    <string name="option_title">选项</string> 
 </resources>
