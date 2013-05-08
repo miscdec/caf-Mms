@@ -757,6 +757,7 @@
     <!-- Menu item -->
     <string name="menu_insert_smiley">Insert smiley</string>
     <string name="menu_insert_contact">Insert contact</string>
+    <string name="menu_template">Templates</string>
     <!-- Menu item  [CHAR LIMIT=40] -->
     <string name="menu_group_participants">Group participants</string>
 
