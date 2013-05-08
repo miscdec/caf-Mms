@@ -171,6 +171,11 @@ public class MessageUtils {
     public static final String COPY_FAILURE_FULL = "content://sms/sim/full/failure";
     public static final String MULTI_SEL_KEY = "com.android.contacts.MULTI_SEL_KEY";
     public static int MAX_RECIPIENT = 100;
+
+    /*Ext action define as TelephonyIntents.ACTION_SIM_STATE_CHANGED + subID*/
+    public static final String ACTION_SIM_STATE_CHANGED0 = "android.intent.action.SIM_STATE_CHANGED0";
+    public static final String ACTION_SIM_STATE_CHANGED1 = "android.intent.action.SIM_STATE_CHANGED1";
+    
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
     // display names.
@@ -681,6 +686,7 @@ public class MessageUtils {
         } else if (slide.hasVideo()) {
             mm = slide.getVideo();
         }else if (slide.hasVcard()) {
+        /*
                     mm = slide.getVcard();
                     String lookupUri = ((VcardModel) mm).getLookupUri();
         
@@ -696,6 +702,7 @@ public class MessageUtils {
                     // distinguish view vcard from mms or contacts.
                     intent.putExtra(VIEW_VCARD, true);
                     context.startActivity(intent);
+                    */
                     return;
                 }
 
@@ -1944,12 +1951,13 @@ public class MessageUtils {
     /* check to see whether short message count is up to 2000, add for cmcc test */
     public static void checkIsPhoneMessageFull(Context context)
     {
+        /*
         if(!isCMCCTest())
         {
             Log.d(TAG, "checkIsPhoneMessageFull : It's not in cmcc test!");
             return;
         }
-        
+        */
         if(isMultiSimEnabledMms())
         {
             checkIsSmsMessageFull(context, SUB1);
@@ -1973,6 +1981,11 @@ public class MessageUtils {
         boolean isPhoneMemoryFull = isPhoneMemoryFull();
         boolean isPhoneSmsCountFull = (msgCount >= MAX_SMS_MESSAGE_COUNT);
         boolean isPhoneFull = (isPhoneMemoryFull || isPhoneSmsCountFull);
+        if(!isCMCCTest())
+        {
+            isPhoneFull = (isPhoneMemoryFull);
+        }
+
         Log.d(TAG, "checkIsSmsMessageFull : isPhoneMemoryFull = " + isPhoneMemoryFull
             + ",isPhoneSmsCountFull = " + isPhoneSmsCountFull);
         checkModifyPreStore(context, isPhoneFull, subscription);
@@ -1995,6 +2008,7 @@ public class MessageUtils {
     public static boolean isCMCCTest(){
         return SystemProperties.getInt("ro.cmcc.test", 0) == 1;
     }
+    
     private static boolean isSDCardExist() {
         boolean ret = true;
         String status = Environment.getExternalStorageState();

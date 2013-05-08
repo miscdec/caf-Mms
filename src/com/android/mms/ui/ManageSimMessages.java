@@ -154,8 +154,9 @@ public class ManageSimMessages extends Activity
 
         init();
         registerSimChangeObserver();
-        registerReceiver(mIccStateChangedReceiver, 
-            new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
+        registerReceiver(mIccStateChangedReceiver, new IntentFilter(TelephonyIntents.ACTION_SIM_STATE_CHANGED));
+        registerReceiver(mIccStateChangedReceiver, new IntentFilter(MessageUtils.ACTION_SIM_STATE_CHANGED0));
+        registerReceiver(mIccStateChangedReceiver, new IntentFilter(MessageUtils.ACTION_SIM_STATE_CHANGED1));
 
     }
 
@@ -196,6 +197,26 @@ public class ManageSimMessages extends Activity
                 {
                     subscription = MessageUtils.SUB_INVALID;
                 }
+                
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) && subscription == mSubscription) {
+                    startQuery();
+                }
+            }
+            else if (MessageUtils.ACTION_SIM_STATE_CHANGED0.equals(action)) {        
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " 
+                    + intent + ", stateExtra = " + stateExtra); 
+                             
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) && subscription == mSubscription) {
+                    startQuery();
+                }
+            }
+            else if (MessageUtils.ACTION_SIM_STATE_CHANGED1.equals(action)) {        
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = " 
+                    + intent + ", stateExtra = " + stateExtra);
                 
                 if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) && subscription == mSubscription) {
                     startQuery();
@@ -344,8 +365,11 @@ public class ManageSimMessages extends Activity
 
         if (isIncomingMessage(cursor)) {
             String address = cursor.getString(cursor.getColumnIndexOrThrow("address"));
-            Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", address, null));
-            menu.add(0, MENU_REPLY, 0, R.string.menu_reply).setIntent(intent);
+            if(address != null)
+            {
+                Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", address, null));
+                menu.add(0, MENU_REPLY, 0, R.string.menu_reply).setIntent(intent);
+            }
         }
         menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
         //addCallAndContactMenuItems(menu, cursor);

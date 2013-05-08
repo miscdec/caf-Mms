@@ -44,8 +44,12 @@ public class SimFullReceiver extends BroadcastReceiver {
 
             NotificationManager nm = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
-
+            
+            int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, MessageUtils.SUB_INVALID);
+            Log.d("SimFullReceiver", "subscription = " + subscription);
+            
             Intent viewSimIntent = new Intent(context, ManageSimMessages.class);
+            viewSimIntent.putExtra(MessageUtils.SUB_KEY, subscription);
             viewSimIntent.setAction(Intent.ACTION_VIEW);
             viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             PendingIntent pendingIntent = PendingIntent.getActivity(

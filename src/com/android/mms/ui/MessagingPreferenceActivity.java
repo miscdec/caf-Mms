@@ -57,6 +57,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 import android.widget.Toast;
+import android.preference.Preference.OnPreferenceClickListener;
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -101,6 +102,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private EditTextPreference mSmsCenterPref;
     private EditTextPreference mSmsCenterCard1Pref;
     private EditTextPreference mSmsCenterCard2Pref;
+    private Preference mSmsTemplatePref;
 
     private Recycler mSmsRecycler;
     private Recycler mMmsRecycler;
@@ -191,6 +193,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mSmsCenterCard1Pref = (EditTextPreference) findPreference ("pref_key_sms_center_card1");
         mSmsCenterCard2Pref = (EditTextPreference) findPreference ("pref_key_sms_center_card2");
         mMmsExpiryPref = (ListPreference) findPreference("pref_key_mms_expiry"); 
+        mSmsTemplatePref = (Preference)findPreference("pref_key_sms_template");
         
         setMessagePreferences();
     }
@@ -213,7 +216,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 setPreferStore(MessageUtils.STORE_ME,MessageUtils.CARD_SUB2);
             }   
         }
-        
+        restoreSmsTemplatepref();
 
         // NOTE: After restoring preferences, the auto delete function (i.e. message recycler)
         // will be turned off by default. However, we really want the default to be turned on.
@@ -333,6 +336,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         setSmsDisplayLimit();
         setMmsDisplayLimit();
         setMmsExpirySummary();
+        setSmsTemplatePref();
 
         String soundValue = sharedPreferences.getString(NOTIFICATION_RINGTONE, null);
         setRingtoneSummary(soundValue);
@@ -607,6 +611,28 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         } else {
             mMmsExpiryPref.setSummary(getString(R.string.mms_max));
         }
+    }
+
+    private void setSmsTemplatePref() {
+        OnPreferenceClickListener preListener = new OnPreferenceClickListener(){
+            public boolean onPreferenceClick(Preference preference){
+                Intent intent = new Intent();
+                intent.setClass(MessagingPreferenceActivity.this,SMSTemplateActivity.class);
+                startActivity(intent);
+                return true;
+            }
+        };
+        mSmsTemplatePref.setOnPreferenceClickListener(preListener);
+    }
+
+    private void restoreSmsTemplatepref(){
+        SharedPreferences tempatespre;
+        tempatespre = getSharedPreferences("SMSTemplate",0);
+        tempatespre.edit().clear().commit();
+        tempatespre.edit().putInt("templatecount",10).commit();
+        tempatespre.edit().putBoolean("init",true).commit();
+        Preference smsTemplatePre = (Preference)findPreference("smstemplate");
+        setSmsTemplatePref();
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {

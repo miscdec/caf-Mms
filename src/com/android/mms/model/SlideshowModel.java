@@ -217,7 +217,6 @@ public class SlideshowModel extends Model
         for(int i = 0; i < num; i++){
             
             part = pb.getPart(i);
-            //moushanli mod 2012.3.20 for vcard canbe save by conversation mod
             Log.v(TAG,"partType  ="+new String(part.getContentType()));
             byte[] location = part.getName();
             
@@ -320,9 +319,11 @@ public class SlideshowModel extends Model
                     part.setData(((TextModel) media).getText().getBytes());
                 } else if (media.isImage() || media.isVideo() || media.isAudio()|| media.isVcard()) {
                     part.setDataUri(media.getUri());
+					/*
                     if (media.isVcard() && !TextUtils.isEmpty(((VcardModel) media).getLookupUri())) {
                         part.setContentDisposition(((VcardModel) media).getLookupUri().getBytes());
-                        }
+                    }
+                    */
                 } else {
                     Log.w(TAG, "Unsupport media: " + media);
                 }
@@ -850,21 +851,23 @@ public class SlideshowModel extends Model
      * - It can optionally have a caption
     */
     public boolean isSimple() {
+        if (true)
+        {
+            return false;
+        }        
         // There must be one (and only one) slide.
         if (size() != 1)
             return false;
 
         SlideModel slide = get(0);
-        // The slide must have either an image or video or vcard, but not both.
-        if (!(((slide.hasImage() ? 1 : 0)
-                + (slide.hasVideo() ? 1 : 0)
-                + (slide.hasVcard() ? 1 : 0)) == 1))
+        // The slide must have either an image or video, but not both.
+        if (!(slide.hasImage() ^ slide.hasVideo()))
             return false;
-
+     
         // No audio allowed.
         if (slide.hasAudio())
             return false;
-
+        
         return true;
     }
 

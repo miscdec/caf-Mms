@@ -146,7 +146,7 @@ public class AttachmentEditor extends LinearLayout {
 
         SlideModel slide = mSlideshow.get(0);
         if (mSlideshow.size() > 1 || (mSlideshow.size() == 1 && (slide.hasImage() || slide.hasVideo() || slide.hasAudio())) 
-			|| mSlideshow.hasOctstream()) {
+            || mSlideshow.hasOctstream()) {
             return createSlideshowView(inPortrait);
         }
         if (slide.hasImage()) {

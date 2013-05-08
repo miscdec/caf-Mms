@@ -143,7 +143,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 Log.w(TAG, "[SlideModel] content type " + media.getContentType() +
                     " - can't add video in this state");
             }
-        } else if (media.isVcard()) {
+        } else if (media.isVcard()) { 
             if (mCanAddVcard) {
                 internalAddOrReplace(mVcard, media);
                 mVcard = media;
@@ -211,7 +211,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 mVideo = null;
                 mCanAddImage = true;
                 mCanAddAudio = true;
-            } else if ( object instanceof MediaModel ){//yinqi add for vcard /vclalendar 2009-4-30
+            } else if ( object instanceof MediaModel ){
                 if ( ((MediaModel)object).getTag() == MediaModel.VCARD ){
                     mVcard = null;
                 } else if ( ((MediaModel)object).getTag() == MediaModel.VCALENDAR){
@@ -517,7 +517,6 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
         return mText != null;
     }
 
-    //yinqi add begin 2009-4-28
     public boolean hasVcard() {
         return mVcard!= null;
     }
@@ -525,7 +524,6 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
     public boolean hasVcalendar() {
         return mVcalendar!= null;
     }
-    //yinqi add end 2009-4-28
 
 
     public boolean hasFile(){

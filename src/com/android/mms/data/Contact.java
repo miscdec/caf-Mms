@@ -243,12 +243,7 @@ public class Contact {
     }
 
     public synchronized void setNumber(String number) {
-        if (!Mms.isEmailAddress(number)) {
-            mNumber = PhoneNumberUtils.formatNumber(number, mNumberE164,
-                    MmsApp.getApplication().getCurrentCountryIso());
-        } else {
-            mNumber = number;
-        }
+        mNumber = number;
         notSynchronizedUpdateNameAndNumber();
         mNumberIsModified = true;
     }

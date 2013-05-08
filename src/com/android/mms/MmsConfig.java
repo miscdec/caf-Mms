@@ -36,7 +36,7 @@ public class MmsConfig {
     private static final String DEFAULT_USER_AGENT = "Android-Mms/2.0";
 
     private static final int MAX_IMAGE_HEIGHT = 960;
-    private static final int MAX_IMAGE_WIDTH = 720;
+    public static final int MAX_IMAGE_WIDTH = 720;
     private static final int MAX_TEXT_LENGTH = 2000;
 
     /**
@@ -45,10 +45,10 @@ public class MmsConfig {
     private static boolean mTransIdEnabled = false;
     private static int mMmsEnabled = 1;                         // default to true
     private static int mMaxMessageSize = 300 * 1024;            // default to 300k max size
-    //msl add 11.5.18  
+ 
     private static int mHeadSize = 2 * 1024;            // default to 2 max head size
     private static int mMaxHeadSize =mHeadSize;
-    //msl add end
+
     private static String mUserAgent = DEFAULT_USER_AGENT;
     private static String mUaProfTagName = DEFAULT_HTTP_KEY_X_WAP_PROFILE;
     private static String mUaProfUrl = null;

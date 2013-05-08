@@ -99,10 +99,10 @@
     <string name="select_different_media" msgid="6241623357299382183">"选择其他<xliff:g id="NAME">%1$s</xliff:g>。"</string>
     <string name="exceed_message_size_limitation" msgid="6027753647094742437">"已达到信息大小上限。"</string>
     <string name="message_too_big_for_video" msgid="2639367545165352543">"该短信太大，无法附加视频。"</string>
-    <string name="failed_to_add_media" msgid="7207464170168708485">"您无法将此<xliff:g id="NAME">%1$s</xliff:g>添加到短信中。"</string>
+    <string name="failed_to_add_media" msgid="7207464170168708485">"您无法将此<xliff:g id="NAME">%1$s</xliff:g>添加到彩信中。"</string>
     <string name="failed_to_resize_image" msgid="5608354151631833669">"未调整图片大小。"</string>
     <string name="resize_image_error_information" msgid="3783200130776554475">"重新调整大小后，此照片仍然过大，因此无法发送。"</string>
-    <string name="forward_prefix" msgid="276280492803486464">"Fwd: "</string>
+    <string name="forward_prefix" msgid="276280492803486464">"转发: "</string>
     <string name="discard_message_reason" msgid="2667664943003796133">"您的信息没有有效的接收者，将被舍弃。"</string>
     <string name="has_invalid_recipient" msgid="1485388396900997383">"无效接收者：&lt;<xliff:g id="NAME">%1$s</xliff:g>&gt;"</string>
     <string name="invalid_destination" msgid="4573835601024786416">"目标地址无效。"</string>
@@ -290,6 +290,7 @@
     <string name="saved_ringtone" msgid="3847363932276708626">"已保存铃声。"</string>
     <string name="saved_ringtone_fail" msgid="4778500070919251116">"无法保存铃声。"</string>
     <string name="menu_insert_smiley" msgid="4964504393061025071">"插入表情符号"</string>
+    <string name="menu_insert_contact">"插入通讯录"</string>
     <string name="menu_group_participants" msgid="4288356090262299071">"群组参与者"</string>
     <string name="select_link_title" msgid="3371818607625768447">"选择操作"</string>
     <string name="mail_to">"发送邮件至:"</string>
@@ -501,4 +502,16 @@
     <string name="mms_max">最长</string>
     <string name="save_description">在服务器保存时间</string>
     <string name="status_expired">已过期</string>
+    
+    <!-- Settings item description for SMS Templates  -->
+    <string name="pref_title_sms_template">常用短语</string>
+    <string name="pref_summary_sms_template">可以插入到信息中的一些常用短语</string>
+    <string name="empty_template">无短语</string>
+    <string name="invalid_template">无效的短语</string>
+    <string name="menu_create">新建</string>
+    <string name="max_template">"常用短语条数最多<xliff:g id="count">%s</xliff:g>条！"</string> 
+    <string name="new_template">新短语</string> 
+    <string name="button_ok">确定</string>
+    <string name="sms_template_title">常用短语</string>
+    <string name="option_title">选项</string> 
 </resources>

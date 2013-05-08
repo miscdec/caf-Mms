@@ -50,6 +50,7 @@ import java.io.InputStream;
 import android.content.ContentResolver;
 import android.text.util.Linkify;
 import android.text.TextUtils;
+import com.android.mms.MmsConfig;
 /**
  * A basic view to show the contents of a slide.
  */
@@ -86,6 +87,12 @@ public class SlideView extends LinearLayout implements
             if (mSeekWhenPrepared > 0) {
                 mAudioPlayer.seekTo(mSeekWhenPrepared);
                 mSeekWhenPrepared = 0;
+
+                // When reloading, display audio information
+                displayAudioInfo();
+                if (mMediaController != null) {
+                    mMediaController.show();
+                }
             }
             if (mStartWhenPrepared) {
                 mAudioPlayer.start();
@@ -298,7 +305,7 @@ public class SlideView extends LinearLayout implements
                 return;
                 
             } else{
-                mImageView.setScrollY(-7);
+                mImageView.setScrollY(-1);
                 mImageView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             }
         }
@@ -311,10 +318,13 @@ public class SlideView extends LinearLayout implements
     public void setVideo(String name, Uri video) {
         if (mVideoView == null) {
             mVideoView = new VideoView(mContext);
-            addView(mVideoView, new LayoutParams(
+            addView(mVideoView, mVideoPosition, new LayoutParams(
                     LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-            if (DEBUG) {
-                mVideoView.setBackgroundColor(0xFFFF0000);
+            mVideoView.setWillNotDraw(false); 
+                    
+            if (DEBUG) 
+            {
+                //mVideoView.setBackgroundColor(0xFFFF0000);
             }
         }
 
@@ -330,23 +340,17 @@ public class SlideView extends LinearLayout implements
     }
 
     private void initAudioInfoView(String name) {
-        if (null == mAudioInfoView) {
-            LayoutInflater factory = LayoutInflater.from(getContext());
-            mAudioInfoView = factory.inflate(R.layout.playing_audio_info, null);
-            int height = mAudioInfoView.getHeight();
-            if (mConformanceMode) {
-                mViewPort.addView(mAudioInfoView, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
-                        AUDIO_INFO_HEIGHT));
-            } else {
-                addView(mAudioInfoView, new LayoutParams(
-                        LayoutParams.MATCH_PARENT, AUDIO_INFO_HEIGHT+20));
-                if (DEBUG) {
-                    mAudioInfoView.setBackgroundColor(0xFFFF0000);
-                }
-            }
-        }
+        LayoutInflater factory = LayoutInflater.from(getContext());
+        mAudioInfoView = factory.inflate(R.layout.playing_audio_info, null);
+        int height = mAudioInfoView.getHeight();
         TextView audioName = (TextView) mAudioInfoView.findViewById(R.id.name);
         audioName.setText(name);
+        addView(mAudioInfoView, new LayoutParams(
+                LayoutParams.FILL_PARENT, AUDIO_INFO_HEIGHT+20));
+        if (DEBUG) {
+            //mAudioInfoView.setBackgroundColor(0xFFFF0000);
+        }
+
         mAudioInfoView.setVisibility(View.GONE);
     }
 
@@ -443,6 +447,8 @@ public class SlideView extends LinearLayout implements
 
             height = H / 2;
             Log.v(TAG,"w = "+W+"height ="+height);
+            if(W>=MmsConfig.MAX_IMAGE_WIDTH)
+                W=MmsConfig.MAX_IMAGE_WIDTH-20;
             mVideoView.setLayoutParams(new LayoutParams(W, height));
         }
     }

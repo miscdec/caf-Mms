@@ -314,6 +314,35 @@ public class SmsReceiverService extends Service {
                         queryIccSms(subscription);
                     }
                   }
+                  else if (MessageUtils.ACTION_SIM_STATE_CHANGED0.equals(action)
+                      || MessageUtils.ACTION_SIM_STATE_CHANGED1.equals(action))
+                  {
+                        int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, MessageUtils.SUB_INVALID);
+
+                        String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+
+                        if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(false);
+                            handleIccAbsent(subscription);
+                        }
+                        
+                        if (IccCardConstants.INTENT_VALUE_ICC_UNKNOWN.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(false);
+                            handleIccAbsent(subscription);
+                        }
+                        else if (IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(false);
+                            handleIccAbsent(subscription);
+                        }
+                        else if (IccCardConstants.INTENT_VALUE_LOCKED_ON_PIN.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(false);
+                            handleIccAbsent(subscription);
+                        }
+                        else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+                            MessageUtils.setIsIccLoaded(true);
+                            queryIccSms(subscription);
+                        }                              
+                  }   
             }
             else{
                 if (msg.what == EVENT_SEND_NEXT_MESSAGE) {
@@ -371,7 +400,6 @@ public class SmsReceiverService extends Service {
             } else {
                 sendFirstQueuedMessage();
             }
-
         }
     }
 
@@ -558,6 +586,7 @@ public class SmsReceiverService extends Service {
         if(MessageUtils.isIccCardFull(this, subscription))
         {
             Intent fullintent = new Intent(Intents.SIM_FULL_ACTION);
+            fullintent.putExtra(MessageUtils.SUB_KEY, subscription);
             this.sendBroadcast(fullintent, "android.permission.RECEIVE_SMS");
             Log.d(TAG, "isIccCardFull : send broadcast of SIM_FULL_ACTION!");
         }
