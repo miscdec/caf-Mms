@@ -143,7 +143,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 Log.w(TAG, "[SlideModel] content type " + media.getContentType() +
                     " - can't add video in this state");
             }
-        } else if (media.isVcard()) {
+        } else if (media.isVcard()) { 
             if (mCanAddVcard) {
                 internalAddOrReplace(mVcard, media);
                 mVcard = media;
