@@ -154,7 +154,7 @@
                <category android:name="android.intent.category.DEFAULT" />
                <data android:mimeType="text/plain" />
            </intent-filter>
-	   <intent-filter>
+           <intent-filter>
                <action android:name="android.intent.action.SEND" />
                <category android:name="android.intent.category.DEFAULT" />
                <data android:mimeType="text/x-vCalendar" />
@@ -529,6 +529,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="vnd.android.cursor.dir/phone_v2"/>
             </intent-filter>
+        </activity>
+
+        <activity android:name=".ui.SMSTemplateActivity"
+            android:configChanges="orientation|keyboardHidden"
+            android:screenOrientation="nosensor" >        
         </activity>
 
     </application>
