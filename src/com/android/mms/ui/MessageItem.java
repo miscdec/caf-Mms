@@ -444,6 +444,8 @@ public class MessageItem {
                                 MessageUtils.formatTimeStampString(mContext, timestamp));
                     }
                 }
+            } else if(isFailedMessage()) {
+                mTimestamp = MessageUtils.formatTimeStampString(mContext, timestamp);
             }
             if (mPduLoadedCallback != null) {
                 mPduLoadedCallback.onPduLoaded(MessageItem.this);
