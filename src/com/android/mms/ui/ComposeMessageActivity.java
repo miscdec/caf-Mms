@@ -181,6 +181,9 @@ import java.text.SimpleDateFormat;
 import android.os.StatFs;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.ContactsContract.Data;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+import android.widget.ArrayAdapter;
 
 
 /**
@@ -260,6 +263,8 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_RESEND_SENT_MMS       = 36;
     private static final int MENU_LOAD_PUSH             = 37;
     private static final int MENU_INSERT_CONTACT             = 38;
+    private static final int MENU_TEMPLATE             = 39;
+    
 
     private static final int SHOW_COPY_TOAST = 1;
     private static final int SUBJECT_MAX_LENGTH    =  40;
@@ -409,6 +414,7 @@ public class ComposeMessageActivity extends Activity
     private final IntentFilter mGetRecipientFilter = new IntentFilter("com.android.mms.selectedrecipients");
     private static final String VCALENDAR               = "vCalendar";
    
+   private AlertDialog mTemplateDialog;
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
         @Override
@@ -3403,6 +3409,8 @@ public class ComposeMessageActivity extends Activity
                     R.drawable.ic_menu_emoticons);
             menu.add(0, MENU_INSERT_SMILEY, 0, R.string.menu_insert_smiley).setIcon(
                     R.drawable.ic_menu_emoticons);
+            menu.add(0, MENU_TEMPLATE, 0, R.string.menu_template).setIcon(
+                    R.drawable.ic_menu_emoticons);
         }
 
         if (getRecipients().size() > 1) {
@@ -3472,8 +3480,11 @@ public class ComposeMessageActivity extends Activity
                 finish();
                 break;
             case MENU_INSERT_CONTACT:
-                    insertContact();
+                insertContact();
                     break;
+            case MENU_TEMPLATE:
+                 showTemplateDialog();
+                break;
             case MENU_SEND:
                 if (isPreparedForSending()) {
                     confirmSendMessageIfNeeded();
@@ -3559,6 +3570,96 @@ public class ComposeMessageActivity extends Activity
         return true;
     }
 
+
+    private void showTemplateDialog() 
+    {
+        if (true) 
+        {
+            SharedPreferences tempatespre = getSharedPreferences("SMSTemplate",0);
+            String templatesStr="";
+            if (tempatespre == null)
+            {
+                Log.w(TAG, "can NOT get the sharedpreference SMSTemplate");
+                return;
+            }
+
+            int tCount = tempatespre.getInt("templatecount", 10);
+            String[] templates;
+            if (tempatespre.getBoolean("init", true))
+            {
+                templatesStr = getResourcesString(R.string.sms_template);
+                templates = templatesStr.split("~");
+                //tempatespre.edit().putBoolean("init",false).commit();
+                tCount = templates.length;
+            }
+            else if (tCount > 0)
+            {
+                char newChar = 0x01;
+                String division = "\t";//String.valueOf(newChar);
+                templatesStr = tempatespre.getString("templates","null");
+                if(templatesStr==null)
+                  {
+                    Toast.makeText(this, R.string.empty_template, Toast.LENGTH_LONG).show();
+                    return;
+                     }  
+                templates = templatesStr.split(division);
+            }
+            else
+            {
+                Toast.makeText(this, R.string.empty_template, Toast.LENGTH_LONG).show();
+                return;
+            }
+            List<Map<String, ?>> entries = new ArrayList<Map<String, ?>>();
+            final ArrayAdapter<String> a = new ArrayAdapter<String>(this,
+                                R.layout.templet_menu_item, templates);
+            /*                                
+            SimpleAdapter.ViewBinder viewBinder = new SimpleAdapter.ViewBinder() {
+            public boolean setViewValue(View view, Object data, String textRepresentation) 
+                {
+                    if (view instanceof ImageView) 
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+            };
+            */
+            //a.setViewBinder(viewBinder);
+
+            AlertDialog.Builder b = new AlertDialog.Builder(this);
+            b.setTitle(R.string.sms_template_title);
+            b.setCancelable(true);
+            //b.setInverseBackgroundForced(true);
+            b.setAdapter(a, new DialogInterface.OnClickListener() {
+                public final void onClick(DialogInterface dialog, int which) {
+        int selStart = mTextEditor.getSelectionStart();
+        Editable text=null;
+        String item = (String) a.getItem(which);
+        //mTextEditor.append((String)item.get("text"));
+        if(mTextEditor.isFocused())
+        {
+            text = mTextEditor.getEditableText();
+        }      
+        else
+        {
+            if(mSubjectTextEditor != null)
+            {
+                    selStart = mSubjectTextEditor.getSelectionStart();
+                    text = mSubjectTextEditor.getEditableText();
+            }         
+        }
+                if(text != null)
+                {
+                    text.insert(selStart, item);
+                }
+           dialog.dismiss();
+                }
+                
+            });
+            mTemplateDialog = b.create();
+        }
+        mTemplateDialog.show();
+    }
     private void insertContact()
     {
         Intent mContactListIntent = new Intent(Intent.ACTION_PICK,android.provider.ContactsContract.Contacts.CONTENT_URI);
@@ -4356,6 +4457,10 @@ public class ComposeMessageActivity extends Activity
         handleAddAttachmentError(result, R.string.type_vcard);
     }
 
+    private String getResourcesString(int id) {
+        Resources r = getResources();
+        return r.getString(id);
+    }
     private String getResourcesString(int id, String mediaName) {
         Resources r = getResources();
         return r.getString(id, mediaName);

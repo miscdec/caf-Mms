@@ -579,6 +579,7 @@ public class MessageListItem extends LinearLayout implements
     }
 
     private void showMmsView(boolean visible) {
+        Log.w("huangzengzhi","messageli582 visible="+visible,new Exception());
         if (mMmsView == null) {
             mMmsView = findViewById(R.id.mms_view);
             // if mMmsView is still null here, that mean the mms section hasn't been inflated
