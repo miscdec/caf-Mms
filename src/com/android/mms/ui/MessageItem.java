@@ -202,7 +202,7 @@ public class MessageItem {
             mTextContentType = null;
             // We must initialize the message size and time, if we don't do this
             // before downloading the MMS, the size and time can't display correct.
-            mMessageSize = 0;
+            mMessageSize = 1;//0;
             mTimestamp = MessageUtils.formatTimeStampString(mContext,
                     cursor.getInt(columnsMap.mColumnMmsDate) * 1000L);
             mMmsStatus = cursor.getInt(columnsMap.mColumnMmsStatus);
