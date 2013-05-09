@@ -679,6 +679,8 @@
 
     <!-- Sim Full Notification dialog title. -->
     <string name="sim_full_title">SIM card full</string>
+    <string name="sim1_full_title">SIM card1 full</string>
+    <string name="sim2_full_title">SIM card2 full</string>
     <!-- Sim Full Notification dialog text. -->
     <string name="sim_full_body">Delete some messages to make room for more.</string>
 
@@ -1042,8 +1044,7 @@
     <string name="pref_title_sms_center_card2">Set Card2 SMS center</string> 
     <string name="phone_copy_to_card_memory">Copy to SIM card</string>
     <string name="operation_to_card_memory"> to SIM card</string>
-    <string name="operation_to_phone_memory"> to phone memory</string>
-
+    <string name="operation_to_phone_memory"> to phone memory</string>  
 
     <!-- Settings item description for Mms Validity period  -->
     <string name="pref_title_mms_save_time">Validity period</string>

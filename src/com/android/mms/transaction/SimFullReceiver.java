@@ -57,11 +57,20 @@ public class SimFullReceiver extends BroadcastReceiver {
 
             Notification notification = new Notification();
             notification.icon = R.drawable.stat_sys_no_sim;
-            notification.tickerText = context.getString(R.string.sim_full_title);
+
+            if(MessageUtils.isMultiSimEnabledMms()) {
+                if(subscription == 0) {
+                    notification.tickerText = context.getString(R.string.sim1_full_title);
+                } else {
+                    notification.tickerText = context.getString(R.string.sim2_full_title);
+                }
+            } else {
+                notification.tickerText = context.getString(R.string.sim_full_title);
+            } 
             notification.defaults = Notification.DEFAULT_ALL;
 
             notification.setLatestEventInfo(
-                    context, context.getString(R.string.sim_full_title),
+                    context, notification.tickerText,
                     context.getString(R.string.sim_full_body),
                     pendingIntent);
             nm.notify(ManageSimMessages.SIM_FULL_NOTIFICATION_ID, notification);
