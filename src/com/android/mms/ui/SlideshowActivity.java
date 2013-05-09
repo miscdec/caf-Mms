@@ -474,7 +474,10 @@ public class SlideshowActivity extends Activity implements EventListener {
         }
 
         public void seekTo(int pos) {
-            // Don't need to support.
+           if (mPlayer != null) {
+               mPlayer.seekTo(pos);
+           }
+           
         }
 
         public void start() {
