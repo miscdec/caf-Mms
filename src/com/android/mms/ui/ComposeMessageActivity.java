@@ -851,7 +851,7 @@ public class ComposeMessageActivity extends Activity
             }
         );
 
-        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 dismissChooseDialog();
             }
