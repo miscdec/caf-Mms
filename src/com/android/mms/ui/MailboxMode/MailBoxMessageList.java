@@ -1353,7 +1353,14 @@ public class MailBoxMessageList extends ListActivity
         {
             Message msg = Message.obtain();
             msg.what = SHOW_TOAST;
-            msg.obj = getString(R.string.operate_success);
+            if(mNonSMSCount > 0){
+                msg.obj = getString(R.string.operate_success) + "\n" + getString(R.string.copy_MMS_failure);
+            }
+            else
+            {
+                msg.obj = getString(R.string.operate_success);
+            }
+
             uihandler.sendMessage(msg);
         }
     }

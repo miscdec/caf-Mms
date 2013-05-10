@@ -131,7 +131,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        Log.d(TAG, "wangshuang-->onCreate");
         setContentView(R.layout.conversation_list_screen);
 
         mQueryHandler = new ThreadListQueryHandler(getContentResolver());
@@ -335,7 +335,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     @Override
     protected void onStart() {
         super.onStart();
-
+        Log.d(TAG, "wangshuang-->onStart");
         MessagingNotification.cancelNotification(getApplicationContext(),
                 SmsRejectedReceiver.SMS_REJECTED_NOTIFICATION_ID);
 
@@ -366,7 +366,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     @Override
     protected void onStop() {
         super.onStop();
-
+        Log.d(TAG, "wangshuang-->onStop");
         DraftCache.getInstance().removeOnDraftChangedListener(this);
 
         // Simply setting the choice mode causes the previous choice mode to finish and we exit
