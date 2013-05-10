@@ -1089,7 +1089,7 @@ public class ComposeMessageActivity extends Activity
                 sendMessage(true);
                 if(isMms)
                 {
-                     finish();
+                   //  finish();
                 }
             }
         }
@@ -1651,7 +1651,7 @@ public class ComposeMessageActivity extends Activity
                 // on the UI thread.
                 Intent intent = createIntent(ComposeMessageActivity.this, 0);
 
-                intent.putExtra("exit_on_sent", true);
+                intent.putExtra("exit_on_sent", false);
                 intent.putExtra("forwarded_message", true);
                 if (mTempThreadId > 0) {
                     intent.putExtra(THREAD_ID, mTempThreadId);
@@ -3480,7 +3480,7 @@ public class ComposeMessageActivity extends Activity
                 finish();
                 break;
             case MENU_INSERT_CONTACT:
-                    insertContact();
+                insertContact();
                     break;
             case MENU_SEND:
                 if (isPreparedForSending()) {
@@ -3566,7 +3566,6 @@ public class ComposeMessageActivity extends Activity
 
         return true;
     }
-
     private void insertContact()
     {
         Intent mContactListIntent = new Intent(Intent.ACTION_PICK,android.provider.ContactsContract.Contacts.CONTENT_URI);
