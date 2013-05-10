@@ -177,7 +177,6 @@ public class MailBoxMessageContent extends Activity
     private static final int UPDATE_TITLE            = 7;
 
     ProgressDialog mProgressDialog = null; 
-    private SetReadThread mSetReadThread = null;//new SetReadThread();
     private ContentResolver mContentResolver;
     private static final String[] SMS_LOCK_PROJECTION = { Sms._ID, Sms.LOCKED };
     private final Object mCursorLock = new Object();
@@ -387,13 +386,13 @@ public class MailBoxMessageContent extends Activity
         return true;
     }
     
-    private void setMessageRead(Context context)
+    private void setMessageRead(Context context, Uri messageUri)
     {
         ContentValues values = new ContentValues(1);
         values.put(Sms.SEEN, MessageUtils.MESSAGE_READ);
         values.put(Sms.READ, MessageUtils.MESSAGE_READ);
         SqliteWrapper.update(context, getContentResolver(),
-                             mMessageUri, values, null, null);
+                             messageUri, values, null, null);
     }  
 
     private void confirmDeleteDialog(OnClickListener listener, boolean locked) {
@@ -758,14 +757,12 @@ public class MailBoxMessageContent extends Activity
 
         mFromTextView.setText(mFromtoLabel);
         mNumberView.setTextExt(mDisplayName); 
-      
+
         if (mRead == 0)
         {
-            if (mSetReadThread == null)
-            {
-                mSetReadThread = new SetReadThread();
-            }
-            mSetReadThread.start();
+            SetReadThread setReadThread = new SetReadThread(mMessageUri);
+            setReadThread.start();
+            setProgressBarIndeterminateVisibility(true);
         }
         else
         {
@@ -897,11 +894,9 @@ public class MailBoxMessageContent extends Activity
       
         if (mRead == 0)
         {
-            if (mSetReadThread == null)
-            {
-                mSetReadThread = new SetReadThread();
-            }
-            mSetReadThread.start();
+            SetReadThread setReadThread = new SetReadThread(mMessageUri);
+            setReadThread.start();
+            setProgressBarIndeterminateVisibility(true);
         }
         else
         {
@@ -1076,16 +1071,23 @@ public class MailBoxMessageContent extends Activity
 
     private class SetReadThread extends Thread
     {
+        private Uri mUri = null;
+
         public SetReadThread()
         {
             super("SetReadThread");
+        }
+        
+        public SetReadThread(Uri uri)
+        {
+            mUri = uri;
         }
         public void run()
         {
             try
             {
                 Thread.sleep(500);
-                setMessageRead(MailBoxMessageContent.this);
+                setMessageRead(MailBoxMessageContent.this, mUri);
                 MessagingNotification.nonBlockingUpdateNewMessageIndicator(MailBoxMessageContent.this, MessagingNotification.THREAD_NONE, false);  
             }
             catch(Exception e)
