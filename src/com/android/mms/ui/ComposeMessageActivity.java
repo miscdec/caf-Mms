@@ -1090,7 +1090,7 @@ public class ComposeMessageActivity extends Activity
                 sendMessage(true);
                 if(isMms)
                 {
-                     finish();
+                   //  finish();
                 }
             }
         }
@@ -1652,7 +1652,7 @@ public class ComposeMessageActivity extends Activity
                 // on the UI thread.
                 Intent intent = createIntent(ComposeMessageActivity.this, 0);
 
-                intent.putExtra("exit_on_sent", true);
+                intent.putExtra("exit_on_sent", false);
                 intent.putExtra("forwarded_message", true);
                 if (mTempThreadId > 0) {
                     intent.putExtra(THREAD_ID, mTempThreadId);
