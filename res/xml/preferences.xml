@@ -89,6 +89,10 @@
                       android:key="pref_key_longsms_convert_mms"
                       android:summary="@string/pref_summary_longsms_convert_sms"
                       android:title="@string/pref_title_longsms_convert_sms" />
+  <Preference       android:key="pref_key_sms_template"
+                      android:title="@string/pref_title_sms_template"
+                      android:summary="@string/pref_summary_sms_template">
+    </Preference>
   </PreferenceCategory>
   <PreferenceCategory android:title="@string/pref_mms_settings_title"
                       android:key="pref_key_mms_settings">

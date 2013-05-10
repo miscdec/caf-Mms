@@ -124,6 +124,7 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -411,7 +412,8 @@ public class ComposeMessageActivity extends Activity
     "com.android.contacts.action.ACTION_GET_CONTENTS";
     private final IntentFilter mGetRecipientFilter = new IntentFilter("com.android.mms.selectedrecipients");
     private static final String VCALENDAR               = "vCalendar";
-   
+	
+    private AlertDialog mTemplateDialog;
    private boolean mConvertLongSmsMms = true;
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
@@ -693,14 +695,13 @@ public class ComposeMessageActivity extends Activity
         int msgCount = params[0];
         int remainingInCurrentMessage = params[2];
 
-       /* if (!MmsConfig.getMultipartSmsEnabled()) {
+        if (!MmsConfig.getMultipartSmsEnabled()) {
             // The provider doesn't support multi-part sms's so as soon as the user types
             // an sms longer than one segment, we have to turn the message into an mms.
             mWorkingMessage.setLengthRequiresMms(msgCount > 1, true);
-        } else*/
-        {
+        } else {
             int threshold = MmsConfig.getSmsToMmsTextThreshold();
-            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold&&mConvertLongSmsMms, true);
+            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold, true);
         }
 
         // Show the counter only if:
@@ -3496,6 +3497,9 @@ public class ComposeMessageActivity extends Activity
             case MENU_INSERT_CONTACT:
                 insertContact();
                     break;
+            case MENU_TEMPLATE:
+                 showTemplateDialog();
+                break;
             case MENU_SEND:
                 if (isPreparedForSending()) {
                     confirmSendMessageIfNeeded();
