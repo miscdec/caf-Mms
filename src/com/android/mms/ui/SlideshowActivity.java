@@ -269,13 +269,13 @@ public class SlideshowActivity extends Activity implements EventListener {
 
             public void run() {
                 mSmilPlayer = SmilPlayer.getPlayer();
-                if (mSlideCount > 1) {
+               // if (mSlideCount > 1) {
                     // Only show the slideshow controller if we have more than a single slide.
                     // Otherwise, when we play a sound on a single slide, it appears like
                     // the slide controller should control the sound (seeking, ff'ing, etc).
                     initMediaController();
                     mSlideView.setMediaController(mMediaController);
-                }
+               // }
                 // Use SmilHelper.getDocument() to ensure rebuilding the
                 // entire SMIL document.
                 mSmilDoc = SmilHelper.getDocument(model);
@@ -474,7 +474,10 @@ public class SlideshowActivity extends Activity implements EventListener {
         }
 
         public void seekTo(int pos) {
-            // Don't need to support.
+           if (mPlayer != null) {
+               mPlayer.seekTo(pos);
+           }
+           
         }
 
         public void start() {

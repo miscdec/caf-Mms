@@ -423,6 +423,7 @@ public class MessageListAdapter extends CursorAdapter {
             mColumnSmsErrorCode       = COLUMN_SMS_ERROR_CODE;
             mColumnMmsSubject         = COLUMN_MMS_SUBJECT;
             mColumnMmsSubjectCharset  = COLUMN_MMS_SUBJECT_CHARSET;
+            mColumnMmsDate            = COLUMN_MMS_DATE;
             mColumnMmsMessageType     = COLUMN_MMS_MESSAGE_TYPE;
             mColumnMmsMessageBox      = COLUMN_MMS_MESSAGE_BOX;
             mColumnMmsDeliveryReport  = COLUMN_MMS_DELIVERY_REPORT;

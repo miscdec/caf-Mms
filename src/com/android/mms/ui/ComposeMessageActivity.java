@@ -179,6 +179,11 @@ import com.android.mms.transaction.TransactionBundle;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import android.os.StatFs;
+import android.provider.ContactsContract.RawContacts;
+import android.provider.ContactsContract.Data;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+import android.widget.ArrayAdapter;
 
 
 /**
@@ -211,6 +216,7 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD    = 111;
     public static final int REQUEST_CODE_SELECT_FILE    = 112;
     
+    public static final int REQUEST_CODE_CONTACT_NUMBER_PICKER = 113; 
 
     private static final String TAG = "Mms/compose";
 
@@ -256,6 +262,9 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_RESEND_MMS            = 35;
     private static final int MENU_RESEND_SENT_MMS       = 36;
     private static final int MENU_LOAD_PUSH             = 37;
+    private static final int MENU_INSERT_CONTACT             = 38;
+    private static final int MENU_TEMPLATE             = 39;
+    
 
     private static final int SHOW_COPY_TOAST = 1;
     private static final int SUBJECT_MAX_LENGTH    =  40;
@@ -405,6 +414,7 @@ public class ComposeMessageActivity extends Activity
     private final IntentFilter mGetRecipientFilter = new IntentFilter("com.android.mms.selectedrecipients");
     private static final String VCALENDAR               = "vCalendar";
    
+   private AlertDialog mTemplateDialog;
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
         @Override
@@ -1004,7 +1014,7 @@ public class ComposeMessageActivity extends Activity
         builder.setCancelable(false);
         if(MessageUtils.isMultiSimEnabledMms())
         {
-            //if((MessageUtils.isIccCardActivated(subID))&&(!MessageUtils.isIccCardActivated(1-subID)))
+            if((MessageUtils.isIccCardActivated(subID))&&(!MessageUtils.isIccCardActivated(1-subID)))
             {
                 builder.setMessage(getString(R.string.message_size_label)
                              + String.valueOf((mMmsCurrentSize+1023) / 1024)
@@ -1749,6 +1759,12 @@ public class ComposeMessageActivity extends Activity
                     return showMessageDetails(mMsgItem);
 
                 case MENU_DELETE_MESSAGE: {
+                    if(msgItem.mLocked)
+                    {
+                        Toast.makeText(ComposeMessageActivity.this, R.string.delete_lock_err, Toast.LENGTH_LONG).show();
+                        return true;
+                    }
+                                        
                     DeleteMessageListener l = new DeleteMessageListener(mMsgItem);
                     confirmDeleteDialog(l, mMsgItem.mLocked);
                     return true;
@@ -2399,8 +2415,10 @@ public class ComposeMessageActivity extends Activity
                                                     // name available.
                 String number = list.get(0).getNumber();
                 if (!title.equals(number)) {
-                    subTitle = PhoneNumberUtils.formatNumber(number, number,
-                            MmsApp.getApplication().getCurrentCountryIso());
+                   // subTitle = PhoneNumberUtils.formatNumber(number, number,
+                      //      MmsApp.getApplication().getCurrentCountryIso());
+                      
+                subTitle = number;
                 }
                 break;
             }
@@ -2478,11 +2496,18 @@ public class ComposeMessageActivity extends Activity
                     RecipientsEditor editor = (RecipientsEditor) v;
                     ContactList contacts = editor.constructContactsFromInput(false);
                     updateTitle(contacts);
+                    updateTitle(contacts);
+                    if(mWorkingMessage != null && mWorkingMessage.getText() != null)
+                    {
+                        boolean ismms = contacts.containsEmail();
+                        mWorkingMessage.setRecipientsRequireMms(ismms, false);
+                        updateCounter(mWorkingMessage.getText(), 0, 0, mWorkingMessage.getText().length());
+                    }
                 }
             }
         });
 
-        PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(this, mRecipientsEditor);
+       // PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(this, mRecipientsEditor);
 
         mTopPanel.setVisibility(View.VISIBLE);
     }
@@ -3188,6 +3213,11 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor != null) {
             mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
             mRecipientsEditor.setVisibility(View.GONE);
+            if(mRecipientsPicker!=null)
+                mRecipientsPicker.setVisibility(View.GONE);
+            if(mRecipientsPickerGroups!=null)
+                mRecipientsPickerGroups.setVisibility(View.GONE);
+            
             hideOrShowTopPanel();
         }
     }
@@ -3382,7 +3412,11 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (!mWorkingMessage.hasSlideshow()) {
+            menu.add(0, MENU_INSERT_CONTACT, 0, R.string.menu_insert_contact).setIcon(
+                    R.drawable.ic_menu_emoticons);
             menu.add(0, MENU_INSERT_SMILEY, 0, R.string.menu_insert_smiley).setIcon(
+                    R.drawable.ic_menu_emoticons);
+            menu.add(0, MENU_TEMPLATE, 0, R.string.menu_template).setIcon(
                     R.drawable.ic_menu_emoticons);
         }
 
@@ -3451,6 +3485,12 @@ public class ComposeMessageActivity extends Activity
             case MENU_DISCARD:
                 mWorkingMessage.discard();
                 finish();
+                break;
+            case MENU_INSERT_CONTACT:
+                insertContact();
+                    break;
+            case MENU_TEMPLATE:
+                 showTemplateDialog();
                 break;
             case MENU_SEND:
                 if (isPreparedForSending()) {
@@ -3537,6 +3577,102 @@ public class ComposeMessageActivity extends Activity
         return true;
     }
 
+
+    private void showTemplateDialog() 
+    {
+        if (true) 
+        {
+            SharedPreferences tempatespre = getSharedPreferences("SMSTemplate",0);
+            String templatesStr="";
+            if (tempatespre == null)
+            {
+                Log.w(TAG, "can NOT get the sharedpreference SMSTemplate");
+                return;
+            }
+
+            int tCount = tempatespre.getInt("templatecount", 10);
+            String[] templates;
+            if (tempatespre.getBoolean("init", true))
+            {
+                templatesStr = getResourcesString(R.string.sms_template);
+                templates = templatesStr.split("~");
+                //tempatespre.edit().putBoolean("init",false).commit();
+                tCount = templates.length;
+            }
+            else if (tCount > 0)
+            {
+                char newChar = 0x01;
+                String division = "\t";//String.valueOf(newChar);
+                templatesStr = tempatespre.getString("templates","null");
+                if(templatesStr==null)
+                  {
+                    Toast.makeText(this, R.string.empty_template, Toast.LENGTH_LONG).show();
+                    return;
+                     }  
+                templates = templatesStr.split(division);
+            }
+            else
+            {
+                Toast.makeText(this, R.string.empty_template, Toast.LENGTH_LONG).show();
+                return;
+            }
+            List<Map<String, ?>> entries = new ArrayList<Map<String, ?>>();
+            final ArrayAdapter<String> a = new ArrayAdapter<String>(this,
+                                R.layout.templet_menu_item, templates);
+            /*                                
+            SimpleAdapter.ViewBinder viewBinder = new SimpleAdapter.ViewBinder() {
+            public boolean setViewValue(View view, Object data, String textRepresentation) 
+                {
+                    if (view instanceof ImageView) 
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+            };
+            */
+            //a.setViewBinder(viewBinder);
+
+            AlertDialog.Builder b = new AlertDialog.Builder(this);
+            b.setTitle(R.string.sms_template_title);
+            b.setCancelable(true);
+            //b.setInverseBackgroundForced(true);
+            b.setAdapter(a, new DialogInterface.OnClickListener() {
+                public final void onClick(DialogInterface dialog, int which) {
+        int selStart = mTextEditor.getSelectionStart();
+        Editable text=null;
+        String item = (String) a.getItem(which);
+        //mTextEditor.append((String)item.get("text"));
+        if(mTextEditor.isFocused())
+        {
+            text = mTextEditor.getEditableText();
+        }      
+        else
+        {
+            if(mSubjectTextEditor != null)
+            {
+                    selStart = mSubjectTextEditor.getSelectionStart();
+                    text = mSubjectTextEditor.getEditableText();
+            }         
+        }
+                if(text != null)
+                {
+                    text.insert(selStart, item);
+                }
+           dialog.dismiss();
+                }
+                
+            });
+            mTemplateDialog = b.create();
+        }
+        mTemplateDialog.show();
+    }
+    private void insertContact()
+    {
+        Intent mContactListIntent = new Intent(Intent.ACTION_PICK,android.provider.ContactsContract.Contacts.CONTENT_URI);
+        mContactListIntent.setType("vnd.android.cursor.dir/phone_v2");
+        startActivityForResult(mContactListIntent, REQUEST_CODE_CONTACT_NUMBER_PICKER);
+    }
     private void showCallSelectDialog(){
         String[] items = new String[MessageUtils.getActivatedIccCardCount()];
         for (int i = 0; i < items.length; i++) {
@@ -3844,6 +3980,22 @@ public class ComposeMessageActivity extends Activity
                     processPickResult(data);
                 }
                 break;
+            case REQUEST_CODE_CONTACT_NUMBER_PICKER:
+                final Uri uriRet=data.getData();
+                if(uriRet!=null)
+                   // addPhoneNumberFromContactsForSMS(data);
+                    {
+                    Cursor c =managedQuery(uriRet,null,null,null,null);
+                    c.moveToFirst();
+                    int contactId=c.getInt(c.getColumnIndex(ContactsContract.Contacts._ID));
+                    String contactName=c.getString(c.getColumnIndex("display_name"));
+                    String contactNumber=c.getString(c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+                 String nameAndNumber = contactName+":"+contactNumber;
+                 int selStart = mTextEditor.getSelectionStart();
+                 Editable text = mTextEditor.getEditableText();
+                 text.insert(selStart, nameAndNumber);
+                }                   
+                return;
 
             case REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD:
                 if (data != null) {
@@ -4312,6 +4464,10 @@ public class ComposeMessageActivity extends Activity
         handleAddAttachmentError(result, R.string.type_vcard);
     }
 
+    private String getResourcesString(int id) {
+        Resources r = getResources();
+        return r.getString(id);
+    }
     private String getResourcesString(int id, String mediaName) {
         Resources r = getResources();
         return r.getString(id, mediaName);

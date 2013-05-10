@@ -53,6 +53,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.PowerManager;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
@@ -67,6 +69,7 @@ import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.internal.telephony.ITelephony;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
@@ -218,7 +221,7 @@ public class MessagingNotification {
         intentFilter.addAction(NOTIFICATION_DELETED_ACTION);
 
         // TODO: should we unregister when the app gets killed?
-        context.registerReceiver(sNotificationDeletedReceiver, intentFilter);
+       // context.registerReceiver(sNotificationDeletedReceiver, intentFilter);
         sPduPersister = PduPersister.getPduPersister(context);
 
         // initialize the notification deleted action
@@ -1168,14 +1171,15 @@ public class MessagingNotification {
                         sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN, null);
                 vibrate = "always".equals(vibrateWhen);
             }
-            if (vibrate) {
+            Log.d(TAG, "updateNotification : isCallActive() = " + isCallActive());
+            if (vibrate || isCallActive()) {
                 defaults |= Notification.DEFAULT_VIBRATE;
             }
 
             String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                     null);
             noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
-            Log.d(TAG, "updateNotification: new message, adding sound to the notification");
+            Log.d(TAG, "updateNotification: new  , adding sound to the notification");
         }
 
         defaults |= Notification.DEFAULT_LIGHTS;
@@ -1776,6 +1780,24 @@ public class MessagingNotification {
         } finally {
             cursor.close();
         }
+    }
+
+    private static boolean isCallActive()
+    {
+        try {       
+            ITelephony iTelephony =
+                    ITelephony.Stub.asInterface(ServiceManager.getService(Context.TELEPHONY_SERVICE));
+            if (iTelephony != null) {
+                boolean isActive = iTelephony.isOffhook() || iTelephony.isRinging();
+                return isActive;
+            } else {
+                Log.w(TAG, "Telephony service is null");
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to clear missed calls notification due to remote exception");
+        }
+        
+        return false;
     }
 
     private static void wakeScreen(Context context) {

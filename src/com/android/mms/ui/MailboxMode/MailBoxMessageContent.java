@@ -188,6 +188,7 @@ public class MailBoxMessageContent extends Activity
             Sms.ADDRESS,
             Sms.BODY,                
             Sms.SUB_ID,
+            Sms.READ,
             Sms.LOCKED,                
             Sms.DATE_SENT
         };     
@@ -197,8 +198,9 @@ public class MailBoxMessageContent extends Activity
     private static final int COLUMN_SMS_ADDRESS  = 2;
     private static final int COLUMN_SMS_BODY     = 3;
     private static final int COLUMN_SMS_SUBID    = 4;
-    private static final int COLUMN_SMS_LOCKED   = 5;
-    private static final int COLUMN_DATE_SENT    = 6;
+    private static final int COLUMN_SMS_READ     = 5;
+    private static final int COLUMN_SMS_LOCKED   = 6;
+    private static final int COLUMN_DATE_SENT    = 7;
 
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -515,6 +517,12 @@ public class MailBoxMessageContent extends Activity
     private void delete()
     {
         mLock = getLockAttr() != 0; 
+        if(mLock)
+        {
+            Toast.makeText(this, R.string.delete_lock_err, Toast.LENGTH_LONG).show();
+            return;
+        }
+                
         DeleteMessageListener l = new DeleteMessageListener();
         confirmDeleteDialog(l, mLock);
     }
@@ -696,6 +704,79 @@ public class MailBoxMessageContent extends Activity
         return locked;
     }
 
+    private void refreshUi(String uriStr)
+    {
+        Log.d(TAG, "refreshUi : uriStr = " + uriStr);
+        mMessageUri = Uri.parse(uriStr);
+        
+        Cursor cursor = SqliteWrapper.query(MailBoxMessageContent.this, mContentResolver,
+                    Uri.parse(uriStr), SMS_DETAIL_PROJECTION, null, null, null); 
+
+        if (cursor != null)
+        {
+            if ((cursor.getCount() == 1) && cursor.moveToFirst())
+            {
+                mMsgThreadId = cursor.getLong(COLUMN_THREAD_ID);
+                mMsgText = cursor.getString(COLUMN_SMS_BODY);
+                mMsgFromto = cursor.getString(COLUMN_SMS_ADDRESS);
+                mDateLongFormat = cursor.getLong(COLUMN_DATE);
+                mRead = cursor.getInt(COLUMN_SMS_READ);
+                //mMsgType = cursor.getInt(COLUMN_SMS_TYPE);  
+                mSubID = cursor.getInt(COLUMN_SMS_SUBID);  
+                if (mMsgType == Sms.MESSAGE_TYPE_INBOX)
+                {
+                    mFromtoLabel = getString(R.string.from_label);
+                }
+                else
+                {
+                    mFromtoLabel = getString(R.string.to_address_label);
+                }                    
+                
+            }
+            else
+            {
+                cursor.close();
+                return;
+            }
+            cursor.close();
+        }
+        else
+        {
+            return;
+        }        
+
+        mBodyTextView.setTextExt(formatMessage(mMsgText));
+        mNumberView.setTextExt(mMsgFromto);     
+        mFromTextView.setText(mFromtoLabel); 
+        mTimeTextView.setText(mSendLabel);
+        mTimeDetailTextView.setText(mMsgTime);  
+        if(MessageUtils.isMultiSimEnabledMms())
+        {
+            mSlotTypeView.setVisibility(View.VISIBLE);
+            mSlotTypeView.setText(getString(R.string.slot_type, MessageUtils.getMultiSimName(this, mSubID)));
+        }
+
+        mFromTextView.setText(mFromtoLabel);
+        mNumberView.setTextExt(mDisplayName); 
+
+        synchronized (mCursorLock)
+        {
+            if (mRead == 0)
+            {
+                if (mSetReadThread == null)
+                {
+                    mSetReadThread = new SetReadThread();
+                }
+                mSetReadThread.start();
+            }
+            else
+            {
+                setTitle(mTitle);
+                setProgressBarIndeterminateVisibility(false);
+            }
+        }
+    }
+
     private void initUi(Intent intent)
     {
         setProgressBarIndeterminateVisibility(true);
@@ -713,6 +794,7 @@ public class MailBoxMessageContent extends Activity
         mTimeTextView = (TextView) findViewById(R.id.TextViewTime);
         mTimeDetailTextView = (TextView) findViewById(R.id.TextViewTimeDetail);  
         mSlotTypeView = (TextView) findViewById(R.id.TextViewSlotType);
+
         
         if (null != intent.getAction())
         {
@@ -1108,7 +1190,8 @@ public class MailBoxMessageContent extends Activity
                 {
                     isOnIcc = true;
                 }
-                MessageUtils.goToSmsDetailByUri(this, nextUri, m_AllIdList, isOnIcc);
+                //MessageUtils.goToSmsDetailByUri(this, nextUri, m_AllIdList, isOnIcc);
+                refreshUi(nextUri);
                 overridePendingTransition(R.anim.slide_right_enter, R.anim.slide_left_exit);
                 return;
             }            
@@ -1122,7 +1205,7 @@ public class MailBoxMessageContent extends Activity
                 {                
                     MessageUtils.goToMmsDetailByUri(this, nextUri, m_AllIdList, false);
                     overridePendingTransition(R.anim.slide_right_enter, R.anim.slide_left_exit);
-                    finish();                  
+                    finish();
                     return;
                 }
             }            
@@ -1167,7 +1250,8 @@ public class MailBoxMessageContent extends Activity
                 {
                     isOnIcc = true;
                 }
-                MessageUtils.goToSmsDetailByUri(this, nextUri, m_AllIdList, isOnIcc);         
+                //MessageUtils.goToSmsDetailByUri(this, nextUri, m_AllIdList, isOnIcc);      
+                refreshUi(nextUri);
                 overridePendingTransition(R.anim.slide_left_enter, R.anim.slide_right_exit);
                 return;
             }            

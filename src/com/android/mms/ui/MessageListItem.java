@@ -426,6 +426,7 @@ public class MessageListItem extends LinearLayout implements
         // cache (currently of size ~50), the hit rate on avoiding the
         // expensive formatMessage() call is very high.
         CharSequence formattedMessage = mMessageItem.getCachedFormattedMessage();
+        Log.d(TAG, "bindCommonMessage:mMessageItem.mSubscription="+mMessageItem.mSubscription);
         if (formattedMessage == null) {
             formattedMessage = formatMessage(mMessageItem,
                                              mMessageItem.mBody,
@@ -629,7 +630,7 @@ public class MessageListItem extends LinearLayout implements
                                        int subId, String subject, Pattern highlight,
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
-
+        Log.d(TAG, "formatMessage:subId="+subId);
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !mSimFlag) {
             buf.append(MessageUtils.getMultiSimName(mContext , subId));
             buf.append(":");       

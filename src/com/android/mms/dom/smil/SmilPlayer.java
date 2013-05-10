@@ -60,7 +60,8 @@ public class SmilPlayer implements Runnable {
         PAUSE,
         START,
         NEXT,
-        PREV
+        PREV,
+        SEEK
     }
 
     public static final String MEDIA_TIME_UPDATED_EVENT = "mediaTimeUpdated";
@@ -75,8 +76,10 @@ public class SmilPlayer implements Runnable {
     private static SmilPlayer sPlayer;
 
     private long mCurrentTime;
+    private long mAdpatedTime;
     private int mCurrentElement;
     private int mCurrentSlide;
+    private int mAdpatedElement = -1;
     private ArrayList<TimelineEntry> mAllEntries;
     private ElementTime mRoot;
     private Thread mPlayerThread;
@@ -254,7 +257,11 @@ public class SmilPlayer implements Runnable {
         }
         return sPlayer;
     }
-
+	
+    public synchronized void setPlayedState() {
+        mState = SmilPlayerState.PLAYED;
+    }
+	
     public synchronized boolean isPlayingState() {
         return mState == SmilPlayerState.PLAYING;
     }
@@ -287,6 +294,10 @@ public class SmilPlayer implements Runnable {
         return mAction == SmilPlayerAction.RELOAD;
     }
 
+    private synchronized boolean isSeekAction() {
+        return mAction == SmilPlayerAction.SEEK;
+    }
+	
     private synchronized boolean isNextAction() {
       return mAction == SmilPlayerAction.NEXT;
     }
@@ -330,7 +341,7 @@ public class SmilPlayer implements Runnable {
             resumeActiveElements();
             mAction = SmilPlayerAction.START;
             notifyAll();
-        } else if (isPlayedState()) {
+        } else if (isPlayedState()||isStoppedState()) {
             play();
         } else {
             Log.w(TAG, "Error State: Playback can not be started!");
@@ -343,6 +354,45 @@ public class SmilPlayer implements Runnable {
             notifyAll();
         } else if (isPlayedState()) {
             actionStop();
+        }
+    }
+
+    public synchronized void resetTime(){
+        mCurrentTime = 0;
+    }
+	
+    public synchronized void seekTo(int pos){
+        if ( pos <= getDuration() ){     
+            //init(mRoot);
+            //find which SmilParElementImpl should be started now
+            int len = mAllEntries.size();
+            int begin = 0;
+            int end = 0;
+            Log.v(TAG,"seekTo pos= " + pos);
+            mAdpatedTime = pos;
+            
+            for ( int i = 0; i < len; i++ ){
+                TimelineEntry te = mAllEntries.get(i);
+
+                if ( te.getElement() instanceof SmilParElementImpl ){
+                    if ( te.getAction() == TimelineEntry.ACTION_BEGIN ){
+                        begin = i;                        
+                    }else if ( te.getAction() == TimelineEntry.ACTION_END ){
+                        if ( (te.getOffsetTime()*1000) > pos ){
+                            end = i;
+                            Log.v(TAG,"seekTo begin index=" + begin + " end index= " + end);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            //mCurrentSlide = begin;
+            //mCurrentElement = begin;
+            mAdpatedElement = begin;
+            mCurrentTime = pos;
+            mAction = SmilPlayerAction.SEEK;
+            notifyAll();
         }
     }
 
@@ -434,14 +484,19 @@ public class SmilPlayer implements Runnable {
             long sleep = Math.min(interval, TIMESLICE);
             if (overhead < sleep) {
                 wait(sleep - overhead);
+
+                if ( isSeekAction() ){
+                    return;
+                }
+                
                 mCurrentTime += sleep;
             } else {
                 sleep = 0;
                 mCurrentTime += overhead;
             }
 
-            if (isStopAction() || isReloadAction() || isPauseAction() || isNextAction() ||
-                isPrevAction()) {
+            if (isStopAction() || isReloadAction() || isPauseAction() || isSeekAction() || 
+                isNextAction() || isPrevAction()) {
                 return;
             }
 
@@ -487,6 +542,11 @@ public class SmilPlayer implements Runnable {
 
     private synchronized void resumeActiveElements() {
         int size = mActiveElements.size();
+        
+        if (0 == size){
+            reloadActiveSlide();
+        }
+        
         for (int i = 0; i < size; i++) {
             ElementTime element = mActiveElements.get(i);
             if (LOCAL_LOGV) {
@@ -500,7 +560,7 @@ public class SmilPlayer implements Runnable {
     private synchronized void waitForWakeUp() {
         try {
             while ( !(isStartAction() || isStopAction() || isReloadAction() ||
-                    isNextAction() || isPrevAction()) ) {
+                    isSeekAction() || isNextAction() || isPrevAction()) ) {
                 wait(TIMESLICE);
             }
             if (isStartAction()) {
@@ -647,6 +707,7 @@ public class SmilPlayer implements Runnable {
         if (LOCAL_LOGV) {
             dumpAllEntries();
         }
+        boolean seek = false;
         // Play the Element by following the timeline
         int size = mAllEntries.size();
         for (mCurrentElement = 0; mCurrentElement < size; mCurrentElement++) {
@@ -656,14 +717,25 @@ public class SmilPlayer implements Runnable {
             }
             long offset = (long) (entry.getOffsetTime() * 1000); // in ms.
             while (offset > mCurrentTime) {
+                if ( seek ){
+                    seek = false;
+                    seekActiveMedia();
+                    if (isPausedState() || isPlayedState()){
+                        mAction=SmilPlayerAction.PAUSE;
+                    }
+                } else{
+                    //the real duration of audio or video is less than slide duration
+                    seekActiveMedia();
+                }
+                
                 try {
                     waitForEntry(offset - mCurrentTime);
                 } catch (InterruptedException e) {
                     Log.e(TAG, "Unexpected InterruptedException.", e);
                 }
 
-                while (isPauseAction() || isStopAction() || isReloadAction() || isNextAction() ||
-                    isPrevAction()) {
+                while (isPauseAction() || isStopAction() || isReloadAction() || isSeekAction() || 
+                    isNextAction() || isPrevAction()) {
                     if (isPauseAction()) {
                         actionPause();
                         waitForWakeUp();
@@ -684,6 +756,10 @@ public class SmilPlayer implements Runnable {
                         }
                     }
 
+                    if (isSeekAction()){                        
+                        break;
+                    }
+					
                     if (isNextAction()) {
                         TimelineEntry nextEntry = actionNext();
                         if (nextEntry != null) {
@@ -712,13 +788,42 @@ public class SmilPlayer implements Runnable {
                         offset = mCurrentTime;
                     }
                 }
+                 if (isSeekAction()){
+                    break;
+                }
             }
-            mCurrentTime = offset;
-            actionEntry(entry);
-        }
 
+            if (isSeekAction()){
+                Log.v(TAG,"-----------now seek to new position--------");
+                mAction = SmilPlayerAction.NO_ACTIVE_ACTION;
+                mCurrentElement = ( mAdpatedElement - 1 ) > 0 ? ( mAdpatedElement - 1 ) : 0;
+                mCurrentTime = mAdpatedTime;
+                seek = true;
+                continue;
+            }
+            if ( mCurrentTime < offset ){
+                mCurrentTime = offset;
+            }
+            actionEntry(entry);
+            if (isBeginOfSlide(entry)) 
+            {
+                waitFor(100);
+            }
+        }
         mState = SmilPlayerState.PLAYED;
     }
+
+    private synchronized void waitFor(int intervel) {
+        try 
+        {
+            wait(intervel);
+        }
+        catch (InterruptedException e) 
+        {
+            Log.e(TAG, "Unexpected InterruptedException.", e);
+        }      
+    }
+
 
     private static final class TimelineEntry {
         final static int ACTION_BEGIN = 0;

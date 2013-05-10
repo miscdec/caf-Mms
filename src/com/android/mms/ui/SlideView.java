@@ -50,6 +50,7 @@ import java.io.InputStream;
 import android.content.ContentResolver;
 import android.text.util.Linkify;
 import android.text.TextUtils;
+import com.android.mms.MmsConfig;
 /**
  * A basic view to show the contents of a slide.
  */
@@ -304,7 +305,7 @@ public class SlideView extends LinearLayout implements
                 return;
                 
             } else{
-                mImageView.setScrollY(-7);
+                mImageView.setScrollY(-1);
                 mImageView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             }
         }
@@ -446,6 +447,8 @@ public class SlideView extends LinearLayout implements
 
             height = H / 2;
             Log.v(TAG,"w = "+W+"height ="+height);
+            if(W>=MmsConfig.MAX_IMAGE_WIDTH)
+                W=MmsConfig.MAX_IMAGE_WIDTH-20;
             mVideoView.setLayoutParams(new LayoutParams(W, height));
         }
     }
