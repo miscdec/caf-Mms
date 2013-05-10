@@ -179,11 +179,10 @@ import com.android.mms.transaction.TransactionBundle;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import android.os.StatFs;
-import android.provider.ContactsContract.RawContacts;
-import android.provider.ContactsContract.Data;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.widget.ArrayAdapter;
+import android.provider.ContactsContract.RawContacts;
+import android.provider.ContactsContract.Data;
 
 
 /**
@@ -262,9 +261,8 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_RESEND_MMS            = 35;
     private static final int MENU_RESEND_SENT_MMS       = 36;
     private static final int MENU_LOAD_PUSH             = 37;
-    private static final int MENU_INSERT_CONTACT             = 38;
+    private static final int MENU_INSERT_CONTACT        = 38;
     private static final int MENU_TEMPLATE             = 39;
-    
 
     private static final int SHOW_COPY_TOAST = 1;
     private static final int SUBJECT_MAX_LENGTH    =  40;
@@ -414,7 +412,7 @@ public class ComposeMessageActivity extends Activity
     private final IntentFilter mGetRecipientFilter = new IntentFilter("com.android.mms.selectedrecipients");
     private static final String VCALENDAR               = "vCalendar";
    
-   private AlertDialog mTemplateDialog;
+   private boolean mConvertLongSmsMms = true;
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
         @Override
@@ -695,13 +693,14 @@ public class ComposeMessageActivity extends Activity
         int msgCount = params[0];
         int remainingInCurrentMessage = params[2];
 
-        if (!MmsConfig.getMultipartSmsEnabled()) {
+       /* if (!MmsConfig.getMultipartSmsEnabled()) {
             // The provider doesn't support multi-part sms's so as soon as the user types
             // an sms longer than one segment, we have to turn the message into an mms.
             mWorkingMessage.setLengthRequiresMms(msgCount > 1, true);
-        } else {
+        } else*/
+        {
             int threshold = MmsConfig.getSmsToMmsTextThreshold();
-            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold, true);
+            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold&&mConvertLongSmsMms, true);
         }
 
         // Show the counter only if:
@@ -1091,7 +1090,7 @@ public class ComposeMessageActivity extends Activity
                 sendMessage(true);
                 if(isMms)
                 {
-                     finish();
+                   //  finish();
                 }
             }
         }
@@ -1653,7 +1652,7 @@ public class ComposeMessageActivity extends Activity
                 // on the UI thread.
                 Intent intent = createIntent(ComposeMessageActivity.this, 0);
 
-                intent.putExtra("exit_on_sent", true);
+                intent.putExtra("exit_on_sent", false);
                 intent.putExtra("forwarded_message", true);
                 if (mTempThreadId > 0) {
                     intent.putExtra(THREAD_ID, mTempThreadId);
@@ -2554,6 +2553,10 @@ public class ComposeMessageActivity extends Activity
         mBackgroundQueryHandler = new BackgroundQueryHandler(mContentResolver);
 
         initialize(savedInstanceState, 0);
+        SharedPreferences prefs = 
+            PreferenceManager.getDefaultSharedPreferences(ComposeMessageActivity.this);
+        mConvertLongSmsMms = prefs.getBoolean(
+                MessagingPreferenceActivity.CONVERT_LONG_SMS_TO_MMS, true);                
 
         if (TRACE) {
             android.os.Debug.startMethodTracing("compose");
@@ -2837,6 +2840,10 @@ public class ComposeMessageActivity extends Activity
         // while we were paused. This can happen, for example, if a user changes or adds
         // an avatar associated with a contact.
         mWorkingMessage.syncWorkingRecipients();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ComposeMessageActivity.this);
+        mConvertLongSmsMms = prefs.getBoolean(
+                MessagingPreferenceActivity.CONVERT_LONG_SMS_TO_MMS,
+                true);     
 
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             log("update title, mConversation=" + mConversation.toString());
@@ -3489,9 +3496,6 @@ public class ComposeMessageActivity extends Activity
             case MENU_INSERT_CONTACT:
                 insertContact();
                     break;
-            case MENU_TEMPLATE:
-                 showTemplateDialog();
-                break;
             case MENU_SEND:
                 if (isPreparedForSending()) {
                     confirmSendMessageIfNeeded();
@@ -3576,7 +3580,12 @@ public class ComposeMessageActivity extends Activity
 
         return true;
     }
-
+    private void insertContact()
+    {
+        Intent mContactListIntent = new Intent(Intent.ACTION_PICK,android.provider.ContactsContract.Contacts.CONTENT_URI);
+        mContactListIntent.setType("vnd.android.cursor.dir/phone_v2");
+        startActivityForResult(mContactListIntent, REQUEST_CODE_CONTACT_NUMBER_PICKER);
+    }
 
     private void showTemplateDialog() 
     {
@@ -3667,12 +3676,7 @@ public class ComposeMessageActivity extends Activity
         }
         mTemplateDialog.show();
     }
-    private void insertContact()
-    {
-        Intent mContactListIntent = new Intent(Intent.ACTION_PICK,android.provider.ContactsContract.Contacts.CONTENT_URI);
-        mContactListIntent.setType("vnd.android.cursor.dir/phone_v2");
-        startActivityForResult(mContactListIntent, REQUEST_CODE_CONTACT_NUMBER_PICKER);
-    }
+
     private void showCallSelectDialog(){
         String[] items = new String[MessageUtils.getActivatedIccCardCount()];
         for (int i = 0; i < items.length; i++) {

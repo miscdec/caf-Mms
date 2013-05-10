@@ -759,7 +759,6 @@
     <!-- Menu item -->
     <string name="menu_insert_smiley">Insert smiley</string>
     <string name="menu_insert_contact">Insert contact</string>
-    <string name="menu_template">Templates</string>
     <!-- Menu item  [CHAR LIMIT=40] -->
     <string name="menu_group_participants">Group participants</string>
 
@@ -1048,26 +1047,14 @@
     <string name="operation_to_card_memory"> to SIM card</string>
     <string name="operation_to_phone_memory"> to phone memory</string>  
 
-    <!-- Settings item description for Mms Validity period  -->
+    <!-- Settings item description for Mms Validity period and long SMS convert-->
     <string name="pref_title_mms_save_time">Validity period</string>
     <string name="mms_one_week">One week</string>
     <string name="mms_two_days">Two days</string>
     <string name="mms_max">Maximum</string>
     <string name="save_description">How long the message will be stored in Server</string>
     <string name="status_expired">Mms expired</string>
-
-    <!-- Settings item description for SMS Templates  -->
-    <string name="pref_title_sms_template">Templates</string>
-    <string name="pref_summary_sms_template">Some templates</string>
-    <string name="sms_template">生日快乐~会议取消~请回电话~我们X点见~抱歉，这个我帮不了你~I am late. I will be there at~I will be arriving at~I am at home.Please call~I am at work.Please call~I am in meeting,call me at</string>
-    <string name="empty_template">No template</string>
-    <string name="invalid_template">Invalid template</string>
-    <string name="menu_create">Create</string>
-    <string name="max_template">"The max of the template is <xliff:g id="count">%s</xliff:g>."</string> 
-    <string name="new_template">New template</string>
-    <string name="button_ok">Ok</string>
-    <string name="sms_template_title">Templates</string>
-    <string name="option_title">Options</string>
-    
+    <string name="pref_summary_longsms_convert_sms">Convert long sms to mms when more than 6.</string>
+    <string name="pref_title_longsms_convert_sms">Long SMS to MMS</string>
 </resources>
 
