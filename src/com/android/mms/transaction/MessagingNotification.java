@@ -114,6 +114,7 @@ public class MessagingNotification {
     public static final int NOTIFICATION_MMS_DELIVERY_ID   = 126;
     public static final int NOTIFICATION_ICC1_ID = 127;
     public static final int NOTIFICATION_ICC2_ID = 128;
+    public static final int NOTIFICATION_ID_ZERO_SMS   = 129; 
 
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
@@ -1007,6 +1008,63 @@ public class MessagingNotification {
         nm.notify(FULL_NOTIFICATION_ID, notification);
     }
 
+    public static void updateZeroMessageIndicator(Context context) 
+    {
+        cancelNotification(context, NOTIFICATION_ID_ZERO_SMS);
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+        if (!sp.getBoolean(
+                    MessagingPreferenceActivity.NOTIFICATION_ENABLED, true)) 
+        {
+            return;
+        }        
+        NotificationManager nm =
+                (NotificationManager)context.getSystemService(
+                        Context.NOTIFICATION_SERVICE);
+        Notification notification = new Notification();
+        boolean vibrate = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE, false);
+        boolean isActiveCall = isCallActive();
+        if(isActiveCall)
+        {
+            Log.d(TAG,"-------------is incall------------");
+            Vibrator mVibrator = (android.os.Vibrator)
+            context.getSystemService(Context.VIBRATOR_SERVICE);
+            mVibrator.vibrate(sVibratePattern,-1);
+            notification.flags |= Notification.FLAG_SHOW_LIGHTS;
+            notification.ledARGB = 0xff00ff00;
+            notification.ledOnMS = 500;
+            notification.ledOffMS = 2000;
+            
+            nm.notify(NOTIFICATION_ID_ZERO_SMS, notification);
+            return;
+        }
+        else if (vibrate) {
+            notification.defaults |= Notification.DEFAULT_VIBRATE;
+        }
+        else
+        {
+            AudioManager audioManager = (AudioManager) context.
+                getSystemService(Context.AUDIO_SERVICE);            
+            if (audioManager != null)
+            {
+                final int silentModeOn = audioManager.getRingerMode();
+                final int vibrateMode = audioManager.getVibrateSetting(AudioManager.VIBRATE_TYPE_RINGER);
+                    
+                if (silentModeOn == AudioManager.RINGER_MODE_VIBRATE 
+                     ||(silentModeOn == AudioManager.RINGER_MODE_NORMAL && vibrateMode == AudioManager.VIBRATE_SETTING_ON))
+                {
+                    notification.defaults |= Notification.DEFAULT_VIBRATE;
+                }
+            }
+        }
+        String ringtoneStr = sp
+                .getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE, null);   
+        
+        notification.sound = TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr);
+        
+        wakeScreen(context);
+        nm.notify(NOTIFICATION_ID_ZERO_SMS, notification);  
+    }
+    
     public static void updateMmsDeliveryNotification(Context context, String statusStr, Uri uri) {
         NotificationManager nm = (NotificationManager)context.getSystemService(
                 Context.NOTIFICATION_SERVICE);

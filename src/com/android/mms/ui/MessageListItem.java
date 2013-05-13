@@ -426,7 +426,6 @@ public class MessageListItem extends LinearLayout implements
         // cache (currently of size ~50), the hit rate on avoiding the
         // expensive formatMessage() call is very high.
         CharSequence formattedMessage = mMessageItem.getCachedFormattedMessage();
-        Log.d(TAG, "bindCommonMessage:mMessageItem.mSubscription="+mMessageItem.mSubscription);
         if (formattedMessage == null) {
             formattedMessage = formatMessage(mMessageItem,
                                              mMessageItem.mBody,

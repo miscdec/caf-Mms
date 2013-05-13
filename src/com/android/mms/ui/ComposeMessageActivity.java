@@ -701,7 +701,7 @@ public class ComposeMessageActivity extends Activity
             mWorkingMessage.setLengthRequiresMms(msgCount > 1, true);
         } else {
             int threshold = MmsConfig.getSmsToMmsTextThreshold();
-            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold, true);
+            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount >= threshold, true);
         }
 
         // Show the counter only if:
@@ -851,7 +851,7 @@ public class ComposeMessageActivity extends Activity
             }
         );
 
-        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 dismissChooseDialog();
             }
@@ -3937,17 +3937,17 @@ public class ComposeMessageActivity extends Activity
                     // Remove the old captured picture's thumbnail from the cache
                     MmsApp.getApplication().getThumbnailManager().removeThumbnail(uri);
                     
-                    addImageAsync(uri, false);
+                    addImage(uri, false);
                     }
                 else
-                    addImageAsync(Uri.fromFile(mCurrentPhotoFile), false);
+                    addImage(Uri.fromFile(mCurrentPhotoFile), false);
                     
                 break;
             }
 
             case REQUEST_CODE_ATTACH_IMAGE: {
                 if (data != null) {
-                    addImageAsync(data.getData(), false);
+                    addImage(data.getData(), false);
                 }
                 break;
             }
