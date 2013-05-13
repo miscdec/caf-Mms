@@ -505,6 +505,9 @@ public class SlideshowActivity extends Activity implements EventListener {
                 String type = event.getType();
                 Log.w(TAG,"handleEvent type="+type);
                 if(type.equals(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT)) {
+                    if (mMediaController != null) {
+                        mMediaController.hide();
+                    }   
                     finish();
                 }
             }

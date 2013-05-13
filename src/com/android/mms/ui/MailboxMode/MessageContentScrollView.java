@@ -212,7 +212,7 @@ public class MessageContentScrollView extends FrameLayout {
             }
 
             public boolean onSingleTapUp(MotionEvent ev) {
-                mHandlerMsg = 3;
+                //mHandlerMsg = 3;
                 return true;
             }
 
@@ -474,10 +474,9 @@ public class MessageContentScrollView extends FrameLayout {
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent ev) {	
+    public boolean onTouchEvent(MotionEvent ev) {
         mScaleDetector.onTouchEvent(ev);
         final int action = ev.getAction();
-
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 mGestureDetector.onTouchEvent(ev);
