@@ -3937,17 +3937,17 @@ public class ComposeMessageActivity extends Activity
                     // Remove the old captured picture's thumbnail from the cache
                     MmsApp.getApplication().getThumbnailManager().removeThumbnail(uri);
                     
-                    addImageAsync(uri, false);
+                    addImage(uri, false);
                     }
                 else
-                    addImageAsync(Uri.fromFile(mCurrentPhotoFile), false);
+                    addImage(Uri.fromFile(mCurrentPhotoFile), false);
                     
                 break;
             }
 
             case REQUEST_CODE_ATTACH_IMAGE: {
                 if (data != null) {
-                    addImageAsync(data.getData(), false);
+                    addImage(data.getData(), false);
                 }
                 break;
             }
