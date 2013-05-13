@@ -171,6 +171,8 @@ public class WwwContextMenuActivity extends Activity
         }
         url = url.replace("Http://","http://");
         url = url.replace("Https://","https://");
+        url = url.replace("HTTP://","http://");
+        url = url.replace("HTTPS://","https://");
         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         intent.addCategory(Intent.CATEGORY_BROWSABLE);
         
