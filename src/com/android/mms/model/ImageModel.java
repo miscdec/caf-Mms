@@ -53,8 +53,6 @@ public class ImageModel extends RegionMediaModel {
     private static final boolean LOCAL_LOGV = false;
 
     private static final int PICTURE_SIZE_LIMIT = 100 * 1024;
-    public static final String IMAGE_BMP        = "image/bmp";
-    public static final String IMAGE_MS_BMP 	   = "image/x-ms-bmp";
 
     /**
      * These are the image content types that MMS supports. Anything else needs to be transcoded
@@ -91,10 +89,6 @@ public class ImageModel extends RegionMediaModel {
         if (TextUtils.isEmpty(mContentType)) {
             throw new MmsException("Type of media is unknown.");
         }
-        if (mContentType.equals(IMAGE_MS_BMP)){
-            Log.v(TAG, "content is ---" + IMAGE_MS_BMP);
-            mContentType = IMAGE_BMP;
-        }            
         mSrc = uriImage.getSrc();
         mWidth = uriImage.getWidth();
         mHeight = uriImage.getHeight();
