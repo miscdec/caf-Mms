@@ -392,6 +392,16 @@
     <string name="operation_exceed">超出最大数目！最大限制条数：<xliff:g id="max_num">%s</xliff:g>。</string>
     <string name="failed_to_add_attachment">"该信息太大，无法添加附件。"</string>
     <string name="no_select">没有选中任何条目！</string>
+    
+    <string name="abort_mms">信息: 终止彩信发送</string>
+    <string name="abort_mms_text ">点击可终止发送并返回.</string>
+    <string name="progress_mms_title">另一张卡正在进行彩信收发业务</string>
+    <string name="progress_mms">信息: 彩信正在处理中...</string>
+    <string name="progress_mms_text ">点击重新尝试</string>
+    
+    <string name="data_subscription">数据服务切换</string>
+    <string name="data_subscription_success">成功.</string>
+    <string name="data_subscription_failed">失败.</string>
 
     <string name="batch_operate">批量操作</string>
     <string name="copy_to_phone_success">保存成功</string>

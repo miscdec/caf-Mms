@@ -71,7 +71,8 @@
     	              android:layout_width="0.1dip"
         	        android:layout_height="20dip"         	
 	              android:layout_gravity="center_vertical"
-    	          android:background="#E8E8E8"/>  
+    	          android:background="#E8E8E8"
+    	          android:visibility="gone"/>  
         
         <Button android:id="@+id/all_button"
                 android:layout_width="match_parent"
