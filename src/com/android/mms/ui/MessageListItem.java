@@ -474,7 +474,7 @@ public class MessageListItem extends LinearLayout implements
                         " mMessageItem.mAttachmentType: " + mMessageItem.mAttachmentType +
                         " sameItem: " + sameItem);
             }
-            if (mMessageItem.mAttachmentType != WorkingMessage.TEXT) {
+            if ((mMessageItem.mAttachmentType != WorkingMessage.TEXT)&&(mMessageItem.mAttachmentType !=-1)) {
                 if (!sameItem) {
                     setImage(null, null);
                 }
