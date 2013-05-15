@@ -500,7 +500,7 @@
     <!-- Settings item for setting the number of message to save for each conversation -->
     <string name="pref_messages_to_save">Set number of messages to save</string>
     <!-- Settings screen, what to display for Ringtone when the user chooses "silent" [CHAR LIMIT=100]-->
-    <string name="silent_ringtone">Silent</string>
+    <string name="silent_ringtone">None</string>
 
     <!-- The value to use when migrating from old versions for a true vibrate setting -->
     <string translatable="false" name="prefDefault_vibrate_true">always</string>
