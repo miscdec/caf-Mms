@@ -744,8 +744,10 @@ public class ComposeMessageActivity extends Activity
         super.startActivityForResult(intent, requestCode);
     }
 
-    private void showConvertToMmsToast() {
-        Toast.makeText(this, R.string.converting_to_picture_message, Toast.LENGTH_SHORT).show();
+    private void showConvertToMmsToast(boolean toMms) {
+        final int resId = toMms ? R.string.converting_to_picture_message
+                : R.string.converting_to_text_message;
+        Toast.makeText(this, resId, Toast.LENGTH_SHORT).show();
     }
 
     private class DeleteMessageListener implements OnClickListener {
@@ -3257,8 +3259,10 @@ public class ComposeMessageActivity extends Activity
                     // it doesn't apply to mms.
                     mTextCounter.setVisibility(View.GONE);
 
-                    showConvertToMmsToast();
+                    showConvertToMmsToast(true);
                 }
+                else
+                    showConvertToMmsToast(false);
             }
         });
     }
