@@ -67,7 +67,9 @@ public class UriImage {
             initFromFile(uri);
         }
 
-        mSrc = mPath.substring(mPath.lastIndexOf('/') + 1);
+        Log.w(TAG,"uriimage mPath="+mPath);
+        if(mPath!=null)
+         mSrc = mPath.substring(mPath.lastIndexOf('/') + 1);
 
         // Some MMSCs appear to have problems with filenames
         // containing a space.  So just replace them with
@@ -138,8 +140,9 @@ public class UriImage {
 
         try {
             if ((c.getCount() != 1) || !c.moveToFirst()) {
-                throw new IllegalArgumentException(
-                        "Query on " + uri + " returns 0 or multiple rows.");
+               // throw new IllegalArgumentException(
+                      //  "Query on " + uri + " returns 0 or multiple rows.");
+                      return;
             }
 
             String filePath;

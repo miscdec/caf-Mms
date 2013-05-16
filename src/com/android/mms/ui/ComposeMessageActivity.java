@@ -744,8 +744,10 @@ public class ComposeMessageActivity extends Activity
         super.startActivityForResult(intent, requestCode);
     }
 
-    private void showConvertToMmsToast() {
-        Toast.makeText(this, R.string.converting_to_picture_message, Toast.LENGTH_SHORT).show();
+    private void showConvertToMmsToast(boolean toMms) {
+        final int resId = toMms ? R.string.converting_to_picture_message
+                : R.string.converting_to_text_message;
+        Toast.makeText(this, resId, Toast.LENGTH_SHORT).show();
     }
 
     private class DeleteMessageListener implements OnClickListener {
@@ -1468,14 +1470,11 @@ public class ComposeMessageActivity extends Activity
                         .setOnMenuItemClickListener(l);
             }
 
-            if(msgItem.isSms()&&(msgItem.isSentMessage() || msgItem.isFailedMessage())) {
+            if(msgItem.isSms()&&msgItem.isFailedMessage()) {
                 menu.add(0, MENU_RESEND, 0, R.string.menu_resend).setOnMenuItemClickListener(l);
             }
             if(msgItem.isMms() && msgItem.isFailedMessage() &&(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)) {
                 menu.add(0, MENU_RESEND_MMS, 0, R.string.menu_resend).setOnMenuItemClickListener(l);
-            }
-            if(msgItem.isMms() && msgItem.isSentMessage()&&(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)) {
-                menu.add(0, MENU_RESEND_SENT_MMS, 0, R.string.menu_resend).setOnMenuItemClickListener(l);
             }
        
 
@@ -3260,8 +3259,10 @@ public class ComposeMessageActivity extends Activity
                     // it doesn't apply to mms.
                     mTextCounter.setVisibility(View.GONE);
 
-                    showConvertToMmsToast();
+                    showConvertToMmsToast(true);
                 }
+                else
+                    showConvertToMmsToast(false);
             }
         });
     }
@@ -3929,17 +3930,17 @@ public class ComposeMessageActivity extends Activity
                     // Remove the old captured picture's thumbnail from the cache
                     MmsApp.getApplication().getThumbnailManager().removeThumbnail(uri);
                     
-                    addImageAsync(uri, false);
+                    addImage(uri, false);
                     }
                 else
-                    addImageAsync(Uri.fromFile(mCurrentPhotoFile), false);
+                    addImage(Uri.fromFile(mCurrentPhotoFile), false);
                     
                 break;
             }
 
             case REQUEST_CODE_ATTACH_IMAGE: {
                 if (data != null) {
-                    addImageAsync(data.getData(), false);
+                    addImage(data.getData(), false);
                 }
                 break;
             }
@@ -3948,7 +3949,7 @@ public class ComposeMessageActivity extends Activity
 
             case REQUEST_CODE_ATTACH_VIDEO:
                 if (data != null) {
-                    addVideoAsync(data.getData(), false);
+                    addVideo(data.getData(), false);
                 }
                 break;
 
@@ -4167,7 +4168,13 @@ public class ComposeMessageActivity extends Activity
                 try {
                     Uri dataUri = persister.persistPart(part,
                             ContentUris.parseId(messageUri), null);
-                    result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, dataUri, null,append);
+                    if(dataUri!=null)
+                            result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, dataUri, null,append);
+                    else{
+                            Log.w(TAG,"dataUri="+dataUri);
+                            result = WorkingMessage.UNKNOWN_ERROR;
+                        }
+                        
                     if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                         log("ResizeImageResultCallback: dataUri=" + dataUri);
                     }
