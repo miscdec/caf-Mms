@@ -4167,7 +4167,13 @@ public class ComposeMessageActivity extends Activity
                 try {
                     Uri dataUri = persister.persistPart(part,
                             ContentUris.parseId(messageUri), null);
-                    result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, dataUri, null,append);
+                    if(dataUri!=null)
+                            result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, dataUri, null,append);
+                    else{
+                            Log.w(TAG,"dataUri="+dataUri);
+                            result = WorkingMessage.UNKNOWN_ERROR;
+                        }
+                        
                     if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                         log("ResizeImageResultCallback: dataUri=" + dataUri);
                     }
