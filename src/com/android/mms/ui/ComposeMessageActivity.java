@@ -3948,7 +3948,7 @@ public class ComposeMessageActivity extends Activity
 
             case REQUEST_CODE_ATTACH_VIDEO:
                 if (data != null) {
-                    addVideoAsync(data.getData(), false);
+                    addVideo(data.getData(), false);
                 }
                 break;
 
