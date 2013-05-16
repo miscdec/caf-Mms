@@ -1468,14 +1468,11 @@ public class ComposeMessageActivity extends Activity
                         .setOnMenuItemClickListener(l);
             }
 
-            if(msgItem.isSms()&&(msgItem.isSentMessage() || msgItem.isFailedMessage())) {
+            if(msgItem.isSms()&&msgItem.isFailedMessage()) {
                 menu.add(0, MENU_RESEND, 0, R.string.menu_resend).setOnMenuItemClickListener(l);
             }
             if(msgItem.isMms() && msgItem.isFailedMessage() &&(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)) {
                 menu.add(0, MENU_RESEND_MMS, 0, R.string.menu_resend).setOnMenuItemClickListener(l);
-            }
-            if(msgItem.isMms() && msgItem.isSentMessage()&&(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)) {
-                menu.add(0, MENU_RESEND_SENT_MMS, 0, R.string.menu_resend).setOnMenuItemClickListener(l);
             }
        
 
