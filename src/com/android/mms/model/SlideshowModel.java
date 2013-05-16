@@ -111,6 +111,18 @@ public class SlideshowModel extends Model
             Context context, Uri uri) throws MmsException {
         return createFromPduBody(context, getPduBody(context, uri));
     }
+    public boolean isOnlySimpleAttach() {  
+        // There must be one (and only one) slide.
+        if (size() != 1)
+            return false;       
+        SlideModel slide = get(0);
+        if (slide.hasImage() || slide.hasVideo() || slide.hasAudio()
+            || slide.hasText())
+        {
+            return false;
+        }        
+        return true;
+    }
 
     public static SlideshowModel createFromPduBody(Context context, PduBody pb) throws MmsException {
         SMILDocument document = SmilHelper.getDocument(pb);
