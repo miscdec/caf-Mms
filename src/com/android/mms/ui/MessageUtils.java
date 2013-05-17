@@ -104,8 +104,7 @@ import com.android.internal.telephony.MSimConstants;
 import com.android.mms.model.VcardModel;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-
-
+import android.widget.ArrayAdapter;
 
 
 /**
