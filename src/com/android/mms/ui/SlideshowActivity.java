@@ -354,6 +354,10 @@ public class SlideshowActivity extends Activity implements EventListener {
     protected void onPause() {
         super.onPause();
         Log.w(TAG,"onPause");
+        if (mSmilDoc != null) {
+            ((EventTarget) mSmilDoc).removeEventListener(
+                    SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT, this, false);
+        }
         if (mSmilPlayer != null) {
             mSmilPlayer.pause();
         }
@@ -364,6 +368,11 @@ public class SlideshowActivity extends Activity implements EventListener {
         super.onStop();
         Log.w(TAG,"onstop");
         if ((null != mSmilPlayer)) {
+            if (isFinishing()) {
+                mSmilPlayer.stop();
+            } else {
+                mSmilPlayer.stopWhenReload();
+            }
             if (mMediaController != null) {
                 // Must do this so we don't leak a window.
                 mMediaController.hide();

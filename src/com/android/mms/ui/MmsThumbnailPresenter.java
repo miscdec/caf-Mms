@@ -101,7 +101,8 @@ public class MmsThumbnailPresenter extends Presenter {
     };
 
     private void presentVideoThumbnail(SlideViewInterface view, VideoModel video) {
-        mItemLoadedFuture = video.loadThumbnailBitmap(mImageLoadedCallback);
+       // mItemLoadedFuture = video.loadThumbnailBitmap(mImageLoadedCallback);
+       view.setVideo(video.getSrc(), video.getUri());
     }
 
     private void presentImageThumbnail(SlideViewInterface view, ImageModel image) {

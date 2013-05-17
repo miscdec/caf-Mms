@@ -114,6 +114,7 @@
     <string name="cannot_send_message_reason" msgid="8745080126044054343">"您的信息没有有效的接收者。"</string>
     <string name="cannot_forward_drm_obj" msgid="5047623751430559077">"无法转发该短信中包含的 DRM 对象。"</string>
     <string name="converting_to_picture_message" msgid="2980023239017588627">"正在转换为彩信…"</string>
+    <string name="converting_to_text_message" msgid="6374423235426015422">"正在转换为短信…"</string>
     <string name="cannot_add_slide_anymore" msgid="4631404749618820994">"无法再添加幻灯片。"</string>
     <string name="cannot_add_picture_and_video" msgid="4954353772391381447">"无法将视频和图片添加到同一张幻灯片。"</string>
     <string name="cannot_save_message" msgid="3375907366965264446">"无法保存短信。"</string>
@@ -183,7 +184,7 @@
     <string name="pref_title_notification_vibrateWhen" msgid="4251208067092761057">"振动"</string>
     <string name="pref_title_notification_ringtone" msgid="8667533917574559659">"提示音"</string>
     <string name="pref_messages_to_save" msgid="3202539743892934926">"设置要保存的信息数量"</string>
-    <string name="silent_ringtone" msgid="7981237991326592780">"静音"</string>
+    <string name="silent_ringtone" msgid="7981237991326592780">"无"</string>
     <string name="pref_title_mms_auto_retrieval" msgid="4021878285474431355">"自动检索"</string>
     <string name="pref_summary_mms_auto_retrieval" msgid="925163257363757048">"自动检索信息"</string>
     <string name="pref_title_mms_retrieval_during_roaming" msgid="6016227402731817804">"漫游时自动检索"</string>
