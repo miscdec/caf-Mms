@@ -488,8 +488,16 @@ public class ContactInfoCache {
         // We need to include the phone number in the selection string itself rather then
         // selection arguments, because SQLite needs to see the exact pattern of GLOB
         // to generate the correct query plan
-        String selection = CALLER_ID_SELECTION.replace("+",
-                PhoneNumberUtils.toCallerIDMinMatch(number));
+        
+        String selection;
+		if(MessageUtils.isFetionNumber(number)){
+			selection = CALLER_ID_SELECTION.replace("+",
+				PhoneNumberUtils.getStrippedReversed(number));
+		}else{
+		    selection = CALLER_ID_SELECTION.replace("+",
+				PhoneNumberUtils.toCallerIDMinMatch(number));
+		}
+        
         Cursor cursor = mContext.getContentResolver().query(
                 PHONES_WITH_PRESENCE_URI,
                 CALLER_ID_PROJECTION,

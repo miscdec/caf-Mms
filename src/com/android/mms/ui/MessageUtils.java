@@ -18,12 +18,16 @@
 package com.android.mms.ui;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.concurrent.ConcurrentHashMap;
 
 import android.app.Activity;
@@ -57,6 +61,7 @@ import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.text.style.URLSpan;
 import android.util.Log;
+import android.util.Patterns;
 import android.widget.Toast;
 
 import com.android.mms.data.Contact;
@@ -97,8 +102,7 @@ import android.telephony.TelephonyManager;
 import android.preference.PreferenceManager;
 import com.android.internal.telephony.MSimConstants;
 import com.android.mms.model.VcardModel;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+
 
 
 /**
@@ -2316,6 +2320,18 @@ public class MessageUtils {
         }
         return true;
     }
+
+    /* add for cmcc test  */
+    private static String PRE_FEIXIN = "12520";
+	public static boolean isFetionNumber(String number) {
+        Pattern pattern = Pattern.compile("[0-9]*");
+        if( pattern.matcher(number).matches()){
+         if(number.startsWith(PRE_FEIXIN))
+        	 return true;
+        }
+        return false;
+    }
+     
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);
     }
