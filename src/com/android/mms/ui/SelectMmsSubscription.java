@@ -86,10 +86,7 @@ public class SelectMmsSubscription extends Service {
                     tempBundle.putInt(Mms.SUB_ID, -1);
                     startUpIntent.putExtras(tempBundle);
                 } else {
-
-                    String status = "Data subscription switch "+((result ==1)? "was success.": "failed.");
-
-                    Toast.makeText(mContext, status, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mContext, getStatus(result), Toast.LENGTH_SHORT).show();
                 }
 
                 //TODO: Below set of nested conditions are dirty, need a better
@@ -123,6 +120,15 @@ public class SelectMmsSubscription extends Service {
                     }
                 }
             }
+
+        private String getStatus(Integer result) {
+            String  dataStatus = mContext.getResources().getString(R.string.data_subscription);
+            String  success = mContext.getResources().getString(R.string.data_subscription_success);
+            String  failed = mContext.getResources().getString(R.string.data_subscription_failed);
+            String  status = dataStatus + ((result == 1)? success: failed);
+
+            return status;
+        }
 
         private void removeAbortNotification() {
             Log.d(TAG, "removeAbortNotification");
