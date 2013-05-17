@@ -521,4 +521,7 @@
     <string name="button_ok">确定</string>
     <string name="sms_template_title">常用短语</string>
     <string name="option_title">选项</string> 
+    
+    <string name="msg_detail_location">"归属地： "</string>
+    <string name="unknown_location">未知</string>
 </resources>
