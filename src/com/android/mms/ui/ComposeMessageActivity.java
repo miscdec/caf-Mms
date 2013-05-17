@@ -412,9 +412,9 @@ public class ComposeMessageActivity extends Activity
     "com.android.contacts.action.ACTION_GET_CONTENTS";
     private final IntentFilter mGetRecipientFilter = new IntentFilter("com.android.mms.selectedrecipients");
     private static final String VCALENDAR               = "vCalendar";
-	
+
     private AlertDialog mTemplateDialog;
-   private boolean mConvertLongSmsMms = true;
+    private boolean mConvertLongSmsMms = true;
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
         @Override
@@ -2622,7 +2622,7 @@ public class ComposeMessageActivity extends Activity
             undeliveredMessageDialog(getMessageDate(null));
         }
         cancelFailedDownloadNotification(getIntent(), this);
-
+        
         // Set up the message history ListAdapter
         initMessageList();
 
