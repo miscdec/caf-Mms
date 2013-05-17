@@ -1020,9 +1020,12 @@ public class ComposeMessageActivity extends Activity
         builder.setTitle(R.string.title_send_message);
         builder.setIcon(R.drawable.ic_dialog_alert_holo_light);
         builder.setCancelable(false);
+        Log.w(TAG,"compose MessageUtils.isMultiSimEnabledMms()="+MessageUtils.isMultiSimEnabledMms());
         if(MessageUtils.isMultiSimEnabledMms())
         {
-            if((MessageUtils.isIccCardActivated(subID))&&(!MessageUtils.isIccCardActivated(1-subID)))
+            Log.w(TAG,"compose MessageUtils.isIccCardActivated(subID)="+MessageUtils.isIccCardActivated(subID));
+            Log.w(TAG,"compose MessageUtils.isIccCardActivated(1-subID)="+MessageUtils.isIccCardActivated(1-subID));
+            //if((MessageUtils.isIccCardActivated(subID))&&(!MessageUtils.isIccCardActivated(1-subID)))
             {
                 builder.setMessage(getString(R.string.message_size_label)
                              + String.valueOf((mMmsCurrentSize+1023) / 1024)
