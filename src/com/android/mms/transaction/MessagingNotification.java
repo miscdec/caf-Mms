@@ -115,6 +115,7 @@ public class MessagingNotification {
     public static final int NOTIFICATION_ICC1_ID = 127;
     public static final int NOTIFICATION_ICC2_ID = 128;
     public static final int NOTIFICATION_ID_ZERO_SMS   = 129; 
+    public static final int NOTIFICATION_PUSH_ID  = 130; 
 
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
@@ -161,7 +162,13 @@ public class MessagingNotification {
 
     private static final String NEW_INCOMING_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
-            + " AND " + Sms.READ + " = 0)";
+            + " AND " + Sms.READ + " = 0" + " AND " + Sms.ADDRESS 
+            + " != 'Browser Information'" + ")";
+    
+    private static final String NEW_INCOMING_PUSH_CONSTRAINT =
+            "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
+            + " AND " + Sms.READ + " = 0" +" AND " + Sms.ADDRESS 
+            + " = 'Browser Information'" + ")";
 
     private static final String NEW_INCOMING_ICC_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
@@ -283,6 +290,7 @@ public class MessagingNotification {
             @Override
             public void run() {
                 blockingUpdateNewMessageIndicator(context, newMsgThreadId, isStatusMessage);
+                blockingUpdateNewPushMessageIndicator(context, newMsgThreadId, isStatusMessage);
             }
         }, "MessagingNotification.nonBlockingUpdateNewMessageIndicator").start();
     }
@@ -348,6 +356,58 @@ public class MessagingNotification {
             delivery.deliver(context, isStatusMessage);
         }
     }
+
+    public static void blockingUpdateNewPushMessageIndicator(Context context, long newMsgThreadId,
+            boolean isStatusMessage) {
+        if (DEBUG) {
+            Contact.logWithTrace(TAG, "blockingUpdateNewPushMessageIndicator: newMsgThreadId: " +
+                    newMsgThreadId);
+        }
+        // notificationSet is kept sorted by the incoming message delivery time, with the
+        // most recent message first.
+        SortedSet<NotificationInfo> notificationSet =
+                new TreeSet<NotificationInfo>(INFO_COMPARATOR);
+
+        Set<Long> threads = new HashSet<Long>(4);
+
+        addPushMessageNotificationInfos(context, threads, notificationSet);
+
+        if (notificationSet.isEmpty()) {
+            if (DEBUG) {
+                Log.d(TAG, "blockingUpdateNewPushMessageIndicator: notificationSet is empty, " +
+                        "canceling existing notifications");
+            }
+            cancelNotification(context, NOTIFICATION_PUSH_ID);
+        } else {
+            if (DEBUG || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                Log.d(TAG, "blockingUpdateNewPushMessageIndicator: count=" + notificationSet.size() +
+                        ", newMsgThreadId=" + newMsgThreadId);
+            }
+            synchronized (sCurrentlyDisplayedThreadLock) {
+                if (newMsgThreadId > 0 && newMsgThreadId == sCurrentlyDisplayedThreadId &&
+                        threads.contains(newMsgThreadId)) {
+                    if (DEBUG) {
+                        Log.d(TAG, "blockingUpdateNewPushMessageIndicator: newMsgThreadId == " +
+                                "sCurrentlyDisplayedThreadId so NOT showing notification," +
+                                " but playing soft sound. threadId: " + newMsgThreadId);
+                    }
+                    playInConversationNotificationSound(context);
+                    return;
+                }
+            }
+
+            updatePushMessageNotification(context, newMsgThreadId != THREAD_NONE, threads.size(),
+                    notificationSet);
+        }
+
+        // And deals with delivery reports (which use Toasts). It's safe to call in a worker
+        // thread because the toast will eventually get posted to a handler.
+        MmsSmsDeliveryInfo delivery = getSmsNewDeliveryInfo(context);
+        if (delivery != null) {
+            delivery.deliver(context, isStatusMessage);
+        }
+    }
+
 
     public static int getNotificationIDBySubscription(int subscription){
             switch (subscription) {
@@ -897,6 +957,54 @@ public class MessagingNotification {
                         contact, WorkingMessage.TEXT);
              
                 notificationSet.add(info);
+            }
+        } finally {
+            cursor.close();
+        }
+    }
+
+    private static final void addPushMessageNotificationInfos(
+        Context context, Set<Long> threads, SortedSet<NotificationInfo> notificationSet) {
+        ContentResolver resolver = context.getContentResolver();
+        Cursor cursor = SqliteWrapper.query(context, resolver, Sms.CONTENT_URI,
+                            SMS_STATUS_PROJECTION, NEW_INCOMING_PUSH_CONSTRAINT,
+                            null, Sms.DATE + " desc");
+
+        if (cursor == null) {
+            return;
+        }
+
+        try {
+            while (cursor.moveToNext()) {
+                String address = cursor.getString(COLUMN_SMS_ADDRESS);
+
+                Contact contact = Contact.get(address, false);
+                if (contact.getSendToVoicemail()) {
+                    // don't notify, skip this one
+                    continue;
+                }
+
+                String message = cursor.getString(COLUMN_SMS_BODY);
+                long threadId = cursor.getLong(COLUMN_THREAD_ID);
+                long timeMillis = cursor.getLong(COLUMN_DATE);
+                int subId = cursor.getInt(COLUMN_SUB_ID);
+
+                if (Log.isLoggable(LogTag.APP, Log.VERBOSE))
+                {
+                    Log.d(TAG, "addPushMessageNotificationInfos: count=" + cursor.getCount() +
+                            ", addr=" + address + ", thread_id=" + threadId);
+                }
+
+
+                NotificationInfo info = getNewMessageNotificationInfo(context, true /* isSms */,
+                        address, message, null /* subject */,
+                        threadId, subId, timeMillis, null /* attachmentBitmap */,
+                        contact, WorkingMessage.TEXT);
+
+                notificationSet.add(info);
+
+                threads.add(threadId);
+                threads.add(cursor.getLong(COLUMN_THREAD_ID));
             }
         } finally {
             cursor.close();
@@ -1546,6 +1654,251 @@ public class MessagingNotification {
         
         wakeScreen(context);
         nm.notify(getNotificationIDBySubscription(subscription), notification);
+    }
+
+    private static void updatePushMessageNotification(
+            Context context,
+            boolean isNew,
+            int uniqueThreadCount,
+            SortedSet<NotificationInfo> notificationSet) {
+        // If the user has turned off notifications in settings, don't do any notifying.
+        if (!MessagingPreferenceActivity.getNotificationEnabled(context)) {
+            if (DEBUG) {
+                Log.d(TAG, "updatePushMessageNotification: notifications turned off in prefs, bailing");
+            }
+            return;
+        }
+
+        // Figure out what we've got -- whether all sms's, mms's, or a mixture of both.
+        final int messageCount = notificationSet.size();
+        NotificationInfo mostRecentNotification = notificationSet.first();
+
+        final Notification.Builder noti = new Notification.Builder(context)
+                .setWhen(mostRecentNotification.mTimeMillis);
+
+        if (isNew) {
+            noti.setTicker(mostRecentNotification.mTicker);
+        }
+        TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(context);
+
+        // If we have more than one unique thread, change the title (which would
+        // normally be the contact who sent the message) to a generic one that
+        // makes sense for multiple senders, and change the Intent to take the
+        // user to the conversation list instead of the specific thread.
+
+        // Cases:
+        //   1) single message from single thread - intent goes to ComposeMessageActivity
+        //   2) multiple messages from single thread - intent goes to ComposeMessageActivity
+        //   3) messages from multiple threads - intent goes to ConversationList
+
+        final Resources res = context.getResources();
+        String title = null;
+        Bitmap avatar = null;
+        if (uniqueThreadCount > 1) {    // messages from multiple threads
+            Intent mainActivityIntent = new Intent(Intent.ACTION_MAIN);
+
+            mainActivityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+            mainActivityIntent.setType("vnd.android-dir/mms-sms");
+            taskStackBuilder.addNextIntent(mainActivityIntent);
+            title = context.getString(R.string.message_count_notification, messageCount);
+        } else {    // same thread, single or multiple messages
+            title = mostRecentNotification.mTitle;
+            BitmapDrawable contactDrawable = (BitmapDrawable)mostRecentNotification.mSender
+                    .getAvatar(context, null);
+            if (contactDrawable != null) {
+                // Show the sender's avatar as the big icon. Contact bitmaps are 96x96 so we
+                // have to scale 'em up to 128x128 to fill the whole notification large icon.
+                avatar = contactDrawable.getBitmap();
+                if (avatar != null) {
+                    final int idealIconHeight =
+                        res.getDimensionPixelSize(android.R.dimen.notification_large_icon_height);
+                    final int idealIconWidth =
+                         res.getDimensionPixelSize(android.R.dimen.notification_large_icon_width);
+                    if (avatar.getHeight() < idealIconHeight) {
+                        // Scale this image to fit the intended size
+                        avatar = Bitmap.createScaledBitmap(
+                                avatar, idealIconWidth, idealIconHeight, true);
+                    }
+                    if (avatar != null) {
+                        noti.setLargeIcon(avatar);
+                    }
+                }
+            }
+
+            taskStackBuilder.addParentStack(ComposeMessageActivity.class);
+            taskStackBuilder.addNextIntent(mostRecentNotification.mClickIntent);
+        }
+        // Always have to set the small icon or the notification is ignored
+        
+        noti.setSmallIcon(R.drawable.stat_notify_sms_push);
+
+        NotificationManager nm = (NotificationManager)
+                context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // Update the notification.
+        noti.setContentTitle(title)
+            .setContentIntent(
+                    taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT))
+            .addKind(Notification.KIND_MESSAGE)
+            .setPriority(Notification.PRIORITY_DEFAULT);     // TODO: set based on contact coming
+                                                             // from a favorite.
+
+        int defaults = 0;
+
+        if (isNew) {
+            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+
+            boolean vibrate = false;
+            if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE)) {
+                // The most recent change to the vibrate preference is to store a boolean
+                // value in NOTIFICATION_VIBRATE. If prefs contain that preference, use that
+                // first.
+                vibrate = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE,
+                        false);
+            } else if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN)) {
+                // This is to support the pre-JellyBean MR1.1 version of vibrate preferences
+                // when vibrate was a tri-state setting. As soon as the user opens the Messaging
+                // app's settings, it will migrate this setting from NOTIFICATION_VIBRATE_WHEN
+                // to the boolean value stored in NOTIFICATION_VIBRATE.
+                String vibrateWhen =
+                        sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN, null);
+                vibrate = "always".equals(vibrateWhen);
+            }
+            
+            Notification notification = new Notification();
+            boolean isActiveCall = isCallActive();
+            
+            if (isActiveCall) {
+                Log.d(TAG,"-------------is incall------------");
+                Vibrator mVibrator = (android.os.Vibrator)
+                context.getSystemService(Context.VIBRATOR_SERVICE);
+                mVibrator.vibrate(sVibratePattern,-1);
+                notification.flags |= Notification.FLAG_SHOW_LIGHTS;
+                notification.ledARGB = 0xff00ff00;
+                notification.ledOnMS = 500;
+                notification.ledOffMS = 2000;
+            } else {
+                if (vibrate) {
+                    defaults |= Notification.DEFAULT_VIBRATE;
+                }
+
+                String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE, null);
+                noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
+                Log.d(TAG, "updatePushMessageNotification: new message, adding sound to the notification");
+            }
+        }
+
+        defaults |= Notification.DEFAULT_LIGHTS;
+
+        noti.setDefaults(defaults);
+
+        // set up delete intent
+        noti.setDeleteIntent(PendingIntent.getBroadcast(context, 0,
+                sNotificationOnDeleteIntent, 0));
+
+        final Notification notification;
+
+        if (messageCount == 1) {
+            // We've got a single message
+
+            // This sets the text for the collapsed form:
+            noti.setContentText(mostRecentNotification.formatBigMessage(context));
+
+            if (mostRecentNotification.mAttachmentBitmap != null) {
+                // The message has a picture, show that
+
+                notification = new Notification.BigPictureStyle(noti)
+                    .bigPicture(mostRecentNotification.mAttachmentBitmap)
+                    // This sets the text for the expanded picture form:
+                    .setSummaryText(mostRecentNotification.formatPictureMessage(context))
+                    .build();
+            } else {
+                // Show a single notification -- big style with the text of the whole message
+                notification = new Notification.BigTextStyle(noti)
+                    .bigText(mostRecentNotification.formatBigMessage(context))
+                    .build();
+            }
+            if (DEBUG) {
+                Log.d(TAG, "updatePushMessageNotification: single message notification");
+            }
+        } else {
+            // We've got multiple messages
+            if (uniqueThreadCount == 1) {
+                // We've got multiple messages for the same thread.
+                // Starting with the oldest new message, display the full text of each message.
+                // Begin a line for each subsequent message.
+                SpannableStringBuilder buf = new SpannableStringBuilder();
+                NotificationInfo infos[] =
+                        notificationSet.toArray(new NotificationInfo[messageCount]);
+                int len = infos.length;
+                for (int i = len - 1; i >= 0; i--) {
+                    NotificationInfo info = infos[i];
+
+                    buf.append(info.formatBigMessage(context));
+
+                    if (i != 0) {
+                        buf.append('\n');
+                    }
+                }
+
+                noti.setContentText(context.getString(R.string.message_count_notification,
+                        messageCount));
+
+                // Show a single notification -- big style with the text of all the messages
+                notification = new Notification.BigTextStyle(noti)
+                    .bigText(buf)
+                    // Forcibly show the last line, with the app's smallIcon in it, if we
+                    // kicked the smallIcon out with an avatar bitmap
+                    .setSummaryText((avatar == null) ? null : " ")
+                    .build();
+                if (DEBUG) {
+                    Log.d(TAG, "updatePushMessageNotification: multi messages for single thread");
+                }
+            } else {
+                // Build a set of the most recent notification per threadId.
+                HashSet<Long> uniqueThreads = new HashSet<Long>(messageCount);
+                ArrayList<NotificationInfo> mostRecentNotifPerThread =
+                        new ArrayList<NotificationInfo>();
+                Iterator<NotificationInfo> notifications = notificationSet.iterator();
+                while (notifications.hasNext()) {
+                    NotificationInfo notificationInfo = notifications.next();
+                    if (!uniqueThreads.contains(notificationInfo.mThreadId)) {
+                        uniqueThreads.add(notificationInfo.mThreadId);
+                        mostRecentNotifPerThread.add(notificationInfo);
+                    }
+                }
+                // When collapsed, show all the senders like this:
+                //     Fred Flinstone, Barry Manilow, Pete...
+                noti.setContentText(formatSenders(context, mostRecentNotifPerThread));
+                Notification.InboxStyle inboxStyle = new Notification.InboxStyle(noti);
+
+                // We have to set the summary text to non-empty so the content text doesn't show
+                // up when expanded.
+                inboxStyle.setSummaryText(" ");
+
+                // At this point we've got multiple messages in multiple threads. We only
+                // want to show the most recent message per thread, which are in
+                // mostRecentNotifPerThread.
+                int uniqueThreadMessageCount = mostRecentNotifPerThread.size();
+                int maxMessages = Math.min(MAX_MESSAGES_TO_SHOW, uniqueThreadMessageCount);
+
+                for (int i = 0; i < maxMessages; i++) {
+                    NotificationInfo info = mostRecentNotifPerThread.get(i);
+                    inboxStyle.addLine(info.formatInboxMessage(context));
+                }
+                notification = inboxStyle.build();
+                if (DEBUG) {
+                    Log.d(TAG, "updatePushMessageNotification: multi messages," +
+                            " showing inboxStyle notification");
+                }
+            }
+        }
+        
+        wakeScreen(context);
+        nm.notify(NOTIFICATION_PUSH_ID, notification);
     }
 
     protected static CharSequence buildTickerMessage(

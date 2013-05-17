@@ -67,7 +67,6 @@ public class UriImage {
             initFromFile(uri);
         }
 
-        Log.w(TAG,"uriimage mPath="+mPath);
         if(mPath!=null)
          mSrc = mPath.substring(mPath.lastIndexOf('/') + 1);
 

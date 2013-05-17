@@ -624,6 +624,9 @@ public class SmsReceiverService extends Service {
         MessagingNotification.blockingUpdateNewMessageIndicator(
             this, MessagingNotification.THREAD_ALL, false);
 
+        MessagingNotification.blockingUpdateNewPushMessageIndicator(
+            this, MessagingNotification.THREAD_ALL, false);
+
         if(MessageUtils.isMultiSimEnabledMms())
         {
             handleIccAbsent(MessageUtils.SUB1);

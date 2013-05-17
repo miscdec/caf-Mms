@@ -18,16 +18,12 @@
 package com.android.mms.ui;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Pattern;
 import java.util.concurrent.ConcurrentHashMap;
 
 import android.app.Activity;
@@ -61,7 +57,6 @@ import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.text.style.URLSpan;
 import android.util.Log;
-import android.util.Patterns;
 import android.widget.Toast;
 
 import com.android.mms.data.Contact;
@@ -106,8 +101,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 
 
-
-
 /**
  * An utility class for managing messages.
  */
@@ -143,8 +136,6 @@ public class MessageUtils {
     private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
     public static final String TEXT_VCALENDAR    = "text/x-vCalendar";
     public static final String TEXT_VCARD        = "text/x-vCard";
-    private static final int SELECT_SYSTEM = 0;
-    private static final int SELECT_EXTERNAL = 1;
 
     /** Free space (TS 51.011 10.5.3). */
     static public final int STATUS_ON_SIM_FREE      = 0;
@@ -595,44 +586,14 @@ public class MessageUtils {
         return DateUtils.formatDateTime(context, when, format_flags);
     }
 
-
-    public static void selectAudio(final Activity activity, final int requestCode) {
-        // Compare other phone's behavior, we are not only display the
-        // RingtonePick to add, we could have other choices like external audio
-        // and system audio. Allow the user to select a particular kind of data
-        // and return it.
-        String[] items = new String[2];
-        items[SELECT_SYSTEM] = activity.getString(R.string.system_audio_item);
-        items[SELECT_EXTERNAL] = activity.getString(R.string.external_audio_item);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity,
-                android.R.layout.simple_list_item_1, android.R.id.text1, items);
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-        AlertDialog dialog = builder.setTitle(activity.getString(R.string.select_audio))
-                .setAdapter(adapter, new OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Intent audioIntent = null;
-                        switch (which) {
-                            case SELECT_SYSTEM:
-                                audioIntent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
-                                audioIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, false);
-                                audioIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false);
-                                audioIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_INCLUDE_DRM, false);
-                                audioIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE,
-                                        activity.getString(R.string.select_audio));
-                                audioIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, false);
-                                break;
-                            case SELECT_EXTERNAL:
-                                audioIntent = new Intent();
-                                audioIntent.setAction(Intent.ACTION_PICK);
-                                audioIntent.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
-                                break;
-                        }
-                        activity.startActivityForResult(audioIntent, requestCode);
-                    }
-                })
-                .create();
-        dialog.show();
+    public static void selectAudio(Activity activity, int requestCode) {
+        Intent intent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, false);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_INCLUDE_DRM, false);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE,
+                activity.getString(R.string.select_audio));
+        activity.startActivityForResult(intent, requestCode);
     }
 
     public static void recordSound(Activity activity, int requestCode, long sizeLimit) {
@@ -2355,18 +2316,6 @@ public class MessageUtils {
         }
         return true;
     }
-
-    /* add for cmcc test  */
-    private static String PRE_FEIXIN = "12520";
-	public static boolean isFetionNumber(String number) {
-        Pattern pattern = Pattern.compile("[0-9]*");
-        if( pattern.matcher(number).matches()){
-         if(number.startsWith(PRE_FEIXIN))
-        	 return true;
-        }
-        return false;
-    }
-     
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);
     }
