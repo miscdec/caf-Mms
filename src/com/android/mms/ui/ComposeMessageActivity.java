@@ -628,6 +628,7 @@ public class ComposeMessageActivity extends Activity
             if ((keyCode == KeyEvent.KEYCODE_DEL) && (mSubjectTextEditor.length() == 0)) {
                 showSubjectEditor(false);
                 mWorkingMessage.setSubject(null, true);
+                invalidateOptionsMenu();
                 return true;
             }
             return false;
@@ -3781,7 +3782,8 @@ public class ComposeMessageActivity extends Activity
             break;
 
             case AttachmentTypeSelectorAdapter.ADD_SOUND:
-               // MessageUtils.selectAudio(this, REQUEST_CODE_ATTACH_SOUND);
+                MessageUtils.selectAudio(this, REQUEST_CODE_ATTACH_SOUND);
+                   /*
                    {
                Intent intentmusic = new Intent(Intent.ACTION_PICK);
                intentmusic.setDataAndType(Uri.EMPTY, "vnd.android.cursor.dir/audio");
@@ -3791,6 +3793,8 @@ public class ComposeMessageActivity extends Activity
                startActivityForResult(intentmusic, REQUEST_CODE_ATTACH_SOUND);
                 break;
                    }
+                   */
+                   break;
             case AttachmentTypeSelectorAdapter.RECORD_SOUND:
                 long sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, sizeLimit);
@@ -3954,8 +3958,9 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case REQUEST_CODE_ATTACH_SOUND: {
-               // Uri uri = (Uri) data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
-                Uri uri = data.getData();
+                Uri uri = (Uri) data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+                 if(uri==null) 
+                    uri = data.getData();
                 if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
                     break;
                 }
