@@ -141,7 +141,17 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         Drawable avatarDrawable;
         if (mConversation.getRecipients().size() == 1) {
             Contact contact = mConversation.getRecipients().get(0);
-            avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
+
+            if("Browser Information".equals(contact.getNumber())) {
+                avatarDrawable = mContext.getResources().getDrawable(R.drawable.ic_contact_picture_push);
+                mAvatarView.setClickable(false);
+                mAvatarView.assignContactUri(null);
+                mAvatarView.setImageDrawable(avatarDrawable);
+                mAvatarView.setVisibility(View.VISIBLE);
+                return;
+            } else {
+                avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
+            }
 
             if (contact.existsInDatabase()) {
                 mAvatarView.assignContactUri(contact.getUri());

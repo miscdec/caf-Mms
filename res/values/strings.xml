@@ -1072,6 +1072,9 @@
     <string name="button_ok">Ok</string>
     <string name="sms_template_title">Templates</string>
     <string name="option_title">Options</string>
+
+    <string name="msg_detail_location">Location:\u0020</string>
+    <string name="unknown_location">Unknown</string>
     
 </resources>
 

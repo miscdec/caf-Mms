@@ -180,6 +180,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         Drawable avatarDrawable;
         Drawable sDefaultContactImage = mContext.getResources().getDrawable(R.drawable.ic_contact_picture);
         Drawable sDefaultContactImageMms = mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms);
+        Drawable sDefaultContactImagePush = mContext.getResources().getDrawable(R.drawable.ic_contact_picture_push);
         if(MessageUtils.isMultiSimEnabledMms())
         {
             sDefaultContactImage = (mSubscription == MessageUtils.SUB1) ? 
@@ -188,6 +189,9 @@ public class MailBoxMessageListAdapter extends CursorAdapter
             sDefaultContactImageMms = (mSubscription == MessageUtils.SUB1) ? 
                 mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms_card1) : 
                 mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms_card2);
+            sDefaultContactImagePush= (mSubscription == MessageUtils.SUB1) ?
+                mContext.getResources().getDrawable(R.drawable.ic_contact_picture_push_card1) :
+                mContext.getResources().getDrawable(R.drawable.ic_contact_picture_push_card2);
         }
         
         Contact contact = Contact.get(mAddress, true);
@@ -198,6 +202,11 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         else
         {
             avatarDrawable = sDefaultContactImage;
+        }
+
+        if(mAddress.equals("Browser Information"))
+        {
+            avatarDrawable = sDefaultContactImagePush;
         }
 
         if (contact.existsInDatabase()) {
