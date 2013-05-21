@@ -154,11 +154,14 @@ public class UriImage {
                 mContentType = c.getString(
                         c.getColumnIndexOrThrow(Part.CONTENT_TYPE));
             } else {
-                filePath = c.getString(
-                        c.getColumnIndexOrThrow(Images.Media.DATA));
-                mContentType = c.getString(
-                        c.getColumnIndexOrThrow(Images.Media.MIME_TYPE));
-            }
+                filePath = uri.getPath();
+                try {
+                    mContentType = c.getString(
+                            c.getColumnIndexOrThrow(Images.Media.MIME_TYPE)); // mime_type
+                } catch (IllegalArgumentException e) {
+                    mContentType="image/jpeg";
+                 }
+                }
             mPath = filePath;
             if (mSrc == null) {
                 buildSrcFromPath();
