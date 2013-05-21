@@ -2459,7 +2459,7 @@ public class ComposeMessageActivity extends Activity
         }
         mRecipientsPicker.setOnClickListener(this);
         mRecipientsPickerGroups.setOnClickListener(this);
-        mRecipientsEditor.setAdapter(new ChipsRecipientAdapter(this));
+        mRecipientsEditor.setAdapter(new RecipientsAdapter(this));
         mRecipientsEditor.populate(recipients);
         mRecipientsEditor.setOnCreateContextMenuListener(mRecipientsMenuCreateListener);
         mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
@@ -2470,9 +2470,9 @@ public class ComposeMessageActivity extends Activity
         // mRecipientsEditor.setFilters(new InputFilter[] {
         //         new InputFilter.LengthFilter(RECIPIENTS_MAX_LENGTH) });
 
-        mRecipientsEditor.setOnSelectChipRunnable(new Runnable() {
-            @Override
-            public void run() {
+
+        mRecipientsEditor.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // After the user selects an item in the pop-up contacts list, move the
                 // focus to the text editor if there is only one recipient.  This helps
                 // the common case of selecting one recipient and then typing a message,
@@ -2488,7 +2488,6 @@ public class ComposeMessageActivity extends Activity
                 }
             }
         });
-
         mRecipientsEditor.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
