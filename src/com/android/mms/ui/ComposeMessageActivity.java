@@ -90,6 +90,7 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Audio;
 import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.telephony.MSimTelephonyManager;
@@ -744,8 +745,10 @@ public class ComposeMessageActivity extends Activity
         super.startActivityForResult(intent, requestCode);
     }
 
-    private void showConvertToMmsToast() {
-        Toast.makeText(this, R.string.converting_to_picture_message, Toast.LENGTH_SHORT).show();
+    private void showConvertToMmsToast(boolean toMms) {
+        final int resId = toMms ? R.string.converting_to_picture_message
+                : R.string.converting_to_text_message;
+        Toast.makeText(this, resId, Toast.LENGTH_SHORT).show();
     }
 
     private class DeleteMessageListener implements OnClickListener {
@@ -851,7 +854,7 @@ public class ComposeMessageActivity extends Activity
             }
         );
 
-        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 dismissChooseDialog();
             }
@@ -890,13 +893,15 @@ public class ComposeMessageActivity extends Activity
     private int getPreferredSubscription() {
         int subscription = ALWAY_ASK;
 
+        Log.d(TAG, "getPreferredSubscription : getContentResolver()="+getContentResolver());
+        
         try {
-            subscription = Settings.Global.getInt(this.getContentResolver(),
+            subscription = Settings.Global.getInt(getContentResolver(),
                     Settings.Global.MULTI_SIM_SMS_SUBSCRIPTION); 
-        } catch (Exception e) {
-            Log.e(TAG, "MSimPhoneFactory.getSMSSubscription has exception!");
+        } catch (SettingNotFoundException e) {
+            Log.e(TAG, "MSimPhoneFactory.getSMSSubscription has exception ! " + e);
         }
-
+        
         return subscription;
     }
 
@@ -913,18 +918,21 @@ public class ComposeMessageActivity extends Activity
             int preferredSub = getPreferredSubscription();
             boolean alwaysAsk = (preferredSub != MSimConstants.SUB1 && preferredSub != MSimConstants.SUB2);
             Log.v(TAG,"preferredSub = " + preferredSub + ", alwaysAsk = " + alwaysAsk
-                 + ", mSendSubscription = " + mSendSubscription);
+                 + ", mSendSubscription = " + mSendSubscription + ",mLastSubInConv = " + mLastSubInConv);
             if (alwaysAsk && mSendSubscription == SUBSCRIPTION_ID_INVALID) {
                 if (mChooseDialog == null || !mChooseDialog.isShowing()) {
                     LaunchChooseDialog(bCheckEcmMode, isMms);
                 }
             } else {
+                /*
                 if( SUBSCRIPTION_ID_INVALID == mLastSubInConv ){
                     mLastSubInConv = preferredSub;
                 }
                 if (mSendSubscription != SUBSCRIPTION_ID_INVALID) {
                     mLastSubInConv = mSendSubscription;
                 }
+                */
+                mLastSubInConv = preferredSub;
                 mWorkingMessage.setCurrentConvSub(mLastSubInConv);
                 sendMessage(bCheckEcmMode);
             }
@@ -1012,9 +1020,12 @@ public class ComposeMessageActivity extends Activity
         builder.setTitle(R.string.title_send_message);
         builder.setIcon(R.drawable.ic_dialog_alert_holo_light);
         builder.setCancelable(false);
+        Log.w(TAG,"compose MessageUtils.isMultiSimEnabledMms()="+MessageUtils.isMultiSimEnabledMms());
         if(MessageUtils.isMultiSimEnabledMms())
         {
-            if((MessageUtils.isIccCardActivated(subID))&&(!MessageUtils.isIccCardActivated(1-subID)))
+            Log.w(TAG,"compose MessageUtils.isIccCardActivated(subID)="+MessageUtils.isIccCardActivated(subID));
+            Log.w(TAG,"compose MessageUtils.isIccCardActivated(1-subID)="+MessageUtils.isIccCardActivated(1-subID));
+            //if((MessageUtils.isIccCardActivated(subID))&&(!MessageUtils.isIccCardActivated(1-subID)))
             {
                 builder.setMessage(getString(R.string.message_size_label)
                              + String.valueOf((mMmsCurrentSize+1023) / 1024)
@@ -3268,8 +3279,10 @@ public class ComposeMessageActivity extends Activity
                     // it doesn't apply to mms.
                     mTextCounter.setVisibility(View.GONE);
 
-                    showConvertToMmsToast();
+                    showConvertToMmsToast(true);
                 }
+                else
+                    showConvertToMmsToast(false);
             }
         });
     }
@@ -3513,6 +3526,12 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case android.R.id.home:
+                exitComposeMessageActivity(new Runnable() {
+                    @Override
+                    public void run() {
+                        finish();
+                    }
+                });
             case MENU_CONVERSATION_LIST:
                 exitComposeMessageActivity(new Runnable() {
                     @Override
@@ -4175,7 +4194,13 @@ public class ComposeMessageActivity extends Activity
                 try {
                     Uri dataUri = persister.persistPart(part,
                             ContentUris.parseId(messageUri), null);
-                    result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, dataUri, null,append);
+                    if(dataUri!=null)
+                            result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, dataUri, null,append);
+                    else{
+                            Log.w(TAG,"dataUri="+dataUri);
+                            result = WorkingMessage.UNKNOWN_ERROR;
+                        }
+                        
                     if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                         log("ResizeImageResultCallback: dataUri=" + dataUri);
                     }

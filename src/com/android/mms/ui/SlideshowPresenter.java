@@ -304,7 +304,7 @@ public class SlideshowPresenter extends Presenter {
                     view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
                 }
             }else{         
-                view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
+                view.setImage(image.getSrc(), image.getBitmap(image.getWidth(), image.getHeight()));
             }
           //  view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
         }

@@ -1835,13 +1835,13 @@ public class MessageUtils {
         return getCurSmsPreferStore(context, SUB_INVALID);
     }
     
-    public static int getCurSmsPreferStore(Context context, int subcription){
+    public static int getCurSmsPreferStore(Context context, int subscription){
         SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
         int preferStore = STORE_ME;
 
         if(isMultiSimEnabledMms())
         {
-            if(subcription == SUB1)
+            if(subscription == SUB1)
             {
                 preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store_card1", "1"));
             }

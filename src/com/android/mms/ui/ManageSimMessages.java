@@ -694,7 +694,7 @@ public class ManageSimMessages extends Activity
 
     private boolean isIncomingMessage(Cursor cursor) {
         int messageStatus = cursor.getInt(
-                cursor.getColumnIndexOrThrow("status_on_icc"));
+                cursor.getColumnIndexOrThrow("status"));
             
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
