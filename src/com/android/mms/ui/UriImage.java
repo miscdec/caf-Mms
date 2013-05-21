@@ -53,7 +53,7 @@ public class UriImage {
     private String mSrc;
     private int mWidth;
     private int mHeight;
-	public static final String IMAGE_BMP        = "image/bmp";
+    public static final String IMAGE_BMP        = "image/bmp";
 
     public UriImage(Context context, Uri uri) {
         if ((null == context) || (null == uri)) {
@@ -104,7 +104,7 @@ public class UriImage {
 
         return "";
     }
-	
+
     //private void initFromFile(Context context, Uri uri) {
     private void initFromFile(Uri uri) {    
         mPath = uri.getPath();
@@ -139,9 +139,9 @@ public class UriImage {
 
         try {
             if ((c.getCount() != 1) || !c.moveToFirst()) {
-               // throw new IllegalArgumentException(
-                      //  "Query on " + uri + " returns 0 or multiple rows.");
-                      return;
+                throw new IllegalArgumentException(
+                        "Query on " + uri + " returns 0 or multiple rows.");
+                      
             }
 
             String filePath;
@@ -403,7 +403,7 @@ public class UriImage {
         }
     }
 
-	private void buildSrcFromPath() {
+    private void buildSrcFromPath() {
         mSrc = mPath.substring(mPath.lastIndexOf('/') + 1);
 
         if(mSrc.startsWith(".") && mSrc.length() > 1) {
@@ -416,7 +416,7 @@ public class UriImage {
         // visible to the user anyway.
         mSrc = mSrc.replace(' ', '_');
     }
-		
+
     private byte[] getResizedImageData(int widthLimit, int heightLimit, int byteLimit) {
         int outWidth = mWidth;
         int outHeight = mHeight;

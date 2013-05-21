@@ -2496,7 +2496,7 @@ public class ComposeMessageActivity extends Activity
                     RecipientsEditor editor = (RecipientsEditor) v;
                     ContactList contacts = editor.constructContactsFromInput(false);
                     updateTitle(contacts);
-                    updateTitle(contacts);
+                   // updateTitle(contacts);
                     if(mWorkingMessage != null && mWorkingMessage.getText() != null)
                     {
                         boolean ismms = contacts.containsEmail();
@@ -4347,6 +4347,8 @@ public class ComposeMessageActivity extends Activity
 
         final String mimeType = intent.getType();
         String action = intent.getAction();
+        Log.w(TAG,"composemessageactivity4349 mimeType="+mimeType);
+        Log.w(TAG,"composemessageactivity4350 action="+action);
         if (Intent.ACTION_SEND.equals(action)) {
             if (extras.containsKey(Intent.EXTRA_STREAM)) {
                 final Uri uri = (Uri)extras.getParcelable(Intent.EXTRA_STREAM);
@@ -4492,8 +4494,9 @@ public class ComposeMessageActivity extends Activity
         // Reset the counter for text editor.
         resetCounter();
 
-        if (mWorkingMessage.hasSlideshow() || (mWorkingMessage.getSlideshow() != null  && mWorkingMessage.hasAttachment())) {
-            mBottomPanel.setVisibility(View.GONE);
+        if ((mWorkingMessage.hasSlideshow() || (mWorkingMessage.getSlideshow() != null  && mWorkingMessage.hasAttachment()))
+            &&(!mWorkingMessage.getSlideshow().SimpleAttach())){
+                mBottomPanel.setVisibility(View.GONE);
             mAttachmentEditor.requestFocus();
             return;
         }
@@ -5015,7 +5018,10 @@ public class ComposeMessageActivity extends Activity
         }
         // invalidate the menu whether the message can be send or can't.
         invalidateOptionsMenu();
-        
+        if(isPreparedForSending()){
+            if((mWorkingMessage.getSlideshow() != null)&&(mWorkingMessage.getSlideshow().SimpleAttach()))
+                enable=true;
+            }
         oneEnable = enable & (!isAirPlaneModeOn()) & (MessageUtils.isMultiSimEnabledMms() ? 
             MessageUtils.isIccCardActivated(MessageUtils.SUB1) : MessageUtils.isIccCardActivated());
         twoEnable = enable & (!isAirPlaneModeOn()) & MessageUtils.isIccCardActivated(MessageUtils.SUB2);
