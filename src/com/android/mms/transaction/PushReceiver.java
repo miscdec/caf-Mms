@@ -147,7 +147,7 @@ public class PushReceiver extends BroadcastReceiver {
                     if (pushMsgUri != null) {
                     // Called off of the UI thread so ok to block.
                         Recycler.getSmsRecycler().deleteOldMessagesByThreadId(mContext.getApplicationContext(), handler.getThreadID());
-                        MessagingNotification.blockingUpdateNewMessageIndicator(mContext,  handler.getThreadID(), false);
+                        MessagingNotification.blockingUpdateNewPushMessageIndicator(mContext,  handler.getThreadID(), false);
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "Wap Push Hander Error :" + e);

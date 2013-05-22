@@ -92,6 +92,7 @@ import android.os.Environment;
 import com.google.android.mms.ContentType;
 import java.util.ArrayList;
 import android.view.View;
+import android.os.PowerManager;
 
 /**
  * Plays the given slideshow in full-screen mode with a common controller.
@@ -105,6 +106,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     private SmilPlayer mSmilPlayer;
 
     private Handler mHandler;
+    private SmilPlayerController mPlayerController;
 
     private SMILDocument mSmilDoc;
 
@@ -127,6 +129,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final int MENU_COPY_TO_SDCARD  = 22;  
     private static final int MENU_MMS_VIEW_ATTACHMENT  = 23;  
  
+ private PowerManager.WakeLock mWakeLock;
  private static final int SHOW_TOAST = 10;
  private static final int SHOW_MEDIA_CONTROLLER = 3;
     
@@ -230,6 +233,7 @@ public class SlideshowActivity extends Activity implements EventListener {
         mScrollView = (SlideScrollView)findViewById(R.id.scroll_slide_view);
         mScrollView.setScrollBarStyle(0x03000000);
         mScrollView.setHandler(this, uihandler);
+        createWakeLock(); 
 
         Intent intent = getIntent();
         Uri msg = intent.getData();
@@ -260,6 +264,15 @@ public class SlideshowActivity extends Activity implements EventListener {
             Log.v(TAG,"   mmsEditCall  error draft box ");
             msgFromTo = AddressUtils.getTo(this, mUri);
         }
+
+        
+        if (1 == mSlideModel.size())
+        {
+            if (mSlideModel.isOnlySimpleAttach())
+            {
+                Toast.makeText(this, R.string.please_view_attachment, Toast.LENGTH_LONG).show();
+            }
+        }        
         mHandler.post(new Runnable() {
             private boolean isRotating() {
                 return mSmilPlayer.isPausedState()
@@ -324,7 +337,8 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private void initMediaController() {
         mMediaController = new MediaController(SlideshowActivity.this, false);
-        mMediaController.setMediaPlayer(new SmilPlayerController(mSmilPlayer));
+        mPlayerController = new SmilPlayerController(mSmilPlayer);
+        mMediaController.setMediaPlayer(mPlayerController);
         mMediaController.setAnchorView(findViewById(R.id.slide_view));
         mMediaController.setPrevNextListeners(
             new OnClickListener() {
@@ -354,30 +368,21 @@ public class SlideshowActivity extends Activity implements EventListener {
     protected void onPause() {
         super.onPause();
         Log.w(TAG,"onPause");
-        if (mSmilDoc != null) {
-            ((EventTarget) mSmilDoc).removeEventListener(
-                    SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT, this, false);
-        }
-        if (mSmilPlayer != null) {
-            mSmilPlayer.pause();
-        }
+       
+       if (null != mPlayerController){
+           mPlayerController.pause(); 
+       }
+       
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         Log.w(TAG,"onstop");
-        if ((null != mSmilPlayer)) {
-            if (isFinishing()) {
-                mSmilPlayer.stop();
-            } else {
-                mSmilPlayer.stopWhenReload();
-            }
             if (mMediaController != null) {
                 // Must do this so we don't leak a window.
                 mMediaController.hide();
             }
-        }
     }
     @Override
     protected void onResume()
@@ -434,7 +439,28 @@ public class SlideshowActivity extends Activity implements EventListener {
         return super.onKeyDown(keyCode, event);
     }
 
-    private class SmilPlayerController implements MediaPlayerControl {
+private synchronized void createWakeLock() {
+        // Create a new wake lock if we haven't made one yet.
+        if (mWakeLock == null) {
+            PowerManager pm = (PowerManager)getSystemService(android.content.Context.POWER_SERVICE);
+            mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "MMS show");
+            mWakeLock.setReferenceCounted(false);
+        }
+    }
+    
+
+    private void acquireWakeLock() {
+        // It's okay to double-acquire this because we are not using it
+        // in reference-counted mode.
+        mWakeLock.acquire();
+    }
+    
+    private void releaseWakeLock() {
+        // Don't release the wake lock if it hasn't been created and acquired.
+        if (mWakeLock != null && mWakeLock.isHeld()) {
+            mWakeLock.release();
+        }
+    }    private class SmilPlayerController implements MediaPlayerControl {
         private final SmilPlayer mPlayer;
         /**
          * We need to cache the playback state because when the MediaController issues a play or
@@ -465,7 +491,9 @@ public class SlideshowActivity extends Activity implements EventListener {
         }
 
         public boolean isPlaying() {
-            return mCachedIsPlaying;
+           //return mCachedIsPlaying;
+            
+            return mPlayer != null ? mPlayer.isPlayingState() : false;
         }
 
         public void pause() {
@@ -482,7 +510,7 @@ public class SlideshowActivity extends Activity implements EventListener {
 
         public void start() {
             mPlayer.start();
-            mCachedIsPlaying = true;
+            acquireWakeLock();
         }
 
         public boolean canPause() {

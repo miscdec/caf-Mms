@@ -38,6 +38,7 @@ import android.widget.TextView;
 import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
+import android.util.Log;
 
 /**
  * This adapter is used to filter contacts on both name and number.

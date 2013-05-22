@@ -54,12 +54,11 @@ import com.android.mms.util.ContactInfoCache;
 /**
  * Provide UI for editing the recipients of multi-media messages.
  */
-public class RecipientsEditor extends RecipientEditTextView {
+public class RecipientsEditor extends MultiAutoCompleteTextView {
     private int mLongPressedPosition = -1;
     private final RecipientsEditorTokenizer mTokenizer;
     private char mLastSeparator = ',';
     private Runnable mOnSelectChipRunnable;
-    private final AddressValidator mInternalValidator;
 
     /** A noop validator that does not munge invalid texts and claims any address is valid */
     private class AddressValidator implements Validator {
@@ -73,18 +72,11 @@ public class RecipientsEditor extends RecipientEditTextView {
     }
 
     public RecipientsEditor(Context context, AttributeSet attrs) {
-        super(context, attrs);
-
+        super(context, attrs, android.R.attr.autoCompleteTextViewStyle);
         mTokenizer = new RecipientsEditorTokenizer(context, this);
         setTokenizer(mTokenizer);
-
-        mInternalValidator = new AddressValidator();
-        super.setValidator(mInternalValidator);
-
         // For the focus to move to the message body when soft Next is pressed
         setImeOptions(EditorInfo.IME_ACTION_NEXT);
-
-        setThreshold(1);    // pop-up the list after a single char is typed
 
         /*
          * The point of this TextWatcher is that when the user chooses
@@ -128,19 +120,6 @@ public class RecipientsEditor extends RecipientEditTextView {
                 mAffected = null;
             }
         });
-    }
-
-    @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        super.onItemClick(parent, view, position, id);
-
-        if (mOnSelectChipRunnable != null) {
-            mOnSelectChipRunnable.run();
-        }
-    }
-
-    public void setOnSelectChipRunnable(Runnable onSelectChipRunnable) {
-        mOnSelectChipRunnable = onSelectChipRunnable;
     }
 
     @Override

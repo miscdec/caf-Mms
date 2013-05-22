@@ -361,6 +361,15 @@ public class MessageListItem extends LinearLayout implements
         } else {
             avatarDrawable = sDefaultContactImage;
         }
+
+        if (!TextUtils.isEmpty(addr))
+        {
+            if(addr.equals("Browser Information"))
+            {
+                avatarDrawable = mContext.getResources().getDrawable(R.drawable.ic_contact_picture_push);
+            }
+        }
+
         mAvatar.setImageDrawable(avatarDrawable);
         
         if(isSelf){
@@ -569,7 +578,6 @@ public class MessageListItem extends LinearLayout implements
     @Override
     public void setImage(String name, Bitmap bitmap) {
         showMmsView(true);
-
         try {
             mImageView.setImageBitmap(bitmap);
             mImageView.setVisibility(VISIBLE);

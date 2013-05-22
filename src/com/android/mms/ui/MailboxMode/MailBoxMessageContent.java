@@ -153,6 +153,7 @@ public class MailBoxMessageContent extends Activity
     private TextView mTimeDetailTextView;    
     private TextView mNumberView;   
     private TextView mSlotTypeView; 
+    private TextView mHomeLocationView;   
     MessageContentScrollView mScrollView;
 
     private static final int MENU_CALL_RECIPIENT    = Menu.FIRST;
@@ -786,7 +787,8 @@ public class MailBoxMessageContent extends Activity
         mNumberView = (TextView) findViewById(R.id.TextViewNumber); 
         mNumberView.setTelUrl("tels:"); 
         mTimeTextView = (TextView) findViewById(R.id.TextViewTime);
-        mTimeDetailTextView = (TextView) findViewById(R.id.TextViewTimeDetail);  
+        mTimeDetailTextView = (TextView) findViewById(R.id.TextViewTimeDetail); 
+        mHomeLocationView = (TextView) findViewById(R.id.LocationDetail);  
         mSlotTypeView = (TextView) findViewById(R.id.TextViewSlotType);
 
         
@@ -870,6 +872,8 @@ public class MailBoxMessageContent extends Activity
         mFromTextView.setText(mFromtoLabel); 
         mTimeTextView.setText(mSendLabel);
         mTimeDetailTextView.setText(mMsgTime);  
+        mHomeLocationView.setText(getHomeLocation(mMsgFromto));
+        
         if(MessageUtils.isMultiSimEnabledMms())
         {
             mSlotTypeView.setVisibility(View.VISIBLE);
@@ -934,6 +938,53 @@ public class MailBoxMessageContent extends Activity
         }
     }
 
+    private String getHomeLocation(String number)
+    {
+        final Uri NATIVE_URI = Uri.parse("content://externalareasearch");
+        String queryStr = number;
+        String location = null;
+        if(queryStr != null)
+        {
+            if(queryStr.startsWith("+86"))
+            {
+                queryStr = queryStr.substring(3);
+            }
+            Cursor cursor = null;
+            try
+            {
+                cursor = getContentResolver().query(NATIVE_URI,null, 
+                                        queryStr, null, null);        
+                if(cursor == null)
+                {
+                    Log.d(TAG,"query home location failed!");
+                    return location;
+                }                        
+                if(cursor.moveToFirst())
+                {
+                          
+                    do{
+                        location = cursor.getString(0);
+                    }while(cursor.moveToNext());
+                    
+                    cursor.close();
+                    return location;
+                }  
+            }
+            catch (SQLiteException ex)
+            {
+                Log.e(TAG,"getHomeLocation : query error " + ex);
+            }
+            finally
+            {            
+                if(cursor != null)
+                {
+                    cursor.close();
+                }   
+            }
+        }
+
+        return location;
+    }
 
     private class DeleteMessageListener implements OnClickListener {
         @Override

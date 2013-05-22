@@ -101,6 +101,13 @@ public class SlideshowAttachmentView extends LinearLayout implements
     }
 
     public void setVideo(String name, Uri video) {
+        Bitmap bitmap = VideoAttachmentView.createVideoThumbnail(mContext, video);
+        if (null == bitmap) {
+            bitmap = BitmapFactory.decodeResource(getResources(),
+                    R.drawable.ic_missing_thumbnail_video);
+        }
+        mImageView.setImageBitmap(bitmap);
+        /*
         MediaPlayer mp = new MediaPlayer();
         try {
             mp.setDataSource(mContext, video);
@@ -109,7 +116,7 @@ public class SlideshowAttachmentView extends LinearLayout implements
             Log.e(TAG, "Unexpected IOException.", e);
         } finally {
             mp.release();
-        }
+        }*/
     }
 
     public void setVideoVisibility(boolean visible) {

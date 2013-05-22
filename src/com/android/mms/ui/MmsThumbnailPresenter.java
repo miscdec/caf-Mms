@@ -72,6 +72,8 @@ public class MmsThumbnailPresenter extends Presenter {
             Log.v("MmsThumbnailPresenter", "_________________________presentFirstSlide  hasAudio");
             view.setImageVisibility(false);
             presentAudioThumbnail(view, slide.getAudio());
+        }else if (slide.hasVcard()) {
+            presentVcardThumbnail(view, slide.getVcard());
         } else{
             Log.v("MmsThumbnailPresenter", "_________________________presentFirstSlide  null");
             view.setImageVisibility(false);
@@ -102,6 +104,7 @@ public class MmsThumbnailPresenter extends Presenter {
 
     private void presentVideoThumbnail(SlideViewInterface view, VideoModel video) {
         mItemLoadedFuture = video.loadThumbnailBitmap(mImageLoadedCallback);
+       //view.setVideo(video.getSrc(), video.getUri());
     }
 
     private void presentImageThumbnail(SlideViewInterface view, ImageModel image) {

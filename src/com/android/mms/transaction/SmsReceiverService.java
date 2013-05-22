@@ -583,7 +583,8 @@ public class SmsReceiverService extends Service {
         
         MessageUtils.checkIsPhoneMessageFull(this);
         
-        if(MessageUtils.isIccCardFull(this, subscription))
+        if(MessageUtils.STORE_SM == MessageUtils.getCurSmsPreferStore(this, subscription)
+            && MessageUtils.isIccCardFull(this, subscription))
         {
             Intent fullintent = new Intent(Intents.SIM_FULL_ACTION);
             fullintent.putExtra(MessageUtils.SUB_KEY, subscription);
@@ -621,6 +622,9 @@ public class SmsReceiverService extends Service {
 
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
+            this, MessagingNotification.THREAD_ALL, false);
+
+        MessagingNotification.blockingUpdateNewPushMessageIndicator(
             this, MessagingNotification.THREAD_ALL, false);
 
         if(MessageUtils.isMultiSimEnabledMms())
@@ -904,6 +908,7 @@ public class SmsReceiverService extends Service {
         values.put("transport_type", "sms");
         values.put(Sms.TYPE, Sms.MESSAGE_TYPE_INBOX);
         values.put("status_on_icc", statusOnIcc);
+        values.put("status", statusOnIcc);
         values.put(Sms.SUB_ID, subId);  
         //values.put(Sms.READ, MessageUtils.MESSAGE_UNREAD);
         
