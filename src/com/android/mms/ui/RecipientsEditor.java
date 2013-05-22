@@ -54,7 +54,7 @@ import com.android.mms.util.ContactInfoCache;
 /**
  * Provide UI for editing the recipients of multi-media messages.
  */
-public class RecipientsEditor extends MultiAutoCompleteTextView {
+public class RecipientsEditor extends MultiAutoCompleteTextView  {
     private int mLongPressedPosition = -1;
     private final RecipientsEditorTokenizer mTokenizer;
     private char mLastSeparator = ',';
@@ -72,7 +72,7 @@ public class RecipientsEditor extends MultiAutoCompleteTextView {
     }
 
     public RecipientsEditor(Context context, AttributeSet attrs) {
-        super(context, attrs, android.R.attr.autoCompleteTextViewStyle);
+        super(context, attrs);
         mTokenizer = new RecipientsEditorTokenizer(context, this);
         setTokenizer(mTokenizer);
         // For the focus to move to the message body when soft Next is pressed

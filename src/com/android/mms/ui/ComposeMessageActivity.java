@@ -4004,8 +4004,6 @@ public class ComposeMessageActivity extends Activity
 
             case REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD:
                 if (data != null) {
-                    // In a case that a draft message has an attachment whose type is slideshow,then reopen it and
-                    // replace the attachment through attach icon, we have to remove the old attachement silently first.
                     if (mWorkingMessage != null) {
                         mWorkingMessage.removeAttachment(false);
                     }
@@ -4029,8 +4027,8 @@ public class ComposeMessageActivity extends Activity
                         return;
                         addVcard(fn.getBytes());   
                         }
+}
                     }
-                }
                 break;
                 case REQUEST_CODE_SELECT_FILE:{
                     Log.v(TAG,"REQUEST_CODE_SELECT_FILE/addOthers type= " + data.getType());
@@ -4129,7 +4127,7 @@ public class ComposeMessageActivity extends Activity
                     public void run() {
                         // We must remove this listener before dealing with the contact list.
                         // Because the listener will take a lot of time, this will cause an ANR.
-                        mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
+                       // mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
                         mRecipientsEditor.populate(list);
                        // mPickedRecipientsList = list;
                         // When we finish dealing with the conatct list, the
@@ -4137,10 +4135,13 @@ public class ComposeMessageActivity extends Activity
                         // to the message queue, then we add the TextChangedListener.
                         // The mRecipientsWatcher will be call while UI thread deal
                         // with the "postHandlePendingChips" runnable.
-                        mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
+                      //  mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
                         updateTitle(list);
                         mTextEditor.requestFocus();
-
+                        
+                        List<String> numbers = mRecipientsEditor.getNumbers();
+                        mWorkingMessage.setWorkingRecipients(numbers);
+                        mWorkingMessage.syncWorkingRecipients();
                         // if process finished, then dismiss the progress dialog
                         progressDialog.dismiss();
 
