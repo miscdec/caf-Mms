@@ -26,6 +26,7 @@ import android.view.View;
 import android.view.ViewStub;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import com.android.mms.R;
@@ -216,5 +217,15 @@ public class AttachmentEditor extends LinearLayout {
         removeButton.setOnClickListener(new MessageOnClick(MSG_REMOVE_ATTACHMENT));
 
         return (SlideViewInterface) view;
+    }
+
+    public void resetSlideshowImage(){
+        // if delete the attachment, the AttachmentEditor's image should set to null
+        // if don't do this, when add slide again and the first slide hasn't and media,
+        // it will use old image as thumbnail, but it the slide hasn't this image attachment.
+        View v = findViewById(R.id.slideshow_image);
+        if (null != v && (v instanceof ImageView)) {
+            ((ImageView)v).setImageBitmap(null);
+        }
     }
 }

@@ -437,6 +437,9 @@ public class ComposeMessageActivity extends Activity
 
                 case AttachmentEditor.MSG_REMOVE_ATTACHMENT:
                     mWorkingMessage.removeAttachment(true);
+
+                    // if remove attachment, reset slideshow image
+                    mAttachmentEditor.resetSlideshowImage();
                     break;
 
                 default:
