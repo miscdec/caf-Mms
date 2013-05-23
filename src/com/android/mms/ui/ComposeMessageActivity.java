@@ -417,6 +417,7 @@ public class ComposeMessageActivity extends Activity
     private final IntentFilter mGetRecipientFilter = new IntentFilter("com.android.mms.selectedrecipients");
     private static final String VCALENDAR               = "vCalendar";
    
+   private boolean mNeedSaveDraft=true;           
    private AlertDialog mTemplateDialog;
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
@@ -2651,7 +2652,7 @@ public class ComposeMessageActivity extends Activity
         initMessageList();
 
         mShouldLoadDraft = true;
-
+        mNeedSaveDraft=true;
         // Load the draft for this thread, if we aren't already handling
         // existing data, such as a shared picture or forwarded message.
         boolean isForwardedMessage = false;
@@ -2951,7 +2952,7 @@ public class ComposeMessageActivity extends Activity
     @Override
     protected void onResume() {
         super.onResume();
-
+        mNeedSaveDraft=true;
         // OLD: get notified of presence updates to update the titlebar.
         // NEW: we are using ContactHeaderWidget which displays presence, but updating presence
         //      there is out of our control.
@@ -3762,6 +3763,7 @@ public class ComposeMessageActivity extends Activity
             SlideModel slide = slideShow.get(0);
             currentSlideSize = slide.getSlideSize();
         }
+        mNeedSaveDraft=false;
         switch (type) {
             case AttachmentTypeSelectorAdapter.ADD_IMAGE:
                 MessageUtils.selectImage(this, REQUEST_CODE_ATTACH_IMAGE);
@@ -4901,7 +4903,7 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
-        if ((MessageUtils.isSmsMessageJustFull(this))&&(!mWorkingMessage.requiresMms()))
+        if ((MessageUtils.isSmsMessageJustFull(this))&&(!mWorkingMessage.requiresMms())&&(mNeedSaveDraft))
         {
             Toast.makeText(ComposeMessageActivity.this, R.string.exceed_message_size_limitation,
                     Toast.LENGTH_SHORT).show();
