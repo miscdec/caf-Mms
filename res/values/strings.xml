@@ -381,6 +381,7 @@
 
     <!-- Error message indicating that an audio attachment cannot be played -->
     <string name="cannot_play_audio">Can\'t play audio.</string>
+    <string name="email_address">Insert Email address</string>
 
     <!-- Button in the slide editor screen used to preview the slide (imperative verb) -->
     <string name="preview">Preview</string>
