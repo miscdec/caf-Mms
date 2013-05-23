@@ -4901,7 +4901,7 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
-        if (MessageUtils.isSmsMessageJustFull(this))
+        if ((MessageUtils.isSmsMessageJustFull(this))&&(!mWorkingMessage.requiresMms()))
         {
             Toast.makeText(ComposeMessageActivity.this, R.string.exceed_message_size_limitation,
                     Toast.LENGTH_SHORT).show();
