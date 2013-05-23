@@ -46,6 +46,9 @@ public class SimFullReceiver extends BroadcastReceiver {
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
             
             int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, MessageUtils.SUB_INVALID);
+            if(!MessageUtils.isMultiSimEnabledMms()) {
+                subscription = MessageUtils.SUB_INVALID;
+            }
             Log.d("SimFullReceiver", "subscription = " + subscription);
             
             Intent viewSimIntent = new Intent(context, ManageSimMessages.class);

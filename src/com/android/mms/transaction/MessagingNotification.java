@@ -1365,7 +1365,6 @@ public class MessagingNotification {
                 String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,null);
                 noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
                 Log.d(TAG, "updateNotification: new message, adding sound to the notification");
-                Log.d("zhanghui", "ringtoneStr= "+ringtoneStr);
             }
         }
 
