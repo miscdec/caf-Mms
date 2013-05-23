@@ -483,7 +483,7 @@ public class MessageListItem extends LinearLayout implements
                         " mMessageItem.mAttachmentType: " + mMessageItem.mAttachmentType +
                         " sameItem: " + sameItem);
             }
-            if ((mMessageItem.mAttachmentType != WorkingMessage.TEXT)&&(mMessageItem.mAttachmentType !=-1)) {
+            if ((mMessageItem.mAttachmentType != WorkingMessage.TEXT)) {
                 if (!sameItem) {
                     setImage(null, null);
                 }
@@ -577,6 +577,11 @@ public class MessageListItem extends LinearLayout implements
 
     @Override
     public void setImage(String name, Bitmap bitmap) {
+        if(mMessageItem.mAttachmentType ==-1)
+            {
+            showMmsView(false);
+            return;
+            }
         showMmsView(true);
         try {
             mImageView.setImageBitmap(bitmap);
