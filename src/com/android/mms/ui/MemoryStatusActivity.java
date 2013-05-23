@@ -74,11 +74,15 @@ public class MemoryStatusActivity extends Activity
     TextView m_Card2Detail;
     TextView m_Card2Label;
     TextView phoneAll;
-    TextView usedDetail;
-    TextView unusedDetail;
     TextView countView;
-    TextView usedView;
-    TextView unusedView;
+    TextView mmsUsedView;
+    TextView elseUsedView;
+    TextView memoryUnusedView;
+    TextView memoryAllView;
+    TextView mmsUsedDetail;
+    TextView elseUsedDetail;
+    TextView memoryUnusedDetail;
+    TextView memoryAllDetail;
 
     private static int mIccCount = 0;
     private static int mIcc2Count = 0;
@@ -117,11 +121,15 @@ public class MemoryStatusActivity extends Activity
     private void initUi()
     {
         phoneAll = (TextView) findViewById(R.id.phone);
-        usedDetail = (TextView) findViewById(R.id.useddetail);
-        unusedDetail = (TextView) findViewById(R.id.unuseddetail);
         countView = (TextView) findViewById(R.id.phonecount);
-        usedView = (TextView) findViewById(R.id.phoneused);
-        unusedView = (TextView) findViewById(R.id.phoneunused);
+        mmsUsedView = (TextView) findViewById(R.id.mms_memory_used);
+        elseUsedView = (TextView) findViewById(R.id.else_memory_used);
+        memoryUnusedView = (TextView) findViewById(R.id.unused_memory);
+        memoryAllView = (TextView) findViewById(R.id.memory_all);
+        mmsUsedDetail = (TextView) findViewById(R.id.mms_memory_useddetail);
+        elseUsedDetail = (TextView) findViewById(R.id.else_memory_useddetail);
+        memoryUnusedDetail = (TextView) findViewById(R.id.unused_memory_detail);
+        memoryAllDetail = (TextView) findViewById(R.id.memory_all_detail);
         
         String slotOneStr = getString(R.string.sim_card1);
         String slottwoStr = getString(R.string.sim_card2);
@@ -181,11 +189,16 @@ public class MemoryStatusActivity extends Activity
         m_Card1Label.setText(slotOneStr);
         m_Card2Label.setText(slottwoStr);
    
+        String mmsusedStr = MessageUtils.formatMemorySize(MessageUtils.getMmsUsed(this));
+        String elseusedStr = MessageUtils.formatMemorySize(MessageUtils.getStoreUsed() - MessageUtils.getMmsUsed(this));
         String unusedStr = MessageUtils.formatMemorySize(MessageUtils.getStoreUnused());
-        String usedStr = MessageUtils.formatMemorySize(MessageUtils.getStoreUsed());
+        String allStr = MessageUtils.formatMemorySize(MessageUtils.getStoreAll());
 
-        unusedDetail.setText(unusedStr);
-        usedDetail.setText(usedStr);
+        mmsUsedDetail.setText(mmsusedStr);
+        elseUsedDetail.setText(elseusedStr);
+        memoryUnusedDetail.setText(unusedStr);
+        memoryAllDetail.setText(allStr);
+        
         startQueryMailboxCount();
     }
     
@@ -348,11 +361,15 @@ public class MemoryStatusActivity extends Activity
         {
             case SHOW_LIST:
                 phoneAll.setVisibility(View.VISIBLE);
-                usedDetail.setVisibility(View.VISIBLE);
-                unusedDetail.setVisibility(View.VISIBLE);
+                mmsUsedDetail.setVisibility(View.VISIBLE);
+                elseUsedDetail.setVisibility(View.VISIBLE);
+                memoryUnusedDetail.setVisibility(View.VISIBLE);
+                memoryAllDetail.setVisibility(View.VISIBLE);
                 countView.setVisibility(View.VISIBLE);
-                usedView.setVisibility(View.VISIBLE);
-                unusedView.setVisibility(View.VISIBLE);
+                mmsUsedView.setVisibility(View.VISIBLE);
+                elseUsedView.setVisibility(View.VISIBLE);
+                memoryUnusedView.setVisibility(View.VISIBLE);
+                memoryAllView.setVisibility(View.VISIBLE);                
                 CardLabel.setVisibility(View.VISIBLE);
                 
                 
@@ -408,12 +425,16 @@ public class MemoryStatusActivity extends Activity
                 
             case SHOW_BUSY:
                 phoneAll.setVisibility(View.GONE);
-                usedDetail.setVisibility(View.GONE);
-                unusedDetail.setVisibility(View.GONE);
+                mmsUsedDetail.setVisibility(View.GONE);
+                elseUsedDetail.setVisibility(View.GONE);
+                memoryUnusedDetail.setVisibility(View.GONE);
+                memoryAllDetail.setVisibility(View.GONE);
                 countView.setVisibility(View.GONE);
-                usedView.setVisibility(View.GONE);
-                unusedView.setVisibility(View.GONE);
                 CardLabel.setVisibility(View.GONE);
+                mmsUsedView.setVisibility(View.GONE);
+                elseUsedView.setVisibility(View.GONE);
+                memoryUnusedView.setVisibility(View.GONE);
+                memoryAllView.setVisibility(View.GONE); 
                 m_Card1Label.setVisibility(View.GONE);
                 m_Card2Label.setVisibility(View.GONE);
                 

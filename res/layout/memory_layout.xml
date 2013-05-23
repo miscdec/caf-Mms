@@ -52,56 +52,78 @@
             <TextView android:layout_width="wrap_content" 
                 android:layout_height="wrap_content" 
                 android:id="@+id/blank">
-            </TextView> 
-            
-            <!--show MMS message count, add for cmcc test
-            <TextView 
-                android:id="@+id/phonemmslabel"
-                android:layout_width="wrap_content" 
-                android:textAppearance="?android:attr/textAppearanceLarge" 
-                android:layout_height="wrap_content" 
-                android:text="@string/pref_mms_settings_title"
-                android:visibility="gone">
-            </TextView>
-            -->
-            
+            </TextView>             
+
             <LinearLayout android:id="@+id/LinearLayout02" 
                 android:layout_height="wrap_content" 
                 android:orientation="horizontal" 
                 android:layout_width="match_parent">
-                <TextView 
-                    android:id="@+id/phoneused" 
-                    android:layout_width="wrap_content" 
+                <TextView android:layout_width="wrap_content" 
                     android:textAppearance="?android:attr/textAppearanceLarge"
-                    android:layout_height="wrap_content"                  
+                    android:layout_height="wrap_content" 
+                    android:id="@+id/mms_memory_used" 
                     android:layout_marginLeft="20dip" 
-                    android:text="@string/phoneused" 
+                    android:text="@string/mms_phoneused" 
                     android:minWidth="120dip">
                 </TextView>
-                <TextView 
-                    android:id="@+id/useddetail"
-                    android:layout_width="wrap_content" 
+                <TextView android:layout_width="wrap_content" 
                     android:textAppearance="?android:attr/textAppearanceLarge"
-                    android:layout_height="wrap_content" >
+                    android:layout_height="wrap_content" 
+                    android:id="@+id/mms_memory_useddetail">
                 </TextView>
             </LinearLayout>
             <LinearLayout android:id="@+id/LinearLayout03" 
                 android:layout_height="wrap_content" 
+                android:orientation="horizontal" 
                 android:layout_width="match_parent">
-                <TextView 
-                    android:id="@+id/phoneunused"
-                    android:layout_width="wrap_content" 
+
+                <TextView android:layout_width="wrap_content" 
                     android:textAppearance="?android:attr/textAppearanceLarge"
-                    android:layout_height="wrap_content"  
-                    android:text="@string/phoneunused" 
+                    android:layout_height="wrap_content" 
+                    android:id="@+id/else_memory_used" 
+                    android:layout_marginLeft="20dip" 
+                    android:text="@string/else_phoneused" 
+                    android:minWidth="120dip">
+                </TextView>
+                <TextView android:layout_width="wrap_content" 
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content" 
+                    android:id="@+id/else_memory_useddetail">
+                </TextView>
+            </LinearLayout>
+            <LinearLayout android:id="@+id/LinearLayout04" 
+                android:layout_height="wrap_content" 
+                android:layout_width="match_parent">
+                <TextView android:layout_width="wrap_content" 
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content" 
+                    android:id="@+id/unused_memory" 
+                    android:text="@string/phone_unused" 
                     android:layout_marginLeft="20dip" 
                     android:minWidth="120dip">
                 </TextView>
-                <TextView 
-                    android:id="@+id/unuseddetail"
-                    android:layout_width="wrap_content" 
+                <TextView android:layout_width="wrap_content" 
                     android:textAppearance="?android:attr/textAppearanceLarge"
-                    android:layout_height="wrap_content" >
+                    android:layout_height="wrap_content" 
+                    android:id="@+id/unused_memory_detail">
+                </TextView>
+            </LinearLayout>
+            <LinearLayout android:id="@+id/LinearLayout05" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal" 
+                android:layout_width="match_parent">
+                <TextView android:layout_width="wrap_content" 
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content" 
+                    android:id="@+id/memory_all" 
+                    android:layout_marginLeft="20dip" 
+                    android:text="@string/all_phone" 
+                    android:minWidth="120dip">
+                </TextView>
+                <TextView android:layout_width="wrap_content" 
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content" 
+                    android:id="@+id/memory_all_detail">
                 </TextView>
             </LinearLayout>
 

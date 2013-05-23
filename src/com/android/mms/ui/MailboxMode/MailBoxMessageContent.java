@@ -743,8 +743,10 @@ public class MailBoxMessageContent extends Activity
         else
         {
             return;
-        }        
-
+        } 
+        
+        mDisplayName = Contact.get(mMsgFromto, true).getName();
+        mMsgTime= MessageUtils.formatTimeStampString(this, mDateLongFormat);
         mBodyTextView.setTextExt(formatMessage(mMsgText));
         mNumberView.setTextExt(mMsgFromto);     
         mFromTextView.setText(mFromtoLabel); 

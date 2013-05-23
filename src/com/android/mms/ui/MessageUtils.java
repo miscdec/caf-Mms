@@ -1482,6 +1482,53 @@ public class MessageUtils {
         }
     }
 
+    /*
+    public static String getAddressByName(Context context, String name)
+    {    
+        String resultAddr = "";
+        Uri nameUri = null;
+        if (TextUtils.isEmpty(name)) 
+        {
+            return resultAddr;
+        }
+
+        String searchName = "'%" + name + "%'";
+
+        Cursor c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+            new String[] {ContactsContract.Data.RAW_CONTACT_ID},
+                ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME + " like ? ",                    
+            new String[] {StructuredName.CONTENT_ITEM_TYPE, searchName}, null);
+
+        if (c == null) 
+        {            
+            return resultAddr;
+        }
+
+        c.moveToPosition(-1);
+        final int SUMMARY_ID_COLUMN_INDEX = 0;
+        int i = 0;
+        while (c.moveToNext()) {
+            i++;
+            final long raw_contact_id = c.getLong(SUMMARY_ID_COLUMN_INDEX);
+            Log.v(TAG, "getAddressByName : raw_contact_id = " + raw_contact_id);   
+            String address = queryPhoneNumbersWithRaw(context, raw_contact_id);  
+            
+            if(i == c.getCount()){
+            	resultAddr += address;
+            } else{
+            	resultAddr += address +",";
+            }
+        } 
+
+        if(c != null){
+            c.close();
+        }
+        
+        Log.d(TAG, "getAddressByName : resultAddr = " + resultAddr);
+        
+        return resultAddr;        
+    }
+    */
     public static String getAddressByName(Context context, String name)
     {    
         String resultAddr = "";
@@ -1495,7 +1542,7 @@ public class MessageUtils {
             new String[] {ContactsContract.Data.RAW_CONTACT_ID},
                 ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME + " =? "  ,                    
             new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
-
+        Log.d(TAG, "wangshuang-->getAddressByName:c="+c);
         if (c == null) 
         {            
             return resultAddr;
@@ -1518,6 +1565,7 @@ public class MessageUtils {
         return resultAddr;        
     }
 
+    
     private static String queryPhoneNumbersWithRaw(Context context, long rawContactId) 
     {
         Cursor c = null;        
@@ -1559,6 +1607,7 @@ public class MessageUtils {
         }  
         return addrs;        
     }
+   
     
      /**
       * Return the activated card number
@@ -1693,6 +1742,57 @@ public class MessageUtils {
         }        
         
         return MMS_DATA_DATA_DIR;
+    }
+
+    public static long getMmsUsed(Context mContext)
+    {
+        long dbSize = 0;
+        String DATABASE_FILE_NAME = "mmssms.db";
+        String dbPath = "/data/data/com.android.providers.telephony/databases/mmssms.db";
+        File dfFile = new File(dbPath);
+        dbSize = dfFile.length();
+        int mmsCount = 0;
+        int smsCount = 0;
+        long mmsfileSize =0;
+        Uri MMS_URI = Uri.parse("content://mms");
+        Uri SMS_URI = Uri.parse("content://sms");
+        Cursor cursor = SqliteWrapper.query(mContext, mContext.getContentResolver(), MMS_URI,
+                        new String[] {"m_size"}, null, null, null); 
+                        
+        if (cursor != null) {
+            try {
+                mmsCount = cursor.getCount();
+                if(mmsCount >0){
+                    cursor.moveToPosition(-1);
+                    while(cursor.moveToNext()){
+                        Log.d(TAG,"------------mmsfileSize = " + mmsfileSize);
+                        mmsfileSize += (cursor.getInt(0) == 0 ? 50 * 1024 : cursor.getInt(0));
+                    }
+                }
+                else
+                {
+                    return 0;
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        cursor = SqliteWrapper.query(mContext, mContext.getContentResolver(), SMS_URI,
+                        new String[] {"_id"}, null, null, null);
+        if (cursor != null) {
+            try {
+                smsCount = cursor.getCount();
+            } finally {
+                cursor.close();
+            }
+        }
+        
+        Log.v(TAG,"mmsUsed ="+mmsfileSize);
+        long mmsMaxSize = dbSize;
+        long mmsMinSize = mmsCount * 3 * 1024;
+        long smsSize = smsCount * 1024;
+        mmsfileSize = mmsMaxSize -  smsSize;
+        return (mmsfileSize < mmsMinSize ? mmsMinSize : mmsfileSize);
     }
     
     public static long getStoreUnused()

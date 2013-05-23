@@ -479,7 +479,7 @@ public class MailBoxMessageList extends ListActivity
         if (smsType == Sms.MESSAGE_TYPE_DRAFT)
         {
             Intent intent = new Intent(this, ComposeMessageActivity.class);
-            //intent.putExtra("thread_id", threadId);
+            intent.putExtra("thread_id", threadId);
             intent.putExtra("sms_body", body);
             intent.putExtra("address", fromto);
             intent.putExtra("edit_draft", true);
