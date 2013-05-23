@@ -74,6 +74,7 @@ public class UriImage {
         // containing a space.  So just replace them with
         // underscores in the name, which is typically not
         // visible to the user anyway.
+        if(mSrc!=null)
         mSrc = mSrc.replace(' ', '_');
 
         mContext = context;
