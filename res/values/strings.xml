@@ -579,6 +579,10 @@
     <!-- Label in "Message details" dialog -->
     <string name="received_label">Received:\u0020</string>
     <!-- Label in "Message details" dialog -->
+    <string name="msg_detail_location">"Location: "</string>
+    <!-- Label in "Message details" dialog -->
+    <string name="unknown_location">Unknown</string>
+    <!-- Label in "Message details" dialog -->
     <string name="saved_label">Saved:\u0020</string>
     <!-- Label in "Message details" dialog -->
     <string name="subject_label">Subject:\u0020</string>
@@ -1077,9 +1081,6 @@
     <string name="button_ok">Ok</string>
     <string name="sms_template_title">Templates</string>
     <string name="option_title">Options</string>
-
-    <string name="msg_detail_location">Location:\u0020</string>
-    <string name="unknown_location">Unknown</string>
     
 </resources>
 
