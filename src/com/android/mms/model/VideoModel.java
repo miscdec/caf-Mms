@@ -120,8 +120,13 @@ public class VideoModel extends RegionMediaModel {
                         path = uri.toString();
                     }
                     mSrc = path.substring(path.lastIndexOf('/') + 1);
+                    try{
                     mContentType = c.getString(c.getColumnIndexOrThrow(
                             Images.Media.MIME_TYPE));
+                        }
+                    catch (IllegalArgumentException e) {
+                    mContentType=ContentType.VIDEO_MP4;;
+                 }
                     if (TextUtils.isEmpty(mContentType)) {
                         throw new MmsException("Type of media is unknown.");
                     }
