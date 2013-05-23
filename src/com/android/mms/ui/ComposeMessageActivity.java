@@ -332,6 +332,8 @@ public class ComposeMessageActivity extends Activity
     // sending in progress.
     private MessageItem mEditMessageItem;
 
+    private int mMessageSizeExceedCounter;
+
     private static final int MSG_ONLY_ONE_FAIL_LIST_ITEM = 1;
 
     /**
@@ -2336,6 +2338,7 @@ public class ComposeMessageActivity extends Activity
         //      there is out of our control.
         //Contact.startPresenceObserver();
 
+        mMessageSizeExceedCounter = 0;
         addRecipientsListeners();
 
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
@@ -2382,6 +2385,7 @@ public class ComposeMessageActivity extends Activity
         //      there is out of our control.
         //Contact.stopPresenceObserver();
 
+        mMessageSizeExceedCounter = 0;
         removeRecipientsListeners();
 
         // remove any callback to display a progress spinner
@@ -3286,17 +3290,20 @@ public class ComposeMessageActivity extends Activity
                     message = res.getString(R.string.select_different_media, mediaType);
                     break;
                 case WorkingMessage.MESSAGE_SIZE_EXCEEDED:
-                    title = res.getString(R.string.exceed_message_size_limitation,
-                        mediaType);
-                    // We should better prompt the "message size limit reached,
-                    // cannot send out message" while we send out the Mms.
-                    if (mIsAttachmentErrorOnSend) {
-                        message = res.getString(R.string.media_size_limit);
-                        mIsAttachmentErrorOnSend = false;
-                    } else {
-                        message = res.getString(R.string.failed_to_add_media, mediaType);
-                    }
-                    break;
+                    if (!isMsgSizeExceedDlgPopupTimesDue()) {
+                        title = res.getString(R.string.exceed_message_size_limitation,
+                                mediaType);
+                        // We should better prompt the "message size limit reached,
+                        // cannot send out message" while we send out the Mms.
+                        if (mIsAttachmentErrorOnSend) {
+                            message = res.getString(R.string.media_size_limit);
+                            mIsAttachmentErrorOnSend = false;
+                        } else {
+                            message = res.getString(R.string.failed_to_add_media, mediaType);
+                        }
+                        break;
+                     }
+                     return;
                 case WorkingMessage.IMAGE_TOO_LARGE:
                     title = res.getString(R.string.failed_to_resize_image);
                     message = res.getString(R.string.resize_image_error_information);
@@ -3308,6 +3315,14 @@ public class ComposeMessageActivity extends Activity
                 MessageUtils.showErrorDialog(ComposeMessageActivity.this, title, message);
             }
         });
+    }
+
+    private boolean isMsgSizeExceedDlgPopupTimesDue() {
+        mMessageSizeExceedCounter++;
+        if (1 < mMessageSizeExceedCounter) {
+            return true;
+        }
+        return false;
     }
 
     private void addImageAsync(final Uri uri, final boolean append) {
