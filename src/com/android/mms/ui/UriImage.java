@@ -53,7 +53,7 @@ public class UriImage {
     private String mSrc;
     private int mWidth;
     private int mHeight;
-	public static final String IMAGE_BMP        = "image/bmp";
+    public static final String IMAGE_BMP        = "image/bmp";
 
     public UriImage(Context context, Uri uri) {
         if ((null == context) || (null == uri)) {
@@ -74,6 +74,7 @@ public class UriImage {
         // containing a space.  So just replace them with
         // underscores in the name, which is typically not
         // visible to the user anyway.
+        if(mSrc!=null)
         mSrc = mSrc.replace(' ', '_');
 
         mContext = context;
@@ -104,7 +105,7 @@ public class UriImage {
 
         return "";
     }
-	
+
     //private void initFromFile(Context context, Uri uri) {
     private void initFromFile(Uri uri) {    
         mPath = uri.getPath();
@@ -139,9 +140,9 @@ public class UriImage {
 
         try {
             if ((c.getCount() != 1) || !c.moveToFirst()) {
-               // throw new IllegalArgumentException(
-                      //  "Query on " + uri + " returns 0 or multiple rows.");
-                      return;
+                throw new IllegalArgumentException(
+                        "Query on " + uri + " returns 0 or multiple rows.");
+                      
             }
 
             String filePath;
@@ -154,11 +155,14 @@ public class UriImage {
                 mContentType = c.getString(
                         c.getColumnIndexOrThrow(Part.CONTENT_TYPE));
             } else {
-                filePath = c.getString(
-                        c.getColumnIndexOrThrow(Images.Media.DATA));
-                mContentType = c.getString(
-                        c.getColumnIndexOrThrow(Images.Media.MIME_TYPE));
-            }
+                filePath = uri.getPath();
+                try {
+                    mContentType = c.getString(
+                            c.getColumnIndexOrThrow(Images.Media.MIME_TYPE)); // mime_type
+                } catch (IllegalArgumentException e) {
+                    mContentType="image/jpeg";
+                 }
+                }
             mPath = filePath;
             if (mSrc == null) {
                 buildSrcFromPath();
@@ -403,7 +407,7 @@ public class UriImage {
         }
     }
 
-	private void buildSrcFromPath() {
+    private void buildSrcFromPath() {
         mSrc = mPath.substring(mPath.lastIndexOf('/') + 1);
 
         if(mSrc.startsWith(".") && mSrc.length() > 1) {
@@ -416,7 +420,7 @@ public class UriImage {
         // visible to the user anyway.
         mSrc = mSrc.replace(' ', '_');
     }
-		
+
     private byte[] getResizedImageData(int widthLimit, int heightLimit, int byteLimit) {
         int outWidth = mWidth;
         int outHeight = mHeight;

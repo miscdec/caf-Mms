@@ -382,6 +382,7 @@
     <string name="add_attachment_other">添加</string>
     <string name="bt_file_not_exist">"文件不存在，或者文件名包含特殊字符。"</string>
     <string name="other">其它</string>
+    <string name="email_address">插入电子邮件地址</string>
 
     <!-- Subscription selection strings -->
     <string name="select_subscription_title">"选择卡槽"</string>

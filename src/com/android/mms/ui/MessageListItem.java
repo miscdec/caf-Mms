@@ -578,7 +578,6 @@ public class MessageListItem extends LinearLayout implements
     @Override
     public void setImage(String name, Bitmap bitmap) {
         showMmsView(true);
-
         try {
             mImageView.setImageBitmap(bitmap);
             mImageView.setVisibility(VISIBLE);

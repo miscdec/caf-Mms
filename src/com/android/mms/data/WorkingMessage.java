@@ -699,7 +699,7 @@ public class WorkingMessage {
         } else {
             throw new IllegalArgumentException("changeMedia type=" + type + ", uri=" + uri);
         }
-        if(!(type == IMAGE || type == VIDEO || type == AUDIO||type == VCARD)){
+        if(!(type == IMAGE || type == VIDEO || type == AUDIO)){
             mSlideshow.add(media);
             return;
         }

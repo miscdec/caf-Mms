@@ -217,6 +217,8 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_SELECT_FILE    = 112;
     
     public static final int REQUEST_CODE_CONTACT_NUMBER_PICKER = 113; 
+    public static final int REQUEST_CODE_CONTACTS_PICKER_EMAIL = 114; 
+    
 
     private static final String TAG = "Mms/compose";
 
@@ -264,6 +266,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_LOAD_PUSH             = 37;
     private static final int MENU_INSERT_CONTACT             = 38;
     private static final int MENU_TEMPLATE             = 39;
+    private static final int MENU_ADD_EMAIL             = 40;
     
 
     private static final int SHOW_COPY_TOAST = 1;
@@ -414,6 +417,7 @@ public class ComposeMessageActivity extends Activity
     private final IntentFilter mGetRecipientFilter = new IntentFilter("com.android.mms.selectedrecipients");
     private static final String VCALENDAR               = "vCalendar";
    
+   private boolean mNeedSaveDraft=true;           
    private AlertDialog mTemplateDialog;
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
@@ -1190,9 +1194,10 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onCreateContextMenu(ContextMenu menu, View v,
                 ContextMenuInfo menuInfo) {
+            RecipientsMenuClickListener l = null;   
             if (menuInfo != null) {
                 Contact c = ((RecipientContextMenuInfo) menuInfo).recipient;
-                RecipientsMenuClickListener l = new RecipientsMenuClickListener(c);
+                 l = new RecipientsMenuClickListener(c);
 
                 menu.setHeaderTitle(c.getName());
 
@@ -1204,6 +1209,15 @@ public class ComposeMessageActivity extends Activity
                             .setOnMenuItemClickListener(l);
                 }
             }
+
+            
+            if ( null == l ){
+                l = new RecipientsMenuClickListener(null);
+            }
+            String[] numbers = mRecipientsEditor.getContactList().getNumbers();
+            if (numbers.length < MessageUtils.MAX_RECIPIENT)
+            menu.add(0, MENU_ADD_EMAIL, 0, R.string.email_address)
+                        .setOnMenuItemClickListener(l);
         }
     };
 
@@ -1232,10 +1246,26 @@ public class ComposeMessageActivity extends Activity
                             REQUEST_CODE_ADD_CONTACT);
                     return true;
                 }
+                case MENU_ADD_EMAIL:{
+                    getEmailListFromContact();
+                    return true;
+                }
             }
             return false;
         }
     }
+
+    /**
+    * get email from contacts
+    */
+    private void getEmailListFromContact()
+    {
+        Log.v(TAG,"-------getEmailListFromContact");
+        Intent intent = new Intent("com.android.contacts.action.MULTI_PICK_EMAIL");
+        intent.setType("vnd.android.cursor.dir/raw_contact");
+        intent.putExtra( "com.android.contacts.MULTI_SEL_EXTRA_MAXITEMS", 10);
+        startActivityForResult(intent, REQUEST_CODE_CONTACTS_PICKER_EMAIL); 
+    }    
 
     private boolean canAddToContacts(Contact contact) {
         // There are some kind of automated messages, like STK messages, that we don't want
@@ -2459,7 +2489,7 @@ public class ComposeMessageActivity extends Activity
         }
         mRecipientsPicker.setOnClickListener(this);
         mRecipientsPickerGroups.setOnClickListener(this);
-        mRecipientsEditor.setAdapter(new ChipsRecipientAdapter(this));
+        mRecipientsEditor.setAdapter(new RecipientsAdapter(this));
         mRecipientsEditor.populate(recipients);
         mRecipientsEditor.setOnCreateContextMenuListener(mRecipientsMenuCreateListener);
         mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
@@ -2470,9 +2500,9 @@ public class ComposeMessageActivity extends Activity
         // mRecipientsEditor.setFilters(new InputFilter[] {
         //         new InputFilter.LengthFilter(RECIPIENTS_MAX_LENGTH) });
 
-        mRecipientsEditor.setOnSelectChipRunnable(new Runnable() {
-            @Override
-            public void run() {
+
+        mRecipientsEditor.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // After the user selects an item in the pop-up contacts list, move the
                 // focus to the text editor if there is only one recipient.  This helps
                 // the common case of selecting one recipient and then typing a message,
@@ -2488,7 +2518,6 @@ public class ComposeMessageActivity extends Activity
                 }
             }
         });
-
         mRecipientsEditor.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
@@ -2496,7 +2525,7 @@ public class ComposeMessageActivity extends Activity
                     RecipientsEditor editor = (RecipientsEditor) v;
                     ContactList contacts = editor.constructContactsFromInput(false);
                     updateTitle(contacts);
-                    updateTitle(contacts);
+                   // updateTitle(contacts);
                     if(mWorkingMessage != null && mWorkingMessage.getText() != null)
                     {
                         boolean ismms = contacts.containsEmail();
@@ -2623,7 +2652,7 @@ public class ComposeMessageActivity extends Activity
         initMessageList();
 
         mShouldLoadDraft = true;
-
+        mNeedSaveDraft=true;
         // Load the draft for this thread, if we aren't already handling
         // existing data, such as a shared picture or forwarded message.
         boolean isForwardedMessage = false;
@@ -2924,7 +2953,7 @@ public class ComposeMessageActivity extends Activity
     @Override
     protected void onResume() {
         super.onResume();
-
+        mNeedSaveDraft=true;
         // OLD: get notified of presence updates to update the titlebar.
         // NEW: we are using ContactHeaderWidget which displays presence, but updating presence
         //      there is out of our control.
@@ -3735,6 +3764,7 @@ public class ComposeMessageActivity extends Activity
             SlideModel slide = slideShow.get(0);
             currentSlideSize = slide.getSlideSize();
         }
+        mNeedSaveDraft=false;
         switch (type) {
             case AttachmentTypeSelectorAdapter.ADD_IMAGE:
                 MessageUtils.selectImage(this, REQUEST_CODE_ATTACH_IMAGE);
@@ -3982,6 +4012,8 @@ public class ComposeMessageActivity extends Activity
                 }
                 break;
 
+            
+            case REQUEST_CODE_CONTACTS_PICKER_EMAIL:
             case REQUEST_CODE_PICK:
                 if (data != null) {
                     processPickResult(data);
@@ -4006,8 +4038,6 @@ public class ComposeMessageActivity extends Activity
 
             case REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD:
                 if (data != null) {
-                    // In a case that a draft message has an attachment whose type is slideshow,then reopen it and
-                    // replace the attachment through attach icon, we have to remove the old attachement silently first.
                     if (mWorkingMessage != null) {
                         mWorkingMessage.removeAttachment(false);
                     }
@@ -4031,8 +4061,8 @@ public class ComposeMessageActivity extends Activity
                         return;
                         addVcard(fn.getBytes());   
                         }
+}
                     }
-                }
                 break;
                 case REQUEST_CODE_SELECT_FILE:{
                     Log.v(TAG,"REQUEST_CODE_SELECT_FILE/addOthers type= " + data.getType());
@@ -4063,7 +4093,6 @@ public class ComposeMessageActivity extends Activity
                 break;
         }
     }
-
     private void processPickResult(final Intent data) {
         // The EXTRA_PHONE_URIS stores the phone's urls that were selected by user in the
         // multiple phone picker.
@@ -4131,7 +4160,7 @@ public class ComposeMessageActivity extends Activity
                     public void run() {
                         // We must remove this listener before dealing with the contact list.
                         // Because the listener will take a lot of time, this will cause an ANR.
-                        mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
+                       // mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
                         mRecipientsEditor.populate(list);
                        // mPickedRecipientsList = list;
                         // When we finish dealing with the conatct list, the
@@ -4139,10 +4168,13 @@ public class ComposeMessageActivity extends Activity
                         // to the message queue, then we add the TextChangedListener.
                         // The mRecipientsWatcher will be call while UI thread deal
                         // with the "postHandlePendingChips" runnable.
-                        mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
+                      //  mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
                         updateTitle(list);
                         mTextEditor.requestFocus();
-
+                        
+                        List<String> numbers = mRecipientsEditor.getNumbers();
+                        mWorkingMessage.setWorkingRecipients(numbers);
+                        mWorkingMessage.syncWorkingRecipients();
                         // if process finished, then dismiss the progress dialog
                         progressDialog.dismiss();
 
@@ -4348,6 +4380,8 @@ public class ComposeMessageActivity extends Activity
 
         final String mimeType = intent.getType();
         String action = intent.getAction();
+        Log.w(TAG,"composemessageactivity4349 mimeType="+mimeType);
+        Log.w(TAG,"composemessageactivity4350 action="+action);
         if (Intent.ACTION_SEND.equals(action)) {
             if (extras.containsKey(Intent.EXTRA_STREAM)) {
                 final Uri uri = (Uri)extras.getParcelable(Intent.EXTRA_STREAM);
@@ -4493,8 +4527,9 @@ public class ComposeMessageActivity extends Activity
         // Reset the counter for text editor.
         resetCounter();
 
-        if (mWorkingMessage.hasSlideshow() || (mWorkingMessage.getSlideshow() != null  && mWorkingMessage.hasAttachment())) {
-            mBottomPanel.setVisibility(View.GONE);
+        if ((mWorkingMessage.hasSlideshow() || (mWorkingMessage.getSlideshow() != null  && mWorkingMessage.hasAttachment()))
+            &&(!mWorkingMessage.getSlideshow().SimpleAttach())){
+                mBottomPanel.setVisibility(View.GONE);
             mAttachmentEditor.requestFocus();
             return;
         }
@@ -4869,7 +4904,7 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
-        if (MessageUtils.isSmsMessageJustFull(this))
+        if ((MessageUtils.isSmsMessageJustFull(this))&&(!mWorkingMessage.requiresMms())&&(mNeedSaveDraft))
         {
             Toast.makeText(ComposeMessageActivity.this, R.string.exceed_message_size_limitation,
                     Toast.LENGTH_SHORT).show();
@@ -5016,7 +5051,10 @@ public class ComposeMessageActivity extends Activity
         }
         // invalidate the menu whether the message can be send or can't.
         invalidateOptionsMenu();
-        
+        if(isPreparedForSending()){
+            if((mWorkingMessage.getSlideshow() != null)&&(mWorkingMessage.getSlideshow().SimpleAttach()))
+                enable=true;
+            }
         oneEnable = enable & (!isAirPlaneModeOn()) & (MessageUtils.isMultiSimEnabledMms() ? 
             MessageUtils.isIccCardActivated(MessageUtils.SUB1) : MessageUtils.isIccCardActivated());
         twoEnable = enable & (!isAirPlaneModeOn()) & MessageUtils.isIccCardActivated(MessageUtils.SUB2);
