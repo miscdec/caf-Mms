@@ -96,7 +96,7 @@ public class SuggestionsProvider extends android.content.ContentProvider {
             if (c == null) {
                 return null;
             }
-            Log.v(TAG, "liutao c count:" + c.getCount());
+
             return new SuggestionsCursor(c, selectionArgs[0]);
         }else{
             Uri u = Uri.parse(String.format(

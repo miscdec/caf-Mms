@@ -2721,7 +2721,7 @@ public class ComposeMessageActivity extends Activity
         Uri intentUri = intent.getData();
 
         boolean sameThread = false;
-        Log.d(TAG, "wangshuang-->onNewIntent:threadId="+threadId);
+
         if (threadId > 0) {
             conversation = Conversation.get(this, threadId, false);
         } else {
