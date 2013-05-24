@@ -81,36 +81,37 @@ public class SuggestionsProvider extends android.content.ContentProvider {
     public Cursor query(Uri uri, String[] projection, String selection,
             String[] selectionArgs, String sortOrder) {
         String number = getAddressByName(getContext(), selectionArgs[0]);
-		Log.v(TAG, "query : the number:" + number);
+        Log.v(TAG, "query : the number:" + number);
         if(TextUtils.isEmpty(number)){
-			Log.v(TAG, "query : the selectionArgs[0]" + selectionArgs[0]);
-	        Uri u = Uri.parse(String.format(
-	                "content://mms-sms/searchSuggest?pattern=%s",
-	                selectionArgs[0]));
-	        Cursor c = getContext().getContentResolver().query(
-	                u,
-	                null,
-	                null,
-	                null,
-	                null);
-			if (c == null) {
-				return null;
-			}
-	        return new SuggestionsCursor(c, selectionArgs[0]);
+            Log.v(TAG, "query : the selectionArgs[0]" + selectionArgs[0]);
+            Uri u = Uri.parse(String.format(
+                    "content://mms-sms/searchSuggest?pattern=%s",
+                    selectionArgs[0]));
+            Cursor c = getContext().getContentResolver().query(
+                    u,
+                    null,
+                    null,
+                    null,
+                    null);
+            if (c == null) {
+                return null;
+            }
+
+            return new SuggestionsCursor(c, selectionArgs[0]);
         }else{
-	        Uri u = Uri.parse(String.format(
-	                "content://mms-sms/searchSuggest?pattern=%s",
-	                number));
-	        Cursor c = getContext().getContentResolver().query(
-	                u,
-	                null,
-	                null,
-	                null,
-	                null);
-			if (c == null) {
-				return null;
-			}
-	        return new SuggestionsCursor(c, number);
+            Uri u = Uri.parse(String.format(
+                "content://mms-sms/searchSuggest?pattern=%s",
+                number));
+            Cursor c = getContext().getContentResolver().query(
+                u,
+                null,
+                null,
+                null,
+                null);
+            if (c == null) {
+                return null;
+            }
+            return new SuggestionsCursor(c, number);
         }
 
     }
@@ -119,17 +120,19 @@ public class SuggestionsProvider extends android.content.ContentProvider {
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         return 0;
     }
-	
+
     public static boolean isNumber(String str){
-    	if(str == null)
-		return false;
-    	for(int i=0;i<str.length();i++){
-		if(!Character.isDigit(str.charAt(i))){
-			return false;
-		}
-	}
-	return true;
+        if(str == null)
+            return false;
+        for(int i=0;i<str.length();i++){
+            if(!Character.isDigit(str.charAt(i))){
+                return false;
+            }
+        }
+        
+        return true;
     }
+    
     public static String getAddressByName(Context context, String name)
     {    
         Log.d(TAG, "getAddressByName : name = " + name);
@@ -164,7 +167,7 @@ public class SuggestionsProvider extends android.content.ContentProvider {
         Log.v(TAG, "getAddressByName : resultAddr = " + resultAddr);
         return resultAddr;        
     }
-
+    
     private static String queryPhoneNumbersWithRaw(Context context, long rawContactId) 
     {
         Cursor c = null;        

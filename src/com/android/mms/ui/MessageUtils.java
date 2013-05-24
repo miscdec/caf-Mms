@@ -99,6 +99,8 @@ import com.android.internal.telephony.MSimConstants;
 import com.android.mms.model.VcardModel;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import android.widget.ArrayAdapter;
+import android.content.ActivityNotFoundException;
 
 
 /**
@@ -1655,6 +1657,57 @@ public class MessageUtils {
         }        
         
         return MMS_DATA_DATA_DIR;
+    }
+
+    public static long getMmsUsed(Context mContext)
+    {
+        long dbSize = 0;
+        String DATABASE_FILE_NAME = "mmssms.db";
+        String dbPath = "/data/data/com.android.providers.telephony/databases/mmssms.db";
+        File dfFile = new File(dbPath);
+        dbSize = dfFile.length();
+        int mmsCount = 0;
+        int smsCount = 0;
+        long mmsfileSize =0;
+        Uri MMS_URI = Uri.parse("content://mms");
+        Uri SMS_URI = Uri.parse("content://sms");
+        Cursor cursor = SqliteWrapper.query(mContext, mContext.getContentResolver(), MMS_URI,
+                        new String[] {"m_size"}, null, null, null); 
+                        
+        if (cursor != null) {
+            try {
+                mmsCount = cursor.getCount();
+                if(mmsCount >0){
+                    cursor.moveToPosition(-1);
+                    while(cursor.moveToNext()){
+                        Log.d(TAG,"------------mmsfileSize = " + mmsfileSize);
+                        mmsfileSize += (cursor.getInt(0) == 0 ? 50 * 1024 : cursor.getInt(0));
+                    }
+                }
+                else
+                {
+                    return 0;
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        cursor = SqliteWrapper.query(mContext, mContext.getContentResolver(), SMS_URI,
+                        new String[] {"_id"}, null, null, null);
+        if (cursor != null) {
+            try {
+                smsCount = cursor.getCount();
+            } finally {
+                cursor.close();
+            }
+        }
+        
+        Log.v(TAG,"mmsUsed ="+mmsfileSize);
+        long mmsMaxSize = dbSize;
+        long mmsMinSize = mmsCount * 3 * 1024;
+        long smsSize = smsCount * 1024;
+        mmsfileSize = mmsMaxSize -  smsSize;
+        return (mmsfileSize < mmsMinSize ? mmsMinSize : mmsfileSize);
     }
     
     public static long getStoreUnused()

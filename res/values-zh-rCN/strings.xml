@@ -384,6 +384,9 @@
     <string name="add_attachment_other">添加</string>
     <string name="bt_file_not_exist">"文件不存在，或者文件名包含特殊字符。"</string>
     <string name="other">其它</string>
+    <string name="email_address">插入电子邮件地址</string>
+    <string name="quickcontact_missing_app" msgid="358168575340921552">"未找到可处理此操作的应用。"</string>
+    <string name="message_missing_app" msgid="358168575340921552">"未找到可处理此操作的应用。"</string>
 
     <!-- Subscription selection strings -->
     <string name="select_subscription_title">"选择卡槽"</string>
@@ -488,8 +491,10 @@
     <string name="memory_status_title">存储状态</string>
     <string name="phoneall">话机</string>
     <string name="phonecount">总数</string>  
-    <string name="phoneused">已用内存：</string>  
-    <string name="phoneunused">未用内存：</string>
+    <string name="mms_phoneused">"彩信占用："</string>
+    <string name="else_phoneused">"其他占用："</string>
+    <string name="phone_unused">"剩余内存："</string>
+    <string name="all_phone">"存储总和："</string>
     <string name="sim_card1">SIM卡1</string>
     <string name="sim_card2">SIM卡2</string>
     <string name="please_wait">请稍候...</string> 

@@ -479,7 +479,7 @@ public class MailBoxMessageList extends ListActivity
         if (smsType == Sms.MESSAGE_TYPE_DRAFT)
         {
             Intent intent = new Intent(this, ComposeMessageActivity.class);
-            //intent.putExtra("thread_id", threadId);
+            intent.putExtra("thread_id", threadId);
             intent.putExtra("sms_body", body);
             intent.putExtra("address", fromto);
             intent.putExtra("edit_draft", true);
@@ -766,20 +766,20 @@ public class MailBoxMessageList extends ListActivity
 
     private class OperateThread extends Thread
     {
-        boolean mDeleteLockedMessages;
-        int mSubscription;
+        boolean mDeleteLockedMessages = false;
+        int mSubscription = MessageUtils.SUB_INVALID;
 
         public OperateThread()
         {
             super("OperateThread");
         }
-        
-        public OperateThread(boolean deleteLockedMessages)
+
+        public void setDeleteLockedMessage(boolean deleteMessage)
         {
-            mDeleteLockedMessages = deleteLockedMessages;
+            mDeleteLockedMessages = deleteMessage;
         }
-      
-        public OperateThread(int subscription)
+
+        public void setSubscription(int subscription)
         {
             mSubscription = subscription;
         }
@@ -1246,8 +1246,10 @@ public class MailBoxMessageList extends ListActivity
         mProgressDialog.show();
         if (mOperateThread == null)
         {
-            mOperateThread = new OperateThread(deleteLockedMessages);
+            mOperateThread = new OperateThread();
         }
+        
+        mOperateThread.setDeleteLockedMessage(deleteLockedMessages);
         Thread thread = new Thread(mOperateThread);
         thread.setPriority(Thread.MAX_PRIORITY);            
         thread.start();
@@ -1303,8 +1305,9 @@ public class MailBoxMessageList extends ListActivity
         mProgressDialog.show();
         if (mOperateThread == null)
         {
-            mOperateThread = new OperateThread(subscription);
-        }        
+            mOperateThread = new OperateThread();
+        }  
+        mOperateThread.setSubscription(subscription);
         Thread thread = new Thread(mOperateThread);
         thread.start();
     }
@@ -1446,9 +1449,13 @@ public class MailBoxMessageList extends ListActivity
     private void deleteMessages(boolean deleteLocked)
     {
         String whereClause;
+        int delSmsCount = 0;
+        int delMmsCount = 0;
         String smsWhereDelete = mSmsWhereDelete;
         String mmsWhereDelete = mMmsWhereDelete;       
-
+        Log.d(TAG, "deleteMessages : mSmsWhereDelete = " + mSmsWhereDelete 
+            + ",mMmsWhereDelete = " + mMmsWhereDelete + ",deleteLocked = " + deleteLocked);
+        
         if (!TextUtils.isEmpty(mSmsWhereDelete))
         {
             smsWhereDelete = smsWhereDelete.substring(0, smsWhereDelete.length()-1);
@@ -1457,10 +1464,10 @@ public class MailBoxMessageList extends ListActivity
             if (!deleteLocked) {
                 whereClause = smsWhereDelete == null ? " locked=0 " : smsWhereDelete + " AND locked=0 ";
             }
-
+            
             if (!TextUtils.isEmpty(whereClause))
             {
-                int delSmsCount = SqliteWrapper.delete(this, getContentResolver(),
+                delSmsCount = SqliteWrapper.delete(this, getContentResolver(),
                     Uri.parse("content://sms"), whereClause, null);
             }
         }
@@ -1476,15 +1483,22 @@ public class MailBoxMessageList extends ListActivity
 
             if (!TextUtils.isEmpty(whereClause))
             {
-                int delMmsCount = SqliteWrapper.delete(this, getContentResolver(),
+                delMmsCount = SqliteWrapper.delete(this, getContentResolver(),
                                      Uri.parse("content://mms"), whereClause, null);
             }
         }
 
-        Message msg = Message.obtain();
-        msg.what = SHOW_TOAST;
-        msg.obj = getString(R.string.operate_success);   
-        uihandler.sendMessage(msg);
+        if(delSmsCount > 0 || delMmsCount > 0){
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_success);   
+            uihandler.sendMessage(msg);
+        }else{
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_failure);   
+            uihandler.sendMessage(msg);
+        }
     }
     
     private void calcuteSelect()
