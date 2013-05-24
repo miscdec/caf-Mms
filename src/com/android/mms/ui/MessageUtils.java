@@ -105,6 +105,7 @@ import com.android.mms.model.VcardModel;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import android.widget.ArrayAdapter;
+import android.content.ActivityNotFoundException;
 
 
 /**
@@ -640,7 +641,13 @@ public class MessageUtils {
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
         intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
+        try{
         activity.startActivityForResult(intent, requestCode);
+            }
+        catch (ActivityNotFoundException e) {
+                        Toast.makeText(activity, R.string.message_missing_app,
+                                Toast.LENGTH_SHORT).show();
+                    }
     }
 
     public static void recordVideo(Activity activity, int requestCode, long sizeLimit) {
