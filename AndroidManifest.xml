@@ -111,6 +111,7 @@
                   android:configChanges="orientation|screenSize|keyboardHidden"
                   android:windowSoftInputMode="stateHidden|adjustResize"
                   android:theme="@style/MmsHoloTheme"
+                  android:parentActivityName=".ui.ConversationList"
                   android:launchMode="singleTop" >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

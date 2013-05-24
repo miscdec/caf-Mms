@@ -90,6 +90,7 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Audio;
 import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.telephony.MSimTelephonyManager;
@@ -897,13 +898,15 @@ public class ComposeMessageActivity extends Activity
     private int getPreferredSubscription() {
         int subscription = ALWAY_ASK;
 
+        Log.d(TAG, "getPreferredSubscription : getContentResolver()="+getContentResolver());
+        
         try {
-            subscription = Settings.Global.getInt(this.getContentResolver(),
+            subscription = Settings.Global.getInt(getContentResolver(),
                     Settings.Global.MULTI_SIM_SMS_SUBSCRIPTION); 
-        } catch (Exception e) {
-            Log.e(TAG, "MSimPhoneFactory.getSMSSubscription has exception!");
+        } catch (SettingNotFoundException e) {
+            Log.e(TAG, "MSimPhoneFactory.getSMSSubscription has exception ! " + e);
         }
-
+        
         return subscription;
     }
 
@@ -920,18 +923,21 @@ public class ComposeMessageActivity extends Activity
             int preferredSub = getPreferredSubscription();
             boolean alwaysAsk = (preferredSub != MSimConstants.SUB1 && preferredSub != MSimConstants.SUB2);
             Log.v(TAG,"preferredSub = " + preferredSub + ", alwaysAsk = " + alwaysAsk
-                 + ", mSendSubscription = " + mSendSubscription);
+                 + ", mSendSubscription = " + mSendSubscription + ",mLastSubInConv = " + mLastSubInConv);
             if (alwaysAsk && mSendSubscription == SUBSCRIPTION_ID_INVALID) {
                 if (mChooseDialog == null || !mChooseDialog.isShowing()) {
                     LaunchChooseDialog(bCheckEcmMode, isMms);
                 }
             } else {
+                /*
                 if( SUBSCRIPTION_ID_INVALID == mLastSubInConv ){
                     mLastSubInConv = preferredSub;
                 }
                 if (mSendSubscription != SUBSCRIPTION_ID_INVALID) {
                     mLastSubInConv = mSendSubscription;
                 }
+                */
+                mLastSubInConv = preferredSub;
                 mWorkingMessage.setCurrentConvSub(mLastSubInConv);
                 sendMessage(bCheckEcmMode);
             }
