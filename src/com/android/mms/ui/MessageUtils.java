@@ -1540,7 +1540,7 @@ public class MessageUtils {
             new String[] {ContactsContract.Data.RAW_CONTACT_ID},
                 ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME + " =? "  ,                    
             new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
-        Log.d(TAG, "wangshuang-->getAddressByName:c="+c);
+
         if (c == null) 
         {            
             return resultAddr;

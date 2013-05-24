@@ -238,7 +238,7 @@ public class SearchActivity extends ListActivity
         final String searchString =
             searchStringParameter != null ? searchStringParameter.trim() : searchStringParameter;
 
-        Log.v("SearchActivity", "liutao the searchString:" + searchString);
+        Log.v("SearchActivity", "onCreate : searchString = " + searchString);
         // If we're being launched with a source_id then just go to that particular thread.
         // Work around the fact that suggestions can only launch the search activity, not some
         // arbitrary activity (such as ComposeMessageActivity).
@@ -294,7 +294,8 @@ public class SearchActivity extends ListActivity
                         searchString));
                     return;
                 }
-                Log.v("SearchActivity", "liutao SearchActivity onquerComplete");
+
+                Log.v("SearchActivity", "onQueryComplete : query count = " + c.getCount());
                 final int threadIdPos = c.getColumnIndex("thread_id");
                 final int addressPos  = c.getColumnIndex("address");
                 final int bodyPos     = c.getColumnIndex("body");
