@@ -153,7 +153,9 @@ public class MailBoxMessageContent extends Activity
     private TextView mTimeDetailTextView;    
     private TextView mNumberView;   
     private TextView mSlotTypeView; 
-    private TextView mHomeLocationView;   
+    private TextView mLocationTextView;
+    private TextView mLocationDetailTextView;
+    //private TextView mHomeLocationView;   
     MessageContentScrollView mScrollView;
 
     private static final int MENU_CALL_RECIPIENT    = Menu.FIRST;
@@ -215,6 +217,7 @@ public class MailBoxMessageContent extends Activity
         mBackgroundQueryHandler = new BackgroundQueryHandler(mContentResolver);
 
         initUi(getIntent());
+        updateHomeLocation();
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);              
@@ -743,7 +746,7 @@ public class MailBoxMessageContent extends Activity
         else
         {
             return;
-        } 
+        }  
         
         mDisplayName = Contact.get(mMsgFromto, true).getName();
         mMsgTime= MessageUtils.formatTimeStampString(this, mDateLongFormat);
@@ -772,6 +775,7 @@ public class MailBoxMessageContent extends Activity
             setTitle(mTitle);
             setProgressBarIndeterminateVisibility(false);
         }
+        updateHomeLocation();
     }
 
     private void initUi(Intent intent)
@@ -790,8 +794,10 @@ public class MailBoxMessageContent extends Activity
         mNumberView.setTelUrl("tels:"); 
         mTimeTextView = (TextView) findViewById(R.id.TextViewTime);
         mTimeDetailTextView = (TextView) findViewById(R.id.TextViewTimeDetail); 
-        mHomeLocationView = (TextView) findViewById(R.id.LocationDetail);  
+        //mHomeLocationView = (TextView) findViewById(R.id.LocationDetail);  
         mSlotTypeView = (TextView) findViewById(R.id.TextViewSlotType);
+        mLocationTextView = (TextView) findViewById(R.id.Location);
+        mLocationDetailTextView = (TextView) findViewById(R.id.LocationDetail);
 
         
         if (null != intent.getAction())
@@ -864,7 +870,7 @@ public class MailBoxMessageContent extends Activity
             mLock = intent.getIntExtra("sms_locked", 0) == 0 ? false : true; 
             mSubID = intent.getIntExtra("sms_subid", MessageUtils.SUB_INVALID);
             mMsgTime= MessageUtils.formatTimeStampString(this, mDateLongFormat);
-            mMsgType = intent.getIntExtra("sms_type", Sms.MESSAGE_TYPE_INBOX);           
+            mMsgType = intent.getIntExtra("sms_type", Sms.MESSAGE_TYPE_INBOX);
 
             m_AllIdList = intent.getStringArrayListExtra("sms_id_list");
         }
@@ -873,8 +879,9 @@ public class MailBoxMessageContent extends Activity
         mNumberView.setTextExt(mMsgFromto);     
         mFromTextView.setText(mFromtoLabel); 
         mTimeTextView.setText(mSendLabel);
-        mTimeDetailTextView.setText(mMsgTime);  
-        mHomeLocationView.setText(getHomeLocation(mMsgFromto));
+        mTimeDetailTextView.setText(mMsgTime);
+        mLocationTextView.setText(getString(R.string.msg_detail_location)); 
+        //mHomeLocationView.setText(getHomeLocation(mMsgFromto));
         
         if(MessageUtils.isMultiSimEnabledMms())
         {
@@ -1320,5 +1327,54 @@ public class MailBoxMessageContent extends Activity
             }            
         }          
     } 
+
+    private void updateHomeLocation()
+    {
+        if(mMsgFromto == null)
+        {
+            return;
+        }
+        final Uri NATIVE_URI = Uri.parse("content://externalareasearch");
+        String queryStr = PhoneNumberUtils.stripSeparators(mMsgFromto);
+        if(queryStr.startsWith("+86"))
+        {
+            queryStr = queryStr.substring(3);
+        }
+
+        Cursor cursor = null;
+        try
+        {
+            Log.d(TAG,"updateHomeLocation number = " + queryStr); 
+            cursor = getContentResolver().query(NATIVE_URI,null, 
+                            queryStr, null, null);        
+            if(cursor == null)
+            {
+                Log.d(TAG,"query home location fail ");
+                mLocationDetailTextView.setText(getString(R.string.unknown_location));
+                return ;
+            }
+            if(cursor.moveToFirst())
+            {
+                      
+                do{
+                    String str2 = cursor.getString(0);
+                    mLocationDetailTextView.setText(str2);
+                } while (cursor.moveToNext());
+                cursor.close();
+                return ;
+            }  
+        }
+        catch (SQLiteException ex)
+        {
+            Log.e(TAG,"homelocation query error " + ex);
+        }
+        finally
+        {            
+            if(cursor != null)
+            {
+                cursor.close();
+            }
+        }
+    }
     
 }
