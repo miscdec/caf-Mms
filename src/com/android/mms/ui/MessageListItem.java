@@ -483,7 +483,6 @@ public class MessageListItem extends LinearLayout implements
                         " mMessageItem.mAttachmentType: " + mMessageItem.mAttachmentType +
                         " sameItem: " + sameItem);
             }
-            Log.w("huangzengzhi","messagelistitem mMessageItem.mAttachmentType="+mMessageItem.mAttachmentType);
             if (((mMessageItem.mAttachmentType == WorkingMessage.VIDEO)
                 ||(mMessageItem.mAttachmentType == WorkingMessage.IMAGE)
                 ||(mMessageItem.mAttachmentType == WorkingMessage.AUDIO)
@@ -579,7 +578,6 @@ public class MessageListItem extends LinearLayout implements
 
     @Override
     public void setImage(String name, Bitmap bitmap) {
-        Log.w("huangzengzhi","messagelistitem mMessageItem.mAttachmentType="+mMessageItem.mAttachmentType);
         if(mMessageItem.mAttachmentType==-1)
             {
             showMmsView(false);
@@ -596,7 +594,6 @@ public class MessageListItem extends LinearLayout implements
     }
 
     private void showMmsView(boolean visible) {
-        Log.w("huangzengzhi","messagelistitem visible="+visible,new Exception());
         if (mMmsView == null) {
             mMmsView = findViewById(R.id.mms_view);
             // if mMmsView is still null here, that mean the mms section hasn't been inflated
