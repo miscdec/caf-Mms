@@ -483,10 +483,12 @@ public class MessageListItem extends LinearLayout implements
                         " mMessageItem.mAttachmentType: " + mMessageItem.mAttachmentType +
                         " sameItem: " + sameItem);
             }
-            if ((mMessageItem.mAttachmentType != WorkingMessage.TEXT)) {
-                if (!sameItem) {
-                    setImage(null, null);
-                }
+            Log.w("huangzengzhi","messagelistitem mMessageItem.mAttachmentType="+mMessageItem.mAttachmentType);
+            if (((mMessageItem.mAttachmentType == WorkingMessage.VIDEO)
+                ||(mMessageItem.mAttachmentType == WorkingMessage.IMAGE)
+                ||(mMessageItem.mAttachmentType == WorkingMessage.AUDIO)
+                ||(mMessageItem.mAttachmentType == WorkingMessage.SLIDESHOW))) {
+                showMmsView(true);
                 setOnClickListener(mMessageItem);
                 drawPlaybackButton(mMessageItem);
             } else {
@@ -577,12 +579,14 @@ public class MessageListItem extends LinearLayout implements
 
     @Override
     public void setImage(String name, Bitmap bitmap) {
-        if(mMessageItem.mAttachmentType ==-1)
+        Log.w("huangzengzhi","messagelistitem mMessageItem.mAttachmentType="+mMessageItem.mAttachmentType);
+        if(mMessageItem.mAttachmentType==-1)
             {
             showMmsView(false);
             return;
             }
         showMmsView(true);
+
         try {
             mImageView.setImageBitmap(bitmap);
             mImageView.setVisibility(VISIBLE);
@@ -592,6 +596,7 @@ public class MessageListItem extends LinearLayout implements
     }
 
     private void showMmsView(boolean visible) {
+        Log.w("huangzengzhi","messagelistitem visible="+visible,new Exception());
         if (mMmsView == null) {
             mMmsView = findViewById(R.id.mms_view);
             // if mMmsView is still null here, that mean the mms section hasn't been inflated
