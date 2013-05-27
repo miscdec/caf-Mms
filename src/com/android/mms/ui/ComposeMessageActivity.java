@@ -592,8 +592,7 @@ public class ComposeMessageActivity extends Activity
                             case WorkingMessage.VCARD:
                             case WorkingMessage.SLIDESHOW:
                                 MessageUtils.viewMmsMessageAttachment(ComposeMessageActivity.this,
-                                        msgItem.mMessageUri, msgItem.mSlideshow,
-                                        getAsyncDialog());
+                                        msgItem.mMessageUri, null);
                                 break;
                         }
                         break;
