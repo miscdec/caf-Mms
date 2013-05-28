@@ -105,6 +105,7 @@ import com.android.mms.model.VcardModel;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import android.widget.ArrayAdapter;
+import android.content.ActivityNotFoundException;
 
 
 /**
@@ -640,7 +641,13 @@ public class MessageUtils {
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
         intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
+        try{
         activity.startActivityForResult(intent, requestCode);
+            }
+        catch (ActivityNotFoundException e) {
+                        Toast.makeText(activity, R.string.message_missing_app,
+                                Toast.LENGTH_SHORT).show();
+                    }
     }
 
     public static void recordVideo(Activity activity, int requestCode, long sizeLimit) {
@@ -1124,6 +1131,33 @@ public class MessageUtils {
         return null;
     }
 
+    
+        /**
+         * Play/view the message attachments.
+         * TOOD: We need to save the draft before launching another activity to view the attachments.
+         *       This is hacky though since we will do saveDraft twice and slow down the UI.
+         *       We should pass the slideshow in intent extra to the view activity instead of
+         *       asking it to read attachments from database.
+         * @param context
+         * @param msgUri the MMS message URI in database
+         * @param slideshow the slideshow to save
+         * @param persister the PDU persister for updating the database
+         * @param sendReq the SendReq for updating the database
+         */
+        public static void viewMmsMessageAttachment(Context context, Uri msgUri,
+                SlideshowModel slideshow) {
+            boolean isSimple = (slideshow == null) ? false : slideshow.isSimple();
+            if (isSimple) {
+                // In attachment-editor mode, we only ever have one slide.
+                MessageUtils.viewSimpleSlideshow(context, slideshow);
+            } else {
+                 Intent   intent = new Intent(context, SlideshowActivity.class);
+                intent.setData(msgUri);
+                context.startActivity(intent);
+            }
+        }
+
+
     /**
      * Play/view the message attachments.
      * TOOD: We need to save the draft before launching another activity to view the attachments.
@@ -1480,6 +1514,53 @@ public class MessageUtils {
         }
     }
 
+    /*
+    public static String getAddressByName(Context context, String name)
+    {    
+        String resultAddr = "";
+        Uri nameUri = null;
+        if (TextUtils.isEmpty(name)) 
+        {
+            return resultAddr;
+        }
+
+        String searchName = "'%" + name + "%'";
+
+        Cursor c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+            new String[] {ContactsContract.Data.RAW_CONTACT_ID},
+                ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME + " like ? ",                    
+            new String[] {StructuredName.CONTENT_ITEM_TYPE, searchName}, null);
+
+        if (c == null) 
+        {            
+            return resultAddr;
+        }
+
+        c.moveToPosition(-1);
+        final int SUMMARY_ID_COLUMN_INDEX = 0;
+        int i = 0;
+        while (c.moveToNext()) {
+            i++;
+            final long raw_contact_id = c.getLong(SUMMARY_ID_COLUMN_INDEX);
+            Log.v(TAG, "getAddressByName : raw_contact_id = " + raw_contact_id);   
+            String address = queryPhoneNumbersWithRaw(context, raw_contact_id);  
+            
+            if(i == c.getCount()){
+            	resultAddr += address;
+            } else{
+            	resultAddr += address +",";
+            }
+        } 
+
+        if(c != null){
+            c.close();
+        }
+        
+        Log.d(TAG, "getAddressByName : resultAddr = " + resultAddr);
+        
+        return resultAddr;        
+    }
+    */
     public static String getAddressByName(Context context, String name)
     {    
         String resultAddr = "";
@@ -1516,6 +1597,7 @@ public class MessageUtils {
         return resultAddr;        
     }
 
+    
     private static String queryPhoneNumbersWithRaw(Context context, long rawContactId) 
     {
         Cursor c = null;        
@@ -1557,6 +1639,7 @@ public class MessageUtils {
         }  
         return addrs;        
     }
+   
     
      /**
       * Return the activated card number
@@ -1691,6 +1774,57 @@ public class MessageUtils {
         }        
         
         return MMS_DATA_DATA_DIR;
+    }
+
+    public static long getMmsUsed(Context mContext)
+    {
+        long dbSize = 0;
+        String DATABASE_FILE_NAME = "mmssms.db";
+        String dbPath = "/data/data/com.android.providers.telephony/databases/mmssms.db";
+        File dfFile = new File(dbPath);
+        dbSize = dfFile.length();
+        int mmsCount = 0;
+        int smsCount = 0;
+        long mmsfileSize =0;
+        Uri MMS_URI = Uri.parse("content://mms");
+        Uri SMS_URI = Uri.parse("content://sms");
+        Cursor cursor = SqliteWrapper.query(mContext, mContext.getContentResolver(), MMS_URI,
+                        new String[] {"m_size"}, null, null, null); 
+                        
+        if (cursor != null) {
+            try {
+                mmsCount = cursor.getCount();
+                if(mmsCount >0){
+                    cursor.moveToPosition(-1);
+                    while(cursor.moveToNext()){
+                        Log.d(TAG,"------------mmsfileSize = " + mmsfileSize);
+                        mmsfileSize += (cursor.getInt(0) == 0 ? 50 * 1024 : cursor.getInt(0));
+                    }
+                }
+                else
+                {
+                    return 0;
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        cursor = SqliteWrapper.query(mContext, mContext.getContentResolver(), SMS_URI,
+                        new String[] {"_id"}, null, null, null);
+        if (cursor != null) {
+            try {
+                smsCount = cursor.getCount();
+            } finally {
+                cursor.close();
+            }
+        }
+        
+        Log.v(TAG,"mmsUsed ="+mmsfileSize);
+        long mmsMaxSize = dbSize;
+        long mmsMinSize = mmsCount * 3 * 1024;
+        long smsSize = smsCount * 1024;
+        mmsfileSize = mmsMaxSize -  smsSize;
+        return (mmsfileSize < mmsMinSize ? mmsMinSize : mmsfileSize);
     }
     
     public static long getStoreUnused()
