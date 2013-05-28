@@ -453,47 +453,37 @@ public class ComposeMessageActivity extends Activity
         logMsg = "[" + tid + "] [" + methodName + "] " + logMsg;
         Log.d(TAG, logMsg);
     }
-
     //==========================================================
     // Inner classes
     //==========================================================
 
     private void editSlideshow() {
-        // The SlideShow is not support Vcard attachment, if we have created a
-        // Vcard already before adding SlideShow, we must remove it first.
-        SlideshowModel slideShow = mWorkingMessage.getSlideshow();
-        if (slideShow != null) {
-            for (SlideModel model : slideShow) {
-                if (model != null && model.hasVcard()) {
-                    model.removeVcard();
-                }
-            }
+        if (mWorkingMessage.isDiscarded())
+        {
+            mWorkingMessage.unDiscard(); 
         }
-        // The user wants to edit the slideshow. That requires us to persist the slideshow to
-        // disk as a PDU in saveAsMms. This code below does that persisting in a background
-        // task. If the task takes longer than a half second, a progress dialog is displayed.
-        // Once the PDU persisting is done, another runnable on the UI thread get executed to start
-        // the SlideshowEditActivity.
-        getAsyncDialog().runAsync(new Runnable() {
-            @Override
-            public void run() {
-                // This runnable gets run in a background thread.
-                mTempMmsUri = mWorkingMessage.saveAsMms(false);
-            }
-        }, new Runnable() {
-            @Override
-            public void run() {
-                // Once the above background thread is complete, this runnable is run
-                // on the UI thread.
-                if (mTempMmsUri == null) {
-                    return;
+            final AlertDialog dialog = new AlertDialog.Builder(ComposeMessageActivity.this)
+                .setIcon(R.drawable.ic_dialog_alert_holo_light)
+                .setTitle(R.string.waiting)
+                .setMessage(R.string.waiting)
+                .setCancelable(false)
+                .create();
+            final Runnable showProgress = new Runnable() {
+                public void run() {
+                    dialog.show();
                 }
-                Intent intent = new Intent(ComposeMessageActivity.this,
-                        SlideshowEditActivity.class);
-                intent.setData(mTempMmsUri);
-                startActivityForResult(intent, REQUEST_CODE_CREATE_SLIDESHOW);
-            }
-        }, R.string.building_slideshow_title);
+            };
+            mAttachmentEditorHandler.postDelayed(showProgress, 100);
+            new Thread(new Runnable() {
+                public void run() {
+                    Uri dataUri = mWorkingMessage.saveAsMms(false);
+                    mAttachmentEditorHandler.removeCallbacks(showProgress);
+                    dialog.dismiss();
+                    Intent intent = new Intent(ComposeMessageActivity.this, SlideshowEditActivity.class);
+                    intent.setData(dataUri);
+                    startActivityForResult(intent, REQUEST_CODE_CREATE_SLIDESHOW);
+                }
+            }).start();        
     }
 
     private final Handler mAttachmentEditorHandler = new Handler() {
@@ -1632,6 +1622,7 @@ public class ComposeMessageActivity extends Activity
         // subject here because we already know what it is and avoid doing
         // another DB lookup in load() just to get it.
         mWorkingMessage.setSubject(msgItem.mSubject, false);
+        updateSendButtonState();
 
         if (mWorkingMessage.hasSubject()) {
             showSubjectEditor(true);
