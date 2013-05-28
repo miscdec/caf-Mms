@@ -85,9 +85,12 @@ import android.provider.MediaStore.Video;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.telephony.MSimSmsManager;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsMessage;
+import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputFilter.LengthFilter;
@@ -219,6 +222,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_SAVE_RINGTONE         = 30;
     private static final int MENU_PREFERENCES           = 31;
     private static final int MENU_GROUP_PARTICIPANTS    = 32;
+    private static final int MENU_COPY_TO_SIM           = 33;
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
 
@@ -325,6 +329,8 @@ public class ComposeMessageActivity extends Activity
                                             // so we can remember it after re-entering the activity.
                                             // If the value >= 0, then we jump to that line. If the
                                             // value is maxint, then we jump to the end.
+    private static final int MSG_COPY_TO_SIM_FAILED = 1;
+    private static final int MSG_COPY_TO_SIM_SUCCESS = 2;
     private long mLastMessageId;
     // If a message A is currently being edited, and user decides to edit
     // another sent message B, we need to send message A and put B in edit state
@@ -366,6 +372,25 @@ public class ComposeMessageActivity extends Activity
     private boolean mIsAudioPlayerActivityRunning = false;
 
     private boolean isLocked = false;
+
+    // handler for handle copy mms to sim with toast.
+    private Handler CopyToSimWithToastHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+        int resId = 0;
+            switch (msg.what){
+                case MSG_COPY_TO_SIM_FAILED:
+                     resId = R.string.copy_to_sim_fail;
+                     break;
+                case MSG_COPY_TO_SIM_SUCCESS:
+                     resId = R.string.copy_to_sim_success;
+                     break;
+                default:
+                     break;
+            }
+            Toast.makeText(ComposeMessageActivity.this, resId, Toast.LENGTH_SHORT).show();
+        }
+    };
 
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
@@ -760,6 +785,27 @@ public class ComposeMessageActivity extends Activity
             }
             dialog.dismiss();
         }
+    }
+
+    private String getMultiSimName(int subscription) {
+        return Settings.System.getString(getApplicationContext().getContentResolver(),
+                        Settings.Global.MULTI_SIM_NAME[subscription]);
+    }
+
+
+    private int hasIccCardCount() {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        int count = 0;
+        for (int i = 0; i < tm.getPhoneCount(); i++) {
+            // Because the status of slot1/2 will return SIM_STATE_UNKNOWN under airplane mode.
+            // So we add check about SIM_STATE_UNKNOWN.
+            if ((tm.getSimState(i) != TelephonyManager.SIM_STATE_ABSENT) &&
+                    (tm.getSimState(i) != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState(i) != TelephonyManager.SIM_STATE_UNKNOWN)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private void confirmSendMessageIfNeeded() {
@@ -1204,6 +1250,14 @@ public class ComposeMessageActivity extends Activity
                     .setOnMenuItemClickListener(l);
             }
 
+            if (msgItem.isSms()
+                    && MessageUtils.isValidSimAddress(msgItem.mAddress)) {
+                if (hasIccCardCount() > 0) {
+                    menu.add(0, MENU_COPY_TO_SIM, 0, R.string.copy_to_sim)
+                            .setOnMenuItemClickListener(l);
+                }
+            }
+
             menu.add(0, MENU_VIEW_MESSAGE_DETAILS, 0, R.string.view_message_details)
                 .setOnMenuItemClickListener(l);
 
@@ -1458,10 +1512,115 @@ public class ComposeMessageActivity extends Activity
                     return true;
                 }
 
+                case MENU_COPY_TO_SIM: {
+                    if (hasIccCardCount() > 1) {
+                        String[] items = new String[MSimTelephonyManager.getDefault()
+                                .getPhoneCount()];
+                        for (int i = 0; i < items.length; i++) {
+                            items[i] = getMultiSimName(i);
+                        }
+                        CopyToSimSelectListener listener = new CopyToSimSelectListener(mMsgItem);
+                        new AlertDialog.Builder(ComposeMessageActivity.this)
+                            .setTitle(R.string.copy_to_sim)
+                            .setPositiveButton(android.R.string.ok, listener)
+                            .setSingleChoiceItems(items, 0, listener)
+                            .setCancelable(true)
+                            .show();
+                    } else {
+                        new Thread(new CopyToSimThread(mMsgItem)).start();
+                    }
+                    return true;
+                }
                 default:
                     return false;
             }
         }
+    }
+
+    private class CopyToSimSelectListener implements DialogInterface.OnClickListener {
+        private MessageItem msgItem;
+        private int subscription;
+
+        public CopyToSimSelectListener(MessageItem msgItem) {
+            super();
+            this.msgItem = msgItem;
+        }
+
+        public void onClick(DialogInterface dialog, int which) {
+            if (which >= 0) {
+                subscription = which;
+            } else if (which == DialogInterface.BUTTON_POSITIVE) {
+                new Thread(new CopyToSimThread(msgItem,subscription)).start();
+            }
+        }
+    }
+    //Thread for CopyToSim
+    private class CopyToSimThread extends Thread {
+        private MessageItem msgItem;
+        private int subscription;
+        public CopyToSimThread(MessageItem msgItem) {
+            this.msgItem = msgItem;
+            this.subscription = MSimSmsManager.getDefault().getPreferredSmsSubscription();
+        }
+
+        public CopyToSimThread(MessageItem msgItem, int subscription) {
+            this.msgItem = msgItem;
+            this.subscription = subscription;
+        }
+
+        @Override
+        public void run() {
+            Message msg = CopyToSimWithToastHandler.obtainMessage();
+            msg.what = !copyToSim(msgItem, subscription) ? MSG_COPY_TO_SIM_FAILED
+                    : MSG_COPY_TO_SIM_SUCCESS;
+            msg.sendToTarget();
+        }
+    }
+
+    // should run on UI thread.
+    private void copyToSimWithToast(MessageItem msgItem) {
+        copyToSimWithToast(msgItem, MSimSmsManager.getDefault().getPreferredSmsSubscription());
+    }
+
+    // should run on UI thread.
+    private void copyToSimWithToast(MessageItem msgItem, int subscription) {
+        int resId = copyToSim(msgItem, subscription) ? R.string.copy_to_sim_success :
+            R.string.copy_to_sim_fail;
+        Toast.makeText(ComposeMessageActivity.this, resId, Toast.LENGTH_SHORT).show();
+    }
+
+    private boolean copyToSim(MessageItem msgItem) {
+        return copyToSim(msgItem, MSimSmsManager.getDefault().getPreferredSmsSubscription());
+    }
+
+    private boolean copyToSim(MessageItem msgItem, int subscription) {
+        int boxId = msgItem.mBoxId;
+        String address = msgItem.mAddress;
+        String text = msgItem.mBody;
+        long timestamp = msgItem.mDate != 0 ? msgItem.mDate : System.currentTimeMillis();
+
+        ArrayList<String> messages = SmsManager.getDefault().divideMessage(text);
+
+        boolean ret = true;
+        for (String message : messages) {
+            if (Sms.isOutgoingFolder(boxId)) {
+                //TODO need update SmsMessage API
+                SmsMessage.SubmitPdu pdu = SmsMessage.getSubmitPdu(null, address, message, false);
+                                               //timestamp, subscription);
+                ret &= MSimSmsManager.getDefault()
+                    .copyMessageToIcc(null, pdu.encodedMessage, SmsManager.STATUS_ON_ICC_SENT,
+                         subscription);
+            } else {
+                byte[] pdu = MessageUtils.getDeliveryPdu(null, address,
+                    message, timestamp, subscription);
+                ret &= MSimSmsManager.getDefault()
+                    .copyMessageToIcc(null, pdu, SmsManager.STATUS_ON_ICC_READ, subscription);
+            }
+            if (!ret) {
+                break;
+            }
+        }
+        return ret;
     }
 
     private void lockMessage(MessageItem msgItem, boolean locked) {
