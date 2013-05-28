@@ -1189,10 +1189,10 @@ public class MessagingNotification {
         viewSimIntent.setAction(Intent.ACTION_VIEW);
         //viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                /*| Intent.FLAG_ACTIVITY_SINGLE_TOP*/
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                context, 0, viewSimIntent, 0);
+                context, 0, viewSimIntent, PendingIntent.FLAG_UPDATE_CURRENT);
                   
         Notification notification = new Notification();
         notification.icon = android.R.drawable.stat_notify_chat;
