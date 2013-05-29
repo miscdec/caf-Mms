@@ -821,9 +821,13 @@
     <string name="copy_to_sim">Copy message to SIM card</string>
     <string name="copy_to_sim_success">Message saved</string>
     <string name="copy_to_sim_fail">Unable to save message</string>
+    <string name="contact_app_not_found">Can not find Contact application</string>
     <!-- QRD Enhancement Multi Sim Sending SMS -->
     <string name="sending_number">To: </string>
     <string name="slot1">Slot1</string>
     <string name="slot2">Slot2</string>
+    <!-- Gray hint displayed in the search field in Contacts when empty -->
+    <string name="search_bar_hint">Search contacts</string>
+    <string name="select_all">All</string>
 </resources>
 

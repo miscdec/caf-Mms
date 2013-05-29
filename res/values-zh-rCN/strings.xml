@@ -371,6 +371,9 @@
     <string name="subscription2_title">"Sim卡2"</string>
     <string name="cancel_sms">"取消"</string>
     <string name="sending_number">"发送至："</string>
+    <string name="contact_app_not_found">"找不到联系人应用"</string>
     <string name="slot1">"卡1"</string>
     <string name="slot2">"卡2"</string>
+    <string name="search_bar_hint">"搜索联系人"</string>
+    <string name="select_all">"全选"</string>
 </resources>
