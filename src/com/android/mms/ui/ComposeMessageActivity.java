@@ -92,6 +92,8 @@ import android.provider.MediaStore.Audio;
 import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
+import android.provider.Telephony.MmsSms;
+import android.provider.Telephony.MmsSms.PendingMessages;
 import android.provider.Telephony.Sms;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.MSimSmsManager;
@@ -5689,6 +5691,14 @@ public class ComposeMessageActivity extends Activity
                 uri = ContentUris.withAppendedId(Mms.Sent.CONTENT_URI, new Long(mstrMsgId) );//sent
             } else {
                 uri = ContentUris.withAppendedId(Mms.Outbox.CONTENT_URI, new Long(mstrMsgId) );//Outbox
+                // Now update the pending_msgs table with an temp error for that new item.
+                ContentValues values = new ContentValues(1);
+                values.put(PendingMessages.ERROR_TYPE, MmsSms.ERR_TYPE_TRANSPORT_FAILURE);
+                //long msgId = ContentUris.parseId(mmsUri);
+                SqliteWrapper.update(ComposeMessageActivity.this, mContentResolver,
+                        PendingMessages.CONTENT_URI,
+                        values, PendingMessages.MSG_ID + "=" + new Long(mstrMsgId), null);
+                Log.v(TAG, "Change error type of uri = " + uri.toString() + ", msgId = " + mstrMsgId);
             }
             // Start MMS transaction service
             mbResendMms = false;
