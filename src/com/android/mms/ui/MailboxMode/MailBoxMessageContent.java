@@ -778,6 +778,24 @@ public class MailBoxMessageContent extends Activity
         updateHomeLocation();
     }
 
+    private void refreshUi()
+    {   
+        if (!TextUtils.isEmpty(mMsgFromto))
+        {
+            String displayName = Contact.get(mMsgFromto, true).getName();
+            mDisplayName = displayName;
+            if (!TextUtils.isEmpty(mDisplayName) && !mDisplayName.equals(mMsgFromto))
+            { 
+                String numberStr = mDisplayName;
+                mNumberView.setTextExt(numberStr);
+            }
+            else
+            {
+                mNumberView.setTextExt(mMsgFromto);
+            }
+        }
+    }
+
     private void initUi(Intent intent)
     {
         setProgressBarIndeterminateVisibility(true);
@@ -1182,6 +1200,8 @@ public class MailBoxMessageContent extends Activity
     protected void onRestart()
     {
         super.onRestart();
+        Contact.invalidateCache();
+        refreshUi();
     }    
 
     private void zoomIn()

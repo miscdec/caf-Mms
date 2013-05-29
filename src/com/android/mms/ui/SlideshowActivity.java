@@ -128,7 +128,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final int MENU_ONE_CALL                 = 21;   
     private static final int MENU_COPY_TO_SDCARD  = 22;  
     private static final int MENU_MMS_VIEW_ATTACHMENT  = 23;  
- 
+ private boolean disappear = false;
  private PowerManager.WakeLock mWakeLock;
  private static final int SHOW_TOAST = 10;
  private static final int SHOW_MEDIA_CONTROLLER = 3;
@@ -362,6 +362,9 @@ public class SlideshowActivity extends Activity implements EventListener {
     }
     protected void onStart(){
         super.onStart();
+        if (disappear){
+            mPlayerController.start(); 
+        }    
     }
 
     @Override
@@ -382,6 +385,7 @@ public class SlideshowActivity extends Activity implements EventListener {
             if (mMediaController != null) {
                 // Must do this so we don't leak a window.
                 mMediaController.hide();
+                disappear =true;
             }
     }
     @Override

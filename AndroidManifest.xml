@@ -160,7 +160,7 @@
                <category android:name="android.intent.category.DEFAULT" />
                <data android:mimeType="text/plain" />
            </intent-filter>
-           <intent-filter>
+	   <intent-filter>
                <action android:name="android.intent.action.SEND" />
                <category android:name="android.intent.category.DEFAULT" />
                <data android:mimeType="text/x-vCalendar" />
@@ -254,6 +254,7 @@
 
         <activity android:name=".ui.SlideshowEditActivity"
             android:theme="@style/MmsHoloTheme"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/edit_slideshow_activity" />
 
         <activity android:name=".ui.RecipientListActivity"
@@ -263,6 +264,7 @@
         <activity android:name=".ui.SlideEditorActivity"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/MmsHoloTheme"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/edit_slide_activity" />
 
         <activity android:name=".ui.SlideshowActivity"

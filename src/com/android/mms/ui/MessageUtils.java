@@ -1131,6 +1131,33 @@ public class MessageUtils {
         return null;
     }
 
+    
+        /**
+         * Play/view the message attachments.
+         * TOOD: We need to save the draft before launching another activity to view the attachments.
+         *       This is hacky though since we will do saveDraft twice and slow down the UI.
+         *       We should pass the slideshow in intent extra to the view activity instead of
+         *       asking it to read attachments from database.
+         * @param context
+         * @param msgUri the MMS message URI in database
+         * @param slideshow the slideshow to save
+         * @param persister the PDU persister for updating the database
+         * @param sendReq the SendReq for updating the database
+         */
+        public static void viewMmsMessageAttachment(Context context, Uri msgUri,
+                SlideshowModel slideshow) {
+            boolean isSimple = (slideshow == null) ? false : slideshow.isSimple();
+            if (isSimple) {
+                // In attachment-editor mode, we only ever have one slide.
+                MessageUtils.viewSimpleSlideshow(context, slideshow);
+            } else {
+                 Intent   intent = new Intent(context, SlideshowActivity.class);
+                intent.setData(msgUri);
+                context.startActivity(intent);
+            }
+        }
+
+
     /**
      * Play/view the message attachments.
      * TOOD: We need to save the draft before launching another activity to view the attachments.
