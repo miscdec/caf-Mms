@@ -331,7 +331,7 @@ public class MailBoxMessageList extends ListActivity
         if (type.equals("mms"))
         {
             int mmsType = c.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_BOX);
-            String ct = com.google.android.mms.ContentType.MULTIPART_MIXED;
+            String ct = com.google.android.mms.ContentType.MULTIPART_RELATED;
             int subscription = c.getInt(MessageListAdapter.COLUMN_MMS_SUB_ID);
             
             if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {                  
@@ -385,12 +385,20 @@ public class MailBoxMessageList extends ListActivity
                 int read = c.getInt(MessageListAdapter.COLUMN_MMS_READ);
                 Uri uri = ContentUris.withAppendedId(Mms.CONTENT_URI, msgId);
                 int messageType = c.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_TYPE);
+                Log.d(TAG, "showMessageContent : messageType = " + messageType);
                 if (MessageUtils.MESSAGE_UNREAD == read)
                 {
                     setMmsMessageRead(uri);
                 }
 
-                if(PduHeaders.MESSAGE_TYPE_DELIVERY_IND == messageType 
+                if (PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND == messageType)
+                {
+                    Log.v(TAG,"showMessageContent : the message is notification-ind");
+                    long threadId = c.getLong(COLUMN_THREAD_ID);
+                    startActivity(ComposeMessageActivity.createIntent(this, threadId));
+                    return;
+                }
+                else if(PduHeaders.MESSAGE_TYPE_DELIVERY_IND == messageType 
                     || PduHeaders.MESSAGE_TYPE_READ_ORIG_IND == messageType)
                 {
                     Intent intent = new Intent(this, DeliveryReportActivity.class);
@@ -1493,6 +1501,7 @@ public class MailBoxMessageList extends ListActivity
             msg.what = SHOW_TOAST;
             msg.obj = getString(R.string.operate_success);   
             uihandler.sendMessage(msg);
+            Conversation.init(MailBoxMessageList.this);
         }else{
             Message msg = Message.obtain();
             msg.what = SHOW_TOAST;
