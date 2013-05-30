@@ -132,7 +132,8 @@ public class ManageSimMessages extends Activity
         @Override
         public void onChange(boolean selfUpdate) {
             mIsNeedUpdateContacts = updateContacts();
-            
+            Contact.invalidateCache();
+            startQuery();
         }
     };
 
