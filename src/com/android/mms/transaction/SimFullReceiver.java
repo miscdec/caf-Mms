@@ -49,7 +49,7 @@ public class SimFullReceiver extends BroadcastReceiver {
             if(!MessageUtils.isMultiSimEnabledMms()) {
                 subscription = MessageUtils.SUB_INVALID;
             }
-            Log.d("SimFullReceiver", "subscription = " + subscription);
+            Log.d("SimFullReceiver ", "onReceive subscription = " + subscription);
             
             Intent viewSimIntent = new Intent(context, ManageSimMessages.class);
             viewSimIntent.putExtra(MessageUtils.SUB_KEY, subscription);
@@ -70,7 +70,7 @@ public class SimFullReceiver extends BroadcastReceiver {
             } else {
                 notification.tickerText = context.getString(R.string.sim_full_title);
             } 
-            notification.defaults = Notification.DEFAULT_ALL;
+            notification.defaults = Notification.DEFAULT_VIBRATE; /* DEFAULT_ALL maybe confict with new sms ringtone */
 
             notification.setLatestEventInfo(
                     context, notification.tickerText,
