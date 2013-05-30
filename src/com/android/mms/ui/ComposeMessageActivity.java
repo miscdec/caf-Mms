@@ -3211,6 +3211,7 @@ public class ComposeMessageActivity extends Activity
         // activity will cause an empty draft to be deleted.
         if (!mWorkingMessage.isWorthSaving()) {
             exit.run();
+            mWorkingMessage.discard();
             return;
         }
 
@@ -4879,7 +4880,7 @@ public class ComposeMessageActivity extends Activity
         if (mWorkingMessage.isDiscarded()) {
             return;
         }
-
+        
         if (!mWaitingForSubActivity &&
                 !mWorkingMessage.isWorthSaving() &&
                 (!isRecipientsEditorVisible() || recipientCount() == 0)) {
@@ -4989,7 +4990,7 @@ public class ComposeMessageActivity extends Activity
         // Clear the text box.
         TextKeyListener.clear(mTextEditor.getText());
 
-        mWorkingMessage.clearConversation(mConversation, false);
+        mWorkingMessage.clearConversation(mConversation, false, false);
         mWorkingMessage = WorkingMessage.createEmpty(this);
         mWorkingMessage.setConversation(mConversation);
 
