@@ -51,6 +51,9 @@ import android.content.ContentResolver;
 import android.text.util.Linkify;
 import android.text.TextUtils;
 import com.android.mms.MmsConfig;
+import android.preference.PreferenceManager;
+import android.content.SharedPreferences;
+import android.util.TypedValue;
 /**
  * A basic view to show the contents of a slide.
  */
@@ -427,6 +430,8 @@ public class SlideView extends LinearLayout implements
         mTextView.setLinksClickable(true);
         mTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
         
+        float textSize = getCurrentTextSize(mContext);
+        mTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,textSize);
         mTextView.setTelUrl("tels:");
         mTextView.setWebUrl("www_custom:");            
         mTextView.requestFocus();
@@ -444,8 +449,9 @@ public class SlideView extends LinearLayout implements
                 width = W;                
             }
             mTextView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+            float textSize = getCurrentTextSize(mContext);
             mTextView.setTextIsSelectable(true);
-            mTextView.setTextSize(18);              
+            mTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,textSize);              
         }
     }
 
@@ -461,6 +467,14 @@ public class SlideView extends LinearLayout implements
                 W=MmsConfig.MAX_IMAGE_WIDTH-20;
             mVideoView.setLayoutParams(new LayoutParams(W, height));
         }
+    }
+
+ private static int getCurrentTextSize(Context context)
+    {
+        int textSize = 27;    
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);        
+        textSize = Integer.parseInt(prefsms.getString("smsfontsize", "27"));
+        return textSize;
     }
 
     public void setImageVisibility(boolean visible) {

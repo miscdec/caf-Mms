@@ -80,6 +80,7 @@ import android.provider.Telephony.Sms;
 import com.android.mms.util.ContactInfoCache;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Groups;
+import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
@@ -172,6 +173,16 @@ public class ContactGroup extends ListActivity
                                 + "' AND " + GroupMembership.GROUP_ROW_ID
                                 + "=?)"
                                 + " AND "+ Data.MIMETYPE + "='" + Phone.CONTENT_ITEM_TYPE+"'";
+
+    private static final String EMAILS_IN_GROUP_SELECT_BYGROUPID =
+                             "raw_contact_id" + " IN "
+                            + "(SELECT " + "data.raw_contact_id"
+                            + " FROM " + DATA_JOIN_MIMETYPES
+                            + " WHERE " + Data.MIMETYPE + "='" + LocalGroup.CONTENT_ITEM_TYPE
+                                    + "' AND " + GroupMembership.GROUP_ROW_ID
+                                    + "=?)"
+                                    + " AND "+ Data.MIMETYPE + "='" + Email.CONTENT_ITEM_TYPE+"'";
+        
 
     /** Adapter class to fill in data for the Call Log */
     final class RecentCallsAdapter extends ResourceCursorAdapter
@@ -656,6 +667,7 @@ public class ContactGroup extends ListActivity
                             String groupid = cursor.getString(0);           
                             String name = null;
                             String number = null;
+                            String email = null;
                             String personID = null;
                             boolean number_Not_null = false;
                             Cursor membercursor = getContentResolver().query(Phone.CONTENT_URI,
@@ -665,7 +677,16 @@ public class ContactGroup extends ListActivity
                                                 PHONES_IN_GROUP_SELECT_BYGROUPID,       //WHERE clause--we won't specify.
                                                 new String[]{groupid},  //Selection
                                                 null);
-                            if( membercursor != null ){
+                            Cursor membercursoremail = getContentResolver().query(Email.CONTENT_URI,
+                                                new String[]{Email.RAW_CONTACT_ID, 
+                                                Email.DISPLAY_NAME, 
+                                                Email.ADDRESS}, //Which columns to return. 
+                                                EMAILS_IN_GROUP_SELECT_BYGROUPID,       //WHERE clause--we won't specify.
+                                                new String[]{groupid},  //Selection
+                                                null);
+                            Log.w(TAG,"contactgroup671 membercursor="+membercursor);
+                            Log.w(TAG,"contactgroup671 membercursoremail.getCount()="+membercursoremail.getCount());
+                            if(( membercursor != null )||( membercursoremail != null )){
                                 if(membercursor.getCount() != 0){
                                      try {
                                         while (membercursor.moveToNext()) {
@@ -685,6 +706,29 @@ public class ContactGroup extends ListActivity
                                         }
                                     } finally {
                                         membercursor.close();
+                                    }
+                                }
+                                if(membercursoremail.getCount() != 0)
+                                    {
+                                     try {
+                                        while (membercursoremail.moveToNext()) {
+                                            ArrayList<String> peopleitem = new ArrayList<String>();
+                                            personID = membercursoremail.getString(0); 
+                                            name = membercursoremail.getString(1);
+                                            email = membercursoremail.getString(2);
+                                            if(email != null && TextUtils.isGraphic(email) ){
+                                                number_Not_null = true;
+                                            }
+                                            peopleitem.add(name);
+                                            Log.w(TAG,"contactgroup email="+email);
+                                            peopleitem.add(email);
+                                            values = new ContentValues();
+                                            values.putStringArrayList("com.android.contacts.action.ACTION_GET_CONTENTS" , peopleitem);
+                                            results.add(values);
+                                            mSelectCount++;  
+                                        }
+                                    } finally {
+                                        membercursoremail.close();
                                     }
                                 }
 
