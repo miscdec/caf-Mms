@@ -480,6 +480,10 @@ public class ManageSimMessages extends Activity
         }
 
         final Cursor cursor = (Cursor) mListAdapter.getItem(info.position);
+        
+        if(cursor != null){
+            Log.d(TAG, "onContextItemSelected : cursor = "+ cursor + ", position = " + info.position);
+        }
 
         switch (item.getItemId()) {
             case MENU_COPY_TO_PHONE_MEMORY:
@@ -708,11 +712,13 @@ public class ManageSimMessages extends Activity
     }
 
     private void deleteFromSim(Cursor cursor) {
-        String messageIndexString =
-                cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
-        Uri simUri = mIccUri.buildUpon().appendPath(messageIndexString).build();
-
-        SqliteWrapper.delete(this, mContentResolver, simUri, null, null);
+        if(cursor != null && !cursor.isClosed()){
+            String messageIndexString =
+                    cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
+            Uri simUri = mIccUri.buildUpon().appendPath(messageIndexString).build();
+            
+            SqliteWrapper.delete(this, mContentResolver, simUri, null, null);
+        }
     }
 
     private void deleteAllFromSim() {
