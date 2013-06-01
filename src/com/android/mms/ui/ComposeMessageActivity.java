@@ -789,7 +789,7 @@ public class ComposeMessageActivity extends Activity
 
     private String getMultiSimName(int subscription) {
         return Settings.System.getString(getApplicationContext().getContentResolver(),
-                        Settings.Global.MULTI_SIM_NAME[subscription]);
+                        Settings.System.MULTI_SIM_NAME[subscription]);
     }
 
 
