@@ -31,6 +31,7 @@ import com.android.internal.telephony.cdma.sms.BearerData;
 import com.android.internal.telephony.cdma.sms.CdmaSmsAddress;
 import com.android.internal.telephony.cdma.sms.SmsEnvelope;
 import com.android.internal.telephony.cdma.sms.UserData;
+import com.android.internal.telephony.MSimConstants;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,6 +58,7 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.provider.Settings;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
@@ -1391,4 +1393,23 @@ public class MessageUtils {
         }
         return subId;
     }
+
+    /**
+     * Return the sim name of subscription.
+     */
+    public static String getMultiSimName(Context context, int subscription) {
+        if (subscription >= MSimTelephonyManager.getDefault().getPhoneCount() || subscription < 0) {
+            return null;
+        }
+        String multiSimName = Settings.System.getString(context.getContentResolver(),
+                 Settings.System.MULTI_SIM_NAME[subscription]);
+        if (multiSimName == null) {
+            if (subscription == MSimConstants.SUB1) {
+                return context.getString(R.string.slot1);
+            } else if (subscription == MSimConstants.SUB2) {
+                return context.getString(R.string.slot2);
+            }
+        }
+        return multiSimName;
+   }
 }

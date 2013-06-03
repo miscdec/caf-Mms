@@ -1,9 +1,8 @@
 /*
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
- * Copyright (C) 2010-2012, The Linux Foundation. All rights reserved.
- * Not a Contribution, Apache license notifications and license are retained
- * for attribution purposes only
+ * Copyright (C) 2010-2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,10 +50,13 @@ import android.telephony.MSimSmsManager;
 import android.telephony.ServiceState;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
+import android.telephony.TelephonyManager;
+import android.telephony.MSimTelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
 import com.android.mms.R;
@@ -73,7 +75,6 @@ import com.google.android.mms.MmsException;
  */
 public class SmsReceiverService extends Service {
     private static final String TAG = "SmsReceiverService";
-    private final String SUBSCRIPTION_KEY = "subscription";
 
     private ServiceHandler mServiceHandler;
     private Looper mServiceLooper;
@@ -95,6 +96,7 @@ public class SmsReceiverService extends Service {
         Sms.ADDRESS,    //2
         Sms.BODY,       //3
         Sms.STATUS,     //4
+        Sms.SUB_ID,     //5
 
     };
 
@@ -106,6 +108,7 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_ADDRESS    = 2;
     private static final int SEND_COLUMN_BODY       = 3;
     private static final int SEND_COLUMN_STATUS     = 4;
+    private static final int SEND_COLUMN_SUB_ID     = 5;
 
     private int mResultCode;
 
@@ -213,7 +216,7 @@ public class SmsReceiverService extends Service {
                 } else if (TelephonyIntents.ACTION_SERVICE_STATE_CHANGED.equals(action)) {
                     handleServiceStateChanged(intent);
                 } else if (ACTION_SEND_MESSAGE.endsWith(action)) {
-                    handleSendMessage();
+                    handleSendMessage(intent);
                 }
             }
             // NOTE: We MUST not call stopSelf() directly, since we need to
@@ -225,7 +228,7 @@ public class SmsReceiverService extends Service {
     private void handleServiceStateChanged(Intent intent) {
         // If service just returned, start sending out the queued messages
         ServiceState serviceState = ServiceState.newFromBundle(intent.getExtras());
-        int subscription = intent.getIntExtra(SUBSCRIPTION_KEY, 0);
+        int subscription = intent.getIntExtra(MSimConstants.SUBSCRIPTION_KEY, 0);
         int prefSubscription = MSimSmsManager.getDefault().getPreferredSmsSubscription();
         // if service state is IN_SERVICE & current subscription is same as
         // preferred SMS subscription.i.e.as set under MultiSIM Settings,then
@@ -236,19 +239,28 @@ public class SmsReceiverService extends Service {
         }
     }
 
-    private void handleSendMessage() {
+    private void handleSendMessage(Intent intent) {
         if (!mSending) {
-            sendFirstQueuedMessage();
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                sendFirstQueuedMessage(intent.getIntExtra(MSimConstants.SUBSCRIPTION_KEY, 0));
+            } else {
+                sendFirstQueuedMessage();
+            }
         }
     }
 
     public synchronized void sendFirstQueuedMessage() {
+        sendFirstQueuedMessage(MSimSmsManager.getDefault().getPreferredSmsSubscription());
+    }
+
+    public synchronized void sendFirstQueuedMessage(int subscription) {
         boolean success = true;
         // get all the queued messages from the database
         final Uri uri = Uri.parse("content://sms/queued");
         ContentResolver resolver = getContentResolver();
+        String where = Sms.SUB_ID + "=" + subscription;
         Cursor c = SqliteWrapper.query(this, resolver, uri,
-                        SEND_PROJECTION, null, null, "date ASC");   // date ASC so we send out in
+                        SEND_PROJECTION, where, null, "date ASC");  // date ASC so we send out in
                                                                     // same order the user tried
                                                                     // to send messages.
         if (c != null) {
@@ -316,7 +328,11 @@ public class SmsReceiverService extends Service {
                 Log.e(TAG, "handleSmsSent: failed to move message " + uri + " to sent folder");
             }
             if (sendNextMsg) {
-                sendFirstQueuedMessage();
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    sendFirstQueuedMessage(intent.getIntExtra(MSimConstants.SUBSCRIPTION_KEY, 0));
+                } else {
+                    sendFirstQueuedMessage();
+                }
             }
 
             // Update the notification for failed messages since they may be deleted.
@@ -392,7 +408,12 @@ public class SmsReceiverService extends Service {
         }
 
         // Send any queued messages that were waiting from before the reboot.
-        sendFirstQueuedMessage();
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            sendFirstQueuedMessage(MSimConstants.SUB1);
+            sendFirstQueuedMessage(MSimConstants.SUB2);
+        } else {
+            sendFirstQueuedMessage();
+        }
 
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
