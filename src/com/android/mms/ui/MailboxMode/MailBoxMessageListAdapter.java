@@ -73,6 +73,7 @@ import java.util.Map;
 import android.net.Uri;
 import android.text.TextUtils;
 import com.android.mms.util.AddressUtils;
+import com.android.mms.util.ContactInfoCache;
 import com.google.android.mms.util.SqliteWrapper;
 import android.content.ContentUris;
 import java.sql.Timestamp;
@@ -103,7 +104,6 @@ import android.text.style.TextAppearanceSpan;
 import android.graphics.Typeface;
 
 public class MailBoxMessageListAdapter extends CursorAdapter
-    implements Contact.UpdateListener
 {
     private LayoutInflater mInflater;
     private static final String TAG = "MailBoxMessageListAdapter";
@@ -225,19 +225,6 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         mAvatarView.setImageDrawable(avatarDrawable);
         mAvatarView.setVisibility(View.VISIBLE);
     }
-
-    public void onUpdate(Contact updated) {
-        if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
-            Log.v(TAG, "onUpdate: " + this + " contact: " + updated);
-        }
-        mHandler.post(new Runnable() {
-            public void run() {
-                updateAvatarView();
-                mName = Contact.get(mAddress, true).getName();
-                formatNameView(mAddress, mName);
-            }
-        });
-    }
     
     public View newView(Context context, Cursor cursor, ViewGroup parent)
     {
@@ -256,7 +243,6 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
             Log.v(TAG, "bindView: contacts.addListeners " + this);
         }
-        Contact.addListener(this);
         //cleanItemCache();
         
         final String type = cursor.getString(COLUMN_MSG_TYPE);
@@ -329,12 +315,12 @@ public class MailBoxMessageListAdapter extends CursorAdapter
             {
                 addr = MessageUtils.getRecipientsByIds(
                         context, recipientIds, true);
-                nameContact = Contact.get(addr, true).getName();
+                nameContact = ContactInfoCache.getInstance().getContactName(addr);
             }
             else if (threadId > 0)
             {
                 addr = MessageUtils.getAddressByThreadId(context, threadId);
-                nameContact = Contact.get(addr, true).getName();
+                nameContact = ContactInfoCache.getInstance().getContactName(addr);
             }
             else
             {
