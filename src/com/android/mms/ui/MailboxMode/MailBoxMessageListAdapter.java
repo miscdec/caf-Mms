@@ -197,18 +197,25 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         Contact contact = Contact.get(mAddress, true);
         if(mMsgType.equals("mms"))
         {
-            avatarDrawable = sDefaultContactImageMms;
+            //avatarDrawable = sDefaultContactImageMms;
+            avatarDrawable = contact.getAvatar(mContext, sDefaultContactImageMms);
         }
         else
         {
-            avatarDrawable = sDefaultContactImage;
+            //avatarDrawable = sDefaultContactImage;
+            avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);            
         }
 
         if(mAddress.equals("Browser Information"))
         {
             avatarDrawable = sDefaultContactImagePush;
+            mAvatarView.assignContactUri(null);
+            mAvatarView.setClickable(false);
+            mAvatarView.setImageDrawable(avatarDrawable);
+            mAvatarView.setVisibility(View.VISIBLE);
+            return;
         }
-
+       
         if (contact.existsInDatabase()) {
             mAvatarView.assignContactUri(contact.getUri());
         } else {
