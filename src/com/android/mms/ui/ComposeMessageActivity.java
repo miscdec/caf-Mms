@@ -26,6 +26,7 @@ import static com.android.mms.ui.MessageListAdapter.COLUMN_ID;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_STATUS;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MSG_TYPE;
 import static com.android.mms.ui.MessageListAdapter.PROJECTION;
+import static com.android.mms.ui.MessageListAdapter.COLUMN_SUB_ID;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,6 +45,7 @@ import java.util.regex.Pattern;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -87,9 +89,12 @@ import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.telephony.MSimSmsManager;
 import android.telephony.MSimTelephonyManager;
+import android.provider.Settings.SettingNotFoundException;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsMessage;
 import android.telephony.SmsManager;
+import android.telephony.MSimSmsManager;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.TelephonyManager;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -105,17 +110,20 @@ import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
+import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -223,6 +231,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_PREFERENCES           = 31;
     private static final int MENU_GROUP_PARTICIPANTS    = 32;
     private static final int MENU_COPY_TO_SIM           = 33;
+    private static final int MENU_IMPORT_TEMPLATE       = 34;
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
 
@@ -339,9 +348,14 @@ public class ComposeMessageActivity extends Activity
     private MessageItem mEditMessageItem;
 
     private int mMessageSizeExceedCounter;
+    private int mLastSubInConv; // QRD Enhancement for call back priority
+    private int mSendSubscription; // Get subscription from call reject info
+    private static final int SUBSCRIPTION_ID_INVALID = -1;
+    private AlertDialog mChooseDialog; // QRD Enhancement for subscription choose dialog
 
     private static final int MSG_ONLY_ONE_FAIL_LIST_ITEM = 1;
 
+    private static final int DIALOG_IMPORT_TEMPLATE = 1;
     /**
      * Whether this activity is currently running (i.e. not paused)
      */
@@ -772,7 +786,13 @@ public class ComposeMessageActivity extends Activity
     private class SendIgnoreInvalidRecipientListener implements OnClickListener {
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
-            sendMessage(true);
+            boolean isMms = mWorkingMessage.requiresMms();
+            //if is Mms ,does not show the choose dialog
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !isMms) {
+                sendMessageWithChooseDialog(true,isMms);
+            } else {
+                sendMessage(true);
+            }
             dialog.dismiss();
         }
     }
@@ -787,11 +807,104 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
-    private String getMultiSimName(int subscription) {
-        return Settings.System.getString(getApplicationContext().getContentResolver(),
-                        Settings.System.MULTI_SIM_NAME[subscription]);
+    private void dismissChooseDialog() {
+        if (mChooseDialog != null) {
+            mChooseDialog.dismiss();
+        }
     }
 
+    private void dismissChooseDialogAndStartConversation(int subscription,
+            final boolean bCheckEcmMode, final boolean isMms) {
+        mChooseDialog.dismiss();
+        mWorkingMessage.setCurrentConvSub(subscription);
+        sendMessage(bCheckEcmMode);
+    }
+
+    private void setUpChooseScreen(final boolean bCheckEcmMode, final boolean isMms) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
+        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        View layout = inflater.inflate(R.layout.multi_sim_sms_sender,
+                          (ViewGroup)findViewById(R.id.layout_root));
+        builder.setView(layout);
+        builder.setOnKeyListener(new DialogInterface.OnKeyListener() {
+                public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+                    switch (keyCode) {
+                        case KeyEvent.KEYCODE_BACK: {
+                            dismissChooseDialog();
+                            return true;
+                        }
+                        case KeyEvent.KEYCODE_SEARCH: {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+        );
+
+        builder.setNegativeButton(R.string.cancel_sms, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                dismissChooseDialog();
+            }
+        });
+        ContactList recipients = isRecipientsEditorVisible() ?
+            mRecipientsEditor.constructContactsFromInput(false) : getRecipients();
+        builder.setTitle(getResources().getString(R.string.sending_number)
+                + recipients.formatNamesAndNumbers(","));
+
+        mChooseDialog = builder.create();
+        mChooseDialog.setCanceledOnTouchOutside(false);
+
+        int[] smsBtnIds = {R.id.BtnSubOne, R.id.BtnSubTwo};
+        Button[] smsBtns = new Button[MSimTelephonyManager.getDefault().getPhoneCount()];
+
+        for (int i = 0; i < smsBtnIds.length; i++) {
+            final int subscription = i;
+            smsBtns[i] = (Button) layout.findViewById(smsBtnIds[i]);
+            smsBtns[i].setText(MessageUtils.getMultiSimName(getApplicationContext(), i));
+            smsBtns[i].setOnClickListener(
+                new View.OnClickListener() {
+                    public void onClick(View v) {
+                       dismissChooseDialogAndStartConversation(subscription, bCheckEcmMode, isMms);
+                }
+            });
+            if (i == MSimSmsManager.getDefault().getPreferredSmsSubscription()) {
+                smsBtns[i].setBackgroundResource(R.drawable.btn_highlight_multi_sim_sms);
+            }
+        }
+    }
+
+    private void LaunchChooseDialog(final boolean bCheckEcmMode, boolean isMms) {
+        Log.d(TAG, "LaunchChooseDialog");
+        setUpChooseScreen(bCheckEcmMode, isMms);
+        mChooseDialog.show();
+        hideKeyboard();
+    }
+
+    private void sendMessageWithChooseDialog(boolean bCheckEcmMode, boolean isMms) {
+        // First check whether there are two sim cards both enabled
+        // TODO: check whether sim card is enabled
+        if (hasIccCardCount() > 1) {
+            if (mLastSubInConv == SUBSCRIPTION_ID_INVALID && mSendSubscription ==
+                    SUBSCRIPTION_ID_INVALID) {
+                // not in a conversion, show the choose dialog
+                if (mChooseDialog == null || !mChooseDialog.isShowing()) {
+                    LaunchChooseDialog(bCheckEcmMode,isMms);
+                }
+            } else {
+                // in a conversion, do not show the dialog and use the subs in conv
+                if (mSendSubscription != SUBSCRIPTION_ID_INVALID) {
+                    mLastSubInConv = mSendSubscription;
+                }
+                mWorkingMessage.setCurrentConvSub(mLastSubInConv);
+                sendMessage(bCheckEcmMode);
+            }
+        } else {
+            mWorkingMessage.setCurrentConvSub(MSimSmsManager.getDefault()
+                    .getPreferredSmsSubscription());
+            sendMessage(bCheckEcmMode);
+        }
+    }
 
     private int hasIccCardCount() {
         MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
@@ -809,12 +922,18 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void confirmSendMessageIfNeeded() {
+        boolean isMms = mWorkingMessage.requiresMms();
+
         if (!isRecipientsEditorVisible()) {
-            sendMessage(true);
+            // QRD Enhancement for multi sim mo sms,if is Mms ,does not show the choose dialog
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !isMms) {
+                sendMessageWithChooseDialog(true,isMms);
+            } else {
+                sendMessage(true);
+            }
             return;
         }
 
-        boolean isMms = mWorkingMessage.requiresMms();
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             if (mRecipientsEditor.hasValidRecipient(isMms)) {
                 String title = getResourcesString(R.string.has_invalid_recipient,
@@ -834,11 +953,12 @@ public class ComposeMessageActivity extends Activity
                     .show();
             }
         } else {
-            // The recipients editor is still open. Make sure we use what's showing there
-            // as the destination.
-            ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
-            mDebugRecipients = contacts.serialize();
-            sendMessage(true);
+            //if is Mms ,does not show the choose dialog
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !isMms) {
+                sendMessageWithChooseDialog(true,isMms);
+            } else {
+                sendMessage(true);
+            }
         }
     }
 
@@ -1517,7 +1637,7 @@ public class ComposeMessageActivity extends Activity
                         String[] items = new String[MSimTelephonyManager.getDefault()
                                 .getPhoneCount()];
                         for (int i = 0; i < items.length; i++) {
-                            items[i] = getMultiSimName(i);
+                            items[i] = MessageUtils.getMultiSimName(getApplicationContext(), i);
                         }
                         CopyToSimSelectListener listener = new CopyToSimSelectListener(mMsgItem);
                         new AlertDialog.Builder(ComposeMessageActivity.this)
@@ -2127,6 +2247,8 @@ public class ComposeMessageActivity extends Activity
         // Initialize members for UI elements.
         initResourceRefs();
 
+        mLastSubInConv = SUBSCRIPTION_ID_INVALID; //initialize the last sub in conversation
+        mSendSubscription = SUBSCRIPTION_ID_INVALID;
         mContentResolver = getContentResolver();
         mBackgroundQueryHandler = new BackgroundQueryHandler(mContentResolver);
 
@@ -2566,6 +2688,8 @@ public class ComposeMessageActivity extends Activity
 
         mConversation.markAsRead();
         mIsRunning = false;
+
+        removeDialog(DIALOG_IMPORT_TEMPLATE);
     }
 
     @Override
@@ -2950,6 +3074,8 @@ public class ComposeMessageActivity extends Activity
         if (isSubjectEditorVisible() || !mWorkingMessage.hasSlideshow()) {
             menu.add(0, MENU_INSERT_SMILEY, 0, R.string.menu_insert_smiley).setIcon(
                     R.drawable.ic_menu_emoticons);
+            menu.add(0, MENU_IMPORT_TEMPLATE, 0, R.string.import_message_template)
+                .setIcon(R.drawable.import_sms_template);
         }
 
         if (getRecipients().size() > 1) {
@@ -3045,6 +3171,9 @@ public class ComposeMessageActivity extends Activity
             case MENU_INSERT_SMILEY:
                 showSmileyDialog();
                 break;
+            case MENU_IMPORT_TEMPLATE:
+                showDialog(DIALOG_IMPORT_TEMPLATE);
+                break;
             case MENU_GROUP_PARTICIPANTS:
             {
                 Intent intent = new Intent(this, RecipientListActivity.class);
@@ -3080,6 +3209,77 @@ public class ComposeMessageActivity extends Activity
         }
 
         return true;
+    }
+
+    @Override
+    protected Dialog onCreateDialog(int id) {
+        switch (id) {
+        case DIALOG_IMPORT_TEMPLATE:
+            return showImportTemplateDialog();
+        }
+        return super.onCreateDialog(id);
+    }
+
+    private Dialog showImportTemplateDialog(){
+        String [] smsTempArray = null;
+        Uri uri = Uri.parse("content://com.android.mms.MessageTemplateProvider/messages");
+        Cursor cur = null;
+        try {
+            cur = getContentResolver().query(uri, null, null, null, null);
+            if (cur != null && cur.moveToFirst()) {
+                int index = 0;
+                smsTempArray = new String[cur.getCount()];
+                String title = null;
+                do {
+                    title = cur.getString(cur.getColumnIndex("message"));
+                    smsTempArray[index++] = title;
+                } while (cur.moveToNext());
+            }
+        } finally {
+            if (cur != null) {
+                cur.close();
+            }
+        }
+
+        TemplateSelectListener listener = new TemplateSelectListener(smsTempArray);
+        return new AlertDialog.Builder(ComposeMessageActivity.this)
+                .setTitle(R.string.message_template)
+                .setItems(smsTempArray, listener)
+                .create();
+    }
+
+    private class TemplateSelectListener implements DialogInterface.OnClickListener {
+
+        private String[] mTempArray;
+        TemplateSelectListener(String[] tempArray) {
+            mTempArray = tempArray;
+        }
+
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+            // TODO Auto-generated method stub
+            if (mTempArray != null && mTempArray.length > which) {
+                // If the subject EditText is visible and has the focus,
+                // add the string from the template to the subject EditText
+                // or else add the string to the message EditText.
+                EditText etSubject = ComposeMessageActivity.this.mSubjectTextEditor;
+                if (isSubjectEditorVisible() && etSubject.hasFocus()) {
+                    int subjectIndex = etSubject.getSelectionStart();
+                    etSubject.getText().insert(subjectIndex, mTempArray[which]);
+                } else {
+                    EditText et = ComposeMessageActivity.this.mTextEditor;
+                    int index = et.getSelectionStart();
+                    et.getText().insert(index, mTempArray[which]);
+                    // Need require foucus,if do not do so,foucus still on mRecipientEditor,
+                    // so mRecipientsWatcher will  call afterTextChanged to do
+                    // setWorkingRecipients(...), and then mWorkingRecipients != null and will
+                    // call setRecipients() set mThreadId = 0. Because of mThreadId = 0,
+                    // asyncDeleteDraftSmsMessage will can not delete draft successful.
+                    et.requestFocus();
+                }
+            }
+        }
+
     }
 
     private void confirmDeleteThread(long threadId) {
@@ -4226,6 +4426,8 @@ public class ComposeMessageActivity extends Activity
                 if (LogTag.VERBOSE) log("get mConversation by intentData " + intentData);
                 mConversation = Conversation.get(this, intentData, false);
                 mWorkingMessage.setText(getBody(intentData));
+                mSendSubscription = intent.getIntExtra("send_subscription",
+                        SUBSCRIPTION_ID_INVALID);
             } else {
                 // special intent extra parameter to specify the address
                 String address = intent.getStringExtra("address");
@@ -4418,6 +4620,15 @@ public class ComposeMessageActivity extends Activity
 
                     // check consistency b/t mConversation & mWorkingMessage.mConversation
                     ComposeMessageActivity.this.sanityCheckConversation();
+
+                    // Set last sub used in this conversation thread.
+                    if (cursor.getCount() > 0) {
+                        cursor.moveToLast();
+                        mLastSubInConv = cursor.getInt(COLUMN_SUB_ID); //TODO: ADD SUBSCRIPION HERE
+                        cursor.moveToPosition(-1);
+                    } else {
+                        mLastSubInConv = SUBSCRIPTION_ID_INVALID;
+                    }
 
                     int newSelectionPos = -1;
                     long targetMsgId = getIntent().getLongExtra("select_id", -1);

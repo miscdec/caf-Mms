@@ -801,9 +801,29 @@
     <string name="progress_mms">Messaging: MMS in progress...</string>
     <string name="progress_mms_text ">Touch to retry again</string>
 
+    <string name="cancel_sms">Cancel</string>
+    <!-- Message Template -->
+    <string name="pref_summary_message_template">Edit message template</string>
+    <string name="pref_title_message_template">Message template</string>
+    <string name="title_new_message_template">New template</string>
+    <string name="summary_new_message_template">Compose new message template</string>
+    <string name="message_template_title">Message template</string>
+    <string name="dialog_editSMSTemplate_title">Edit</string>
+    <string name="message_template">Message Template</string>
+    <string name="import_message_template">Import Template</string>
+    <string name="delete_template_message">Delete</string>
+    <string name="pref_sms_signature_title">SMS signature</string>
+    <string name="pref_title_enable_signature">SMS signature</string>
+    <string name="pref_summary_enable_signature">SMS signature enabled</string>
+    <string name="pref_summary_disable_signature">SMS signature disabled</string>
+    <string name="pref_title_edit_signature">Edit SMS signature</string>
     <string name="menu_reply">Reply</string>
     <string name="copy_to_sim">Copy message to SIM card</string>
     <string name="copy_to_sim_success">Message saved</string>
     <string name="copy_to_sim_fail">Unable to save message</string>
+    <!-- QRD Enhancement Multi Sim Sending SMS -->
+    <string name="sending_number">To: </string>
+    <string name="slot1">Slot1</string>
+    <string name="slot2">Slot2</string>
 </resources>
 

@@ -30,11 +30,13 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
@@ -160,6 +162,9 @@ public class WorkingMessage {
     };
 
     private static final int MMS_MESSAGE_SIZE_INDEX  = 1;
+
+    private int mCurrentConvSub = -1;
+
 
     /**
      * Callback interface for communicating important state changes back to
@@ -1237,7 +1242,21 @@ public class WorkingMessage {
             }, "WorkingMessage.send MMS").start();
         } else {
             // Same rules apply as above.
-            final String msgText = mText.toString();
+            // add user's signature first if this feature is enabled.
+            String text = mText.toString();
+            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mActivity);
+            if (sp.getBoolean("pref_key_enable_signature", false)) {
+                String signature = (sp.getString("pref_key_edit_signature", "")).trim();
+                if (signature.length() > 0) {
+                    String sigBlock = "\n" + signature;
+                    if (!text.endsWith(sigBlock)) {
+                        // Signature should be written behind the text in a
+                        // newline while the signature has changed.
+                        text += sigBlock;
+                    }
+                }
+            }
+            final String msgText = text;
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -1335,8 +1354,10 @@ public class WorkingMessage {
         }
         MessageSender sender;
 
-        sender = new SmsMessageSender(mActivity, dests, msgText, threadId,
-               MSimSmsManager.getDefault().getPreferredSmsSubscription());
+        int subscription = (mCurrentConvSub == -1) ?
+                MSimSmsManager.getDefault().getPreferredSmsSubscription() : mCurrentConvSub;
+
+        sender = new SmsMessageSender(mActivity, dests, msgText, threadId, subscription);
 
         try {
             sender.sendMessage(threadId);
@@ -1829,6 +1850,10 @@ public class WorkingMessage {
         // to clear those messages as well as ones with a valid thread id.
         final String where = Mms.THREAD_ID +  (threadId > 0 ? " = " + threadId : " IS NULL");
         asyncDelete(Mms.Draft.CONTENT_URI, where, null);
+    }
+
+    public void setCurrentConvSub(int subscription) {
+        mCurrentConvSub = subscription;
     }
 
     /**

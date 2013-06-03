@@ -14,6 +14,7 @@ import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsManager;
 import android.util.Log;
 
+import com.android.internal.telephony.MSimConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.data.Conversation;
@@ -108,6 +109,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                 // EXTRA_MESSAGE_SENT_SEND_NEXT set to true.
                 requestCode = 1;
                 intent.putExtra(SmsReceiverService.EXTRA_MESSAGE_SENT_SEND_NEXT, true);
+                intent.putExtra(MSimConstants.SUBSCRIPTION_KEY, mSubscription);
             }
             if (LogTag.DEBUG_SEND) {
                 Log.v(TAG, "sendMessage sendIntent: " + intent);

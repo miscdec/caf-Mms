@@ -77,6 +77,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
     private Uri mUri;
     private NotificationInd mNotificationInd;
     private String mContentLocation;
+    private int mSubscription;
 
     public NotificationTransaction(
             Context context, int serviceId,
@@ -84,6 +85,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
         super(context, serviceId, connectionSettings);
 
         mUri = Uri.parse(uriString);
+        mSubscription = getSubscription(context, mUri);
 
         try {
             mNotificationInd = (NotificationInd)
@@ -121,6 +123,24 @@ public class NotificationTransaction extends Transaction implements Runnable {
 
         mNotificationInd = ind;
         mId = new String(ind.getTransactionId());
+    }
+
+    private int getSubscription(Context context, Uri uri) {
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+            uri, new String[] {Mms.SUB_ID}, null, null, null);
+        int subscription = 0;
+        if (cursor != null) {
+            try {
+                if ((cursor.getCount() == 1) && cursor.moveToFirst()) {
+                    subscription = cursor.getInt(0);
+                }
+            } catch (Exception e) {
+                // ignore
+            } finally {
+                cursor.close();
+            }
+        }
+        return subscription;
     }
 
     /*
@@ -192,6 +212,8 @@ public class NotificationTransaction extends Transaction implements Runnable {
                     values.put(Mms.DATE, System.currentTimeMillis() / 1000L);
                     // Update Message Size for Original MMS.
                     values.put(Mms.MESSAGE_SIZE, mNotificationInd.getMessageSize());
+                    // Set the subscription.
+                    values.put(Mms.SUB_ID, mSubscription);
                     Cursor c = mContext.getContentResolver().query(mUri,
                             null, null, null, null);
                     if (c != null) {

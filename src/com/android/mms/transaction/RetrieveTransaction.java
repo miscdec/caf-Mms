@@ -65,15 +65,18 @@ public class RetrieveTransaction extends Transaction implements Runnable {
     private final Uri mUri;
     private final String mContentLocation;
     private boolean mLocked;
+    private int mSubscription;
 
     static final String[] PROJECTION = new String[] {
         Mms.CONTENT_LOCATION,
-        Mms.LOCKED
+        Mms.LOCKED,
+        Mms.SUB_ID
     };
 
     // The indexes of the columns which must be consistent with above PROJECTION.
     static final int COLUMN_CONTENT_LOCATION      = 0;
     static final int COLUMN_LOCKED                = 1;
+    static final int COLUMN_SUBSCRIPTION          = 2;
 
     public RetrieveTransaction(Context context, int serviceId,
             TransactionSettings connectionSettings, String uri)
@@ -107,6 +110,7 @@ public class RetrieveTransaction extends Transaction implements Runnable {
                     // Get the locked flag from the M-Notification.ind so it can be transferred
                     // to the real message after the download.
                     mLocked = cursor.getInt(COLUMN_LOCKED) == 1;
+                    mSubscription = cursor.getInt(COLUMN_SUBSCRIPTION);
                     return cursor.getString(COLUMN_CONTENT_LOCATION);
                 }
             } finally {
@@ -157,8 +161,9 @@ public class RetrieveTransaction extends Transaction implements Runnable {
                         MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext), null);
 
                 // Use local time instead of PDU time
-                ContentValues values = new ContentValues(3);
+                ContentValues values = new ContentValues(4);
                 values.put(Mms.DATE, System.currentTimeMillis() / 1000L);
+                values.put(Mms.SUB_ID, mSubscription);
                 // Update Message Size for Original MMS.
                 values.put(Mms.MESSAGE_SIZE, msgSize);
                 Cursor c = mContext.getContentResolver().query(mUri,

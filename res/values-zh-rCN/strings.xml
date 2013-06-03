@@ -347,7 +347,21 @@
     <string name="notification_separator" msgid="2334673105226536422">"  "</string>
     <string name="enumeration_comma" msgid="213598026698964628">"、 "</string>
     <string name="message_timestamp_format" msgid="4188999027493614617">"<xliff:g id="STRING_0">%1$s</xliff:g> - <xliff:g id="STRING_1">%2$s</xliff:g>"</string>
-
+    <!-- 短信模板相关的 -->
+    <string name="pref_summary_message_template">编辑短信模板</string>
+    <string name="pref_title_message_template">短信模板</string>
+    <string name="title_new_message_template">新建模板</string>
+    <string name="summary_new_message_template">编写新的短信模板</string>
+    <string name="message_template_title">短信模板</string>
+    <string name="dialog_editSMSTemplate_title">编辑</string>
+    <string name="message_template">短信模板</string>
+    <string name="import_message_template">导入模板</string>
+    <string name="delete_template_message">删除</string>
+    <string name="pref_sms_signature_title">短信签名</string>
+    <string name="pref_title_enable_signature">短信签名</string>
+    <string name="pref_summary_enable_signature">短信签名已启用</string>
+    <string name="pref_summary_disable_signature">短信签名已禁用</string>
+    <string name="pref_title_edit_signature">编辑短信签名</string>
     <string name="menu_reply">回复</string>
     <string name="copy_to_sim">"复制到SIM卡"</string>
     <string name="copy_to_sim_success">"信息已保存"</string>
@@ -355,4 +369,8 @@
     <string name="select_subscription_title">"选择SIM卡"</string>
     <string name="subscription1_title">"Sim卡1"</string>
     <string name="subscription2_title">"Sim卡2"</string>
+    <string name="cancel_sms">"取消"</string>
+    <string name="sending_number">"发送至："</string>
+    <string name="slot1">"卡1"</string>
+    <string name="slot2">"卡2"</string>
 </resources>
