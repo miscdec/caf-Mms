@@ -367,6 +367,11 @@ public class MessageListItem extends LinearLayout implements
             if(addr.equals("Browser Information"))
             {
                 avatarDrawable = mContext.getResources().getDrawable(R.drawable.ic_contact_picture_push);
+                mAvatar.setClickable(false);
+                mAvatar.assignContactUri(null);
+                mAvatar.setImageDrawable(avatarDrawable);
+                mAvatar.setVisibility(View.VISIBLE);
+                return;
             }
         }
 

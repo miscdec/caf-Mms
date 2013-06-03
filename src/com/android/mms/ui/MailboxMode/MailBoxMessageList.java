@@ -180,6 +180,7 @@ public class MailBoxMessageList extends ListActivity
     private int ACTION_NONE = 0;
     private int ACTION_COPY = 1;
     private int ACTION_DELETE = 2;
+    private int ACTION_SET_MMSREAD = 3;
     private static final int SHOW_TOAST = 1;
     private int mAction = ACTION_NONE;
 
@@ -197,7 +198,8 @@ public class MailBoxMessageList extends ListActivity
     ArrayList<Integer> mSelectedPositions = new ArrayList<Integer>();
     private ProgressDialog mProgressDialog = null;
     private OperateThread mOperateThread = null;
-    
+    private boolean mDoOnceAfterFirstQuery;
+        
     private MailBoxMessageListAdapter mListAdapter = null;
     private final Object mCursorLock = new Object();
     private ListView mListView;
@@ -347,7 +349,11 @@ public class MailBoxMessageList extends ListActivity
                 
                 if (MessageUtils.MESSAGE_UNREAD == read)
                 {
-                    setMmsMessageRead(uri);
+                    mAction = ACTION_SET_MMSREAD;
+                    OperateThread operateThread = new OperateThread();
+                    operateThread.setMessageUri(uri);
+                    Thread thread = new Thread(operateThread);
+                    thread.start();
                 }
                 
                 Intent in = new Intent(this, SlideshowActivity.class);        
@@ -368,6 +374,7 @@ public class MailBoxMessageList extends ListActivity
                 in.putExtra("mms_report", readReport);
                 in.putExtra("msg_id", msgId);
                 in.putExtra("show", true);
+                
                 in.setData(uri);
 
                 startActivity(in);
@@ -388,7 +395,11 @@ public class MailBoxMessageList extends ListActivity
                 Log.d(TAG, "showMessageContent : messageType = " + messageType);
                 if (MessageUtils.MESSAGE_UNREAD == read)
                 {
-                    setMmsMessageRead(uri);
+                    mAction = ACTION_SET_MMSREAD;
+                    OperateThread operateThread = new OperateThread();
+                    operateThread.setMessageUri(uri);
+                    Thread thread = new Thread(operateThread);
+                    thread.start();
                 }
 
                 if (PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND == messageType)
@@ -615,6 +626,7 @@ public class MailBoxMessageList extends ListActivity
     {
         super.onResume();
         mHasPause = false;
+        mDoOnceAfterFirstQuery = true;
         startAsyncQuery(); 
         getListView().invalidateViews();
         if (!Conversation.loadingThreads()) {
@@ -776,6 +788,7 @@ public class MailBoxMessageList extends ListActivity
     {
         boolean mDeleteLockedMessages = false;
         int mSubscription = MessageUtils.SUB_INVALID;
+        Uri mMsgUri;
 
         public OperateThread()
         {
@@ -791,6 +804,11 @@ public class MailBoxMessageList extends ListActivity
         {
             mSubscription = subscription;
         }
+
+        public void setMessageUri(Uri uri)
+        {
+            mMsgUri = uri;
+        }
         
         public void run()
         {
@@ -801,6 +819,10 @@ public class MailBoxMessageList extends ListActivity
             else if (ACTION_COPY == mAction)
             {             
                 copyMessages(mSubscription);                
+            }
+            else if(ACTION_SET_MMSREAD == mAction)
+            {
+                setMmsMessageRead(mMsgUri);
             }
         }
     }
@@ -924,7 +946,17 @@ public class MailBoxMessageList extends ListActivity
                                 mCountTextView.setVisibility(View.INVISIBLE);
                             }
                         }
-                    }                    
+                    }    
+
+                    if (mDoOnceAfterFirstQuery) {
+                        mDoOnceAfterFirstQuery = false;
+                        // Delay doing a couple of DB operations until we've initially queried the DB
+                        // for the list of conversations to display. We don't want to slow down showing
+                        // the initial UI.
+
+                        // Mark all the conversations as seen.
+                        Conversation.markAllConversationsAsSeen(getApplicationContext());
+                    }
                 }
                 else
                 {
@@ -935,6 +967,7 @@ public class MailBoxMessageList extends ListActivity
                     finish();
                 }
             }
+            
             setProgressBarIndeterminateVisibility(false);
             mHasQueryOver = true;
         }

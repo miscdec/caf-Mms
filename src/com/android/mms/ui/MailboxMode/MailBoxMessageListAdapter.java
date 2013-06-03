@@ -210,6 +210,10 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         {
             avatarDrawable = sDefaultContactImagePush;
             mAvatarView.assignContactUri(null);
+            mAvatarView.setClickable(false);
+            mAvatarView.setImageDrawable(avatarDrawable);
+            mAvatarView.setVisibility(View.VISIBLE);
+            return;
         }
        
         if (contact.existsInDatabase()) {
