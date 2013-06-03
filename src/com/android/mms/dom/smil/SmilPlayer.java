@@ -330,6 +330,7 @@ public class SmilPlayer implements Runnable {
     public synchronized void pause() {
         if (isPlayingState()) {
             mAction = SmilPlayerAction.PAUSE;
+            mState = SmilPlayerState.PAUSED;
             notifyAll();
         } else {
             Log.w(TAG, "Error State: Playback is not playing!");
@@ -340,6 +341,7 @@ public class SmilPlayer implements Runnable {
         if (isPausedState()) {
             resumeActiveElements();
             mAction = SmilPlayerAction.START;
+            mState = SmilPlayerState.PLAYING;
             notifyAll();
         } else if (isPlayedState()||isStoppedState()) {
             play();
@@ -700,6 +702,9 @@ public class SmilPlayer implements Runnable {
         mAction = SmilPlayerAction.NO_ACTIVE_ACTION;
     }
 
+    private synchronized void notifyThread(){
+        notifyAll();
+    }
     public void run() {
         if (isStoppedState()) {
             return;

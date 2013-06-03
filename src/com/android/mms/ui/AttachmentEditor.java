@@ -32,6 +32,7 @@ import com.android.mms.R;
 import com.android.mms.data.WorkingMessage;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
+import android.util.Log;
 
 /**
  * This is an embedded editor/view to add photos and sound/video clips
@@ -145,7 +146,7 @@ public class AttachmentEditor extends LinearLayout {
         boolean inPortrait = inPortraitMode();
 
         SlideModel slide = mSlideshow.get(0);
-        if (mSlideshow.size() > 1 || (mSlideshow.size() == 1 && (slide.hasImage() || slide.hasVideo() || slide.hasAudio())) 
+        if (mSlideshow.size() > 1 || (mSlideshow.size() > 1 && (slide.hasImage() || slide.hasVideo() || slide.hasAudio())) 
             || mSlideshow.hasOctstream()) {
             return createSlideshowView(inPortrait);
         }

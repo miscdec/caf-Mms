@@ -138,6 +138,10 @@ public class AudioAttachmentView extends LinearLayout implements
 
     }
 
+    public boolean isPrepared(){
+        return true;
+    }
+	
     public void setText(String name, String text) {
         // TODO Auto-generated method stub
 

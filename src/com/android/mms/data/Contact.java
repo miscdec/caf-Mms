@@ -870,7 +870,13 @@ public class Contact {
             }
 
             String normalizedNumber = PhoneNumberUtils.normalizeNumber(number);
-            String minMatch = PhoneNumberUtils.toCallerIDMinMatch(normalizedNumber);
+            String minMatch = null;
+
+            if(MessageUtils.isFetionNumber(number)){
+                minMatch = PhoneNumberUtils.getStrippedReversed(number);
+            }else{
+                minMatch = PhoneNumberUtils.toCallerIDMinMatch(normalizedNumber);
+            }
             if (!TextUtils.isEmpty(normalizedNumber) && !TextUtils.isEmpty(minMatch)) {
                 String numberLen = String.valueOf(normalizedNumber.length());
                 String numberE164 = PhoneNumberUtils.formatNumberToE164(
@@ -1124,7 +1130,7 @@ public class Contact {
                 // See if we can find "number" in the hashtable.
                 // If so, just return the result.
                 final boolean isNotRegularPhoneNumber = isMe || Mms.isEmailAddress(numberOrEmail) ||
-                        MessageUtils.isAlias(numberOrEmail);
+                        MessageUtils.isAlias(numberOrEmail) || MessageUtils.isFetionNumber(numberOrEmail);;  
                 final String key = isNotRegularPhoneNumber ?
                         numberOrEmail : key(numberOrEmail, sStaticKeyBuffer);
 

@@ -134,7 +134,6 @@ public class ManageSimMessages extends Activity
             mIsNeedUpdateContacts = updateContacts();
             Contact.invalidateCache();
             startQuery();
-            
         }
     };
 
@@ -913,7 +912,7 @@ public class ManageSimMessages extends Activity
         switch (state) {
             case SHOW_LIST:
                 mSimList.setVisibility(View.VISIBLE);
-                mMessage.setVisibility(View.GONE);  
+                mMessage.setVisibility(View.GONE); 
                 setTitle(getString(R.string.sim_manage_messages_title, getSlotStringBySubscription(mSubscription)));
                 setProgressBarIndeterminateVisibility(false);
                 mSimList.requestFocus();

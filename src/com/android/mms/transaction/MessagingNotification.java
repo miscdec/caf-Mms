@@ -152,7 +152,7 @@ public class MessagingNotification {
     private static final int COLUMN_ICC_ADDRESS = 1;
     private static final int COLUMN_ICC_BODY    = 2;
     private static final long[] sVibratePattern = new long[] {0, 250, 250, 250};
-    
+
 
     private static final int WAKE_LOCK_TIMEOUT = 5000;
     private static PowerManager.WakeLock mWakeLock;
@@ -290,7 +290,7 @@ public class MessagingNotification {
             @Override
             public void run() {
                 blockingUpdateNewMessageIndicator(context, newMsgThreadId, isStatusMessage);
-                blockingUpdateNewPushMessageIndicator(context, newMsgThreadId,isStatusMessage);
+                blockingUpdateNewPushMessageIndicator(context, newMsgThreadId, isStatusMessage);
             }
         }, "MessagingNotification.nonBlockingUpdateNewMessageIndicator").start();
     }
@@ -407,6 +407,7 @@ public class MessagingNotification {
             delivery.deliver(context, isStatusMessage);
         }
     }
+
 
     public static int getNotificationIDBySubscription(int subscription){
             switch (subscription) {
@@ -1172,6 +1173,7 @@ public class MessagingNotification {
         nm.notify(NOTIFICATION_ID_ZERO_SMS, notification);  
     }
     
+
     public static void updateMmsDeliveryNotification(Context context, String statusStr, Uri uri) {
         NotificationManager nm = (NotificationManager)context.getSystemService(
                 Context.NOTIFICATION_SERVICE);
@@ -1187,10 +1189,10 @@ public class MessagingNotification {
         viewSimIntent.setAction(Intent.ACTION_VIEW);
         //viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                /*| Intent.FLAG_ACTIVITY_SINGLE_TOP*/
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                context, 0, viewSimIntent, 0);
+                context, 0, viewSimIntent, PendingIntent.FLAG_UPDATE_CURRENT);
                   
         Notification notification = new Notification();
         notification.icon = android.R.drawable.stat_notify_chat;
@@ -1360,7 +1362,7 @@ public class MessagingNotification {
                     defaults |= Notification.DEFAULT_VIBRATE;
                 }
 
-                String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE, null);
+                String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,null);
                 noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
                 Log.d(TAG, "updateNotification: new message, adding sound to the notification");
             }
@@ -1565,7 +1567,7 @@ public class MessagingNotification {
 
             Notification notification = new Notification();
             boolean isActiveCall = isCallActive();
-           
+            
             if (isActiveCall) {
                 Log.d(TAG,"-------------is incall------------");
                 Vibrator mVibrator = (android.os.Vibrator)
@@ -1580,7 +1582,7 @@ public class MessagingNotification {
                     defaults |= Notification.DEFAULT_VIBRATE;
                 }
 
-                String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE, null);
+                String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,null);
                 noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
                 Log.d(TAG, "updateIccNotification: new message, adding sound to the notification");
             }
