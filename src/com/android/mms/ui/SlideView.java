@@ -51,6 +51,9 @@ import android.content.ContentResolver;
 import android.text.util.Linkify;
 import android.text.TextUtils;
 import com.android.mms.MmsConfig;
+import android.preference.PreferenceManager;
+import android.content.SharedPreferences;
+import android.util.TypedValue;
 /**
  * A basic view to show the contents of a slide.
  */
@@ -70,7 +73,7 @@ public class SlideView extends LinearLayout implements
     private TextView mTextView;
     private OnSizeChangedListener mSizeChangedListener;
     private MediaPlayer mAudioPlayer;
-    private boolean mIsPrepared;
+    private boolean mIsPrepared = true;
     private boolean mStartWhenPrepared;
     private int     mSeekWhenPrepared;
     private boolean mStopWhenPrepared;
@@ -79,7 +82,10 @@ public class SlideView extends LinearLayout implements
     // Indicates whether the view is in MMS conformance mode.
     private boolean mConformanceMode;
     private MediaController mMediaController;
-
+    private boolean mPauseState = false;
+    private boolean mIsAudioError = false;
+    
+    private boolean mShowAsImage = false;
     private int mVideoPosition = -1;
     MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
         public void onPrepared(MediaPlayer mp) {
@@ -96,10 +102,11 @@ public class SlideView extends LinearLayout implements
             }
             if (mStartWhenPrepared) {
                 mAudioPlayer.start();
+                mPauseState = false;
                 mStartWhenPrepared = false;
                 displayAudioInfo();
             }
-            if (mStopWhenPrepared) {
+            else if (mStopWhenPrepared) {//szh mod
                 mAudioPlayer.stop();
                 mAudioPlayer.release();
                 mAudioPlayer = null;
@@ -380,6 +387,7 @@ public class SlideView extends LinearLayout implements
             mAudioPlayer.reset();
             mAudioPlayer.release();
             mAudioPlayer = null;
+            mStopWhenPrepared = false;
         }
 
         // Reset state variables
@@ -392,11 +400,15 @@ public class SlideView extends LinearLayout implements
             mAudioPlayer = new MediaPlayer();
             mAudioPlayer.setOnPreparedListener(mPreparedListener);
             mAudioPlayer.setDataSource(mContext, audio);
-            mAudioPlayer.prepareAsync();
+            //mAudioPlayer.setDataSource(mContext, audio, true);            
+            mAudioPlayer.prepare();
+            mIsAudioError = false;
         } catch (IOException e) {
             Log.e(TAG, "Unexpected IOException.", e);
+            mAudioPlayer.reset();            
             mAudioPlayer.release();
             mAudioPlayer = null;
+            mIsAudioError = true;
         }
         initAudioInfoView(name);
     }
@@ -418,6 +430,8 @@ public class SlideView extends LinearLayout implements
         mTextView.setLinksClickable(true);
         mTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
         
+        float textSize = getCurrentTextSize(mContext);
+        mTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,textSize);
         mTextView.setTelUrl("tels:");
         mTextView.setWebUrl("www_custom:");            
         mTextView.requestFocus();
@@ -435,8 +449,9 @@ public class SlideView extends LinearLayout implements
                 width = W;                
             }
             mTextView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+            float textSize = getCurrentTextSize(mContext);
             mTextView.setTextIsSelectable(true);
-            mTextView.setTextSize(18);              
+            mTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,textSize);              
         }
     }
 
@@ -452,6 +467,14 @@ public class SlideView extends LinearLayout implements
                 W=MmsConfig.MAX_IMAGE_WIDTH-20;
             mVideoView.setLayoutParams(new LayoutParams(W, height));
         }
+    }
+
+ private static int getCurrentTextSize(Context context)
+    {
+        int textSize = 27;    
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);        
+        textSize = Integer.parseInt(prefsms.getString("smsfontsize", "27"));
+        return textSize;
     }
 
     public void setImageVisibility(boolean visible) {
@@ -473,12 +496,24 @@ public class SlideView extends LinearLayout implements
     }
 
     public void startAudio() {
+        if (mIsAudioError)
+        {
+            mPauseState = false;
+        }
         if ((mAudioPlayer != null) && mIsPrepared) {
             mAudioPlayer.start();
+            mPauseState = false;
             mStartWhenPrepared = false;
             displayAudioInfo();
         } else {
-            mStartWhenPrepared = true;
+            if (mIsAudioError)
+            {
+                mStartWhenPrepared = false;
+            }
+            else
+            {
+                mStartWhenPrepared = true;
+            }
         }
     }
 
@@ -489,7 +524,7 @@ public class SlideView extends LinearLayout implements
             mAudioPlayer = null;
             hideAudioInfo();
         } else {
-            mStopWhenPrepared = true;
+           // mStopWhenPrepared = true;
         }
     }
 
@@ -499,12 +534,14 @@ public class SlideView extends LinearLayout implements
                 mAudioPlayer.pause();
             }
         }
+        mPauseState = true;
         mStartWhenPrepared = false;
     }
 
     public void seekAudio(int seekTo) {
         if ((mAudioPlayer != null) && mIsPrepared) {
             mAudioPlayer.seekTo(seekTo);
+            displayAudioInfo();//szh add
         } else {
             mSeekWhenPrepared = seekTo;
         }
@@ -548,6 +585,10 @@ public class SlideView extends LinearLayout implements
         }
     }
 
+    public boolean isPrepared(){
+        return mIsPrepared;
+    }
+	
     public void reset() {
         ((FrameLayout)getParent()).scrollTo(0, 0);
         ((FrameLayout)getParent()).scrollBy(0, 1);

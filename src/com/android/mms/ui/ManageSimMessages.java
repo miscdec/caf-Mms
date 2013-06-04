@@ -111,7 +111,7 @@ public class ManageSimMessages extends Activity
     private AsyncQueryHandler mQueryHandler = null;
     private ProgressDialog mProgressDialog = null;
     private boolean mIsDeleteAll = false;
-    ArrayList<String> mSelectedIndexs = new ArrayList<String>();
+    ArrayList<String> mSelectedUris = new ArrayList<String>();
 
     public static final int SIM_FULL_NOTIFICATION_ID = 234;
 
@@ -132,6 +132,8 @@ public class ManageSimMessages extends Activity
         @Override
         public void onChange(boolean selfUpdate) {
             mIsNeedUpdateContacts = updateContacts();
+            Contact.invalidateCache();
+            startQuery();
         }
     };
 
@@ -260,8 +262,14 @@ public class ManageSimMessages extends Activity
                     Toast.makeText(ManageSimMessages.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
 
+                    if (mProgressDialog != null)
+                    {
+                        mProgressDialog.dismiss();
+                    }
+
                     break; 
                 }
+                
                 default:
                     break;
             }
@@ -473,6 +481,10 @@ public class ManageSimMessages extends Activity
         }
 
         final Cursor cursor = (Cursor) mListAdapter.getItem(info.position);
+        
+        if(cursor != null){
+            Log.d(TAG, "onContextItemSelected : cursor = "+ cursor + ", position = " + info.position);
+        }
 
         switch (item.getItemId()) {
             case MENU_COPY_TO_PHONE_MEMORY:
@@ -701,54 +713,73 @@ public class ManageSimMessages extends Activity
     }
 
     private void deleteFromSim(Cursor cursor) {
+        if(cursor != null && !cursor.isClosed()){
+            String messageIndexString =
+                    cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
+            Uri simUri = mIccUri.buildUpon().appendPath(messageIndexString).build();
+            
+            SqliteWrapper.delete(this, mContentResolver, simUri, null, null);
+        }
+    }
+
+    private void deleteAllFromSim() {
+        mContentResolver.unregisterContentObserver(simChangeObserver);
+
+        for (String uri : mSelectedUris)
+        { 
+            if (!mIsDeleteAll) {
+                break;
+            }
+            SqliteWrapper.delete(this, mContentResolver, Uri.parse(uri), null, null);
+        }
+                
+        Message msg = Message.obtain();
+        msg.what = SHOW_TOAST;
+        msg.obj = getString(R.string.operate_success);   
+        uihandler.sendMessage(msg);
+        
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                refreshMessageList();
+                registerSimChangeObserver();
+                MessageUtils.checkIsPhoneMessageFull(ManageSimMessages.this);
+            }
+        });
+                
+        mIsDeleteAll = false;
+    }
+
+    private String getUriStrByCursor(Cursor cursor)
+    {
         String messageIndexString =
                 cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
         Uri simUri = mIccUri.buildUpon().appendPath(messageIndexString).build();
 
-        SqliteWrapper.delete(this, mContentResolver, simUri, null, null);
+        return simUri.toString();
     }
 
-    private void deleteAllFromSim() {
+    private void calcuteSelect()
+    {
         mIsDeleteAll = true;
         Cursor cursor = (Cursor) mListAdapter.getCursor();
-        
+         
         if (cursor != null) {
             if (cursor.moveToFirst()) {
-                mContentResolver.unregisterContentObserver(simChangeObserver);
                 int count = cursor.getCount();
-
+     
                 for (int i = 0; i < count; ++i) {
                     // Protection for cursor closed by others
                     if (!mIsDeleteAll || cursor.isClosed()) {
                         break;
                     }
                     cursor.moveToPosition(i);
-                    deleteFromSim(cursor);
+                    mSelectedUris.add(getUriStrByCursor(cursor)); 
                 }
-                
-                if (mProgressDialog != null)
-                {
-                    mProgressDialog.dismiss();
-                }
-                
-                Message msg = Message.obtain();
-                msg.what = SHOW_TOAST;
-                msg.obj = getString(R.string.operate_success);   
-                uihandler.sendMessage(msg);
-                
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        refreshMessageList();
-                        registerSimChangeObserver();
-                        MessageUtils.checkIsPhoneMessageFull(ManageSimMessages.this);
-                    }
-                });
             }
         }
-
-        mIsDeleteAll = false;
     }
+    
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
@@ -773,6 +804,7 @@ public class ManageSimMessages extends Activity
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case OPTION_MENU_DELETE_ALL:
+                calcuteSelect();
                 confirmDeleteDialog(new OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         //updateState(SHOW_BUSY);
@@ -843,7 +875,7 @@ public class ManageSimMessages extends Activity
 
         return true;
     }
-
+  
     private void confirmDeleteDialog(OnClickListener listener, int messageId) {
         // the alert icon shoud has black triangle and white exclamation mark in white background.
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -880,7 +912,7 @@ public class ManageSimMessages extends Activity
         switch (state) {
             case SHOW_LIST:
                 mSimList.setVisibility(View.VISIBLE);
-                mMessage.setVisibility(View.GONE);  
+                mMessage.setVisibility(View.GONE); 
                 setTitle(getString(R.string.sim_manage_messages_title, getSlotStringBySubscription(mSubscription)));
                 setProgressBarIndeterminateVisibility(false);
                 mSimList.requestFocus();

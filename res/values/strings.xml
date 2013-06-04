@@ -322,6 +322,8 @@
     <string name="select_different_media">Choose a different <xliff:g id="name">%1$s</xliff:g>.</string>
     <!-- Message indicating that the message size limit has been reached -->
     <string name="exceed_message_size_limitation">Message size limit reached.</string>
+    <string name="message_missing_app">No app was found to handle this action.</string>
+    <string name="waiting">Please waiting...</string>                    
     <!-- Message indicating that the message is too big and there is no space to attach a video -->
     <string name="message_too_big_for_video">The message is too big to attach a video.</string>
     <!-- Error message indicating that the item trying to be attached could not be added -->
@@ -357,6 +359,9 @@
     <!-- Brief message that appears when converting a message from SMS to MMS. -->
     <string name="converting_to_picture_message">Converting to multimedia message\u2026</string>
     <string name="converting_to_text_message">Converting to SMS message\u2026</string>
+    <string name="please_view_attachment">There is no content, please view attachment.</string>    
+    <string name="system_audio_item">System audio</string>
+    <string name="external_audio_item">External audio</string>
     <!-- Brief message that appears when the maximum number of slides has been reached -->
     <string name="cannot_add_slide_anymore">Can\'t add more slides.</string>
     <!-- Brief message that appears when user tries to add picture to a slide which already has a video. -->
@@ -378,6 +383,7 @@
 
     <!-- Error message indicating that an audio attachment cannot be played -->
     <string name="cannot_play_audio">Can\'t play audio.</string>
+    <string name="email_address">Insert Email address</string>
 
     <!-- Button in the slide editor screen used to preview the slide (imperative verb) -->
     <string name="preview">Preview</string>
@@ -575,6 +581,10 @@
     <string name="sent_label">Sent:\u0020</string>
     <!-- Label in "Message details" dialog -->
     <string name="received_label">Received:\u0020</string>
+    <!-- Label in "Message details" dialog -->
+    <string name="msg_detail_location">"Location: "</string>
+    <!-- Label in "Message details" dialog -->
+    <string name="unknown_location">Unknown</string>
     <!-- Label in "Message details" dialog -->
     <string name="saved_label">Saved:\u0020</string>
     <!-- Label in "Message details" dialog -->
@@ -1022,8 +1032,10 @@
     <string name="memory_status_title">Memory status</string>
     <string name="phoneall">Phone</string>
     <string name="phonecount">All count</string>  
-    <string name="phoneused">Used :</string>  
-    <string name="phoneunused">Unused :</string>
+    <string name="mms_phoneused">Mms Used:</string>
+    <string name="else_phoneused">Else Used:</string>
+    <string name="phone_unused">Unused:</string>
+    <string name="all_phone">All:</string>
     <string name="sim_card1">SIM card1</string>
     <string name="sim_card2">SIM card2</string>
     <string name="please_wait">Please waiting...</string> 
@@ -1074,5 +1086,6 @@
     <string name="button_ok">Ok</string>
     <string name="sms_template_title">Templates</string>
     <string name="option_title">Options</string>
+    
 </resources>
 

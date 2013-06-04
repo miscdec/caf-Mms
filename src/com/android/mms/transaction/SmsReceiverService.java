@@ -259,7 +259,7 @@ public class SmsReceiverService extends Service {
             Intent intent = (Intent)msg.obj;
             boolean canStopService = true;
 
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            if (true || Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "handleMessage serviceId: " + serviceId + " intent: " + intent);
             }
             if (intent != null) {
@@ -623,7 +623,7 @@ public class SmsReceiverService extends Service {
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
             this, MessagingNotification.THREAD_ALL, false);
-        
+
         MessagingNotification.blockingUpdateNewPushMessageIndicator(
             this, MessagingNotification.THREAD_ALL, false);
 

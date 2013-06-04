@@ -115,6 +115,9 @@
     <string name="cannot_forward_drm_obj" msgid="5047623751430559077">"无法转发该短信中包含的 DRM 对象。"</string>
     <string name="converting_to_picture_message" msgid="2980023239017588627">"正在转换为彩信…"</string>
     <string name="converting_to_text_message" msgid="6374423235426015422">"正在转换为短信…"</string>
+    <string name="please_view_attachment">无内容，请查看附件。</string>        
+    <string name="system_audio_item">"系统音频"</string>
+    <string name="external_audio_item">"外部存储的音频"</string>
     <string name="cannot_add_slide_anymore" msgid="4631404749618820994">"无法再添加幻灯片。"</string>
     <string name="cannot_add_picture_and_video" msgid="4954353772391381447">"无法将视频和图片添加到同一张幻灯片。"</string>
     <string name="cannot_save_message" msgid="3375907366965264446">"无法保存短信。"</string>
@@ -217,6 +220,8 @@
     <string name="bcc_label" msgid="530867161453958774">"密送： "</string>
     <string name="sent_label" msgid="2722190650145251584">"发送时间： "</string>
     <string name="received_label" msgid="8618029024731693906">"接收时间： "</string>
+  	<string name="msg_detail_location">归属地：</string>
+    <string name="unknown_location">未知</string>
     <string name="saved_label" msgid="4183160415593488207">"保存时间： "</string>
     <string name="subject_label" msgid="8721241914144101631">"主题： "</string>
     <string name="message_size_label" msgid="4698016210013319786">"信息大小： "</string>
@@ -379,6 +384,10 @@
     <string name="add_attachment_other">添加</string>
     <string name="bt_file_not_exist">"文件不存在，或者文件名包含特殊字符。"</string>
     <string name="other">其它</string>
+    <string name="email_address">插入电子邮件地址</string>
+    <string name="quickcontact_missing_app" msgid="358168575340921552">"未找到可处理此操作的应用。"</string>
+    <string name="message_missing_app" msgid="358168575340921552">"未找到可处理此操作的应用。"</string>
+    <string name="waiting">请稍候...</string>  
 
     <!-- Subscription selection strings -->
     <string name="select_subscription_title">"选择卡槽"</string>
@@ -483,8 +492,10 @@
     <string name="memory_status_title">存储状态</string>
     <string name="phoneall">话机</string>
     <string name="phonecount">总数</string>  
-    <string name="phoneused">已用内存：</string>  
-    <string name="phoneunused">未用内存：</string>
+    <string name="mms_phoneused">"彩信占用："</string>
+    <string name="else_phoneused">"其他占用："</string>
+    <string name="phone_unused">"剩余内存："</string>
+    <string name="all_phone">"存储总和："</string>
     <string name="sim_card1">SIM卡1</string>
     <string name="sim_card2">SIM卡2</string>
     <string name="please_wait">请稍候...</string> 
@@ -495,7 +506,10 @@
     <string name="search_as_name">姓名</string>
     <string name="search_as_number">号码</string>
     <string name="search_as_content">内容</string>      
-    <string name="invalid_name_toast">请输入有效的姓名！</string>    
+    <string name="invalid_name_toast">请输入有效的姓名！</string>   
+    <string name="btn_ok">确定</string>
+    <string name="btn_cancel">取消</string>
+    <string name="select_all">全部</string> 
     <!-- Settings item description for Preferred storage and SMS center  -->
     <string name="pref_title_sms_store">优先存储器</string> 
     <string name="pref_title_sms_store_card1">卡1优先存储器</string> 

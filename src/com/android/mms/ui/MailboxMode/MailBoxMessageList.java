@@ -180,6 +180,7 @@ public class MailBoxMessageList extends ListActivity
     private int ACTION_NONE = 0;
     private int ACTION_COPY = 1;
     private int ACTION_DELETE = 2;
+    private int ACTION_SET_MMSREAD = 3;
     private static final int SHOW_TOAST = 1;
     private int mAction = ACTION_NONE;
 
@@ -197,7 +198,8 @@ public class MailBoxMessageList extends ListActivity
     ArrayList<Integer> mSelectedPositions = new ArrayList<Integer>();
     private ProgressDialog mProgressDialog = null;
     private OperateThread mOperateThread = null;
-    
+    private boolean mDoOnceAfterFirstQuery;
+        
     private MailBoxMessageListAdapter mListAdapter = null;
     private final Object mCursorLock = new Object();
     private ListView mListView;
@@ -331,7 +333,7 @@ public class MailBoxMessageList extends ListActivity
         if (type.equals("mms"))
         {
             int mmsType = c.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_BOX);
-            String ct = com.google.android.mms.ContentType.MULTIPART_MIXED;
+            String ct = com.google.android.mms.ContentType.MULTIPART_RELATED;
             int subscription = c.getInt(MessageListAdapter.COLUMN_MMS_SUB_ID);
             
             if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {                  
@@ -347,7 +349,11 @@ public class MailBoxMessageList extends ListActivity
                 
                 if (MessageUtils.MESSAGE_UNREAD == read)
                 {
-                    setMmsMessageRead(uri);
+                    mAction = ACTION_SET_MMSREAD;
+                    OperateThread operateThread = new OperateThread();
+                    operateThread.setMessageUri(uri);
+                    Thread thread = new Thread(operateThread);
+                    thread.start();
                 }
                 
                 Intent in = new Intent(this, SlideshowActivity.class);        
@@ -368,6 +374,7 @@ public class MailBoxMessageList extends ListActivity
                 in.putExtra("mms_report", readReport);
                 in.putExtra("msg_id", msgId);
                 in.putExtra("show", true);
+                
                 in.setData(uri);
 
                 startActivity(in);
@@ -385,12 +392,24 @@ public class MailBoxMessageList extends ListActivity
                 int read = c.getInt(MessageListAdapter.COLUMN_MMS_READ);
                 Uri uri = ContentUris.withAppendedId(Mms.CONTENT_URI, msgId);
                 int messageType = c.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_TYPE);
+                Log.d(TAG, "showMessageContent : messageType = " + messageType);
                 if (MessageUtils.MESSAGE_UNREAD == read)
                 {
-                    setMmsMessageRead(uri);
+                    mAction = ACTION_SET_MMSREAD;
+                    OperateThread operateThread = new OperateThread();
+                    operateThread.setMessageUri(uri);
+                    Thread thread = new Thread(operateThread);
+                    thread.start();
                 }
 
-                if(PduHeaders.MESSAGE_TYPE_DELIVERY_IND == messageType 
+                if (PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND == messageType)
+                {
+                    Log.v(TAG,"showMessageContent : the message is notification-ind");
+                    long threadId = c.getLong(COLUMN_THREAD_ID);
+                    startActivity(ComposeMessageActivity.createIntent(this, threadId));
+                    return;
+                }
+                else if(PduHeaders.MESSAGE_TYPE_DELIVERY_IND == messageType 
                     || PduHeaders.MESSAGE_TYPE_READ_ORIG_IND == messageType)
                 {
                     Intent intent = new Intent(this, DeliveryReportActivity.class);
@@ -479,7 +498,7 @@ public class MailBoxMessageList extends ListActivity
         if (smsType == Sms.MESSAGE_TYPE_DRAFT)
         {
             Intent intent = new Intent(this, ComposeMessageActivity.class);
-            //intent.putExtra("thread_id", threadId);
+            intent.putExtra("thread_id", threadId);
             intent.putExtra("sms_body", body);
             intent.putExtra("address", fromto);
             intent.putExtra("edit_draft", true);
@@ -607,6 +626,7 @@ public class MailBoxMessageList extends ListActivity
     {
         super.onResume();
         mHasPause = false;
+        mDoOnceAfterFirstQuery = true;
         startAsyncQuery(); 
         getListView().invalidateViews();
         if (!Conversation.loadingThreads()) {
@@ -766,22 +786,28 @@ public class MailBoxMessageList extends ListActivity
 
     private class OperateThread extends Thread
     {
-        boolean mDeleteLockedMessages;
-        int mSubscription;
+        boolean mDeleteLockedMessages = false;
+        int mSubscription = MessageUtils.SUB_INVALID;
+        Uri mMsgUri;
 
         public OperateThread()
         {
             super("OperateThread");
         }
-        
-        public OperateThread(boolean deleteLockedMessages)
+
+        public void setDeleteLockedMessage(boolean deleteMessage)
         {
-            mDeleteLockedMessages = deleteLockedMessages;
+            mDeleteLockedMessages = deleteMessage;
         }
-      
-        public OperateThread(int subscription)
+
+        public void setSubscription(int subscription)
         {
             mSubscription = subscription;
+        }
+
+        public void setMessageUri(Uri uri)
+        {
+            mMsgUri = uri;
         }
         
         public void run()
@@ -793,6 +819,10 @@ public class MailBoxMessageList extends ListActivity
             else if (ACTION_COPY == mAction)
             {             
                 copyMessages(mSubscription);                
+            }
+            else if(ACTION_SET_MMSREAD == mAction)
+            {
+                setMmsMessageRead(mMsgUri);
             }
         }
     }
@@ -916,7 +946,17 @@ public class MailBoxMessageList extends ListActivity
                                 mCountTextView.setVisibility(View.INVISIBLE);
                             }
                         }
-                    }                    
+                    }    
+
+                    if (mDoOnceAfterFirstQuery) {
+                        mDoOnceAfterFirstQuery = false;
+                        // Delay doing a couple of DB operations until we've initially queried the DB
+                        // for the list of conversations to display. We don't want to slow down showing
+                        // the initial UI.
+
+                        // Mark all the conversations as seen.
+                        Conversation.markAllConversationsAsSeen(getApplicationContext());
+                    }
                 }
                 else
                 {
@@ -927,6 +967,7 @@ public class MailBoxMessageList extends ListActivity
                     finish();
                 }
             }
+            
             setProgressBarIndeterminateVisibility(false);
             mHasQueryOver = true;
         }
@@ -1246,8 +1287,10 @@ public class MailBoxMessageList extends ListActivity
         mProgressDialog.show();
         if (mOperateThread == null)
         {
-            mOperateThread = new OperateThread(deleteLockedMessages);
+            mOperateThread = new OperateThread();
         }
+        
+        mOperateThread.setDeleteLockedMessage(deleteLockedMessages);
         Thread thread = new Thread(mOperateThread);
         thread.setPriority(Thread.MAX_PRIORITY);            
         thread.start();
@@ -1303,8 +1346,9 @@ public class MailBoxMessageList extends ListActivity
         mProgressDialog.show();
         if (mOperateThread == null)
         {
-            mOperateThread = new OperateThread(subscription);
-        }        
+            mOperateThread = new OperateThread();
+        }  
+        mOperateThread.setSubscription(subscription);
         Thread thread = new Thread(mOperateThread);
         thread.start();
     }
@@ -1446,9 +1490,13 @@ public class MailBoxMessageList extends ListActivity
     private void deleteMessages(boolean deleteLocked)
     {
         String whereClause;
+        int delSmsCount = 0;
+        int delMmsCount = 0;
         String smsWhereDelete = mSmsWhereDelete;
         String mmsWhereDelete = mMmsWhereDelete;       
-
+        Log.d(TAG, "deleteMessages : mSmsWhereDelete = " + mSmsWhereDelete 
+            + ",mMmsWhereDelete = " + mMmsWhereDelete + ",deleteLocked = " + deleteLocked);
+        
         if (!TextUtils.isEmpty(mSmsWhereDelete))
         {
             smsWhereDelete = smsWhereDelete.substring(0, smsWhereDelete.length()-1);
@@ -1457,10 +1505,10 @@ public class MailBoxMessageList extends ListActivity
             if (!deleteLocked) {
                 whereClause = smsWhereDelete == null ? " locked=0 " : smsWhereDelete + " AND locked=0 ";
             }
-
+            
             if (!TextUtils.isEmpty(whereClause))
             {
-                int delSmsCount = SqliteWrapper.delete(this, getContentResolver(),
+                delSmsCount = SqliteWrapper.delete(this, getContentResolver(),
                     Uri.parse("content://sms"), whereClause, null);
             }
         }
@@ -1476,15 +1524,23 @@ public class MailBoxMessageList extends ListActivity
 
             if (!TextUtils.isEmpty(whereClause))
             {
-                int delMmsCount = SqliteWrapper.delete(this, getContentResolver(),
+                delMmsCount = SqliteWrapper.delete(this, getContentResolver(),
                                      Uri.parse("content://mms"), whereClause, null);
             }
         }
 
-        Message msg = Message.obtain();
-        msg.what = SHOW_TOAST;
-        msg.obj = getString(R.string.operate_success);   
-        uihandler.sendMessage(msg);
+        if(delSmsCount > 0 || delMmsCount > 0){
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_success);   
+            uihandler.sendMessage(msg);
+            Conversation.init(MailBoxMessageList.this);
+        }else{
+            Message msg = Message.obtain();
+            msg.what = SHOW_TOAST;
+            msg.obj = getString(R.string.operate_failure);   
+            uihandler.sendMessage(msg);
+        }
     }
     
     private void calcuteSelect()

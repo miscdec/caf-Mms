@@ -100,6 +100,7 @@ public class DeliveryReportActivity extends ListActivity {
         Intent intent = getIntent();
         mMessageId = getMessageId(icicle, intent);
         mMessageType = getMessageType(icicle, intent);
+        Log.v(LOG_TAG, "mMessageId = " + mMessageId + ", mMessageType = " + mMessageType);
 
         MessagingNotification.cancelNotification(this,
                 MessagingNotification.NOTIFICATION_MMS_DELIVERY_ID);

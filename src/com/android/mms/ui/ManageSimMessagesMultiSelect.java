@@ -374,7 +374,13 @@ public class ManageSimMessagesMultiSelect extends Activity
                 }
                 Cursor c = (Cursor) mMsgListAdapter.getItem(position);
                 if (c == null)
-                {
+                {  
+                    if (mProgressDialog != null)
+                    {
+                        mProgressDialog.dismiss();
+                    }
+                    
+                    finish();
                     return;
                 }
                 

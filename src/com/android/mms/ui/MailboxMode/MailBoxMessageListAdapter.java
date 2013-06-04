@@ -73,6 +73,7 @@ import java.util.Map;
 import android.net.Uri;
 import android.text.TextUtils;
 import com.android.mms.util.AddressUtils;
+import com.android.mms.util.ContactInfoCache;
 import com.google.android.mms.util.SqliteWrapper;
 import android.content.ContentUris;
 import java.sql.Timestamp;
@@ -103,7 +104,6 @@ import android.text.style.TextAppearanceSpan;
 import android.graphics.Typeface;
 
 public class MailBoxMessageListAdapter extends CursorAdapter
-    implements Contact.UpdateListener
 {
     private LayoutInflater mInflater;
     private static final String TAG = "MailBoxMessageListAdapter";
@@ -187,7 +187,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter
                 mContext.getResources().getDrawable(R.drawable.ic_contact_picture_card1) : 
                 mContext.getResources().getDrawable(R.drawable.ic_contact_picture_card2);
             sDefaultContactImageMms = (mSubscription == MessageUtils.SUB1) ? 
-                mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms_card1) :
+                mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms_card1) : 
                 mContext.getResources().getDrawable(R.drawable.ic_contact_picture_mms_card2);
             sDefaultContactImagePush= (mSubscription == MessageUtils.SUB1) ?
                 mContext.getResources().getDrawable(R.drawable.ic_contact_picture_push_card1) :
@@ -197,18 +197,25 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         Contact contact = Contact.get(mAddress, true);
         if(mMsgType.equals("mms"))
         {
-            avatarDrawable = sDefaultContactImageMms;
+            //avatarDrawable = sDefaultContactImageMms;
+            avatarDrawable = contact.getAvatar(mContext, sDefaultContactImageMms);
         }
         else
         {
-            avatarDrawable = sDefaultContactImage;
+            //avatarDrawable = sDefaultContactImage;
+            avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);            
         }
 
         if(mAddress.equals("Browser Information"))
         {
             avatarDrawable = sDefaultContactImagePush;
+            mAvatarView.assignContactUri(null);
+            mAvatarView.setClickable(false);
+            mAvatarView.setImageDrawable(avatarDrawable);
+            mAvatarView.setVisibility(View.VISIBLE);
+            return;
         }
-
+       
         if (contact.existsInDatabase()) {
             mAvatarView.assignContactUri(contact.getUri());
         } else {
@@ -217,19 +224,6 @@ public class MailBoxMessageListAdapter extends CursorAdapter
 
         mAvatarView.setImageDrawable(avatarDrawable);
         mAvatarView.setVisibility(View.VISIBLE);
-    }
-
-    public void onUpdate(Contact updated) {
-        if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
-            Log.v(TAG, "onUpdate: " + this + " contact: " + updated);
-        }
-        mHandler.post(new Runnable() {
-            public void run() {
-                updateAvatarView();
-                mName = Contact.get(mAddress, true).getName();
-                formatNameView(mAddress, mName);
-            }
-        });
     }
     
     public View newView(Context context, Cursor cursor, ViewGroup parent)
@@ -249,7 +243,6 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
             Log.v(TAG, "bindView: contacts.addListeners " + this);
         }
-        Contact.addListener(this);
         //cleanItemCache();
         
         final String type = cursor.getString(COLUMN_MSG_TYPE);
@@ -322,12 +315,12 @@ public class MailBoxMessageListAdapter extends CursorAdapter
             {
                 addr = MessageUtils.getRecipientsByIds(
                         context, recipientIds, true);
-                nameContact = Contact.get(addr, true).getName();
+                nameContact = ContactInfoCache.getInstance().getContactName(addr);
             }
             else if (threadId > 0)
             {
                 addr = MessageUtils.getAddressByThreadId(context, threadId);
-                nameContact = Contact.get(addr, true).getName();
+                nameContact = ContactInfoCache.getInstance().getContactName(addr);
             }
             else
             {
