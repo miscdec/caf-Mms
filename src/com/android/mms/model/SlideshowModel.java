@@ -62,6 +62,7 @@ import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.android.mms.model.VcardModel;
+import com.android.mms.ui.MessageUtils;
 
 public class SlideshowModel extends Model
         implements List<SlideModel>, IModelChangedObserver {
@@ -249,7 +250,7 @@ public class SlideshowModel extends Model
                                 location = new String("Unknown").getBytes();
             }
                                                             
-            if ( (new String(part.getContentType()).equals(ContentType.TEXT_VCARD))||((new String(location)).lastIndexOf (".vcf")==((new String(location)).length()-4)) ){
+            if ( (new String(part.getContentType()).equals(ContentType.TEXT_VCARD)&&(!MessageUtils.isQRDFeature()))||((new String(location)).lastIndexOf (".vcf")==((new String(location)).length()-4)) ){
                 Log.v(TAG,"vcard  ="+part.getData());
                 
                 if(part.getData()==null)
@@ -875,8 +876,15 @@ public class SlideshowModel extends Model
 
         SlideModel slide = get(0);
         // The slide must have either an image or video, but not both.
+        if(MessageUtils.isQRDFeature())
+            {
+            if (!(slide.hasImage() ^ slide.hasVideo()^slide.hasVcard()))
+                return false;
+            }
+            else{
         if (!(slide.hasImage() ^ slide.hasVideo()))
             return false;
+                }
      
         // No audio allowed.
         if (slide.hasAudio())

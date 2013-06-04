@@ -106,6 +106,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import android.widget.ArrayAdapter;
 import android.content.ActivityNotFoundException;
+import com.qrd.plugin.feature_query.FeatureQuery;
 
 
 /**
@@ -2177,6 +2178,10 @@ public class MessageUtils {
     /* whether is in cmcc test mode,  0 is false ,1 is true */
     public static boolean isCMCCTest(){
         return SystemProperties.getInt("ro.cmcc.test", 0) == 1;
+    }
+    /* whether is in cmcc test mode,  0 is false ,1 is true */
+    public static boolean isQRDFeature(){
+        return FeatureQuery.FEATURE_MMS_SUPPORT_VCARD;
     }
     
     private static boolean isSDCardExist() {

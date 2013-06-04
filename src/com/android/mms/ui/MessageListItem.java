@@ -491,6 +491,7 @@ public class MessageListItem extends LinearLayout implements
             if (((mMessageItem.mAttachmentType == WorkingMessage.VIDEO)
                 ||(mMessageItem.mAttachmentType == WorkingMessage.IMAGE)
                 ||(mMessageItem.mAttachmentType == WorkingMessage.AUDIO)
+                ||(mMessageItem.mAttachmentType == WorkingMessage.VCARD&&MessageUtils.isQRDFeature())
                 ||(mMessageItem.mAttachmentType == WorkingMessage.SLIDESHOW))) {
                 showMmsView(true);
                 setOnClickListener(mMessageItem);
