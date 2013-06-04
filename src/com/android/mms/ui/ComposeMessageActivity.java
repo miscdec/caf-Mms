@@ -132,6 +132,7 @@ import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.mms.LogTag;
@@ -284,7 +285,6 @@ public class ComposeMessageActivity extends Activity
     private EditText mTextEditor;           // Text editor to type your message into
     private TextView mTextCounter;          // Shows the number of characters used in text editor
     private TextView mSendButtonMms;        // Press to send mms
-    private TextView mSendButtonMms2;        // Press to send mms
     static public int subSelected = 0;
     private ImageButton mSendButtonSms;     // Press to send sms
     private EditText mSubjectTextEditor;    // Text editor for MMS subject
@@ -356,6 +356,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MSG_ONLY_ONE_FAIL_LIST_ITEM = 1;
 
     private static final int DIALOG_IMPORT_TEMPLATE = 1;
+    private static final int ALWAY_ASK = 2;
     /**
      * Whether this activity is currently running (i.e. not paused)
      */
@@ -807,6 +808,7 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+
     private void dismissChooseDialog() {
         if (mChooseDialog != null) {
             mChooseDialog.dismiss();
@@ -881,11 +883,31 @@ public class ComposeMessageActivity extends Activity
         hideKeyboard();
     }
 
+    private int getPreferredSubscription() {
+        int preferredSub = SUBSCRIPTION_ID_INVALID;
+        try {
+            preferredSub = Settings.Global.getInt(getContentResolver(),
+                    Settings.Global.MULTI_SIM_SMS_SUBSCRIPTION);
+        } catch (SettingNotFoundException e) {
+            Log.d(TAG, "multi_sim_sms_subscription setting does not exist");
+        }
+        return preferredSub;
+    }
+
+    /*
+     * QRD-UX behavior:
+     *   1. For CU build, always ask user.
+     *   2. Respect preferred subscription (or always ask) upon new conversation.
+     *   3. Use mLastSubInConv.
+     */
     private void sendMessageWithChooseDialog(boolean bCheckEcmMode, boolean isMms) {
         // First check whether there are two sim cards both enabled
         // TODO: check whether sim card is enabled
         if (hasIccCardCount() > 1) {
-            if (mLastSubInConv == SUBSCRIPTION_ID_INVALID && mSendSubscription ==
+            int preferredSub = getPreferredSubscription();
+            boolean alwaysAsk = (preferredSub != MSimConstants.SUB1 &&
+                    preferredSub != MSimConstants.SUB2);
+            if (alwaysAsk && mLastSubInConv == SUBSCRIPTION_ID_INVALID && mSendSubscription ==
                     SUBSCRIPTION_ID_INVALID) {
                 // not in a conversion, show the choose dialog
                 if (mChooseDialog == null || !mChooseDialog.isShowing()) {
@@ -900,10 +922,37 @@ public class ComposeMessageActivity extends Activity
                 sendMessage(bCheckEcmMode);
             }
         } else {
-            mWorkingMessage.setCurrentConvSub(MSimSmsManager.getDefault()
+            int preferredSmsSub = MSimSmsManager.getDefault().getPreferredSmsSubscription();
+            if (preferredSmsSub == ALWAY_ASK) {
+                int availableSub = getAvailableSub();
+                if (availableSub != -1) {
+                    mWorkingMessage.setCurrentConvSub(availableSub);
+                    sendMessage(bCheckEcmMode);
+                } else {
+                    Toast.makeText(ComposeMessageActivity.this, R.string.cannot_send_message,
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+            } else {
+                mWorkingMessage.setCurrentConvSub(MSimSmsManager.getDefault()
                     .getPreferredSmsSubscription());
-            sendMessage(bCheckEcmMode);
+                sendMessage(bCheckEcmMode);
+            }
         }
+    }
+
+    private int getAvailableSub() {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        for (int i = 0; i < tm.getPhoneCount(); i++) {
+            // Because the status of slot1/2 will return SIM_STATE_UNKNOWN under airplane mode.
+            // So we add check about SIM_STATE_UNKNOWN.
+            if ((tm.getSimState(i) != TelephonyManager.SIM_STATE_ABSENT) &&
+                    (tm.getSimState(i) != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState(i) != TelephonyManager.SIM_STATE_UNKNOWN)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private int hasIccCardCount() {
@@ -926,7 +975,7 @@ public class ComposeMessageActivity extends Activity
 
         if (!isRecipientsEditorVisible()) {
             // QRD Enhancement for multi sim mo sms,if is Mms ,does not show the choose dialog
-            if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !isMms) {
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMessageWithChooseDialog(true,isMms);
             } else {
                 sendMessage(true);
@@ -954,7 +1003,7 @@ public class ComposeMessageActivity extends Activity
             }
         } else {
             //if is Mms ,does not show the choose dialog
-            if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !isMms) {
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMessageWithChooseDialog(true,isMms);
             } else {
                 sendMessage(true);
@@ -2931,18 +2980,12 @@ public class ComposeMessageActivity extends Activity
         if (isMms) {
             showButton = mSendButtonMms;
             hideButton = mSendButtonSms;
-            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-                mSendButtonMms2.setVisibility(View.VISIBLE);
-            } else {
-                mSendButtonMms2.setVisibility(View.GONE);
-            }
         } else {
             showButton = mSendButtonSms;
             hideButton = mSendButtonMms;
-            mSendButtonMms2.setVisibility(View.GONE);
-
         }
         showButton.setVisibility(View.VISIBLE);
+        showButton.setEnabled(isPreparedForSending());
         hideButton.setVisibility(View.GONE);
 
         return showButton;
@@ -3904,12 +3947,7 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     public void onClick(View v) {
-        if ((v == mSendButtonSms || v == mSendButtonMms || v ==mSendButtonMms2) && isPreparedForSending()) {
-            if (v == mSendButtonMms) {
-                subSelected = 0;
-            } else if (v == mSendButtonMms2) {
-                subSelected = 1;
-            }
+        if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
             confirmSendMessageIfNeeded();
         } else if ((v == mRecipientsPicker)) {
             launchMultiplePhonePicker();
@@ -4060,13 +4098,9 @@ public class ComposeMessageActivity extends Activity
                 new LengthFilter(MmsConfig.getMaxTextLimit())});
         mTextCounter = (TextView) findViewById(R.id.text_counter);
         mSendButtonMms = (TextView) findViewById(R.id.send_button_mms);
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            mSendButtonMms.setText(R.string.mms1);
-        }
-        mSendButtonMms2 = (TextView) findViewById(R.id.send_button_mms2);
+        mSendButtonMms.setText(R.string.mms);
         mSendButtonSms = (ImageButton) findViewById(R.id.send_button_sms);
         mSendButtonMms.setOnClickListener(this);
-        mSendButtonMms2.setOnClickListener(this);
         mSendButtonSms.setOnClickListener(this);
         mTopPanel = findViewById(R.id.recipients_subject_linear);
         mTopPanel.setFocusable(false);
