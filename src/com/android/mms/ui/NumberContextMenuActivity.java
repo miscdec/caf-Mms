@@ -58,7 +58,6 @@ import android.view.View.OnCreateContextMenuListener;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.ContextMenu;
 import android.widget.ArrayAdapter;
-import java.util.ArrayList;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.text.util.Linkify;
 import android.app.AlertDialog;
@@ -66,6 +65,10 @@ import android.view.KeyEvent;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.telephony.TelephonyManager;
+import com.android.mms.data.Contact;
+import java.util.ArrayList;
+import java.util.Arrays;
+
 
 /**
  * Demonstrates how to write an efficient list adapter. The adapter used in this example binds
@@ -90,6 +93,7 @@ public class NumberContextMenuActivity extends Activity
 
     private String mNumber = "";
     private AlertDialog mMenuDialog = null;
+    boolean mExitInDB = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -122,15 +126,18 @@ public class NumberContextMenuActivity extends Activity
     {
         Uri uri = intent.getData();
         mNumber = uri.getSchemeSpecificPart();
+        
+        Contact contact = Contact.get(mNumber, true);
+        mExitInDB = contact.existsInDatabase();
+        
         if(MessageUtils.isHasCard())
         {
-            showMenuWithCall();
+            showMenuWithCall(mExitInDB);
         }
         else
         {
-            showMenu();
-        }
- 
+            showMenu(mExitInDB);
+        } 
     }
 
     @Override
@@ -258,12 +265,21 @@ public class NumberContextMenuActivity extends Activity
         this.startActivity(sendIntent);
     }
     
-    private void showMenu()
+    private void showMenu(boolean exit)
     {
-        final String[] texts = new String[] {
+        String[] Texts = new String[] {
                             getString(R.string.menu_send_message),
                             getString(R.string.menu_save_to_contact)
                             };
+        String[] texts;
+        if(exit){
+            texts = Arrays.copyOf(Texts, 3);
+        }
+        else
+        {
+            texts = Texts;
+        }
+        
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.message_options));
         builder.setItems(texts, new DialogInterface.OnClickListener()
@@ -293,14 +309,23 @@ public class NumberContextMenuActivity extends Activity
         mMenuDialog.show();
     }
 
-    private void showMenuWithCall()
+    private void showMenuWithCall(boolean exit)
     {
-        final String[] texts = new String[] {
+        String[] Texts = new String[] {
                             getString(R.string.menu_send_message),
                             getString(R.string.menu_call),
                             getString(R.string.menu_edit_call),
                             getString(R.string.menu_save_to_contact)
                             };
+        String[] texts;
+        if(exit){
+            texts = Arrays.copyOf(Texts, 3);
+        }
+        else
+        {
+            texts = Texts;
+        }
+        
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.message_options));
         builder.setItems(texts, new DialogInterface.OnClickListener()
