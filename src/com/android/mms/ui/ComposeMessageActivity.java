@@ -585,7 +585,7 @@ public class ComposeMessageActivity extends Activity
                             case WorkingMessage.VCARD:
                             case WorkingMessage.SLIDESHOW:
                                 MessageUtils.viewMmsMessageAttachment(ComposeMessageActivity.this,
-                                        msgItem.mMessageUri, null);
+                                        msgItem.mMessageUri, msgItem.mSlideshow);
                                 break;
                         }
                         break;
@@ -4041,26 +4041,30 @@ public class ComposeMessageActivity extends Activity
                         mWorkingMessage.removeAttachment(false);
                     }
                     String extraVCard = data.getStringExtra(MultiPickContactsActivity.EXTRA_VCARD);
-                    if (extraVCard != null) {
-                        Uri vcard = Uri.parse(extraVCard);
+                    if (extraVCard != null)
                         {
-                        InputStream vcardSream;
-                        try{
-                        vcardSream= getContentResolver().openInputStream(vcard);
-                        }catch (FileNotFoundException e) {
-                            Log.e(TAG, "Can't open file for OUTBOUND info " );
-                            return;
-                        } catch (SecurityException e) {
-                            Log.e(TAG, "Exception:");
-                            return;
+                            Uri vcard = Uri.parse(extraVCard);
+                            if(MessageUtils.isQRDFeature())
+                                addVcard(vcard);
+                            else
+                            {
+                                InputStream vcardSream;
+                                try{
+                                vcardSream= getContentResolver().openInputStream(vcard);
+                                }catch (FileNotFoundException e) {
+                                    Log.e(TAG, "Can't open file for OUTBOUND info " );
+                                    return;
+                                } catch (SecurityException e) {
+                                    Log.e(TAG, "Exception:");
+                                    return;
+                                }
+                                FileInputStream fin = (FileInputStream) vcardSream;
+                                String fn = MessageUtils.getStringFromFile(fin);
+                                if(fn == null)
+                                return;
+                                addVcard(fn.getBytes());   
+                            }
                         }
-                        FileInputStream fin = (FileInputStream) vcardSream;
-                        String fn = MessageUtils.getStringFromFile(fin);
-                        if(fn == null)
-                        return;
-                        addVcard(fn.getBytes());   
-                        }
-}
                     }
                 break;
                 case REQUEST_CODE_SELECT_FILE:{
@@ -4499,7 +4503,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void addVcard(Uri uri) {
-        int result = mWorkingMessage.setAttachment(WorkingMessage.VCARD, uri, null,false);
+        int result = mWorkingMessage.setVcardAttachment(uri, false);
         handleAddAttachmentError(result, R.string.type_vcard);
     }
     private void addVcard(byte[] data){

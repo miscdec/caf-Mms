@@ -220,7 +220,8 @@ public abstract class MediaModel extends Model implements EventListener {
         return mTag.equals(SmilHelper.ELEMENT_TAG_AUDIO);
     }
     public boolean isVcard() {
-        return  mTag.equals(VCARD);
+        return mTag.equals(SmilHelper.ELEMENT_TAG_REF)
+                && mContentType.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase());
     }
 
     protected void initMediaDuration() throws MmsException {

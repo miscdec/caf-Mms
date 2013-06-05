@@ -300,8 +300,16 @@ public class SlideshowPresenter extends Presenter {
                     + image.getBitmapWithDrmCheck().getHeight() + " "
                     + image.getBitmapWithDrmCheck().getWidth());
                     */
-                if (false == ((SlideView)view).setGIF(image.getUri(), image.getBitmap(r.getWidth(), r.getHeight()))){
-                    view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
+                if(r.getHeight()<image.getHeight())
+                {
+                    if (false == ((SlideView)view).setGIF(image.getUri(), image.getBitmap(r.getWidth(), image.getHeight()))){
+                        view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
+                    }
+                }  
+                else{
+                    if (false == ((SlideView)view).setGIF(image.getUri(), image.getBitmap(r.getWidth(), r.getHeight()))){
+                        view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
+                    }
                 }
             }else{         
                 view.setImage(image.getSrc(), image.getBitmap(image.getWidth(), image.getHeight()));

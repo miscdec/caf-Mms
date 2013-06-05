@@ -477,6 +477,36 @@ public class WorkingMessage {
         }
     }
 
+
+    /**
+     * Adds an attachment to the message, replacing an old one if it existed.
+     * @param type Type of this attachment, such as {@link IMAGE}
+     * @param dataUri Uri containing the attachment data (or null for {@link TEXT})
+     * @param append true if we should add the attachment to a new slide
+     * @return An error code such as {@link UNKNOWN_ERROR} or {@link OK} if successful
+     */
+    public int setVcardAttachment(Uri dataUri, boolean append) {
+        int result = OK;
+        SlideshowEditor slideShowEditor = new SlideshowEditor(mActivity, mSlideshow);
+
+        ensureSlideshow();     
+        slideShowEditor.setSlideshow(mSlideshow);
+
+        // Change the attachment
+        result =changeVcardMedia(dataUri, slideShowEditor);
+
+        // If we were successful, update mAttachmentType and notify
+        // the listener than there was a change.
+        if (result == OK) {
+            mAttachmentType = WorkingMessage.VCARD;
+        }
+        correctAttachmentState();
+        mStatusListener.onAttachmentChanged(); 
+        updateState(HAS_ATTACHMENT, hasAttachment(), true);
+        return result;
+    }
+
+
     /**
      * Adds an attachment to the message, replacing an old one if it existed.
      * @param type Type of this attachment, such as {@link IMAGE}
@@ -662,6 +692,42 @@ public class WorkingMessage {
      * Change the message's attachment to the data in the specified Uri.
      * Used only for single-slide ("attachment mode") messages.
      */
+       private int changeVcardMedia(Uri uri, SlideshowEditor slideShowEditor) {
+        SlideModel originalSlide = mSlideshow.get(0);
+        if (originalSlide != null) {
+            slideShowEditor.removeSlide(0);     // remove the original slide
+        }
+        slideShowEditor.addNewSlide(0);
+        SlideModel slide = mSlideshow.get(0);   // get the new empty slide
+        int result = OK;
+
+        if (slide == null) {
+            Log.w(LogTag.TAG, "[WorkingMessage] changeMedia: no slides!");
+            return result;
+        }
+
+        // Clear the attachment type since we removed all the attachments. If this isn't cleared
+        // and the slide.add fails (for instance, a selected video could be too big), we'll be
+        // left in a state where we think we have an attachment, but it's been removed from the
+        // slide.
+        mAttachmentType = TEXT;
+
+        // If we're changing to text, just bail out.
+
+        result = internalChangeVcardMedia(uri, 0, slideShowEditor);
+        if (result != OK) {
+            slideShowEditor.removeSlide(0);             // remove the failed slide
+            if (originalSlide != null) {
+                slideShowEditor.addSlide(0, originalSlide); // restore the original slide.
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Change the message's attachment to the data in the specified Uri.
+     * Used only for single-slide ("attachment mode") messages.
+     */
     private void changeMedia(int type, Uri uri, byte[] data) throws MmsException {
         SlideModel slide = mSlideshow.get(0);
         MediaModel media;
@@ -711,6 +777,28 @@ public class WorkingMessage {
         if (type == VIDEO || type == AUDIO) {
             slide.updateDuration(media.getDuration());
         }
+    }
+
+    private int internalChangeVcardMedia(Uri uri, int slideNum,
+            SlideshowEditor slideShowEditor) {
+        int result = OK;
+        try {
+                slideShowEditor.changeVcard(slideNum, uri);
+            }
+         catch (MmsException e) {
+            Log.e(TAG, "internalChangeMedia:", e);
+            result = UNKNOWN_ERROR;
+        } catch (UnsupportContentTypeException e) {
+            Log.e(TAG, "internalChangeMedia:", e);
+            result = UNSUPPORTED_TYPE;
+        } catch (ExceedMessageSizeException e) {
+            Log.e(TAG, "internalChangeMedia:", e);
+            result = MESSAGE_SIZE_EXCEEDED;
+        } catch (ResolutionException e) {
+            Log.e(TAG, "internalChangeMedia:", e);
+            result = IMAGE_TOO_LARGE;
+        }
+        return result;
     }
 
     private int internalChangeMedia(int type, Uri uri, int slideNum,
