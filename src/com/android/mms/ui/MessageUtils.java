@@ -1733,7 +1733,7 @@ public class MessageUtils {
 
     public static int getMmsViewMode() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp.getApplication());
-        int ViewMode = sp.getInt("current_view", 0);
+        int ViewMode = sp.getInt("current_view", CHAT_MODE);
         return ViewMode;
     }
 
