@@ -1731,6 +1731,12 @@ public class MessageUtils {
         return MSimSmsManager.getDefault().getPreferredSmsSubscription();
     }
 
+    public static int getMmsViewMode() {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp.getApplication());
+        int ViewMode = sp.getInt("current_view", 0);
+        return ViewMode;
+    }
+
     public static String getMultiSimName(Context context, int subscription) {
         String name = Settings.System.getString(context.getContentResolver(),
             Settings.System.MULTI_SIM_NAME[subscription]);
