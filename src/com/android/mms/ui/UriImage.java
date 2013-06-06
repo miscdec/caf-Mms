@@ -53,7 +53,7 @@ public class UriImage {
     private String mSrc;
     private int mWidth;
     private int mHeight;
-	public static final String IMAGE_BMP        = "image/bmp";
+    public static final String IMAGE_BMP        = "image/bmp";
 
     public UriImage(Context context, Uri uri) {
         if ((null == context) || (null == uri)) {
@@ -105,7 +105,7 @@ public class UriImage {
 
         return "";
     }
-	
+
     //private void initFromFile(Context context, Uri uri) {
     private void initFromFile(Uri uri) {    
         mPath = uri.getPath();

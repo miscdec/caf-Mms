@@ -4036,7 +4036,8 @@ public class ComposeMessageActivity extends Activity
                     String extraVCard = data.getStringExtra(MultiPickContactsActivity.EXTRA_VCARD);
                     if (extraVCard != null) {
                         Uri vcard = Uri.parse(extraVCard);
-                        {
+                        addVcard(vcard);
+                        /*{
                         InputStream vcardSream;
                         try{
                         vcardSream= getContentResolver().openInputStream(vcard);
@@ -4052,7 +4053,7 @@ public class ComposeMessageActivity extends Activity
                         if(fn == null)
                         return;
                         addVcard(fn.getBytes());   
-                        }
+                        }*/
                     }
                 }
                 break;
@@ -4488,7 +4489,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void addVcard(Uri uri) {
-        int result = mWorkingMessage.setAttachment(WorkingMessage.VCARD, uri, null,false);
+        int result = mWorkingMessage.setVcardAttachment(uri, false);
         handleAddAttachmentError(result, R.string.type_vcard);
     }
     private void addVcard(byte[] data){

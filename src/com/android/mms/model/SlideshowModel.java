@@ -875,7 +875,7 @@ public class SlideshowModel extends Model
 
         SlideModel slide = get(0);
         // The slide must have either an image or video, but not both.
-        if (!(slide.hasImage() ^ slide.hasVideo()))
+        if (!(slide.hasImage() ^ slide.hasVideo()^slide.hasVcard()))
             return false;
      
         // No audio allowed.
