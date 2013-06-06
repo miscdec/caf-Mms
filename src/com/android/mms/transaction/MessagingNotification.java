@@ -93,11 +93,6 @@ import com.google.android.mms.pdu.MultimediaMessagePdu;
 import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
 
-import com.android.internal.telephony.ITelephony;
-import android.os.RemoteException;
-import android.os.ServiceManager;
-import android.os.Vibrator;
-
 /**
  * This class is used to update the notification indicator. It will check whether
  * there are unread messages. If yes, it would show the notification indicator,
@@ -151,7 +146,6 @@ public class MessagingNotification {
     private static final int COLUMN_ICC_DATE    = 0;
     private static final int COLUMN_ICC_ADDRESS = 1;
     private static final int COLUMN_ICC_BODY    = 2;
-    private static final long[] sVibratePattern = new long[] {0, 250, 250, 250};
 
 
     private static final int WAKE_LOCK_TIMEOUT = 5000;
@@ -1130,22 +1124,8 @@ public class MessagingNotification {
                         Context.NOTIFICATION_SERVICE);
         Notification notification = new Notification();
         boolean vibrate = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE, false);
-        boolean isActiveCall = isCallActive();
-        if(isActiveCall)
-        {
-            Log.d(TAG,"-------------is incall------------");
-            Vibrator mVibrator = (android.os.Vibrator)
-            context.getSystemService(Context.VIBRATOR_SERVICE);
-            mVibrator.vibrate(sVibratePattern,-1);
-            notification.flags |= Notification.FLAG_SHOW_LIGHTS;
-            notification.ledARGB = 0xff00ff00;
-            notification.ledOnMS = 500;
-            notification.ledOffMS = 2000;
-            
-            nm.notify(NOTIFICATION_ID_ZERO_SMS, notification);
-            return;
-        }
-        else if (vibrate) {
+        
+        if (vibrate) {
             notification.defaults |= Notification.DEFAULT_VIBRATE;
         }
         else
@@ -1345,27 +1325,13 @@ public class MessagingNotification {
                 vibrate = "always".equals(vibrateWhen);
             }
             
-            Notification notification = new Notification();
-            boolean isActiveCall = isCallActive();
-            
-            if (isActiveCall) {
-                Log.d(TAG,"-------------is incall------------");
-                Vibrator mVibrator = (android.os.Vibrator)
-                context.getSystemService(Context.VIBRATOR_SERVICE);
-                mVibrator.vibrate(sVibratePattern,-1);
-                notification.flags |= Notification.FLAG_SHOW_LIGHTS;
-                notification.ledARGB = 0xff00ff00;
-                notification.ledOnMS = 500;
-                notification.ledOffMS = 2000;
-            } else {
-                if (vibrate) {
-                    defaults |= Notification.DEFAULT_VIBRATE;
-                }
-
-                String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,null);
-                noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
-                Log.d(TAG, "updateNotification: new message, adding sound to the notification");
+            if (vibrate) {
+                defaults |= Notification.DEFAULT_VIBRATE;
             }
+
+            String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,null);
+            noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
+            Log.d(TAG, "updateNotification: new message, adding sound to the notification");
         }
 
         defaults |= Notification.DEFAULT_LIGHTS;
@@ -1565,27 +1531,13 @@ public class MessagingNotification {
                 vibrate = "always".equals(vibrateWhen);
             }
 
-            Notification notification = new Notification();
-            boolean isActiveCall = isCallActive();
-            
-            if (isActiveCall) {
-                Log.d(TAG,"-------------is incall------------");
-                Vibrator mVibrator = (android.os.Vibrator)
-                context.getSystemService(Context.VIBRATOR_SERVICE);
-                mVibrator.vibrate(sVibratePattern,-1);
-                notification.flags |= Notification.FLAG_SHOW_LIGHTS;
-                notification.ledARGB = 0xff00ff00;
-                notification.ledOnMS = 500;
-                notification.ledOffMS = 2000;
-            } else {
-                if (vibrate) {
-                    defaults |= Notification.DEFAULT_VIBRATE;
-                }
-
-                String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,null);
-                noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
-                Log.d(TAG, "updateIccNotification: new message, adding sound to the notification");
+            if (vibrate) {
+                defaults |= Notification.DEFAULT_VIBRATE;
             }
+
+            String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,null);
+            noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
+            Log.d(TAG, "updateIccNotification: new message, adding sound to the notification");
         }
 
         defaults |= Notification.DEFAULT_LIGHTS;
@@ -1767,27 +1719,13 @@ public class MessagingNotification {
                 vibrate = "always".equals(vibrateWhen);
             }
             
-            Notification notification = new Notification();
-            boolean isActiveCall = isCallActive();
-            
-            if (isActiveCall) {
-                Log.d(TAG,"-------------is incall------------");
-                Vibrator mVibrator = (android.os.Vibrator)
-                context.getSystemService(Context.VIBRATOR_SERVICE);
-                mVibrator.vibrate(sVibratePattern,-1);
-                notification.flags |= Notification.FLAG_SHOW_LIGHTS;
-                notification.ledARGB = 0xff00ff00;
-                notification.ledOnMS = 500;
-                notification.ledOffMS = 2000;
-            } else {
-                if (vibrate) {
-                    defaults |= Notification.DEFAULT_VIBRATE;
-                }
-
-                String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE, null);
-                noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
-                Log.d(TAG, "updatePushMessageNotification: new message, adding sound to the notification");
+            if (vibrate) {
+                defaults |= Notification.DEFAULT_VIBRATE;
             }
+
+            String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE, null);
+            noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
+            Log.d(TAG, "updatePushMessageNotification: new message, adding sound to the notification");
         }
 
         defaults |= Notification.DEFAULT_LIGHTS;
@@ -2225,24 +2163,6 @@ public class MessagingNotification {
         } finally {
             cursor.close();
         }
-    }
-
-    private static boolean isCallActive()
-    {
-        try {       
-            ITelephony iTelephony =
-                    ITelephony.Stub.asInterface(ServiceManager.getService(Context.TELEPHONY_SERVICE));
-            if (iTelephony != null) {
-                boolean isActive = iTelephony.isOffhook() || iTelephony.isRinging();
-                return isActive;
-            } else {
-                Log.w(TAG, "Telephony service is null");
-            }
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to clear missed calls notification due to remote exception");
-        }
-        
-        return false;
     }
 
     private static void wakeScreen(Context context) {
