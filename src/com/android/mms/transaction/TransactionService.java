@@ -408,7 +408,7 @@ public class TransactionService extends Service implements Observer {
             String ns = Context.NOTIFICATION_SERVICE;
             NotificationManager mNotificationManager = (NotificationManager)
                     getApplicationContext().getSystemService(ns);
-            mNotificationManager.cancel(0);//must be modify later
+            mNotificationManager.cancel((sDefaultDataSubscription ==1) ?0:1);//must be modify later
 
             boolean isSilent = true; //default, silent enabled.
             if ("prompt".equals(

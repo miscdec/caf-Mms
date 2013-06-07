@@ -1750,6 +1750,7 @@ public class MessageUtils {
         }
     }
     return subId;
+    }
     public static int getMmsViewMode() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp.getApplication());
         int ViewMode = sp.getInt("current_view", CHAT_MODE);
