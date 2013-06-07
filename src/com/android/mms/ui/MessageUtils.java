@@ -1731,6 +1731,27 @@ public class MessageUtils {
         return MSimSmsManager.getDefault().getPreferredSmsSubscription();
     }
 
+    /**
+      * Get Mms subscription from msg_id in databases
+      */
+    public static int getMmsSubIdFromMsgId(Context context, String msgId) {
+    Log.i(TAG,"getSubIdFromMsgId() : msgId="+msgId);
+    int subId = 0;
+    Cursor c = null;
+    try {
+        String selection = Mms._ID +"="+msgId;
+        c = context.getContentResolver().query(Mms.CONTENT_URI, new String[] {Mms.SUB_ID}, selection, null, "date DESC");
+        if (c != null && c.moveToFirst()) {
+            subId = c.getInt(0);
+        }
+    } finally {
+        if (c != null) {
+            c.close();
+        }
+    }
+    return subId;
+    }
+
     public static String getMultiSimName(Context context, int subscription) {
         String name = Settings.System.getString(context.getContentResolver(),
             Settings.System.MULTI_SIM_NAME[subscription]);
