@@ -82,7 +82,7 @@ public class AttachmentTypeSelectorAdapter extends IconListAdapter {
                 R.drawable.ic_attach_capture_contact_vcard_holo_light, ADD_CONTACT_AS_VCARD);
 
         addItem(data, context.getString(R.string.other),
-                R.drawable.ic_attachment_universal_small, ADD_OTHERS);
+                R.drawable.ic_dialog_attach, ADD_OTHERS);
         return data;
     }
 

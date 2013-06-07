@@ -4036,7 +4036,8 @@ public class ComposeMessageActivity extends Activity
                     String extraVCard = data.getStringExtra(MultiPickContactsActivity.EXTRA_VCARD);
                     if (extraVCard != null) {
                         Uri vcard = Uri.parse(extraVCard);
-                        {
+                        addVcard(vcard);
+                        /*{
                         InputStream vcardSream;
                         try{
                         vcardSream= getContentResolver().openInputStream(vcard);
@@ -4052,7 +4053,7 @@ public class ComposeMessageActivity extends Activity
                         if(fn == null)
                         return;
                         addVcard(fn.getBytes());   
-                        }
+                        }*/
                     }
                 }
                 break;
@@ -4488,7 +4489,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void addVcard(Uri uri) {
-        int result = mWorkingMessage.setAttachment(WorkingMessage.VCARD, uri, null,false);
+        int result = mWorkingMessage.setVcardAttachment(uri, false);
         handleAddAttachmentError(result, R.string.type_vcard);
     }
     private void addVcard(byte[] data){
@@ -4961,6 +4962,11 @@ public class ComposeMessageActivity extends Activity
             mScrollOnSend = true;   // in the next onQueryComplete, scroll the list to the end.
         }
         // But bail out if we are supposed to exit after the message is sent.
+        int viewMode = MessageUtils.getMmsViewMode();
+        if(viewMode == MessageUtils.MAILBOX_MODE) {
+            finish();
+        }
+
         if (mExitOnSent) {
             finish();
         }
