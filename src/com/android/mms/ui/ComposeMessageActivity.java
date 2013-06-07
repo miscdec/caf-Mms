@@ -4963,7 +4963,7 @@ public class ComposeMessageActivity extends Activity
         }
         // But bail out if we are supposed to exit after the message is sent.
         int viewMode = MessageUtils.getMmsViewMode();
-        if(viewMode == 0) {
+        if(viewMode == MessageUtils.MAILBOX_MODE) {
             finish();
         }
 
