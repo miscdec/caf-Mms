@@ -4979,6 +4979,11 @@ public class ComposeMessageActivity extends Activity
             mScrollOnSend = true;   // in the next onQueryComplete, scroll the list to the end.
         }
         // But bail out if we are supposed to exit after the message is sent.
+        int viewMode = MessageUtils.getMmsViewMode();
+        if (viewMode == MessageUtils.MAILBOX_MODE) {
+            finish();
+        }
+
         if (mExitOnSent) {
             finish();
         }
