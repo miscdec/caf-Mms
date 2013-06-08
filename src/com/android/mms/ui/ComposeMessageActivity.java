@@ -2486,7 +2486,9 @@ public class ComposeMessageActivity extends Activity
             mRecipientsPickerGroups= (ImageButton)findViewById(R.id.recipients_picker_group);
         }
         mRecipientsPicker.setOnClickListener(this);
+        mRecipientsPicker.setVisibility(View.VISIBLE);
         mRecipientsPickerGroups.setOnClickListener(this);
+        mRecipientsPickerGroups.setVisibility(View.VISIBLE);
         mRecipientsEditor.setAdapter(new RecipientsAdapter(this));
         mRecipientsEditor.populate(recipients);
         mRecipientsEditor.setOnCreateContextMenuListener(mRecipientsMenuCreateListener);
