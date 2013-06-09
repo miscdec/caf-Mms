@@ -19,6 +19,7 @@
 package com.android.mms.ui;
 
 import com.android.mms.R;
+import com.android.mms.transaction.TransactionService;
 import com.android.internal.telephony.MSimConstants;
 
 import android.app.PendingIntent;
@@ -70,7 +71,7 @@ public class SelectMmsSubscription extends Service {
             Log.d(TAG, "doInBackground(), Thread="+
                     Thread.currentThread().getName());
 
-            if (getCurrentSubcription() != params[0]) {
+            if ((getCurrentSubcription() != params[0]) && (!TransactionService.isTransactionServiceActive())){
                 return switchSubscriptionTo(params[0]);
             }
             return -1; //no change.
@@ -79,7 +80,7 @@ public class SelectMmsSubscription extends Service {
         @Override
             protected void onPostExecute(Integer result) {
                 super.onPostExecute(result);
-                Log.d(TAG, "onPostExecute(), Thread="+Thread.currentThread().getName());
+                Log.d(TAG, "onPostExecute(), Thread="+Thread.currentThread().getName() + ", result = " + result);
 
 
                 if (result == -1) {
