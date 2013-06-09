@@ -45,6 +45,8 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.SystemProperties;
+import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
@@ -143,6 +145,9 @@ public class TransactionService extends Service implements Observer {
     private static final int TOAST_MSG_QUEUED = 1;
     private static final int TOAST_DOWNLOAD_LATER = 2;
     private static final int TOAST_NONE = -1;
+
+    //Backup default data subscription set
+    private static int sDefaultDataSubscription = -1;
 
     // How often to extend the use of the MMS APN while a transaction
     // is still being processed.
@@ -270,6 +275,12 @@ public class TransactionService extends Service implements Observer {
 
         Bundle extras = intent.getExtras();
         String action = intent.getAction();
+        int requestedSub = -1;
+        /* backup data subscription set , when first start this service*/
+        if((MessageUtils.isMultiSimEnabledMms()) &&(serviceId == 1)){
+            requestedSub = intent.getIntExtra(Mms.SUB_ID, -1);
+            backupDataSubscription(requestedSub);
+        }
         if ((ACTION_ONALARM.equals(action) || ACTION_ENABLE_AUTO_RETRIEVE.equals(action) ||
                     (extras == null)) || ((extras != null) && !extras.containsKey("uri"))) {
 
@@ -349,7 +360,7 @@ public class TransactionService extends Service implements Observer {
                                     break;
                                 }
 
-                                int requestedSub = intent.getIntExtra(Mms.SUB_ID, -1);
+                                //int requestedSub = intent.getIntExtra(Mms.SUB_ID, -1);
                                 Log.d(TAG, "RequestedSubId = "+requestedSub);
                                 txnRequestsMap.add(new TxnRequest(serviceId, requestedSub));
 
@@ -376,7 +387,7 @@ public class TransactionService extends Service implements Observer {
                 Log.v(TAG, "onNewIntent: launch transaction...");
             }
             String uriStr = intent.getStringExtra("uri");
-            int requestedSub = intent.getIntExtra(Mms.SUB_ID, -1);
+            //int requestedSub = intent.getIntExtra(Mms.SUB_ID, -1);
             Uri uri = Uri.parse(uriStr);
             int subId = getSubIdFromDb(uri);
             Log.d(TAG, "SubId from DB= "+subId);
@@ -389,9 +400,32 @@ public class TransactionService extends Service implements Observer {
         }
     }
 
+    //Only used for change data subscription back
     private void removeNotification(int startId) {
-        Log.d(TAG, "removeNotification, startId=" + startId);
-        for (TxnRequest req : txnRequestsMap ) {
+        if((MessageUtils.isMultiSimEnabledMms()) &&(sDefaultDataSubscription >-1)){
+            Log.d(TAG, "restore backup, startId = " + startId + ", sDefaultDataSubscription = " + sDefaultDataSubscription);
+            // remove notification
+            String ns = Context.NOTIFICATION_SERVICE;
+            NotificationManager mNotificationManager = (NotificationManager)
+                    getApplicationContext().getSystemService(ns);
+            mNotificationManager.cancel((sDefaultDataSubscription ==1) ?0:1);//must be modify later
+
+            boolean isSilent = true; //default, silent enabled.
+            if ("prompt".equals(
+                   SystemProperties.get(TelephonyProperties.PROPERTY_MMS_TRANSACTION))) {
+                isSilent = false;
+            }
+
+            if (isSilent && (sDefaultDataSubscription != getCurrentSubcription())) {
+                //Log.d(TAG, "MMS silent transaction finished for sub="+sDefaultDataSubscription);
+                Intent silentIntent = new Intent(getApplicationContext(),
+                        com.android.mms.ui.SelectMmsSubscription.class);
+                silentIntent.putExtra(Mms.SUB_ID, sDefaultDataSubscription);
+                silentIntent.putExtra("TRIGGER_SWITCH_ONLY", 1);
+                getApplicationContext().startService(silentIntent);
+            }
+        }
+        /*for (TxnRequest req : txnRequestsMap ) {
             if (req.serviceId == startId) {
                 if (req.requestedSubId == -1) {
                     Log.d(TAG, "Notification cleanup not required since subId is -1");
@@ -424,8 +458,7 @@ public class TransactionService extends Service implements Observer {
 
                     }
                 }
-            }
-        }
+            }*/
     }
 
     private void stopSelfIfIdle(int startId) {
@@ -675,7 +708,7 @@ public class TransactionService extends Service implements Observer {
         } finally {
             transaction.detach(this);
             MmsSystemEventReceiver.unRegisterForConnectionStateChanges(getApplicationContext());
-            removeNotification(serviceId);
+            //removeNotification(serviceId); //Called in stopSelfIfIdle()
             stopSelfIfIdle(serviceId);
         }
     }
@@ -1156,4 +1189,30 @@ public class TransactionService extends Service implements Observer {
             mServiceHandler.processPendingTransaction(null, settings);
         }
     };
+
+    //Backup default data subscription set
+    private void backupDataSubscription(int reqSubscription) {
+        if(reqSubscription == -1){
+            sDefaultDataSubscription = getCurrentSubcription();
+        }
+        else{
+            sDefaultDataSubscription = (reqSubscription ==1) ?0:1;
+        }
+        int testSub = getUserPreferDataSubscription();
+        Log.v(TAG, "---backup reqSub = " + reqSubscription + 
+            ", DefaultDS = " + sDefaultDataSubscription + ", testSub = " + testSub);
+    }
+
+    //Get user prefer data subscription, sometimes maybe wrong, just no used, only for test
+    private int getUserPreferDataSubscription() {
+        int userPref = 0;
+        try{
+            userPref = Settings.System.getInt(getApplicationContext().getContentResolver(),
+                     Settings.Global.MULTI_SIM_DATA_CALL_SUBSCRIPTION);
+        }catch(SettingNotFoundException snfe){
+            Log.e(TAG, "Settings Exception Reading Dual Sim Data Call Values");
+        }
+        return userPref;
+    }
+    
 }

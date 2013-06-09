@@ -32,10 +32,12 @@ import android.net.Uri;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
+import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 
 import com.android.mms.LogTag;
 import com.android.mms.R;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.DownloadManager;
 import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
@@ -314,8 +316,24 @@ public class RetryScheduler implements Observer {
                         Log.v(TAG, "Out of current date, cancel retry scheduler !");
                         return;
                     }
-                    Intent service = new Intent(TransactionService.ACTION_ONALARM,
-                                        null, context, TransactionService.class);
+                    
+                    Intent service = null;
+                    int pendMsgId = cursor.getInt(cursor.getColumnIndexOrThrow(
+                            PendingMessages.MSG_ID));
+                    if (MSimTelephonyManager.getDefault().isMultiSimEnabled()){
+                        Intent intent = new Intent(TransactionService.ACTION_ONALARM,
+                                            null, context, TransactionService.class);
+                        intent.putExtra(Mms.SUB_ID, 
+                                            MessageUtils.getMmsSubIdFromMsgId(context, String.valueOf(pendMsgId)));
+                        intent.putExtra("on_alarm", 1);
+                        service = new Intent(context,
+                                com.android.mms.ui.SelectMmsSubscription.class);
+                        service.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        service.putExtras(intent); //copy all extras
+                    }else{                    
+                        service = new Intent(TransactionService.ACTION_ONALARM,
+                                            null, context, TransactionService.class);
+                    }
                     service.putExtra("msg_id", msgId);
                     PendingIntent operation = PendingIntent.getService(
                             context, 0, service, PendingIntent.FLAG_ONE_SHOT);
@@ -344,9 +362,23 @@ public class RetryScheduler implements Observer {
                     // The result of getPendingMessages() is order by due time.
                     long retryAt = cursor.getLong(cursor.getColumnIndexOrThrow(
                             PendingMessages.DUE_TIME));
+                    int pendMsgId = cursor.getInt(cursor.getColumnIndexOrThrow(
+                            PendingMessages.MSG_ID));
 
-                    Intent service = new Intent(TransactionService.ACTION_ONALARM,
-                                        null, context, TransactionService.class);
+                    Intent service = null;
+                    if (MSimTelephonyManager.getDefault().isMultiSimEnabled()){
+                        Intent intent = new Intent(TransactionService.ACTION_ONALARM,
+                                            null, context, TransactionService.class);
+                        intent.putExtra(Mms.SUB_ID, 
+                                            MessageUtils.getMmsSubIdFromMsgId(context, String.valueOf(pendMsgId)));
+                        service = new Intent(context,
+                                com.android.mms.ui.SelectMmsSubscription.class);
+                        service.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        service.putExtras(intent); //copy all extras
+                    }else{
+                        service= new Intent(TransactionService.ACTION_ONALARM,
+                                            null, context, TransactionService.class);
+                    }
                     PendingIntent operation = PendingIntent.getService(
                             context, 0, service, PendingIntent.FLAG_ONE_SHOT);
                     AlarmManager am = (AlarmManager) context.getSystemService(
@@ -363,4 +395,5 @@ public class RetryScheduler implements Observer {
             }
         }
     }
+
 }

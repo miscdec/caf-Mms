@@ -49,7 +49,9 @@ public class SelectMmsSubscription extends Service {
     private Intent startUpIntent;
     private int requestedSub =0;
     private int triggerSwitchOnly = 0;
-    private SwitchSubscriptionTask switchSubscriptionTask;;
+    private int isOnAlarm =0;
+    private static final int NET_CONNECT_TIMEOUT = 30;
+    private SwitchSubscriptionTask switchSubscriptionTask;
 
     private boolean flagOkToStartTransactionService = false;
     private ConnectivityBroadcastReceiver mReceiver;
@@ -105,18 +107,26 @@ public class SelectMmsSubscription extends Service {
                         triggerTransactionService();
                         stopSelf();
                     } else {
-                        //Switch was real and it succeeded, start transaction
-                        //service with all UI hoopla
-                        flagOkToStartTransactionService = true; //if PDP is up, transactionService can be started.
-                        //TODO: may be in future, we should have a timeout for
-                        //PDP up event. Upon expiration trigger transaction
-                        //service(if not done already). It should work for the cases where
-                        //second SIM does not have default propfile set. This is not the
-                        //bullet-proof method but should work most of the time.
-                        registerForPdpUp();
-                        removeStatusBarNotification();
-                        showNotificationMmsInProgress();
-                        showNotificationAbortAndSwitchBack();
+                        if(isMobileDataEnabled()){
+                            //Switch was real and it succeeded, start transaction
+                            //service with all UI hoopla
+                            flagOkToStartTransactionService = true; //if PDP is up, transactionService can be started.
+                            //TODO: may be in future, we should have a timeout for
+                            //PDP up event. Upon expiration trigger transaction
+                            //service(if not done already). It should work for the cases where
+                            //second SIM does not have default propfile set. This is not the
+                            //bullet-proof method but should work most of the time.
+                            registerForPdpUp();
+                            removeStatusBarNotification();
+                            //showNotificationMmsInProgress(); remove this notification, if mms send failed ,can be retry automatic
+                            showNotificationAbortAndSwitchBack();
+                        }else{
+                            Log.d(TAG, "isMobileDataEnabled = false");
+                            removeStatusBarNotification();
+                            showNotificationAbortAndSwitchBack();
+                            triggerTransactionService();
+                            stopSelf();
+                        }
                     }
                 }
             }
@@ -216,6 +226,7 @@ public class SelectMmsSubscription extends Service {
         private int switchSubscriptionTo(int sub) {
             TelephonyManager tmgr = (TelephonyManager)
                     mContext.getSystemService(Context.TELEPHONY_SERVICE);
+            int netConnTimeCount = 0;
             if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 Log.d(TAG, "DSDS enabled");
                 MSimTelephonyManager mtmgr = (MSimTelephonyManager)
@@ -228,6 +239,11 @@ public class SelectMmsSubscription extends Service {
                     while(!isNetworkAvailable()) {
                         Log.d(TAG, "isNetworkAvailable = false, sleep..");
                         sleep(1000);
+                        netConnTimeCount++;
+                        if(netConnTimeCount>NET_CONNECT_TIMEOUT){ /* connect for 30 seconds */  
+                            Log.d(TAG, "--Connected failed , break.");
+                            break;
+                        }                          
                     }
                 }
                 return result;
@@ -246,9 +262,19 @@ public class SelectMmsSubscription extends Service {
 
     }
 
+    private boolean isMobileDataEnabled() {
+        ConnectivityManager connMgr = (ConnectivityManager) getSystemService(
+                Context.CONNECTIVITY_SERVICE);
+        return ( connMgr.getMobileDataEnabled());
+
+    }
+
     private void triggerTransactionService() {
         Log.d(TAG, "triggerTransactionService");
         Intent svc = new Intent(mContext, com.android.mms.transaction.TransactionService.class);
+        if(isOnAlarm == 1){
+            svc.setAction(com.android.mms.transaction.TransactionService.ACTION_ONALARM);
+        }
 
         //The purpose of subId in the start Intent was to trigger DDS switc, if
         //required. The purpose is served, clean up the intent and forward it to
@@ -338,10 +364,10 @@ public class SelectMmsSubscription extends Service {
 
         requestedSub = startUpIntent.getIntExtra(Mms.SUB_ID, 0);
         triggerSwitchOnly =startUpIntent.getIntExtra("TRIGGER_SWITCH_ONLY", 0);
+        isOnAlarm = startUpIntent.getIntExtra("on_alarm", 0);        
 
         Log.d(TAG, "Requested sub = "+requestedSub);
         Log.d(TAG, "triggerSwitchOnly = "+triggerSwitchOnly);
-
 
         switchSubscriptionTask = new SwitchSubscriptionTask();
         switchSubscriptionTask.execute(requestedSub);
