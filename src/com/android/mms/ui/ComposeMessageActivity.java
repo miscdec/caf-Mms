@@ -318,6 +318,7 @@ public class ComposeMessageActivity extends Activity
     private WorkingMessage mWorkingMessage;         // The message currently being composed.
 
     private AlertDialog mSmileyDialog;
+    private AlertDialog mInvalidRecipientDialog;
 
     private boolean mWaitingForSubActivity;
     private int mLastRecipientCount;            // Used for warning the user on too many recipients.
@@ -994,30 +995,34 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
-            if (mRecipientsEditor.hasValidRecipient(isMms)) {
-                String title = getResourcesString(R.string.has_invalid_recipient,
-                        mRecipientsEditor.formatInvalidNumbers(isMms));
-                new AlertDialog.Builder(this)
-                    .setTitle(title)
-                    .setMessage(R.string.invalid_recipient_message)
-                    .setPositiveButton(R.string.try_to_send,
-                            new SendIgnoreInvalidRecipientListener())
-                    .setNegativeButton(R.string.no, new CancelSendingListener())
-                    .show();
-            } else {
-                new AlertDialog.Builder(this)
-                    .setTitle(R.string.cannot_send_message)
-                    .setMessage(R.string.cannot_send_message_reason)
-                    .setPositiveButton(R.string.yes, new CancelSendingListener())
-                    .show();
-            }
+            showInvalidRecipientDialog();
         } else {
-            //if is Mms ,does not show the choose dialog
             if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-                sendMessageWithChooseDialog(true,isMms);
+                sendMessageWithChooseDialog(true, isMms);
             } else {
                 sendMessage(true);
             }
+        }
+    }
+
+    private void showInvalidRecipientDialog() {
+        boolean isMms = mWorkingMessage.requiresMms();
+        if (mRecipientsEditor.hasValidRecipient(isMms) > MessageUtils.ALL_RECIPIENTS_INVALID) {
+            String title = getResourcesString(R.string.has_invalid_recipient,
+                    mRecipientsEditor.formatInvalidNumbers(isMms));
+            mInvalidRecipientDialog = new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(R.string.invalid_recipient_message)
+                .setPositiveButton(R.string.try_to_send,
+                        new SendIgnoreInvalidRecipientListener())
+                .setNegativeButton(R.string.no, new CancelSendingListener())
+                .show();
+        } else {
+            mInvalidRecipientDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.cannot_send_message)
+                .setMessage(R.string.cannot_send_message_reason)
+                .setPositiveButton(R.string.yes, new CancelSendingListener())
+                .show();
         }
     }
 
@@ -2828,6 +2833,16 @@ public class ComposeMessageActivity extends Activity
                     ", mIsKeyboardOpen=" + mIsKeyboardOpen);
         }
         onKeyboardStateChanged(mIsKeyboardOpen);
+
+        // If locale changed, we need reload the source of mInvalidRecipientDialog's
+        // title and message from xml file.
+        if (mInvalidRecipientDialog != null && mInvalidRecipientDialog.isShowing()) {
+            mInvalidRecipientDialog.dismiss();
+            mInvalidRecipientDialog = null;
+            showInvalidRecipientDialog();
+        } else {
+            mInvalidRecipientDialog = null;
+        }
     }
 
     // returns true if landscape/portrait configuration has changed
@@ -2922,20 +2937,37 @@ public class ComposeMessageActivity extends Activity
                 public void run() {
 
                     // Remove the obsolete threads in database.
-                    getContentResolver().delete(android.provider.Telephony.Threads.OBSOLETE_THREADS_URI,null,null);
+                    getContentResolver().delete(
+                            android.provider.Telephony.Threads.OBSOLETE_THREADS_URI, null, null);
                 }
             }.start();
             return;
         }
 
-        if (isRecipientsEditorVisible() &&
-                !mRecipientsEditor.hasValidRecipient(mWorkingMessage.requiresMms())) {
-            MessageUtils.showDiscardDraftConfirmDialog(this, new DiscardDraftListener());
+        // If the recipient is empty, the meesgae shouldn't be saved, and should pop up the
+        // confirm delete dialog.
+        if (isRecipientEmpty()) {
+            // If mRecipientsEditor is empty we need show empty info.
+            int validNum = MessageUtils.ALL_RECIPIENTS_EMPTY;
+            if (!TextUtils.isEmpty(mRecipientsEditor.getText())) {
+                validNum = mRecipientsEditor.hasValidRecipient(mWorkingMessage
+                        .requiresMms());
+            }
+            MessageUtils.showDiscardDraftConfirmDialog(this,
+                    new DiscardDraftListener(), validNum);
+
             return;
         }
 
         mToastForDraftSave = true;
         exit.run();
+    }
+
+    private boolean isRecipientEmpty() {
+        return isRecipientsEditorVisible()
+                && (mRecipientsEditor.hasValidRecipient(mWorkingMessage.requiresMms())
+                != MessageUtils.ALL_RECIPIENTS_VALID
+                || (0 == mRecipientsEditor.getRecipientCount()));
     }
 
     private void goToConversationList() {
