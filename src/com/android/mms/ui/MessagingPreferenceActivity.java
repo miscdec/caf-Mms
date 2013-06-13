@@ -58,6 +58,8 @@ import android.content.IntentFilter;
 import android.util.Log;
 import android.widget.Toast;
 import android.preference.Preference.OnPreferenceClickListener;
+import android.text.InputFilter;
+import android.text.InputFilter.LengthFilter;
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -104,7 +106,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private EditTextPreference mSmsCenterCard1Pref;
     private EditTextPreference mSmsCenterCard2Pref;
     private Preference mSmsTemplatePref;
-
+    private EditTextPreference mSmsSignaturePref;
+    
     private Recycler mSmsRecycler;
     private Recycler mMmsRecycler;
     private static final int CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG = 3;
@@ -195,6 +198,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mSmsCenterCard2Pref = (EditTextPreference) findPreference ("pref_key_sms_center_card2");
         mMmsExpiryPref = (ListPreference) findPreference("pref_key_mms_expiry"); 
         mSmsTemplatePref = (Preference)findPreference("pref_key_sms_template");
+        mSmsSignaturePref = (EditTextPreference)findPreference("pref_key_signature");
         
         setMessagePreferences();
     }
@@ -338,6 +342,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         setMmsDisplayLimit();
         setMmsExpirySummary();
         setSmsTemplatePref();
+        setSmsSignatureSummary();
 
         String soundValue = sharedPreferences.getString(NOTIFICATION_RINGTONE, null);
         setRingtoneSummary(soundValue);
@@ -624,6 +629,19 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             }
         };
         mSmsTemplatePref.setOnPreferenceClickListener(preListener);
+    }
+
+    private void setSmsSignatureSummary() {
+        mSmsSignaturePref.getEditText().setFilters(new InputFilter[] { new LengthFilter(20) });
+        mSmsSignaturePref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                final String value = newValue.toString();
+                mSmsSignaturePref.setSummary(value);
+                mSmsSignaturePref.setText(value);
+                return false;
+            }
+        });
+        mSmsSignaturePref.setSummary(mSmsSignaturePref.getText());
     }
 
     private void restoreSmsTemplatepref(){
