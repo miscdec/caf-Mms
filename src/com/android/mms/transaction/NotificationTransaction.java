@@ -85,6 +85,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
         super(context, serviceId, connectionSettings);
 
         mUri = Uri.parse(uriString);
+        mSubId = MessageUtils.getSubIdFromDb(context, mUri);
 
         try {
             mNotificationInd = (NotificationInd)

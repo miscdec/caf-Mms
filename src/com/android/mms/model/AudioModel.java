@@ -40,6 +40,7 @@ import com.google.android.mms.MmsException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import com.google.android.mms.ContentType;
 
 public class AudioModel extends MediaModel {
     private static final String TAG = MediaModel.TAG;
@@ -84,19 +85,30 @@ public class AudioModel extends MediaModel {
                         mContentType = c.getString(c.getColumnIndexOrThrow(Part.CONTENT_TYPE));
                     } else {
                         path = c.getString(c.getColumnIndexOrThrow(Audio.Media.DATA));
-                        mContentType = c.getString(c.getColumnIndexOrThrow(
+                       
+                         try{
+                     mContentType = c.getString(c.getColumnIndexOrThrow(
                                 Audio.Media.MIME_TYPE));
+                        }
+                    catch (IllegalArgumentException e) {
+                    mContentType=ContentType.AUDIO_MP3;
+                 }
                         // Get more extras information which would be useful
                         // to the user.
-                        String album = c.getString(c.getColumnIndexOrThrow("album"));
-                        if (!TextUtils.isEmpty(album)) {
-                            mExtras.put("album", album);
-                        }
+                            try {
+                                String album = c.getString(c.getColumnIndexOrThrow("album"));
+                                if (!TextUtils.isEmpty(album)) {
+                                mExtras.put("album", album);
+                                }
 
-                        String artist = c.getString(c.getColumnIndexOrThrow("artist"));
-                        if (!TextUtils.isEmpty(artist)) {
-                            mExtras.put("artist", artist);
-                        }
+                                String artist = c.getString(c.getColumnIndexOrThrow("artist"));
+                                if (!TextUtils.isEmpty(artist)) {
+                                mExtras.put("artist", artist);
+                                }
+                            }catch (IllegalArgumentException e) {
+                    
+                 }
+                        
                     }
                     mSrc = path.substring(path.lastIndexOf('/') + 1);
 

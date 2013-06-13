@@ -56,6 +56,7 @@ public class ReadRecTransaction extends Transaction {
         super(context, transId, connectionSettings);
         mReadReportURI = Uri.parse(uri);
         mId = uri;
+        mSubId = MessageUtils.getSubIdFromDb(context, mReadReportURI);
 
         // Attach the transaction to the instance of RetryScheduler.
         attach(RetryScheduler.getInstance(context));

@@ -84,6 +84,7 @@ public class RetrieveTransaction extends Transaction implements Runnable {
             mUri = Uri.parse(uri); // The Uri of the M-Notification.ind
             mId = mContentLocation = getContentLocation(context, mUri);
             mTransactionState.setContentUri(mUri);  //add for onConnectivityFailed()
+            mSubId = MessageUtils.getSubIdFromDb(context, mUri);
             if (LOCAL_LOGV) {
                 Log.v(TAG, "X-Mms-Content-Location: " + mContentLocation);
             }
