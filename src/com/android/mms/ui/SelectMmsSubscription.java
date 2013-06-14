@@ -32,6 +32,7 @@ import android.content.Context;
 import android.content.BroadcastReceiver;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -108,7 +109,7 @@ public class SelectMmsSubscription extends Service {
                         triggerTransactionService();
                         stopSelf();
                     } else {
-                        if(isMobileDataEnabled()){
+                        if(isMobileDataEnabled()&& !isWifiEnabled()){
                             //Switch was real and it succeeded, start transaction
                             //service with all UI hoopla
                             flagOkToStartTransactionService = true; //if PDP is up, transactionService can be started.
@@ -124,7 +125,7 @@ public class SelectMmsSubscription extends Service {
                         }else{
                             Log.d(TAG, "isMobileDataEnabled = false");
                             removeStatusBarNotification();
-                            showNotificationAbortAndSwitchBack();
+                            //showNotificationAbortAndSwitchBack();
                             triggerTransactionService();
                             stopSelf();
                         }
@@ -401,5 +402,17 @@ public class SelectMmsSubscription extends Service {
         }
     }
 
+    private boolean isWifiEnabled(){
+        WifiManager mWifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        boolean isWifiOn = false;
+        if(mWifiManager != null){
+            int wifiState = mWifiManager.getWifiState();
+            if (wifiState == WifiManager.WIFI_STATE_ENABLED) {
+                //wifi connected
+                isWifiOn = true;
+            }
+        }
+        return isWifiOn;
+    }
 
 }

@@ -1001,7 +1001,10 @@ public class TransactionService extends Service implements Observer {
                     return;
                 //Add for connectivity timeout
                 case EVENT_MMS_CONNECTIVITY_TIMEOUT:
-                    onConnectivityFailed();
+                    Log.d(TAG, "MMS_CONNECTIVITY_TIMEOUT");
+                    synchronized (mProcessing) {
+                        onConnectivityFailed();
+                    }
                     return;
                 default:
                     Log.w(TAG, "what=" + msg.what);
