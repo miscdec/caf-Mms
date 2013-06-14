@@ -164,7 +164,9 @@ public class WorkingMessage {
 
     private static final int MMS_MESSAGE_SIZE_INDEX  = 1;
 
-    private int mCurrentConvSub = -1;
+    private static final int SUBSCRIPTION_INVALID = -1;
+
+    private int mCurrentConvSub = SUBSCRIPTION_INVALID;
 
 
     /**
@@ -1359,7 +1361,7 @@ public class WorkingMessage {
         }
         MessageSender sender;
 
-        int subscription = (mCurrentConvSub == -1) ?
+        int subscription = (mCurrentConvSub == SUBSCRIPTION_INVALID) ?
                 MSimSmsManager.getDefault().getPreferredSmsSubscription() : mCurrentConvSub;
 
         sender = new SmsMessageSender(mActivity, dests, msgText, threadId, subscription);
@@ -1430,6 +1432,9 @@ public class WorkingMessage {
                 if (textOnly) {
                     values.put(Mms.TEXT_ONLY, 1);
                 }
+                int subscription = (mCurrentConvSub == SUBSCRIPTION_INVALID) ?
+                        MSimSmsManager.getDefault().getPreferredSmsSubscription() : mCurrentConvSub;
+                values.put(Mms.SUB_ID, subscription);
                 mmsUri = SqliteWrapper.insert(mActivity, mContentResolver, Mms.Outbox.CONTENT_URI,
                         values);
             }
@@ -1495,15 +1500,17 @@ public class WorkingMessage {
         }
 
         ContentValues values = new ContentValues(1);
+        int subscription = (mCurrentConvSub == SUBSCRIPTION_INVALID) ?
+                MSimSmsManager.getDefault().getPreferredSmsSubscription() : mCurrentConvSub;
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            values.put(Mms.SUB_ID, ComposeMessageActivity.subSelected);
+            values.put(Mms.SUB_ID, subscription);
         } else {
            values.put(Mms.SUB_ID, MSimTelephonyManager.getDefault().getPreferredDataSubscription());
         }
         SqliteWrapper.update(mActivity, mContentResolver, mmsUri, values, null, null);
 
         MessageSender sender = new MmsMessageSender(mActivity, mmsUri,
-                slideshow.getCurrentMessageSize());
+                slideshow.getCurrentMessageSize(), subscription);
         try {
             if (!sender.sendMessage(threadId)) {
                 // The message was sent through SMS protocol, we should
