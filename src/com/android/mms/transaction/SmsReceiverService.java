@@ -380,16 +380,20 @@ public class SmsReceiverService extends Service {
     private void handleServiceStateChanged(Intent intent) {
         // If service just returned, start sending out the queued messages
         ServiceState serviceState = ServiceState.newFromBundle(intent.getExtras());
-        Log.d(TAG, "handleServiceStateChanged : serviceState.getState() = " + serviceState.getState());
         
         int subscription = intent.getIntExtra(SUBSCRIPTION_KEY, 0);
-        int prefSubscription = MSimSmsManager.getDefault().getPreferredSmsSubscription();
+        int prefSubscription = MSimSmsManager.getDefault().getPreferredSmsSubscription(); //no used later 
+        Log.d(TAG, "handleServiceStateChanged : serviceState.getState() = " + serviceState.getState() +
+                ", sub = " + subscription + ", preSub = " + prefSubscription);
         // if service state is IN_SERVICE & current subscription is same as
         // preferred SMS subscription.i.e.as set under MultiSIM Settings,then
-        // sendFirstQueuedMessage.
-        if (serviceState.getState() == ServiceState.STATE_IN_SERVICE &&
-            subscription == prefSubscription) {
-            sendFirstQueuedMessage();
+        // sendFirstQueuedMessage.                                              subscription == prefSubscription
+        if (serviceState.getState() == ServiceState.STATE_IN_SERVICE ) {  
+            if(!MessageUtils.isMultiSimEnabledMms()){ // Single card 
+                sendFirstQueuedMessage();
+            } else if(hasQueuedMessageOnSub(subscription)){                                                  //Multiple card 
+                sendFirstQueuedMessage(subscription);
+            }                                                                       
         }
     }
 
@@ -406,6 +410,20 @@ public class SmsReceiverService extends Service {
     public synchronized void sendFirstQueuedMessage() {
         //sendFirstQueuedMessage(MSimSmsManager.getDefault().getPreferredSmsSubscription());
         sendFirstQueuedMessage(MessageUtils.SUB_INVALID);
+    }
+
+    private synchronized boolean hasQueuedMessageOnSub(int subscription) {
+        final Uri uri = Uri.parse("content://sms/queued");
+        ContentResolver resolver = getContentResolver();
+        String where = Sms.SUB_ID + "=" + subscription;
+        Cursor c = SqliteWrapper.query(this, resolver, uri, SEND_PROJECTION, where, null, null); 
+        int count = 0;
+        if(c != null){
+            count = c.getCount();
+            c.close();
+        }
+        Log.v(TAG, "hasQueuedMessageOnSub = " + count);
+        return (count > 0 ? true : false);
     }
 
     public synchronized void sendFirstQueuedMessage(int subscription) {
