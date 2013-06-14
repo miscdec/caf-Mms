@@ -28,6 +28,7 @@ import android.preference.PreferenceManager;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Sms.Inbox;
 import android.util.Log;
+import android.text.TextUtils;
 
 import com.android.mms.LogTag;
 import com.android.mms.ui.MessagingPreferenceActivity;
@@ -59,7 +60,22 @@ public class SmsMessageSender implements MessageSender {
     public SmsMessageSender(Context context, String[] dests,
                  String msgText, long threadId, int subscription) {
         mContext = context;
-        mMessageText = msgText;
+        //mMessageText = msgText;
+        
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(mContext);
+        boolean needSignature = prefsms.getBoolean("pref_key_sms_signature",false);
+
+        if (needSignature) {
+            String signatureText = prefsms.getString("pref_key_signature","");
+            if(!TextUtils.isEmpty(signatureText)&&!msgText.endsWith(signatureText)) {
+                mMessageText = msgText + "\n" +signatureText;
+            } else {
+                mMessageText = msgText;
+            }
+        } else {
+            mMessageText = msgText;
+        }
+
         if (dests != null) {
             mNumberOfDests = dests.length;
             mDests = new String[mNumberOfDests];

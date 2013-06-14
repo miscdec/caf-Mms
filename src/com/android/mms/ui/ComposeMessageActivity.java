@@ -399,7 +399,7 @@ public class ComposeMessageActivity extends Activity
     private int mpduType;
     private ProgressDialog mProgressDlg = null;
     private int mMmsCurrentSize = 0;
-
+  
     private Handler mHandler = new Handler();
     private File mCurrentPhotoFile;
     private static final File PHOTO_LOCAL_DIR  =new File(
@@ -676,6 +676,7 @@ public class ComposeMessageActivity extends Activity
 
     private void updateCounter(CharSequence text, int start, int before, int count) {
         WorkingMessage workingMessage = mWorkingMessage;
+
         if (workingMessage.requiresMms()) {
             // If we're not removing text (i.e. no chance of converting back to SMS
             // because of this change) and we're in MMS mode, just bail out since we
@@ -2569,7 +2570,7 @@ public class ComposeMessageActivity extends Activity
         SharedPreferences prefs = 
             PreferenceManager.getDefaultSharedPreferences(ComposeMessageActivity.this);
         mConvertLongSmsMms = prefs.getBoolean(
-                MessagingPreferenceActivity.CONVERT_LONG_SMS_TO_MMS, true);                
+                MessagingPreferenceActivity.CONVERT_LONG_SMS_TO_MMS, true); 
 
         if (TRACE) {
             android.os.Debug.startMethodTracing("compose");
@@ -5084,7 +5085,6 @@ public class ComposeMessageActivity extends Activity
             addRecipientsListeners();
             mExitOnSent = bundle.getBoolean("exit_on_sent", false);
             mWorkingMessage.readStateFromBundle(bundle);
-
             return;
         }
 
@@ -5121,7 +5121,7 @@ public class ComposeMessageActivity extends Activity
         if (intent.hasExtra("sms_body")) {
             mWorkingMessage.setText(intent.getStringExtra("sms_body"));
         }
-        mWorkingMessage.setSubject(intent.getStringExtra("subject"), false);
+        mWorkingMessage.setSubject(intent.getStringExtra("subject"), false);   
     }
 
     private void initFocus() {
