@@ -1520,6 +1520,7 @@ public class ComposeMessageActivity extends Activity
                         break;
                     case WorkingMessage.SLIDESHOW:
                     default:
+                        if(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)
                         menu.add(0, MENU_VIEW_SLIDESHOW, 0, R.string.view_slideshow)
                         .setOnMenuItemClickListener(l);
                         if (haveSomethingToCopyToSDCard(msgItem.mMsgId)) {
