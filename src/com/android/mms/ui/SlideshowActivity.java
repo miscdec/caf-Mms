@@ -267,6 +267,15 @@ public class SlideshowActivity extends Activity implements EventListener {
             Log.v(TAG,"   mmsEditCall  error draft box ");
             msgFromTo = AddressUtils.getTo(this, mUri);
         }
+
+        
+        if (1 == mSlideModel.size())
+        {
+            if (mSlideModel.isOnlySimpleAttach())
+            {
+                Toast.makeText(this, R.string.please_view_attachment, Toast.LENGTH_LONG).show();
+            }
+        }        
         mHandler.post(new Runnable() {
             private boolean isRotating() {
                 return mSmilPlayer.isPausedState()
