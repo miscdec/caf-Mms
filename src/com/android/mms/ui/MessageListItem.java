@@ -678,7 +678,7 @@ public class MessageListItem extends LinearLayout implements
                                        int subId, String subject, Pattern highlight,
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
-        Log.d(TAG, "formatMessage:subId="+subId);
+
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !mSimFlag) {
             buf.append(MessageUtils.getMultiSimName(mContext , subId));
             buf.append(":");       
@@ -982,6 +982,9 @@ public class MessageListItem extends LinearLayout implements
 
     @Override
     public void reset() {
+        if (mImageView != null) {
+            mImageView.setVisibility(GONE);
+        }
     }
 
     @Override
