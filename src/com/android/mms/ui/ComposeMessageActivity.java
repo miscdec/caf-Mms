@@ -2464,8 +2464,10 @@ public class ComposeMessageActivity extends Activity
             mRecipientsPickerGroups= (ImageButton)findViewById(R.id.recipients_picker_group);
         }
         mRecipientsPicker.setOnClickListener(this);
+        mRecipientsPicker.setVisibility(View.VISIBLE);
         mRecipientsPickerGroups.setOnClickListener(this);
-        mRecipientsEditor.setAdapter(new ChipsRecipientAdapter(this));
+        mRecipientsPickerGroups.setVisibility(View.VISIBLE);
+        mRecipientsEditor.setAdapter(new RecipientsAdapter(this));
         mRecipientsEditor.populate(recipients);
         mRecipientsEditor.setOnCreateContextMenuListener(mRecipientsMenuCreateListener);
         mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
@@ -2476,9 +2478,9 @@ public class ComposeMessageActivity extends Activity
         // mRecipientsEditor.setFilters(new InputFilter[] {
         //         new InputFilter.LengthFilter(RECIPIENTS_MAX_LENGTH) });
 
-        mRecipientsEditor.setOnSelectChipRunnable(new Runnable() {
-            @Override
-            public void run() {
+
+        mRecipientsEditor.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // After the user selects an item in the pop-up contacts list, move the
                 // focus to the text editor if there is only one recipient.  This helps
                 // the common case of selecting one recipient and then typing a message,
@@ -2502,7 +2504,7 @@ public class ComposeMessageActivity extends Activity
                     RecipientsEditor editor = (RecipientsEditor) v;
                     ContactList contacts = editor.constructContactsFromInput(false);
                     updateTitle(contacts);
-                    updateTitle(contacts);
+                   // updateTitle(contacts);
                     if(mWorkingMessage != null && mWorkingMessage.getText() != null)
                     {
                         boolean ismms = contacts.containsEmail();
@@ -4148,7 +4150,7 @@ public class ComposeMessageActivity extends Activity
                     public void run() {
                         // We must remove this listener before dealing with the contact list.
                         // Because the listener will take a lot of time, this will cause an ANR.
-                        mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
+                       // mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
                         mRecipientsEditor.populate(list);
                        // mPickedRecipientsList = list;
                         // When we finish dealing with the conatct list, the
@@ -4156,10 +4158,13 @@ public class ComposeMessageActivity extends Activity
                         // to the message queue, then we add the TextChangedListener.
                         // The mRecipientsWatcher will be call while UI thread deal
                         // with the "postHandlePendingChips" runnable.
-                        mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
+                      //  mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
                         updateTitle(list);
                         mTextEditor.requestFocus();
-
+                        
+                        List<String> numbers = mRecipientsEditor.getNumbers();
+                        mWorkingMessage.setWorkingRecipients(numbers);
+                        mWorkingMessage.syncWorkingRecipients();
                         // if process finished, then dismiss the progress dialog
                         progressDialog.dismiss();
 
