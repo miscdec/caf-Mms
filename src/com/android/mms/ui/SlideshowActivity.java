@@ -68,6 +68,7 @@ import android.view.Menu;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.GenericPdu;
 import com.google.android.mms.pdu.PduHeaders;
+import com.google.android.mms.pdu.MultimediaMessagePdu;
 import com.google.android.mms.pdu.EncodedStringValue;
 import android.os.Looper;
 import android.provider.ContactsContract;
@@ -146,6 +147,12 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final String VCALENDAR               = "vCalendar";
     private String direction = new String();
     private SlideScrollView mScrollView;
+    private static final int ZOOMIN = 4;
+    private static final int ZOOMOUT = 5;
+    private int mCurpos;
+    private static final int FONTSIZESTEP = 9;
+    private static final int FONTSIZEMAX = 48;
+    private static final int FONTSIZEMIN = 18;
 
     /**
      * @return whether the Smil has MMS conformance layout.
@@ -746,7 +753,18 @@ private synchronized void createWakeLock() {
                  if(mMediaController!=null)
                      mMediaController.show();
                      break; 
-                 }   
+                 } 
+                
+                case ZOOMIN:
+                {
+                     zoomIn();
+                     break;
+                }
+                case ZOOMOUT:
+                {
+                     zoomOut();
+                     break;
+                }
                                
             }
         }
@@ -1299,5 +1317,146 @@ private synchronized void createWakeLock() {
             break;
         }
         return true;
+    }
+    
+        private void zoomIn()
+        {
+            int curFontSet = getCurrentTextSize(this);
+            Log.w(TAG,"slideshowactivity1295 curFontSet="+curFontSet);
+            if (curFontSet >= FONTSIZEMAX)
+            {
+                curFontSet=FONTSIZEMAX;
+            }
+            else
+            {
+                curFontSet = (curFontSet + FONTSIZESTEP) > FONTSIZEMAX ? FONTSIZEMAX : (curFontSet + FONTSIZESTEP);
+            }
+            Log.d(TAG,"+++++++++++zoomin:" + curFontSet);
+            setCurrentTextSet(this, curFontSet);
+            if (null != mPlayerController)
+            {
+                mCurpos = mPlayerController.getCurrentPosition();;
+                onNewIntent(getIntent());
+            }        
+        }
+        
+            private void zoomOut()
+            {
+                int curFontSet = getCurrentTextSize(this);
+                Log.w(TAG,"slideshowactivity1315 curFontSet="+curFontSet);
+                if (curFontSet <= FONTSIZEMIN)
+                {
+                    curFontSet=FONTSIZEMIN;
+                }
+                else
+                {
+                    curFontSet = (curFontSet - FONTSIZESTEP) < FONTSIZEMIN ? FONTSIZEMIN : (curFontSet - FONTSIZESTEP) ;
+                }
+                setCurrentTextSet(this, curFontSet);
+                if (null != mPlayerController)
+                {
+                    mCurpos = mPlayerController.getCurrentPosition();
+                    onNewIntent(getIntent());
+                }          
+            }    
+            
+    protected void onNewIntent(Intent intent){
+            super.onNewIntent(intent);
+            setIntent(intent);
+            getWindow().setFormat(PixelFormat.TRANSLUCENT);
+            setContentView(R.layout.slideshow);
+            createWakeLock();
+
+            mScrollView = (SlideScrollView)findViewById(R.id.scroll_slide_view);
+            mScrollView.setScrollBarStyle(0x03000000);
+            mScrollView.setHandler(this, uihandler);
+
+            Uri msg = intent.getData();
+            final SlideshowModel model;
+            mUri = msg;
+
+            try {
+                model = SlideshowModel.createFromMessageUri(this, msg);
+                mSlideModel = model;
+                mSlideCount = model.size();
+                PduPersister p = PduPersister.getPduPersister(this);
+                mPdu = p.load(msg);
+            } catch (MmsException e) {
+                Log.e(TAG, "Cannot present the slide show.", e);
+                finish();
+                return;
+            }
+            
+            mMailboxId = getMmsMessageBoxID(this, mUri);
+            mSlideView = (SlideView) findViewById(R.id.slide_view);
+            PresenterFactory.getPresenter("SlideshowPresenter", this, mSlideView, model);
+        //  private Presenter mPresenter = PresenterFactory.getPresenter("SlideshowPresenter", this, mSlideView, mSlideModel);
+             
+            // if (mSlideModel.get(mPresenter.getLocation()).hasText()){
+                          //  mSlideModel.get(mPresenter.getLocation()).getText().getText().;
+                         //}
+            if (mMailboxId == Mms.MESSAGE_BOX_INBOX) {
+                msgFromTo = AddressUtils.getFrom(this, mUri);
+            }else if (Mms.MESSAGE_BOX_OUTBOX == mMailboxId || Mms.MESSAGE_BOX_SENT == mMailboxId) {
+                msgFromTo = AddressUtils.getTo(this, mUri);
+            }else {
+                Log.v(TAG,"   mmsEditCall  error draft box ");
+                msgFromTo = AddressUtils.getTo(this, mUri);
+            }
+            if (1 == mSlideModel.size())
+            {
+                if (mSlideModel.isOnlySimpleAttach())
+                {
+                    Toast.makeText(this, R.string.please_view_attachment, Toast.LENGTH_LONG).show();
+                }
+            }        
+                
+                mHandler.post(new Runnable() {
+            private boolean isRotating() {
+                return mSmilPlayer.isPausedState()
+                        || mSmilPlayer.isPlayingState()
+                        || mSmilPlayer.isPlayedState();
+            }
+
+            public void run() {
+                mSmilPlayer = SmilPlayer.getPlayer();
+                    initMediaController();
+                    mSlideView.setMediaController(mMediaController);
+                mSmilDoc = SmilHelper.getDocument(model);
+                if (DEBUG) {
+                    ByteArrayOutputStream ostream = new ByteArrayOutputStream();
+                    SmilXmlSerializer.serialize(mSmilDoc, ostream);
+                    if (LOCAL_LOGV) {
+                        Log.v(TAG, ostream.toString());
+                    }
+                }
+
+                // Add event listener.
+                ((EventTarget) mSmilDoc).addEventListener(
+                        SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT,
+                        SlideshowActivity.this, false);
+
+                mSmilPlayer.init(mSmilDoc);
+                if (isRotating()) {
+                    mSmilPlayer.reload();
+                } else {
+                    mSmilPlayer.play();
+                }
+            }
+        });
+                acquireWakeLock();
+            }
+    private static int getCurrentTextSize(Context context)
+    {
+        int textSize = 27;    
+        SharedPreferences prefsms = PreferenceManager.
+                                    getDefaultSharedPreferences(context);        
+        textSize = Integer.parseInt(prefsms.getString("smsfontsize", "27"));
+        return textSize;
+    }
+    private static void setCurrentTextSet(Context context, int value)
+    {
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);        
+        prefsms.edit().putString("smsfontsize", String.valueOf(value)).commit();
     }
 }
