@@ -136,10 +136,13 @@ public class TransactionService extends Service implements Observer {
      */
     public static final String STATE_URI = "uri";
 
+    public static boolean isTrServiceActive = false;/* Add for multisim */
+
     private static final int EVENT_TRANSACTION_REQUEST = 1;
     private static final int EVENT_CONTINUE_MMS_CONNECTIVITY = 3;
     private static final int EVENT_HANDLE_NEXT_PENDING_TRANSACTION = 4;
     private static final int EVENT_NEW_INTENT = 5;
+    private static final int EVENT_MMS_CONNECTIVITY_TIMEOUT = 6;
     private static final int EVENT_QUIT = 100;
 
     private static final int TOAST_MSG_QUEUED = 1;
@@ -152,6 +155,7 @@ public class TransactionService extends Service implements Observer {
     // How often to extend the use of the MMS APN while a transaction
     // is still being processed.
     private static final int APN_EXTENSION_WAIT = 30 * 1000;
+    private static final int MMS_CONNECTIVITY_DELAY = 75 * 1000;
 
     private ServiceHandler mServiceHandler;
     private Looper mServiceLooper;
@@ -357,7 +361,7 @@ public class TransactionService extends Service implements Observer {
 
                                 if((MessageUtils.isMultiSimEnabledMms())&&(subId != getCurrentSubcription())) {
                                     Log.d(TAG, "This MMS transaction can not be done on current sub. Ignore it. uri="+uri);
-                                    break;
+                                    //break;  to be processed in onTransactionDiffFromCurrentSub();
                                 }
 
                                 //int requestedSub = intent.getIntExtra(Mms.SUB_ID, -1);
@@ -416,6 +420,8 @@ public class TransactionService extends Service implements Observer {
                 isSilent = false;
             }
 
+            mServiceHandler.removeMessages(EVENT_MMS_CONNECTIVITY_TIMEOUT);
+            
             if (isSilent && (sDefaultDataSubscription != getCurrentSubcription())) {
                 //Log.d(TAG, "MMS silent transaction finished for sub="+sDefaultDataSubscription);
                 Intent silentIntent = new Intent(getApplicationContext(),
@@ -578,6 +584,16 @@ public class TransactionService extends Service implements Observer {
         stopSelfIfIdle(0);                
     }
 
+    private void onTransactionDiffFromCurrentSub(Transaction transaction){
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
+            Log.v(TAG, "onTransactionDiffFromCurrentSub");
+        }
+        TransactionState transactionSt = transaction.getState();
+        transactionSt.setState(TransactionState.FAILED);
+        transaction.notifyObservers(); /* notify RetrySchedule */
+        stopSelfIfIdle(0);  
+    }
+    
     @Override
     public void onDestroy() {
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
@@ -587,6 +603,7 @@ public class TransactionService extends Service implements Observer {
             Log.w(TAG, "TransactionService exiting with transaction still pending");
         }
 
+        isTrServiceActive = false;
         releaseWakeLock();
 
         unregisterReceiver(mReceiver);
@@ -748,7 +765,11 @@ public class TransactionService extends Service implements Observer {
 
         switch (result) {
             case PhoneConstants.APN_ALREADY_ACTIVE:
+                acquireWakeLock();
+                mServiceHandler.removeMessages(EVENT_MMS_CONNECTIVITY_TIMEOUT);
+                return result;
             case PhoneConstants.APN_REQUEST_STARTED:
+                mServiceHandler.sendEmptyMessageDelayed(EVENT_MMS_CONNECTIVITY_TIMEOUT, MMS_CONNECTIVITY_DELAY);
                 acquireWakeLock();
                 return result;
             default :
@@ -978,6 +999,13 @@ public class TransactionService extends Service implements Observer {
                 case EVENT_HANDLE_NEXT_PENDING_TRANSACTION:
                     processPendingTransaction(transaction, (TransactionSettings) msg.obj);
                     return;
+                //Add for connectivity timeout
+                case EVENT_MMS_CONNECTIVITY_TIMEOUT:
+                    Log.d(TAG, "MMS_CONNECTIVITY_TIMEOUT");
+                    synchronized (mProcessing) {
+                        onConnectivityFailed();
+                    }
+                    return;
                 default:
                     Log.w(TAG, "what=" + msg.what);
                     return;
@@ -1066,6 +1094,12 @@ public class TransactionService extends Service implements Observer {
                     }
                 }
 
+                if((MessageUtils.isMultiSimEnabledMms())&&(transaction.mSubId != getCurrentSubcription())) {
+                    onTransactionDiffFromCurrentSub(transaction);
+                    return true;
+                }
+                isTrServiceActive = true; /* tag mms transaction service is active */
+                
                 /*
                 * Make sure that the network connectivity necessary
                 * for MMS traffic is enabled. If it is not, we need
@@ -1214,5 +1248,9 @@ public class TransactionService extends Service implements Observer {
         }
         return userPref;
     }
-    
+
+    public static boolean isTransactionServiceActive(){
+        Log.v(TAG, "isTransactionServiceActive = " + isTrServiceActive);
+        return isTrServiceActive;
+    }
 }

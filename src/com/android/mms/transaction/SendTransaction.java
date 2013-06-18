@@ -66,6 +66,7 @@ public class SendTransaction extends Transaction implements Runnable {
         mSendReqURI = Uri.parse(uri);
         mTransactionState.setContentUri(mSendReqURI);
         mId = uri;
+        mSubId = MessageUtils.getSubIdFromDb(context, mSendReqURI);
 
         // Attach the transaction to the instance of RetryScheduler.
         attach(RetryScheduler.getInstance(context));

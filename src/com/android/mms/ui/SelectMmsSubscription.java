@@ -19,6 +19,7 @@
 package com.android.mms.ui;
 
 import com.android.mms.R;
+import com.android.mms.transaction.TransactionService;
 import com.android.internal.telephony.MSimConstants;
 
 import android.app.PendingIntent;
@@ -31,6 +32,7 @@ import android.content.Context;
 import android.content.BroadcastReceiver;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -70,7 +72,7 @@ public class SelectMmsSubscription extends Service {
             Log.d(TAG, "doInBackground(), Thread="+
                     Thread.currentThread().getName());
 
-            if (getCurrentSubcription() != params[0]) {
+            if ((getCurrentSubcription() != params[0]) && (!TransactionService.isTransactionServiceActive())){
                 return switchSubscriptionTo(params[0]);
             }
             return -1; //no change.
@@ -79,7 +81,7 @@ public class SelectMmsSubscription extends Service {
         @Override
             protected void onPostExecute(Integer result) {
                 super.onPostExecute(result);
-                Log.d(TAG, "onPostExecute(), Thread="+Thread.currentThread().getName());
+                Log.d(TAG, "onPostExecute(), Thread="+Thread.currentThread().getName() + ", result = " + result);
 
 
                 if (result == -1) {
@@ -107,7 +109,7 @@ public class SelectMmsSubscription extends Service {
                         triggerTransactionService();
                         stopSelf();
                     } else {
-                        if(isMobileDataEnabled()){
+                        if(isMobileDataEnabled()&& !isWifiEnabled()){
                             //Switch was real and it succeeded, start transaction
                             //service with all UI hoopla
                             flagOkToStartTransactionService = true; //if PDP is up, transactionService can be started.
@@ -123,7 +125,7 @@ public class SelectMmsSubscription extends Service {
                         }else{
                             Log.d(TAG, "isMobileDataEnabled = false");
                             removeStatusBarNotification();
-                            showNotificationAbortAndSwitchBack();
+                            //showNotificationAbortAndSwitchBack();
                             triggerTransactionService();
                             stopSelf();
                         }
@@ -400,5 +402,17 @@ public class SelectMmsSubscription extends Service {
         }
     }
 
+    private boolean isWifiEnabled(){
+        WifiManager mWifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        boolean isWifiOn = false;
+        if(mWifiManager != null){
+            int wifiState = mWifiManager.getWifiState();
+            if (wifiState == WifiManager.WIFI_STATE_ENABLED) {
+                //wifi connected
+                isWifiOn = true;
+            }
+        }
+        return isWifiOn;
+    }
 
 }

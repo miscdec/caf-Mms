@@ -510,6 +510,7 @@
     <string name="btn_ok">确定</string>
     <string name="btn_cancel">取消</string>
     <string name="select_all">全部</string> 
+    <string name="search_bar_hint">查找联系人</string>
     <!-- Settings item description for Preferred storage and SMS center  -->
     <string name="pref_title_sms_store">优先存储器</string> 
     <string name="pref_title_sms_store_card1">卡1优先存储器</string> 
@@ -532,7 +533,7 @@
     <string name="status_expired">已过期</string>
     <string name="pref_summary_longsms_convert_sms">当长短信长度超过6条时转为彩信。</string>
     <string name="pref_title_longsms_convert_sms">长短信转彩信</string>
-    <!-- Settings item description for SMS Templates  -->
+    <!-- Settings item description for SMS Templates and SMS Signature  -->
     <string name="pref_title_sms_template">常用短语</string>
     <string name="pref_summary_sms_template">可以插入到信息中的一些常用短语</string>
     <string name="empty_template">无短语</string>
@@ -543,4 +544,7 @@
     <string name="button_ok">确定</string>
     <string name="sms_template_title">常用短语</string>
     <string name="option_title">选项</string> 
+    <string name="pref_summary_sms_signature">为您所发送的短信签名</string>
+    <string name="pref_title_sms_signature">用户签名</string>
+    <string name="pref_title_sms_signature_edit_text">用户签名</string>
 </resources>

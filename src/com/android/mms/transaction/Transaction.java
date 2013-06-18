@@ -38,6 +38,7 @@ public abstract class Transaction extends Observable {
 
     protected Context mContext;
     protected String mId;
+    protected int mSubId = 0; /*Add for multisim */
     protected TransactionState mTransactionState;
     protected TransactionSettings mTransactionSettings;
 

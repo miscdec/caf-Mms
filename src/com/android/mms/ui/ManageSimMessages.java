@@ -708,7 +708,7 @@ public class ManageSimMessages extends Activity
         /*
         int messageStatus = cursor.getInt(
                 cursor.getColumnIndexOrThrow("status"));
-            
+
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
         */

@@ -1751,6 +1751,27 @@ public class MessageUtils {
     }
     return subId;
     }
+
+    
+    public static int getSubIdFromDb(Context context, Uri uri) {
+        int subId = 0;
+        Cursor c = context.getContentResolver().query(uri,
+                null, null, null, null);
+        //Log.d(TAG, "Cursor= "+DatabaseUtils.dumpCursorToString(c));
+        if (c != null) {
+            try {
+                if (c.moveToFirst()) {
+                    subId = c.getInt(c.getColumnIndex(Mms.SUB_ID));
+                    Log.d(TAG, "subId in db="+subId );
+                    return subId;
+                }
+            } finally {
+                c.close();
+            }
+        }
+        return subId;
+
+    }
     public static int getMmsViewMode() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp.getApplication());
         int ViewMode = sp.getInt("current_view", CHAT_MODE);

@@ -497,6 +497,9 @@ public class MessageListItem extends LinearLayout implements
                 setOnClickListener(mMessageItem);
                 drawPlaybackButton(mMessageItem);
             } else {
+                if(mMessageItem.mAttachmentType == -1)
+                    showMmsView4Others(true);
+                    else
                 showMmsView(false);
             }
             if (mMessageItem.mSlideshow == null) {
@@ -599,6 +602,31 @@ public class MessageListItem extends LinearLayout implements
         }
     }
 
+
+    private void showMmsView4Others(boolean visible) {
+        if (mMmsView == null) {
+            mMmsView = findViewById(R.id.mms_view);
+            // if mMmsView is still null here, that mean the mms section hasn't been inflated
+
+            if (visible && mMmsView == null) {
+                //inflate the mms view_stub
+                View mmsStub = findViewById(R.id.mms_layout_view_stub);
+                mmsStub.setVisibility(View.VISIBLE);
+                mMmsView = findViewById(R.id.mms_view);
+            }
+        }
+        if (mMmsView != null) {
+            if (mImageView == null) {
+                mImageView = (ImageView) findViewById(R.id.image_view);
+            }
+            if (mSlideShowButton == null) {
+                mSlideShowButton = (ImageButton) findViewById(R.id.play_slideshow_button);
+            }
+            mMmsView.setVisibility(visible ? View.VISIBLE : View.GONE);
+            mImageView.setVisibility(visible ? View.VISIBLE : View.GONE);
+            mImageView.setImageResource(R.drawable.ic_dialog_attach);
+        }
+    }
     private void showMmsView(boolean visible) {
         if (mMmsView == null) {
             mMmsView = findViewById(R.id.mms_view);
@@ -650,7 +678,7 @@ public class MessageListItem extends LinearLayout implements
                                        int subId, String subject, Pattern highlight,
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
-        Log.d(TAG, "formatMessage:subId="+subId);
+
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && !mSimFlag) {
             buf.append(MessageUtils.getMultiSimName(mContext , subId));
             buf.append(":");       
@@ -954,6 +982,9 @@ public class MessageListItem extends LinearLayout implements
 
     @Override
     public void reset() {
+        if (mImageView != null) {
+            mImageView.setVisibility(GONE);
+        }
     }
 
     @Override
