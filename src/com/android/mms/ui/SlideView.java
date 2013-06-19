@@ -210,6 +210,8 @@ public class SlideView extends LinearLayout implements
         else
         {
             newHeight = imageHeight;
+            if(newHeight<300)
+             newHeight = (imageHeight * newWidth)/imageWidth;  
         }
         Log.v(TAG," newHeight = " + newHeight
             + ";newWidth = " + newWidth
