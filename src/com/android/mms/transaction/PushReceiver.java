@@ -63,6 +63,7 @@ import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.ReadOrigInd;
 
 import com.qrd.plugin.common_interface.IWapPushHandler;
+import com.qrd.wappush.WapPushHandler;
 
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
@@ -139,8 +140,9 @@ public class PushReceiver extends BroadcastReceiver {
             if (wapPushEnabled && ("application/vnd.wap.sic".equals(intent.getType()) || "application/vnd.wap.slc".equals(intent.getType()))) {
                 ByteArrayInputStream bais = new ByteArrayInputStream(pushData);
                 try {
-                    Class c = Class.forName("com.qrd.wappush.WapPushHandler");
-                    IWapPushHandler handler = (IWapPushHandler)c.newInstance();
+                    //Class c = Class.forName("com.qrd.wappush.WapPushHandler");
+                    //IWapPushHandler handler = (IWapPushHandler)c.newInstance();
+                    IWapPushHandler handler = new WapPushHandler();
                     Uri pushMsgUri = handler.handle(bais, intent.getType(), mContext, intent.getIntExtra("subscription", 0));
                     Log.e(TAG, "pushMsgUri is: " + (pushMsgUri == null ? "null" : pushMsgUri));
 
