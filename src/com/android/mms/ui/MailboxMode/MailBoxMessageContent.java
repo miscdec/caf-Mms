@@ -564,6 +564,13 @@ public class MailBoxMessageContent extends Activity
                         values.put(Sms.TYPE, boxId);
                         values.put(Sms.ADDRESS, address);
                         values.put(Sms.READ, read);
+                        if(boxId == Sms.MESSAGE_TYPE_INBOX){
+                          values.put("status", SmsManager.STATUS_ON_ICC_READ);
+                          values.put("status_on_icc", SmsManager.STATUS_ON_ICC_READ);
+                        }else{
+                            values.put("status", SmsManager.STATUS_ON_ICC_SENT);
+                            values.put("status_on_icc", SmsManager.STATUS_ON_ICC_SENT);
+                        }
                         values.put(Sms.SUB_ID, subscription);  // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2                 
                         Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
 

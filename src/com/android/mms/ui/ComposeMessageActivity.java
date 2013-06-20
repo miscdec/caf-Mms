@@ -1599,10 +1599,19 @@ public class ComposeMessageActivity extends Activity
         }
         // Delete the old undelivered SMS and load its content.
         Uri uri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgItem.mMsgId);
-        SqliteWrapper.delete(ComposeMessageActivity.this,
+        int count = SqliteWrapper.delete(ComposeMessageActivity.this,
                 mContentResolver, uri, null, null);
 
         mWorkingMessage.setText(msgItem.mBody);
+
+        // if the ListView only has one message and delete the message success
+        // the uri of conversation will be null, so it can't qurey info from DB,
+        // so the mMsgListAdapter should change Cursor to null
+        if (count > 0) {
+            if (mMsgListAdapter.getCount() == 1) {
+                mMsgListAdapter.changeCursor(null);
+            }
+        }
     }
 
     private void editMmsMessageItem(MessageItem msgItem) {

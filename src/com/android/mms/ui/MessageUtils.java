@@ -2181,7 +2181,8 @@ public class MessageUtils {
     }
     /* whether is in cmcc test mode,  0 is false ,1 is true */
     public static boolean isQRDFeature(){
-        return FeatureQuery.FEATURE_MMS_SUPPORT_VCARD;
+        //return FeatureQuery.FEATURE_MMS_SUPPORT_VCARD;
+        return false;
     }
     
     private static boolean isSDCardExist() {
