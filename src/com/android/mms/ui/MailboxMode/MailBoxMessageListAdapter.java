@@ -35,6 +35,7 @@ import android.widget.TextView;
 import android.widget.CheckBox;
 import android.widget.ListView;
 import android.app.ListActivity;
+import android.provider.Telephony;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;

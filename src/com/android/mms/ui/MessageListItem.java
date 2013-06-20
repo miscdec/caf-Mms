@@ -34,6 +34,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.ContactsContract.Profile;
+import android.provider.Telephony;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Mms;
 import android.telephony.PhoneNumberUtils;
@@ -355,12 +356,7 @@ public class MessageListItem extends LinearLayout implements
                 if (contact.existsInDatabase()) {
                     mAvatar.assignContactUri(contact.getUri());
                 } else {
-                    // identify it is phone number or email address,handle it respectively
-                    if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
-                        mAvatarView.assignContactFromEmail(contact.getNumber(), true);
-                    } else {
-                        mAvatarView.assignContactFromPhone(contact.getNumber(), true);
-                    }
+                    mAvatar.assignContactFromPhone(contact.getNumber(), true);
                 }
             }
         } else {

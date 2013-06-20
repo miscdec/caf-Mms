@@ -709,12 +709,10 @@ public class ManageSimMessages extends Activity
         int messageStatus = cursor.getInt(
                 cursor.getColumnIndexOrThrow("status"));
 
-        
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
         */
         int boxId = cursor.getInt(cursor.getColumnIndexOrThrow("type"));
-        
         return boxId == Sms.MESSAGE_TYPE_INBOX;
     }
 
