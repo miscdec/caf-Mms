@@ -4508,7 +4508,9 @@ public class ComposeMessageActivity extends Activity
             }
             else if (type.startsWith("application/ogg")) { 
                 addAudio(uri); 
-                    }            
+                    }
+            else if (wildcard)
+                addFile(uri);
         }
     }
     private boolean isVcardFile(Uri uri) {
