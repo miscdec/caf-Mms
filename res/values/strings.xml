@@ -840,5 +840,7 @@
     <!-- Gray hint displayed in the search field in Contacts when empty -->
     <string name="search_bar_hint">Search contacts</string>
     <string name="select_all">All</string>
+    <string name="open_wap_push_title">Browser Information</string>
+    <string name="open_wap_push_body">Do you want to open the web site?</string>
 </resources>
 
