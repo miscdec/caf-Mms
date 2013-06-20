@@ -355,7 +355,12 @@ public class MessageListItem extends LinearLayout implements
                 if (contact.existsInDatabase()) {
                     mAvatar.assignContactUri(contact.getUri());
                 } else {
-                    mAvatar.assignContactFromPhone(contact.getNumber(), true);
+                    // identify it is phone number or email address,handle it respectively
+                    if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
+                        mAvatarView.assignContactFromEmail(contact.getNumber(), true);
+                    } else {
+                        mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+                    }
                 }
             }
         } else {
@@ -478,6 +483,7 @@ public class MessageListItem extends LinearLayout implements
                     mContext.getResources().getString(R.string.sending_message) :
                         mMessageItem.mTimestamp));
         }
+        Log.w(TAG,"messagelistitem mMessageItem.mAttachmentType="+mMessageItem.mAttachmentType);
         if (mMessageItem.isSms()) {
             showMmsView(false);
             mMessageItem.setOnPduLoaded(null);
@@ -584,6 +590,7 @@ public class MessageListItem extends LinearLayout implements
 
     @Override
     public void setImage(String name, Bitmap bitmap) {
+        Log.w("huangzengzhi","messagelistitem mMessageItem.mAttachmentType="+mMessageItem.mAttachmentType);
         if(mMessageItem.mAttachmentType==-1)
             {
             showMmsView(false);
@@ -598,7 +605,6 @@ public class MessageListItem extends LinearLayout implements
             Log.e(TAG, "setImage: out of memory: ", e);
         }
     }
-
     private void showMmsView(boolean visible) {
         if (mMmsView == null) {
             mMmsView = findViewById(R.id.mms_view);
@@ -954,6 +960,9 @@ public class MessageListItem extends LinearLayout implements
 
     @Override
     public void reset() {
+        if (mImageView != null) {
+            mImageView.setVisibility(GONE);
+        }
     }
 
     @Override

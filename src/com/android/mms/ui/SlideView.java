@@ -210,6 +210,8 @@ public class SlideView extends LinearLayout implements
         else
         {
             newHeight = imageHeight;
+            if(newHeight<300)
+             newHeight = (imageHeight * newWidth)/imageWidth;  
         }
         Log.v(TAG," newHeight = " + newHeight
             + ";newWidth = " + newWidth
@@ -314,7 +316,8 @@ public class SlideView extends LinearLayout implements
             } else{
                 mImageView.setScrollY(-1);
                // mImageView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-                mImageView.setLayoutParams(new LayoutParams(W, H/3));
+                Log.w(TAG,"slideview W="+W+"H="+H);
+                mImageView.setLayoutParams(new LayoutParams(W+120, H/3+120));
             }
         }
     }

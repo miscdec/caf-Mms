@@ -274,6 +274,7 @@ public class ComposeMessageActivity extends Activity
 
     private static final int SHOW_COPY_TOAST = 1;
     private static final int SUBJECT_MAX_LENGTH    =  40;
+    private static final int MSG_ONLY_ONE_FAIL_LIST_ITEM = 1;
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
 
@@ -1534,6 +1535,7 @@ public class ComposeMessageActivity extends Activity
                         break;
                     case WorkingMessage.SLIDESHOW:
                     default:
+                        if(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)
                         menu.add(0, MENU_VIEW_SLIDESHOW, 0, R.string.view_slideshow)
                         .setOnMenuItemClickListener(l);
                         if (haveSomethingToCopyToSDCard(msgItem.mMsgId)) {
@@ -1608,10 +1610,11 @@ public class ComposeMessageActivity extends Activity
         // the uri of conversation will be null, so it can't qurey info from DB,
         // so the mMsgListAdapter should change Cursor to null
         if (count > 0) {
-            if (mMsgListAdapter.getCount() == 1) {
+            if (mMsgListAdapter.getCount() == MSG_ONLY_ONE_FAIL_LIST_ITEM) {
                 mMsgListAdapter.changeCursor(null);
             }
         }
+
     }
 
     private void editMmsMessageItem(MessageItem msgItem) {
@@ -2495,7 +2498,9 @@ public class ComposeMessageActivity extends Activity
             mRecipientsPickerGroups= (ImageButton)findViewById(R.id.recipients_picker_group);
         }
         mRecipientsPicker.setOnClickListener(this);
+        mRecipientsPicker.setVisibility(View.VISIBLE);
         mRecipientsPickerGroups.setOnClickListener(this);
+        mRecipientsPickerGroups.setVisibility(View.VISIBLE);
         mRecipientsEditor.setAdapter(new RecipientsAdapter(this));
         mRecipientsEditor.populate(recipients);
         mRecipientsEditor.setOnCreateContextMenuListener(mRecipientsMenuCreateListener);
@@ -4986,6 +4991,11 @@ public class ComposeMessageActivity extends Activity
             mScrollOnSend = true;   // in the next onQueryComplete, scroll the list to the end.
         }
         // But bail out if we are supposed to exit after the message is sent.
+        int viewMode = MessageUtils.getMmsViewMode();
+        if (viewMode == MessageUtils.MAILBOX_MODE) {
+            finish();
+        }
+
         if (mExitOnSent) {
             finish();
         }

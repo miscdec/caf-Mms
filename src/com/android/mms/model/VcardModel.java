@@ -58,7 +58,7 @@ public class VcardModel extends MediaModel {
     }
 
     public VcardModel(Context context, String contentType, String src, Uri uri) throws MmsException {
-        super(context, SmilHelper.ELEMENT_TAG_REF, contentType, src, uri);
+        super(context, VCARD, contentType, src, uri);
         mCharset = CharacterSets.ISO_8859_1;
         if (!TextUtils.isEmpty(src)) {
             initLookupUri(uri);

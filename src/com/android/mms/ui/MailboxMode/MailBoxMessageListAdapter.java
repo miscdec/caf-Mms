@@ -219,7 +219,12 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         if (contact.existsInDatabase()) {
             mAvatarView.assignContactUri(contact.getUri());
         } else {
-            mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+            // identify it is phone number or email address,handle it respectively
+            if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
+                mAvatarView.assignContactFromEmail(contact.getNumber(), true);
+            } else {
+                mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+            }
         }
 
         mAvatarView.setImageDrawable(avatarDrawable);
