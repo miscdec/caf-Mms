@@ -168,6 +168,8 @@ public class WorkingMessage {
 
     private int mCurrentConvSub = SUBSCRIPTION_INVALID;
 
+    //flag indicate resend sms that the recipient of conversion is more than one.
+    private boolean mResendMultiRecipients;
 
     /**
      * Callback interface for communicating important state changes back to
@@ -1344,7 +1346,13 @@ public class WorkingMessage {
 
         // just do a regular send. We're already on a non-ui thread so no need to fire
         // off another thread to do this work.
-        sendSmsWorker(msgText, semiSepRecipients, threadId);
+        if (mResendMultiRecipients) {
+            Log.d(TAG, "it is resend sms recipient="+recipientsInUI);
+            sendSmsWorker(msgText, recipientsInUI, threadId);
+            mResendMultiRecipients = false;
+        } else {
+            sendSmsWorker(msgText, semiSepRecipients, threadId);
+        }
 
         // Be paranoid and clean any draft SMS up.
         deleteDraftSmsMessage(threadId);
@@ -1866,6 +1874,14 @@ public class WorkingMessage {
 
     public void setCurrentConvSub(int subscription) {
         mCurrentConvSub = subscription;
+    }
+
+    public void setResendMultiRecipients(boolean bResendMultiRecipients) {
+        mResendMultiRecipients = bResendMultiRecipients;
+    }
+
+    public boolean getResendMultiRecipients() {
+        return mResendMultiRecipients;
     }
 
     /**
