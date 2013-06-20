@@ -35,6 +35,7 @@ import android.widget.TextView;
 import android.widget.CheckBox;
 import android.widget.ListView;
 import android.app.ListActivity;
+import android.provider.Telephony;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
@@ -219,7 +220,12 @@ public class MailBoxMessageListAdapter extends CursorAdapter
         if (contact.existsInDatabase()) {
             mAvatarView.assignContactUri(contact.getUri());
         } else {
-            mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+            // identify it is phone number or email address,handle it respectively
+            if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
+                mAvatarView.assignContactFromEmail(contact.getNumber(), true);
+            } else {
+                mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+            }
         }
 
         mAvatarView.setImageDrawable(avatarDrawable);
