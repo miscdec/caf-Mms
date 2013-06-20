@@ -4477,6 +4477,8 @@ public class ComposeMessageActivity extends Activity
                     return;
                 addVcard(fn.getBytes());   
             }else if (type.startsWith("text/x-vcard")){
+            addVcard(uri);
+                /*
                 InputStream vcardSream;
                 try{
                 vcardSream= getContentResolver().openInputStream(uri);
@@ -4492,6 +4494,7 @@ public class ComposeMessageActivity extends Activity
                 if(fn == null)
                     return;
                 addVcard(fn.getBytes());   
+                */
             } else if (type.startsWith(com.google.android.mms.ContentType.TEXT_VCALENDAR)){
                 String fn = uri.getPath();
 
