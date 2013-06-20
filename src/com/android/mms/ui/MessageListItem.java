@@ -34,6 +34,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.ContactsContract.Profile;
+import android.provider.Telephony;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Mms;
 import android.telephony.PhoneNumberUtils;
