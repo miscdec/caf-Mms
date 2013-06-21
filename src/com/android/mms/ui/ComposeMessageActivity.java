@@ -1515,9 +1515,13 @@ public class ComposeMessageActivity extends Activity
                         if(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)
                         menu.add(0, MENU_VIEW_SLIDESHOW, 0, R.string.view_slideshow)
                         .setOnMenuItemClickListener(l);
-                        if (haveSomethingToCopyToSDCard(msgItem.mMsgId)) {
+                       // if (haveSomethingToCopyToSDCard(msgItem.mMsgId))
+                       if (msgItem.isMms()) {
+                           if ( msgItem.isDownloaded()) 
+                            {
                             menu.add(0, MENU_COPY_TO_SDCARD, 0, R.string.copy_to_sdcard)
                             .setOnMenuItemClickListener(l);
+                        }
                         }
                         if (isDrmRingtoneWithRights(msgItem.mMsgId)) {
                             menu.add(0, MENU_SAVE_RINGTONE, 0,
