@@ -846,5 +846,6 @@
     <string name="select_all">All</string>
     <string name="open_wap_push_title">Browser Information</string>
     <string name="open_wap_push_body">Do you want to open the web site?</string>
+    <string name="menu_copy_url">Copy url <xliff:g id="extractedurl">%s</xliff:g></string>
 </resources>
 
