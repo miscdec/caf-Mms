@@ -423,7 +423,7 @@ public class SlideView extends LinearLayout implements
         }
         if (null == mTextView) {
 
-            mTextView = new TextView(mContext);
+            mTextView = new MessageContentTextView(mContext);
             mTextView.setTextIsSelectable(true);
             addView(mTextView);
 

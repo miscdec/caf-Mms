@@ -1538,9 +1538,13 @@ public class ComposeMessageActivity extends Activity
                         if(msgItem.mMessageType!=PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)
                         menu.add(0, MENU_VIEW_SLIDESHOW, 0, R.string.view_slideshow)
                         .setOnMenuItemClickListener(l);
-                        if (haveSomethingToCopyToSDCard(msgItem.mMsgId)) {
+                       // if (haveSomethingToCopyToSDCard(msgItem.mMsgId))
+                       if (msgItem.isMms()) {
+                           if ( msgItem.isDownloaded()) 
+                            {
                             menu.add(0, MENU_COPY_TO_SDCARD, 0, R.string.copy_to_sdcard)
                             .setOnMenuItemClickListener(l);
+                        }
                         }
                         if (isDrmRingtoneWithRights(msgItem.mMsgId)) {
                             menu.add(0, MENU_SAVE_RINGTONE, 0,
@@ -4477,6 +4481,8 @@ public class ComposeMessageActivity extends Activity
                     return;
                 addVcard(fn.getBytes());   
             }else if (type.startsWith("text/x-vcard")){
+            addVcard(uri);
+                /*
                 InputStream vcardSream;
                 try{
                 vcardSream= getContentResolver().openInputStream(uri);
@@ -4492,6 +4498,7 @@ public class ComposeMessageActivity extends Activity
                 if(fn == null)
                     return;
                 addVcard(fn.getBytes());   
+                */
             } else if (type.startsWith(com.google.android.mms.ContentType.TEXT_VCALENDAR)){
                 String fn = uri.getPath();
 
@@ -4508,7 +4515,9 @@ public class ComposeMessageActivity extends Activity
             }
             else if (type.startsWith("application/ogg")) { 
                 addAudio(uri); 
-                    }            
+                    }
+            else if (wildcard)
+                addFile(uri);
         }
     }
     private boolean isVcardFile(Uri uri) {
@@ -5569,15 +5578,27 @@ public class ComposeMessageActivity extends Activity
                 @Override
                 @SuppressWarnings("unchecked")
                 public final void onClick(DialogInterface dialog, int which) {
+                    int selStart = mTextEditor.getSelectionStart();
+                    Editable text=null;
                     HashMap<String, Object> item = (HashMap<String, Object>) a.getItem(which);
 
                     String smiley = (String)item.get("text");
-                    if (mSubjectTextEditor != null && mSubjectTextEditor.hasFocus()) {
-                        mSubjectTextEditor.append(smiley);
-                    } else {
-                        mTextEditor.append(smiley);
+                     if(mTextEditor.isFocused())
+                    {
+                        text = mTextEditor.getEditableText();
+                    }         
+                    else 
+                    {
+                    if(mSubjectTextEditor != null)
+                    {
+                        selStart = mSubjectTextEditor.getSelectionStart();
+                        text = mSubjectTextEditor.getEditableText();
+                    }            
                     }
-
+                    if(text != null)
+                    {
+                        text.insert(selStart, (String)item.get("text"));
+                    }
                     dialog.dismiss();
                 }
             });
