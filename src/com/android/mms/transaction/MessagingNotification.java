@@ -55,6 +55,7 @@ import android.os.Handler;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemVibrator;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
@@ -153,6 +154,8 @@ public class MessagingNotification {
     
     private static final String[] SMS_THREAD_ID_PROJECTION = new String[] { Sms.THREAD_ID };
     private static final String[] MMS_THREAD_ID_PROJECTION = new String[] { Mms.THREAD_ID };
+
+    private static final long[] sVibratePattern = new long[] {0, 250, 250, 250};
 
     private static final String NEW_INCOMING_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
@@ -482,7 +485,49 @@ public class MessagingNotification {
      * played at half-volume
      */
     private static void playInConversationNotificationSound(Context context) {
+        if (!MessagingPreferenceActivity.getNotificationEnabled(context)) {
+            if (DEBUG) {
+                Log.d(TAG, "playInConversationNotificationSound: notifications turned off in prefs, bailing");
+            }
+            return;
+        }
+
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+
+        boolean vibrate = false;
+        if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE)) {
+            // The most recent change to the vibrate preference is to store a boolean
+            // value in NOTIFICATION_VIBRATE. If prefs contain that preference, use that
+            // first.
+            vibrate = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE,
+                    false);
+        } else if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN)) {
+            // This is to support the pre-JellyBean MR1.1 version of vibrate preferences
+            // when vibrate was a tri-state setting. As soon as the user opens the Messaging
+            // app's settings, it will migrate this setting from NOTIFICATION_VIBRATE_WHEN
+            // to the boolean value stored in NOTIFICATION_VIBRATE.
+            String vibrateWhen =
+                    sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN, null);
+            vibrate = "always".equals(vibrateWhen);
+        }
+
+        if (vibrate) {
+            SystemVibrator mVibrator = new SystemVibrator();
+            mVibrator.vibrate(sVibratePattern,-1);
+        } else {
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (audioManager != null) {
+                final int silentModeOn = audioManager.getRingerMode();
+                final int vibrateMode = audioManager.getVibrateSetting(AudioManager.VIBRATE_TYPE_RINGER);
+
+                if (silentModeOn == AudioManager.RINGER_MODE_VIBRATE ||
+                    (silentModeOn == AudioManager.RINGER_MODE_NORMAL && vibrateMode == AudioManager.VIBRATE_SETTING_ON)) {
+                    SystemVibrator mVibrator = new SystemVibrator();
+                    mVibrator.vibrate(sVibratePattern,-1);
+                }
+            }
+        }
+
         String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                 null);
         if (TextUtils.isEmpty(ringtoneStr)) {
