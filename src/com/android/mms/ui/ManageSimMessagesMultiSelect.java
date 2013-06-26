@@ -534,11 +534,17 @@ public class ManageSimMessagesMultiSelect extends Activity
     }
 
     private boolean isIncomingMessage(Cursor cursor) {
+        /*
         int messageStatus = cursor.getInt(
                 cursor.getColumnIndexOrThrow("status"));
         
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
+        */
+        int boxId = cursor.getInt(cursor.getColumnIndexOrThrow("type"));
+        boolean isIncoming = boxId == Sms.MESSAGE_TYPE_INBOX;
+        Log.d(TAG, "isIncomingMessage : " + isIncoming);
+        return boxId == Sms.MESSAGE_TYPE_INBOX;
     }
 
     private void startMsgListQuery() {

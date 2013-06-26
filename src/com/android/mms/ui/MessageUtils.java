@@ -1364,7 +1364,7 @@ public class MessageUtils {
                 values.put(Mms.READ, MessageUtils.MESSAGE_READ);
                 SqliteWrapper.update(context, context.getContentResolver(),
                                                     nextUri, values, null, null);
-                MessagingNotification.blockingUpdateNewMessageIndicator(
+                MessagingNotification.nonBlockingUpdateNewMessageIndicator(
                     context, MessagingNotification.THREAD_NONE, false);
             }
             cursor.close();
