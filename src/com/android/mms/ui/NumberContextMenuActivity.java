@@ -273,7 +273,7 @@ public class NumberContextMenuActivity extends Activity
                             };
         String[] texts;
         if(exit){
-            texts = Arrays.copyOf(Texts, 3);
+            texts = Arrays.copyOf(Texts, 1);
         }
         else
         {

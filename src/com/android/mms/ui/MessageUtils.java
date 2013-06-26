@@ -1365,7 +1365,7 @@ public class MessageUtils {
                 values.put(Mms.READ, MessageUtils.MESSAGE_READ);
                 SqliteWrapper.update(context, context.getContentResolver(),
                                                     nextUri, values, null, null);
-                MessagingNotification.blockingUpdateNewMessageIndicator(
+                MessagingNotification.nonBlockingUpdateNewMessageIndicator(
                     context, MessagingNotification.THREAD_NONE, false);
             }
             cursor.close();
@@ -1739,8 +1739,15 @@ public class MessageUtils {
     }
 
     public static String getMultiSimName(Context context, int subscription) {
-        String name = Settings.System.getString(context.getContentResolver(),
+        String name;
+        try {
+            name = Settings.System.getString(context.getContentResolver(),
             Settings.System.MULTI_SIM_NAME[subscription]);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            name = Settings.System.getString(context.getContentResolver(),
+            Settings.System.MULTI_SIM_NAME[SUB1]);
+        }
+        
         if(name == null)
         {
             if(isMultiSimEnabledMms())

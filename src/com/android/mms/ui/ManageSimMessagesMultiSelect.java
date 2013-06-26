@@ -520,12 +520,13 @@ public class ManageSimMessagesMultiSelect extends Activity
                 cursor.getColumnIndexOrThrow("address"));
         String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
         Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
+        int sub_id = cursor.getInt(cursor.getColumnIndexOrThrow("sub_id"));
 
         try {
             if (isIncomingMessage(cursor)) {
-                Sms.Inbox.addMessage(mContentResolver, address, body, null, date, true /* read */);
+                Sms.Inbox.addMessage(mContentResolver, address, body, null, date, true /* read */, sub_id);
             } else {
-                Sms.Sent.addMessage(mContentResolver, address, body, null, date);
+                Sms.Sent.addMessage(mContentResolver, address, body, null, date, sub_id);
             }
         } catch (SQLiteException e) {
             SqliteWrapper.checkSQLiteException(this, e);
@@ -533,11 +534,17 @@ public class ManageSimMessagesMultiSelect extends Activity
     }
 
     private boolean isIncomingMessage(Cursor cursor) {
+        /*
         int messageStatus = cursor.getInt(
                 cursor.getColumnIndexOrThrow("status"));
         
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
+        */
+        int boxId = cursor.getInt(cursor.getColumnIndexOrThrow("type"));
+        boolean isIncoming = boxId == Sms.MESSAGE_TYPE_INBOX;
+        Log.d(TAG, "isIncomingMessage : " + isIncoming);
+        return boxId == Sms.MESSAGE_TYPE_INBOX;
     }
 
     private void startMsgListQuery() {

@@ -268,7 +268,7 @@ public class MailBoxMessageList extends ListActivity
                     Toast.makeText(MailBoxMessageList.this, toastStr, 
                                     Toast.LENGTH_LONG).show();
 
-                    MessagingNotification.blockingUpdateNewMessageIndicator(
+                    MessagingNotification.nonBlockingUpdateNewMessageIndicator(
                         MailBoxMessageList.this, MessagingNotification.THREAD_NONE, false);
                     //Update the notification for text message memory may not be full, add for cmcc test
                     MessageUtils.checkIsPhoneMessageFull(MailBoxMessageList.this);
@@ -558,7 +558,7 @@ public class MailBoxMessageList extends ListActivity
         SqliteWrapper.update(this, getContentResolver(),
                              uri, values, null, null);
         
-        MessagingNotification.blockingUpdateNewMessageIndicator(
+        MessagingNotification.nonBlockingUpdateNewMessageIndicator(
                 this, MessagingNotification.THREAD_NONE, false);
     }
 

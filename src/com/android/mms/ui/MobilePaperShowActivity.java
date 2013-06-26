@@ -340,7 +340,7 @@ public class MobilePaperShowActivity extends Activity
             SqliteWrapper.update(this, getContentResolver(), 
                 mUri, values, null, null);
          
-         MessagingNotification.blockingUpdateNewMessageIndicator(
+         MessagingNotification.nonBlockingUpdateNewMessageIndicator(
                  this, MessagingNotification.THREAD_NONE, false);
          
         }        
