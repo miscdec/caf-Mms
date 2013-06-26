@@ -218,6 +218,8 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_SELECT_FILE    = 112;
     
     public static final int REQUEST_CODE_CONTACT_NUMBER_PICKER = 113; 
+    public static final int REQUEST_CODE_CONTACTS_PICKER_EMAIL = 114; 
+    
 
     private static final String TAG = "Mms/compose";
 
@@ -265,6 +267,8 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_LOAD_PUSH             = 37;
     private static final int MENU_INSERT_CONTACT        = 38;
     private static final int MENU_TEMPLATE             = 39;
+    private static final int MENU_ADD_EMAIL             = 40;
+    
 
     private static final int SHOW_COPY_TOAST = 1;
     private static final int SUBJECT_MAX_LENGTH    =  40;
@@ -1192,9 +1196,10 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onCreateContextMenu(ContextMenu menu, View v,
                 ContextMenuInfo menuInfo) {
+            RecipientsMenuClickListener l = null;   
             if (menuInfo != null) {
                 Contact c = ((RecipientContextMenuInfo) menuInfo).recipient;
-                RecipientsMenuClickListener l = new RecipientsMenuClickListener(c);
+                 l = new RecipientsMenuClickListener(c);
 
                 menu.setHeaderTitle(c.getName());
 
@@ -1206,6 +1211,15 @@ public class ComposeMessageActivity extends Activity
                             .setOnMenuItemClickListener(l);
                 }
             }
+
+            
+            if ( null == l ){
+                l = new RecipientsMenuClickListener(null);
+            }
+            String[] numbers = mRecipientsEditor.getContactList().getNumbers();
+            if (numbers.length < MessageUtils.MAX_RECIPIENT)
+            menu.add(0, MENU_ADD_EMAIL, 0, R.string.email_address)
+                        .setOnMenuItemClickListener(l);
         }
     };
 
@@ -1234,10 +1248,26 @@ public class ComposeMessageActivity extends Activity
                             REQUEST_CODE_ADD_CONTACT);
                     return true;
                 }
+                case MENU_ADD_EMAIL:{
+                    getEmailListFromContact();
+                    return true;
+                }
             }
             return false;
         }
     }
+
+    /**
+    * get email from contacts
+    */
+    private void getEmailListFromContact()
+    {
+        Log.v(TAG,"-------getEmailListFromContact");
+        Intent intent = new Intent("com.android.contacts.action.MULTI_PICK_EMAIL");
+        intent.setType("vnd.android.cursor.dir/raw_contact");
+        intent.putExtra( "com.android.contacts.MULTI_SEL_EXTRA_MAXITEMS", 10);
+        startActivityForResult(intent, REQUEST_CODE_CONTACTS_PICKER_EMAIL); 
+    }    
 
     private boolean canAddToContacts(Contact contact) {
         // There are some kind of automated messages, like STK messages, that we don't want
@@ -4014,6 +4044,8 @@ public class ComposeMessageActivity extends Activity
                 }
                 break;
 
+            
+            case REQUEST_CODE_CONTACTS_PICKER_EMAIL:
             case REQUEST_CODE_PICK:
                 if (data != null) {
                     processPickResult(data);
