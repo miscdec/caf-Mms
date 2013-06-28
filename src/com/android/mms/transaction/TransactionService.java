@@ -424,6 +424,9 @@ public class TransactionService extends Service implements Observer {
             
             if (isSilent && (sDefaultDataSubscription != getCurrentSubcription())) {
                 //Log.d(TAG, "MMS silent transaction finished for sub="+sDefaultDataSubscription);
+                if(mProcessing.isEmpty() && mPending.isEmpty()){
+                    isTrServiceActive = false; /* Let SelectMmsSubscription change data subscription */
+                }
                 Intent silentIntent = new Intent(getApplicationContext(),
                         com.android.mms.ui.SelectMmsSubscription.class);
                 silentIntent.putExtra(Mms.SUB_ID, sDefaultDataSubscription);
