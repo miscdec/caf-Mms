@@ -305,7 +305,7 @@ public class ComposeMessageActivity extends Activity
     // we force loading. However, there is at least one use case where the keyboard never shows
     // even if we tell it to (turning off and on the screen). So we need to force load the
     // messages+draft after the max delay.
-    private static final int LOADING_MESSAGES_AND_DRAFT_MAX_DELAY_MS = 500;
+    private static final int LOADING_MESSAGES_AND_DRAFT_MAX_DELAY_MS = 100;
 
     private ContentResolver mContentResolver;
 
