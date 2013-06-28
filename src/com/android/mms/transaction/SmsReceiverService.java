@@ -277,7 +277,7 @@ public class SmsReceiverService extends Service {
 
                     sender = new SmsSingleRecipientSender(this,
                             address, msgText, threadId, status == Sms.STATUS_PENDING,
-                            msgUri, MSimSmsManager.getDefault().getPreferredSmsSubscription());
+                            msgUri, subscription);
 
                     if (LogTag.DEBUG_SEND ||
                             LogTag.VERBOSE ||
