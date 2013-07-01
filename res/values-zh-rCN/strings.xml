@@ -516,7 +516,8 @@
     <string name="mms_max">最长</string>
     <string name="save_description">在服务器保存时间</string>
     <string name="status_expired">已过期</string>
-    
+    <string name="pref_summary_longsms_convert_sms">当长短信长度超过6条时转为彩信。</string>
+    <string name="pref_title_longsms_convert_sms">长短信转彩信</string>
     <!-- Settings item description for SMS Templates  -->
     <string name="pref_title_sms_template">常用短语</string>
     <string name="pref_summary_sms_template">可以插入到信息中的一些常用短语</string>

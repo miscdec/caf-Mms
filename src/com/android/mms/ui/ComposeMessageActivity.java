@@ -399,6 +399,7 @@ public class ComposeMessageActivity extends Activity
     // state of mWorkingMessage. Also, if we are handling a Send or Forward Message Intent,
     // we should not load the draft.
     private boolean mShouldLoadDraft;
+    private boolean mConvertLongSmsMms = true;
     
     private boolean mbResendMms = false;
     private String mstrMsgId = null;
@@ -699,7 +700,7 @@ public class ComposeMessageActivity extends Activity
             mWorkingMessage.setLengthRequiresMms(msgCount > 1, true);
         } else {
             int threshold = MmsConfig.getSmsToMmsTextThreshold();
-            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold, true);
+            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold && mConvertLongSmsMms, true);
         }
 
         // Show the counter only if:
@@ -2599,6 +2600,10 @@ public class ComposeMessageActivity extends Activity
         mBackgroundQueryHandler = new BackgroundQueryHandler(mContentResolver);
 
         initialize(savedInstanceState, 0);
+        SharedPreferences prefs =
+            PreferenceManager.getDefaultSharedPreferences(ComposeMessageActivity.this);
+        mConvertLongSmsMms = prefs.getBoolean(
+                MessagingPreferenceActivity.CONVERT_LONG_SMS_TO_MMS, true);
 
         if (TRACE) {
             android.os.Debug.startMethodTracing("compose");
@@ -2883,6 +2888,10 @@ public class ComposeMessageActivity extends Activity
         // while we were paused. This can happen, for example, if a user changes or adds
         // an avatar associated with a contact.
         mWorkingMessage.syncWorkingRecipients();
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ComposeMessageActivity.this);
+        mConvertLongSmsMms = prefs.getBoolean(
+                MessagingPreferenceActivity.CONVERT_LONG_SMS_TO_MMS,true);
 
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             log("update title, mConversation=" + mConversation.toString());

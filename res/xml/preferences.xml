@@ -85,6 +85,10 @@
                       android:maxLength="32"
                       android:persistent="false"
                       android:inputType="phone"/>
+    <CheckBoxPreference android:defaultValue="true"
+                      android:key="pref_key_longsms_convert_mms"
+                      android:summary="@string/pref_summary_longsms_convert_sms"
+                      android:title="@string/pref_title_longsms_convert_sms" />
     <Preference       android:key="pref_key_sms_template"
                       android:title="@string/pref_title_sms_template"
                       android:summary="@string/pref_summary_sms_template">

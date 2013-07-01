@@ -1064,7 +1064,8 @@
     <string name="mms_max">Maximum</string>
     <string name="save_description">How long the message will be stored in Server</string>
     <string name="status_expired">Mms expired</string>
-
+    <string name="pref_summary_longsms_convert_sms">Convert long sms to mms when more than 6.</string>
+    <string name="pref_title_longsms_convert_sms">Long SMS to MMS</string>
     <!-- Settings item description for SMS Templates  -->
     <string name="pref_title_sms_template">Templates</string>
     <string name="pref_summary_sms_template">Some templates</string>
