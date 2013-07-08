@@ -78,7 +78,7 @@ public class MmsConfig {
     // will be converted into a single mms message. For example, if the mms_config.xml file
     // specifies <int name="smsToMmsTextThreshold">4</int>, then on the 5th sms segment, the
     // message will be converted to an mms.
-    private static int mSmsToMmsTextThreshold = -1;
+    private static int mSmsToMmsTextThreshold = 6;
 
     private static boolean mEnableSlideDuration = true;
     private static boolean mEnableMMSReadReports = true;        // key: "enableMMSReadReports"

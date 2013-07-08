@@ -75,6 +75,7 @@ public class UriImage {
         // containing a space.  So just replace them with
         // underscores in the name, which is typically not
         // visible to the user anyway.
+        if(mSrc!=null)
         mSrc = mSrc.replace(' ', '_');
 
         mContext = context;
@@ -155,11 +156,16 @@ public class UriImage {
                 mContentType = c.getString(
                         c.getColumnIndexOrThrow(Part.CONTENT_TYPE));
             } else {
-                filePath = c.getString(
-                        c.getColumnIndexOrThrow(Images.Media.DATA));
-                mContentType = c.getString(
-                        c.getColumnIndexOrThrow(Images.Media.MIME_TYPE));
-            }
+                filePath = uri.getPath();
+                try {
+                    mContentType = c.getString(
+                            c.getColumnIndexOrThrow(Images.Media.MIME_TYPE)); // mime_type
+                    Log.w(TAG,"uriimage mContentType="+mContentType);
+                } catch (IllegalArgumentException e) {
+                    Log.w(TAG,"uriimage IllegalArgumentException");
+                    mContentType="image/jpeg";
+                 }
+                }
             mPath = filePath;
             if (mSrc == null) {
                 buildSrcFromPath();

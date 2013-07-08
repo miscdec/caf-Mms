@@ -49,6 +49,7 @@ public class SelectMmsSubscription extends Service {
 
     private Context mContext;
     private Intent startUpIntent;
+    private int startCmdId = 0;
     private int requestedSub =0;
     private int triggerSwitchOnly = 0;
     private int isOnAlarm =0;
@@ -69,11 +70,17 @@ public class SelectMmsSubscription extends Service {
 
         @Override
         protected Integer doInBackground(Integer... params) {
-            Log.d(TAG, "doInBackground(), Thread="+
-                    Thread.currentThread().getName());
+            int currentSubId = getCurrentSubcription() ;
+            Log.d(TAG, "doInBackground(), Thread="+Thread.currentThread().getName() + 
+                ", currentSubId = " + currentSubId + ", startCmdId = " + startCmdId);
 
-            if ((getCurrentSubcription() != params[0]) && (!TransactionService.isTransactionServiceActive())){
-                return switchSubscriptionTo(params[0]);
+            if ((currentSubId != params[0]) && 
+                (!TransactionService.isTransactionServiceActive())){ /* ensure only one switch subscription in this class. */
+                if(startCmdId == 1){
+                    return switchSubscriptionTo(params[0]);
+                } else {
+                    return -2; //Can't change
+                }
             }
             return -1; //no change.
         }
@@ -83,7 +90,11 @@ public class SelectMmsSubscription extends Service {
                 super.onPostExecute(result);
                 Log.d(TAG, "onPostExecute(), Thread="+Thread.currentThread().getName() + ", result = " + result);
 
-
+                if (result == -2){
+                    Log.d(TAG, "Can't change subscription, because another service changing now.");
+                    stopSelf();
+                    return;
+                }
                 if (result == -1) {
                     Log.d(TAG, "No DDS switch required. set requestedSubid=-1");
                     Bundle tempBundle = startUpIntent.getExtras();
@@ -109,7 +120,7 @@ public class SelectMmsSubscription extends Service {
                         triggerTransactionService();
                         stopSelf();
                     } else {
-                        if(isMobileDataEnabled()&& !isWifiEnabled()){
+                        if(false/*isMobileDataEnabled()&& !isWifiEnabled()*/){  //mms connection can be done on transactionservice 
                             //Switch was real and it succeeded, start transaction
                             //service with all UI hoopla
                             flagOkToStartTransactionService = true; //if PDP is up, transactionService can be started.
@@ -247,6 +258,8 @@ public class SelectMmsSubscription extends Service {
                             break;
                         }                          
                     }
+                } else{
+                    Log.d(TAG, "----Subscription switch failed !result = " + result);
                 }
                 return result;
             }
@@ -363,13 +376,14 @@ public class SelectMmsSubscription extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         startUpIntent = intent;
+        startCmdId = startId;
 
         requestedSub = startUpIntent.getIntExtra(Mms.SUB_ID, 0);
         triggerSwitchOnly =startUpIntent.getIntExtra("TRIGGER_SWITCH_ONLY", 0);
         isOnAlarm = startUpIntent.getIntExtra("on_alarm", 0);        
 
         Log.d(TAG, "Requested sub = "+requestedSub);
-        Log.d(TAG, "triggerSwitchOnly = "+triggerSwitchOnly);
+        Log.d(TAG, "triggerSwitchOnly = "+triggerSwitchOnly + ", ---startId = " + startId);
 
         switchSubscriptionTask = new SwitchSubscriptionTask();
         switchSubscriptionTask.execute(requestedSub);

@@ -700,7 +700,7 @@ public class ComposeMessageActivity extends Activity
             mWorkingMessage.setLengthRequiresMms(msgCount > 1, true);
         } else {
             int threshold = MmsConfig.getSmsToMmsTextThreshold();
-            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount >= threshold, true);
+            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold && mConvertLongSmsMms, true);
         }
 
         // Show the counter only if:
