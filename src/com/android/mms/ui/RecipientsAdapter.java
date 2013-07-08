@@ -68,6 +68,7 @@ public class RecipientsAdapter extends ResourceCursorAdapter {
     private final Context mContext;
     private final ContentResolver mContentResolver;
     private final String mDefaultCountryIso;
+    private Cursor mPhoneCursor;
 
     public RecipientsAdapter(Context context) {
         // Note that the RecipientsAdapter doesn't support auto-requeries. If we
@@ -79,6 +80,12 @@ public class RecipientsAdapter extends ResourceCursorAdapter {
         mContext = context;
         mContentResolver = context.getContentResolver();
         mDefaultCountryIso = MmsApp.getApplication().getCurrentCountryIso();
+    }
+
+    protected void finalize() throws Throwable {
+        if(mPhoneCursor!=null){
+            mPhoneCursor.close();
+        }
     }
 
     @Override
@@ -192,7 +199,7 @@ public class RecipientsAdapter extends ResourceCursorAdapter {
                 Phone.TYPE,
                 Phone.TYPE_MMS);
          */
-        Cursor phoneCursor =
+         mPhoneCursor =
             mContentResolver.query(uri,
                     PROJECTION_PHONE,
                     null, //selection,
@@ -217,9 +224,9 @@ public class RecipientsAdapter extends ResourceCursorAdapter {
 
             MatrixCursor translated = new MatrixCursor(PROJECTION_PHONE, 1);
             translated.addRow(result);
-            return new MergeCursor(new Cursor[] { translated, phoneCursor });
+            return new MergeCursor(new Cursor[] { translated, mPhoneCursor });
         } else {
-            return phoneCursor;
+            return mPhoneCursor;
         }
     }
 

@@ -921,16 +921,15 @@ public class ComposeMessageActivity extends Activity
                 if (mChooseDialog == null || !mChooseDialog.isShowing()) {
                     LaunchChooseDialog(bCheckEcmMode, isMms);
                 }
-            } else {
-                /*
+            } else {               
                 if( SUBSCRIPTION_ID_INVALID == mLastSubInConv ){
                     mLastSubInConv = preferredSub;
                 }
                 if (mSendSubscription != SUBSCRIPTION_ID_INVALID) {
                     mLastSubInConv = mSendSubscription;
                 }
-                */
-                mLastSubInConv = preferredSub;
+                
+                //mLastSubInConv = preferredSub;
                 mWorkingMessage.setCurrentConvSub(mLastSubInConv);
                 sendMessage(bCheckEcmMode);
             }
@@ -5335,7 +5334,7 @@ public class ComposeMessageActivity extends Activity
                     // check consistency b/t mConversation & mWorkingMessage.mConversation
                     ComposeMessageActivity.this.sanityCheckConversation();
 
-                    /*
+                    
                     // Set last sub used in this conversation thread.
                     if (cursor.getCount() > 0) {
                         cursor.moveToLast();
@@ -5344,7 +5343,7 @@ public class ComposeMessageActivity extends Activity
                     } else {
                         mLastSubInConv = SUBSCRIPTION_ID_INVALID;
                     }
-                    */
+                    
                     int newSelectionPos = -1;
                     long targetMsgId = getIntent().getLongExtra("select_id", -1);
                     if (targetMsgId != -1) {
