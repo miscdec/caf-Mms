@@ -30,6 +30,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.Preference.OnPreferenceChangeListener;
@@ -87,6 +88,9 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private RingtonePreference mRingtonePref;
     private Recycler mSmsRecycler;
     private Recycler mMmsRecycler;
+    private Preference mSmsTemplate;
+    private CheckBoxPreference mSmsSignaturePref;
+    private EditTextPreference mSmsSignatureEditPref;
     private static final int CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG = 3;
 
     @Override
@@ -106,6 +110,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // Since the enabled notifications pref can be changed outside of this activity,
         // we have to reload it whenever we resume.
         setEnabledNotificationsPref();
+        // Initialize the sms signature
+        updateSignatureStatus();
         registerListeners();
     }
 
@@ -123,6 +129,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mEnableNotificationsPref = (CheckBoxPreference) findPreference(NOTIFICATION_ENABLED);
         mMmsAutoRetrievialPref = (CheckBoxPreference) findPreference(AUTO_RETRIEVAL);
         mVibratePref = (CheckBoxPreference) findPreference(NOTIFICATION_VIBRATE);
+        mSmsSignaturePref = (CheckBoxPreference) findPreference("pref_key_enable_signature");
+        mSmsSignatureEditPref = (EditTextPreference) findPreference("pref_key_edit_signature");
         mRingtonePref = (RingtonePreference) findPreference(NOTIFICATION_RINGTONE);
 
         setMessagePreferences();
@@ -143,6 +151,17 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     }
 
     private void setMessagePreferences() {
+        mManageSimPref = findPreference("pref_key_manage_sim_messages");
+        mSmsLimitPref = findPreference("pref_key_sms_delete_limit");
+        mSmsDeliveryReportPref = findPreference("pref_key_sms_delivery_reports");
+        mMmsDeliveryReportPref = findPreference("pref_key_mms_delivery_reports");
+        mMmsReadReportPref = findPreference("pref_key_mms_read_reports");
+        mMmsLimitPref = findPreference("pref_key_mms_delete_limit");
+        mClearHistoryPref = findPreference("pref_key_mms_clear_history");
+        mEnableNotificationsPref = (CheckBoxPreference) findPreference(NOTIFICATION_ENABLED);
+        mSmsTemplate = findPreference("pref_key_message_template");
+
+        updateSignatureStatus();
         if (!MmsApp.getApplication().getTelephonyManager().hasIccCard()) {
             // No SIM card, remove the SIM-related prefs
             PreferenceCategory smsCategory =
@@ -236,6 +255,13 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                         mMmsRecycler.getMessageLimit(this)));
     }
 
+    private void updateSignatureStatus() {
+        // If the signature CheckBox is checked, we should set the signature EditText
+        // enable, and disable when it's not checked.
+        boolean isChecked = mSmsSignaturePref.isChecked();
+        mSmsSignatureEditPref.setEnabled(isChecked);
+    }
+
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         menu.clear();
@@ -276,6 +302,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                     mMmsRecycler.getMessageMinLimit(),
                     mMmsRecycler.getMessageMaxLimit(),
                     R.string.pref_title_mms_delete).show();
+        } else if (preference == mSmsTemplate) {
+            startActivity(new Intent(this, MessageTemplate.class));
         } else if (preference == mManageSimPref) {
             startActivity(new Intent(this, ManageSimMessages.class));
         } else if (preference == mClearHistoryPref) {
@@ -284,6 +312,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         } else if (preference == mEnableNotificationsPref) {
             // Update the actual "enable notifications" value that is stored in secure settings.
             enableNotifications(mEnableNotificationsPref.isChecked(), this);
+        } else if (preference == mSmsSignaturePref) {
+            updateSignatureStatus();
         } else if (preference == mMmsAutoRetrievialPref) {
             if (mMmsAutoRetrievialPref.isChecked()) {
                 startMmsDownload();
