@@ -23,6 +23,7 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import android.content.Context;
 import android.content.res.XmlResourceParser;
+import android.os.SystemProperties;
 import android.util.Log;
 
 import com.android.internal.telephony.TelephonyProperties;
@@ -113,6 +114,10 @@ public class MmsConfig {
     }
 
     public static int getSmsToMmsTextThreshold() {
+        int limitCount = SystemProperties.getInt("persist.env.c.mms.limitcount", 0);
+        if (limitCount != 0) {
+            return limitCount;
+        }
         return mSmsToMmsTextThreshold;
     }
 
