@@ -43,7 +43,9 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.text.format.Time;
@@ -52,6 +54,7 @@ import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
+import com.android.internal.telephony.MSimConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -84,9 +87,24 @@ public class MessageUtils {
     interface ResizeImageResultCallback {
         void onResizeResult(PduPart part, boolean append);
     }
-
+    private static final int TIMESTAMP_LENGTH = 7;  // See TS 23.040 9.2.3.11
     private static final int SELECT_SYSTEM = 0;
     private static final int SELECT_EXTERNAL = 1;
+
+    // add the defination of subscription
+    public static final int SUB_INVALID = -1;  //  for single card product
+    public static final int SUB1 = 0;  // for DSDS product of slot one
+    public static final int SUB2 = 1;  // for DSDS product of slot two
+    // add for getting the read status when copy messages to sim card
+    public static final int MESSAGE_READ = 1;
+    // add for obtaining icc uri when copying messages to card
+    public static final Uri ICC_URI = Uri.parse("content://sms/icc");
+    public static final Uri ICC1_URI = Uri.parse("content://sms/icc1");
+    public static final Uri ICC2_URI = Uri.parse("content://sms/icc2");
+    // add for getting result whether icc card is full or will full when copying to card
+    public static final String COPY_SUCCESS_FULL = "content://sms/sim/full/success";
+    public static final String COPY_FAILURE_FULL = "content://sms/sim/full/failure";
+
     private static final String TAG = LogTag.TAG;
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
@@ -1091,5 +1109,86 @@ public class MessageUtils {
 
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);
+    }
+
+    // TODO: should be better according to TS 24.008 10.5.4.7
+    public static boolean isValidSimAddress(String address) {
+        return PhoneNumberUtils.networkPortionToCalledPartyBCD(address) != null;
+    }
+
+    /**
+     * Return the subscription id of special message.
+     */
+    public static int getSubIdFromMsgId(Context context, String msgId) {
+        Log.i(TAG,"getSubIdFromMsgId() : msgId="+msgId);
+        int subId = 0;
+        Cursor c = null;
+        try {
+            String selection = Mms._ID +"="+msgId;
+            c = context.getContentResolver().query(Mms.CONTENT_URI, new String[] {Mms.SUB_ID},
+                                                 selection, null, "date DESC");
+            if (c != null && c.moveToFirst()) {
+                subId = c.getInt(0);
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+        return subId;
+    }
+
+    /**
+     * Return the activated card number
+     */
+    public static int getActivatedIccCardCount() {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        int phoneCount = tm.getPhoneCount();
+        Log.d(TAG, "isIccCardActivated phoneCount " + phoneCount);
+        int count = 0;
+        for (int i = 0; i < phoneCount; i++) {
+            Log.d(TAG, "isIccCardActivated subscription " + tm.getSimState(i));
+            // Because the status of slot1/2 will return SIM_STATE_UNKNOWN under airplane mode.
+            // So we add check about SIM_STATE_UNKNOWN.
+            if ((tm.getSimState(i) != TelephonyManager.SIM_STATE_ABSENT)
+                    // (tm.getSimState(i) != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState(i) != TelephonyManager.SIM_STATE_UNKNOWN)) {
+                count++;
+            }
+        }
+        return count;
+   }
+
+    /**
+     * Decide whether the current product  is DSDS in MMS
+     */
+    public static boolean isMultiSimEnabledMms() {
+        return MSimTelephonyManager.getDefault().isMultiSimEnabled();
+    }
+
+    /**
+     * Return whether the card is activated according to Subscription
+     * used for DSDS
+     */
+    public static boolean isIccCardActivated(int subscription) {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        Log.d(TAG, "isIccCardActivated subscription " + tm.getSimState(subscription));
+        return (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_ABSENT)
+                    //&& (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_DEACTIVATED)
+                    && (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_UNKNOWN);
+    }
+
+    /**
+     * Return the icc uri according to subscription
+     */
+    public static Uri getIccUriBySubscription(int subscription) {
+        switch (subscription) {
+            case MSimConstants.SUB1:
+                return ICC1_URI;
+            case MSimConstants.SUB2:
+                return ICC2_URI;
+            default:
+                return ICC_URI;
+        }
     }
 }

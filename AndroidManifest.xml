@@ -233,8 +233,17 @@
         <activity android:name=".ui.ManageSimMessages"
                   android:theme="@style/MmsHoloTheme"
                   android:launchMode="singleTop"
-                  android:configChanges="orientation|screenSize|keyboardHidden"
-                  android:label="@string/sim_manage_messages_title">
+                  android:label="@string/sim_manage_messages_title"
+                  android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
+        </activity>
+
+
+
+        <activity android:name=".ui.SelectSubscription"
+            android:label="@string/select_subscription_title">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
