@@ -363,4 +363,31 @@
     <string name="pref_summary_enable_signature">短信签名已启用</string>
     <string name="pref_summary_disable_signature">短信签名已禁用</string>
     <string name="pref_title_edit_signature">编辑短信签名</string>
+    <string name="menu_reply">回复</string>
+    <string name="copy_to_sim">"复制到SIM卡"</string>
+    <string name="copy_to_sim_success">"信息已保存"</string>
+    <string name="copy_to_sim_fail">"信息保存失败"</string>
+    <string name="select_subscription_title">"选择SIM卡"</string>
+    <string name="subscription1_title">"Sim卡1"</string>
+    <string name="subscription2_title">"Sim卡2"</string>
+    <string name="cancel_sms">"取消"</string>
+
+    <!-- Add for share contact feature -->
+    <string name="type_vcard">电子名片</string>
+    <string name="import_vcard">导入</string>
+    <string name="attach_add_contact_as_text">联系人信息</string>
+    <string name="attach_add_contact_as_vcard">电子名片</string>
+
+    <string name="contact_info_text_as_name">姓名：</string>
+    <string name="contact_info_text_as_phone">电话：</string>
+    <string name="contact_info_text_as_email">电子邮件：</string>
+    <string name="sending_number">"发送至："</string>
+    <string name="contact_app_not_found">"找不到联系人应用"</string>
+    <string name="slot1">"卡1"</string>
+    <string name="slot2">"卡2"</string>
+    <string name="search_bar_hint">"搜索联系人"</string>
+    <string name="select_all">"全选"</string>
+    <string name="open_wap_push_title">"浏览器信息"</string>
+    <string name="open_wap_push_body">"是否要访问网站？"</string>
+    <string name="menu_copy_url">"复制网址 <xliff:g id="extractedurl">%s</xliff:g>"</string>
 </resources>

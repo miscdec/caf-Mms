@@ -826,5 +826,29 @@
     <string name="pref_summary_enable_signature">SMS signature enabled</string>
     <string name="pref_summary_disable_signature">SMS signature disabled</string>
     <string name="pref_title_edit_signature">Edit SMS signature</string>
+    <string name="menu_reply">Reply</string>
+    <string name="copy_to_sim">Copy message to SIM card</string>
+    <string name="copy_to_sim_success">Message saved</string>
+    <string name="copy_to_sim_fail">Unable to save message</string>
+    <!-- Add for share contact feature -->
+    <string name="type_vcard">vCard</string>
+    <string name="import_vcard">Import</string>
+    <string name="attach_add_contact_as_text">Insert contact info</string>
+    <string name="attach_add_contact_as_vcard">Contact vCard</string>
+
+    <string name="contact_info_text_as_name">Name:</string>
+    <string name="contact_info_text_as_phone">Tel:</string>
+    <string name="contact_info_text_as_email">Email:</string>
+    <string name="contact_app_not_found">Can not find Contact application</string>
+    <!-- QRD Enhancement Multi Sim Sending SMS -->
+    <string name="sending_number">To: </string>
+    <string name="slot1">Slot1</string>
+    <string name="slot2">Slot2</string>
+    <!-- Gray hint displayed in the search field in Contacts when empty -->
+    <string name="search_bar_hint">Search contacts</string>
+    <string name="select_all">All</string>
+    <string name="open_wap_push_title">Browser Information</string>
+    <string name="open_wap_push_body">Do you want to open the web site?</string>
+    <string name="menu_copy_url">Copy url <xliff:g id="extractedurl">%s</xliff:g></string>
 </resources>
 
