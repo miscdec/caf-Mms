@@ -19,6 +19,7 @@ package com.android.mms.ui;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -130,6 +131,12 @@ public class MessageUtils {
     private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
     // add for obtain mms data path
     private static final String MMS_DATA_DATA_DIR = "/data/data";
+    private static final String MMS_DATA_DIR = "/data/phonedata";
+    // the remaining space , format as MB
+    public static final int MIN_AVAILABLE_SPACE_MMS = 2;
+
+    // add for query message count from iccsms table
+    public static final Uri ICC_SMS_URI = Uri.parse("content://sms/iccsms");
 
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
@@ -1412,5 +1419,115 @@ public class MessageUtils {
             return true;
         }
         return false;
+    }
+
+    private static String getMmsDataDir() {
+        File data_file = new File(MMS_DATA_DIR);
+        if (data_file.exists()) {
+            return MMS_DATA_DIR;
+        }
+        return MMS_DATA_DATA_DIR;
+    }
+
+    public static long getMmsUsed(Context mContext) {
+        long dbSize = 0;
+        String dbPath = "/data/data/com.android.providers.telephony/databases/mmssms.db";
+        File dfFile = new File(dbPath);
+        dbSize = dfFile.length();
+        int mmsCount = 0;
+        int smsCount = 0;
+        long mmsfileSize = 0;
+        Uri MMS_URI = Uri.parse("content://mms");
+        Uri SMS_URI = Uri.parse("content://sms");
+        Cursor cursor = SqliteWrapper.query(mContext, mContext.getContentResolver(), MMS_URI,
+                new String[] {
+                    "m_size"
+                }, null, null, null);
+
+        if (cursor != null) {
+            try {
+                mmsCount = cursor.getCount();
+                if (mmsCount > 0) {
+                    cursor.moveToPosition(-1);
+                    while (cursor.moveToNext()) {
+                        Log.d(TAG, "------------mmsfileSize = " + mmsfileSize);
+                        mmsfileSize += (cursor.getInt(0) == 0 ? 50 * 1024 : cursor.getInt(0));
+                    }
+                } else {
+                    return 0;
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        cursor = SqliteWrapper.query(mContext, mContext.getContentResolver(), SMS_URI,
+                new String[] {
+                    "_id"
+                }, null, null, null);
+        if (cursor != null) {
+            try {
+                smsCount = cursor.getCount();
+            } finally {
+                cursor.close();
+            }
+        }
+
+        Log.v(TAG, "mmsUsed =" + mmsfileSize);
+        long mmsMaxSize = dbSize;
+        long mmsMinSize = mmsCount * 3 * 1024;
+        long smsSize = smsCount * 1024;
+        mmsfileSize = mmsMaxSize - smsSize;
+        return (mmsfileSize < mmsMinSize ? mmsMinSize : mmsfileSize);
+    }
+
+    public static long getStoreAll() {
+        File path = new File(getMmsDataDir());
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long allBlocks = stat.getBlockCount();
+        return allBlocks * blockSize;
+    }
+
+    public static long getStoreUsed() {
+        return getStoreAll() - getStoreUnused();
+    }
+
+    public static boolean isPhoneMemoryFull() {
+        long available = getStoreUnused();
+        if (available < MIN_AVAILABLE_SPACE_MMS * 1024 * 1024) {
+            return true;
+        }
+        return false;
+    }
+
+    public static String formatMemorySize(long size) {
+        String suffix = null;
+        String kbStr = null;
+        boolean hasMb = false;
+        DecimalFormat formatter = new DecimalFormat();
+
+        // add KB or MB suffix if size is greater than 1K or 1M
+        if (size >= 1024) {
+            suffix = " KB";
+            size /= 1024;
+            kbStr = formatter.format(size);
+            if (size >= 1024) {
+                suffix = " MB";
+                size /= 1024;
+                hasMb = true;
+            }
+        }
+
+        formatter.setGroupingSize(3);
+        String result = formatter.format(size);
+
+        if (suffix != null) {
+            if (hasMb && kbStr != null) {
+                result = result + suffix + " (" + kbStr + " KB)";
+            } else {
+                result = result + suffix;
+            }
+        }
+        return result;
     }
 }

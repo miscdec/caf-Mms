@@ -62,6 +62,9 @@
     <!-- Subject to display in the conversation list if there is no subject -->
     <string name="no_subject_view">(No subject)</string>
 
+    <!-- Menu item to toggle the tabs that show where the contact data comes from. -->
+    <string name="memory_card">Card</string>
+
     <!-- Name of the local user when displaying sender of an outgoing message (personal pronoun) -->
     <string name="messagelist_sender_self">Me</string>
     <!-- Context menu item on an individual message for viewing an attached slideshow -->
@@ -875,6 +878,22 @@
     <!-- Gray hint displayed in the search field in Contacts when empty -->
     <string name="search_bar_hint">Search contacts</string>
     <string name="select_all">All</string>
+
+    <!-- title of mailboxmessagecontent -->
+    <string name="sim_card">SIM card</string>
+
+    <!-- String used in MemoryStatusActivity.java -->
+    <string name="memory_status_title">Memory status</string>
+    <string name="phoneall">Phone</string>
+    <string name="phonecount">All count</string>
+    <string name="mms_phoneused">Mms Used:</string>
+    <string name="else_phoneused">Else Used:</string>
+    <string name="phone_unused">Unused:</string>
+    <string name="all_phone">All:</string>
+    <string name="sim_card1">SIM card1</string>
+    <string name="sim_card2">SIM card2</string>
+    <string name="please_wait">Please waiting...</string>
+
     <string name="open_wap_push_title">Browser Information</string>
     <string name="open_wap_push_body">Do you want to open the web site?</string>
     <string name="menu_copy_url">Copy url <xliff:g id="extractedurl">%s</xliff:g></string>

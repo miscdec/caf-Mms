@@ -484,6 +484,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 startActivityIfNeeded(modeIntent, -1);
                 finish();
                 break;
+            case R.id.action_memory_status:
+                startActivity(new Intent(this, MemoryStatusActivity.class));
+                break;
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
                 break;
