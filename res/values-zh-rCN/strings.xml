@@ -402,4 +402,12 @@
     <string name="open_wap_push_title">"浏览器信息"</string>
     <string name="open_wap_push_body">"是否要访问网站？"</string>
     <string name="menu_copy_url">"复制网址 <xliff:g id="extractedurl">%s</xliff:g>"</string>
+
+    <!-- Settings item description for Mms Validity period -->
+    <string name="pref_title_mms_save_time">信息有效期</string>
+    <string name="mms_one_week">一周</string>
+    <string name="mms_two_days">两天</string>
+    <string name="mms_max">最长</string>
+    <string name="save_description">在服务器保存时间</string>
+    <string name="status_expired">已过期</string>
 </resources>
