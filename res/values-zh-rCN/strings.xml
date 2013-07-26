@@ -381,6 +381,18 @@
     <string name="contact_info_text_as_name">姓名：</string>
     <string name="contact_info_text_as_phone">电话：</string>
     <string name="contact_info_text_as_email">电子邮件：</string>
+
+    <!-- SMSC -->
+    <string name="pref_smsc_title">短消息中心设置</string>
+    <plurals name="pref_title_smsc">
+        <!-- Case of 1 result. -->
+        <item quantity="one">"设置短消息中心号码"</item>
+        <!-- Case of 0 or 2 or more results. -->
+        <item quantity="other">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</item>
+    </plurals>
+    <string name="set_smsc_error">设置短消息中心号码失败</string>
+    <string name="set_smsc_success">设置短消息中心号码成功</string>
+    <string name="set_smsc_confirm_message">修改短消息中心号码可能导致短信发送失败，确认修改吗？</string>
     <string name="sending_number">"发送至："</string>
     <string name="contact_app_not_found">"找不到联系人应用"</string>
     <string name="slot1">"卡1"</string>
