@@ -497,8 +497,9 @@ public class MessageListItem extends LinearLayout implements
         showMmsView(true);
 
         try {
+            // if bitmap is null, don't show the ImageView
             mImageView.setImageBitmap(bitmap);
-            mImageView.setVisibility(VISIBLE);
+            mImageView.setVisibility(bitmap == null ? GONE : VISIBLE);
         } catch (java.lang.OutOfMemoryError e) {
             Log.e(TAG, "setImage: out of memory: ", e);
         }
@@ -835,8 +836,9 @@ public class MessageListItem extends LinearLayout implements
         showMmsView(true);
 
         try {
+            // if bitmap is null, don't show the ImageView
             mImageView.setImageBitmap(bitmap);
-            mImageView.setVisibility(VISIBLE);
+            mImageView.setVisibility(bitmap == null ? GONE : VISIBLE);
         } catch (java.lang.OutOfMemoryError e) {
             Log.e(TAG, "setVideo: out of memory: ", e);
         }
