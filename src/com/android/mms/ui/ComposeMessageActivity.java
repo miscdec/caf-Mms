@@ -2937,7 +2937,7 @@ public class ComposeMessageActivity extends Activity
             menu.add(0, MENU_SEND, 0, R.string.send).setIcon(android.R.drawable.ic_menu_send);
         }
 
-        if (!mWorkingMessage.hasSlideshow()) {
+        if (isSubjectEditorVisible() || !mWorkingMessage.hasSlideshow()) {
             menu.add(0, MENU_INSERT_SMILEY, 0, R.string.menu_insert_smiley).setIcon(
                     R.drawable.ic_menu_emoticons);
             menu.add(0, MENU_IMPORT_TEMPLATE, 0, R.string.import_message_template)
