@@ -399,6 +399,11 @@ public class ComposeMessageActivity extends Activity
      */
     private boolean mIsAudioPlayerActivityRunning = false;
 
+    // default to 2kb max head size
+    private static int MMS_HEAD_SIZE = 2 * 1024;
+    // 1 kilobyte
+    private static int ONE_KILOBYTE = 1024;
+
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
         Thread current = Thread.currentThread();
@@ -458,7 +463,7 @@ public class ComposeMessageActivity extends Activity
                 }
                 case AttachmentEditor.MSG_SEND_SLIDESHOW: {
                     if (isPreparedForSending()) {
-                        ComposeMessageActivity.this.confirmSendMessageIfNeeded();
+                        ComposeMessageActivity.this.showSendConfirm();
                     }
                     break;
                 }
@@ -886,6 +891,46 @@ public class ComposeMessageActivity extends Activity
             mWorkingMessage.setWorkingMessageSub(preferredSmsSub);
             sendMessage(bCheckEcmMode);
         }
+    }
+
+    private void showSendConfirm() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        int messageSizeLimit = MmsConfig.getMaxMessageSize();
+        int mmsCurrentSize = 0;
+
+        mWorkingMessage.prepareForSave(true);
+        if (mWorkingMessage.getSlideshow() != null) {
+            if (mWorkingMessage.getSlideshow().getTotalMessageSize() >
+                    mWorkingMessage.getSlideshow().getCurrentMessageSize()) {
+                mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
+            } else {
+                mmsCurrentSize += mWorkingMessage.getSlideshow().getCurrentMessageSize();
+            }
+        } else if (mWorkingMessage.hasText()) {
+            mmsCurrentSize += mWorkingMessage.getText().toString().getBytes().length;
+        }
+        Log.v(TAG, "compose mmsCurrentSize = " + mmsCurrentSize);
+        // if the current size is less than 1 byte, set the value to 1kb
+        mmsCurrentSize = mmsCurrentSize > 1 ? (mmsCurrentSize + MMS_HEAD_SIZE) : ONE_KILOBYTE;
+
+        if (mmsCurrentSize > messageSizeLimit) {
+            mmsCurrentSize = messageSizeLimit;
+        }
+
+        builder.setTitle(R.string.title_send_message);
+        builder.setIcon(R.drawable.ic_dialog_alert_holo_light);
+        builder.setCancelable(false);
+        builder.setMessage(getString(R.string.message_size_label)
+                // rounding size
+                + String.valueOf((mmsCurrentSize + (ONE_KILOBYTE - 1)) / ONE_KILOBYTE)
+                + getString(R.string.kilobyte));
+        builder.setPositiveButton(R.string.yes, new OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                confirmSendMessageIfNeeded();
+            }
+        });
+        builder.setNegativeButton(R.string.no, null);
+        builder.show();
     }
 
     private void confirmSendMessageIfNeeded() {
