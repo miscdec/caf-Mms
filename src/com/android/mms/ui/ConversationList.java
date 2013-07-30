@@ -118,6 +118,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     static private final String CHECKED_MESSAGE_LIMITS = "checked_message_limits";
 
+    private static boolean isCheckBox = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -673,6 +675,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @Override
                 public void onClick(View v) {
                     listener.setDeleteLockedMessage(checkbox.isChecked());
+                    isCheckBox=checkbox.isChecked();
                 }
             });
         }
@@ -704,6 +707,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             return false;
         }
     };
+
+    public static boolean getExitDialogueSign() {
+        return isCheckBox;
+    }
+
+    public static void setExitDialogueSign() {
+        isCheckBox=false;
+    }
 
     public static class DeleteThreadListener implements OnClickListener {
         private final Collection<Long> mThreadIds;
