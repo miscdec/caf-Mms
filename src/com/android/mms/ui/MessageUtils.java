@@ -17,6 +17,7 @@
 
 package com.android.mms.ui;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +43,8 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.StatFs;
+import android.os.storage.StorageManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
@@ -120,6 +123,8 @@ public class MessageUtils {
 
     // distinguish view vcard from mms but not from contacts.
     private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
+    // add for obtain mms data path
+    private static final String MMS_DATA_DATA_DIR = "/data/data";
 
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
@@ -1228,5 +1233,33 @@ public class MessageUtils {
             }
             return icons.getDrawable(Integer.parseInt(indexs[subscription]));
         }
+    }
+
+    public static long getStoreUnused() {
+        File path = new File(MMS_DATA_DATA_DIR);
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long availableBlocks = stat.getAvailableBlocks();
+        return availableBlocks * blockSize;
+    }
+
+    public static boolean isPhoneMemoryFull(Context context) {
+        long available = getStoreUnused();
+        StorageManager sm = StorageManager.from(context);
+
+        if (available < sm.getStorageFullBytes(new File(MMS_DATA_DATA_DIR))) {
+            return true;
+        }
+        return false;
+    }
+
+    /* Used for judge whether have memory for save mms */
+    public static boolean isMmsMemoryFull(Context context) {
+        boolean isMemoryFull = isPhoneMemoryFull(context);
+        if (isMemoryFull) {
+            Log.d(TAG, "isMmsMemoryFull : isMemoryFull = " + isMemoryFull);
+            return true;
+        }
+        return false;
     }
 }
