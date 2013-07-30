@@ -291,6 +291,14 @@ public class SlideshowActivity extends Activity implements EventListener {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (null != mSmilPlayer) {
+            mSmilPlayer.resetState();
+        }
+    }
+
+    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_VOLUME_DOWN:

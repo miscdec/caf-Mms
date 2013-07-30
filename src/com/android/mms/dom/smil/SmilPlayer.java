@@ -373,6 +373,10 @@ public class SmilPlayer implements Runnable {
       }
     }
 
+    public synchronized void resetState() {
+        mState = SmilPlayerState.INITIALIZED;
+    }
+
     private synchronized boolean isBeginOfSlide(TimelineEntry entry) {
         return (TimelineEntry.ACTION_BEGIN == entry.getAction())
                     && (entry.getElement() instanceof SmilParElementImpl);
