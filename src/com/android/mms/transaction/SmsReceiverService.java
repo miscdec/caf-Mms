@@ -97,6 +97,7 @@ public class SmsReceiverService extends Service {
         Sms.BODY,       //3
         Sms.STATUS,     //4
         Sms.SUB_ID,     //5
+        Sms.PRIORITY,   //6
 
     };
 
@@ -109,6 +110,7 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_BODY       = 3;
     private static final int SEND_COLUMN_STATUS     = 4;
     private static final int SEND_COLUMN_SUB_ID     = 5;
+    private static final int SEND_COLUMN_PRIORITY   = 6;
 
     private int mResultCode;
 
@@ -272,11 +274,16 @@ public class SmsReceiverService extends Service {
 
                     int msgId = c.getInt(SEND_COLUMN_ID);
                     int subId = c.getInt(SEND_COLUMN_SUB_ID);
+                    int priority = c.getInt(SEND_COLUMN_PRIORITY);
                     Uri msgUri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgId);
 
                     SmsMessageSender sender = new SmsSingleRecipientSender(this,
                             address, msgText, threadId, status == Sms.STATUS_PENDING,
                             msgUri, subId);
+
+                    if(priority != -1){
+                        ((SmsSingleRecipientSender)sender).setPriority(priority);
+                    }
 
                     if (LogTag.DEBUG_SEND ||
                             LogTag.VERBOSE ||
