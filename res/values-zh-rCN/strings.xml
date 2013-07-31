@@ -412,4 +412,12 @@
     <string name="mms_max">最长</string>
     <string name="save_description">在服务器保存时间</string>
     <string name="status_expired">已过期</string>
+    <!-- priority of cdma message -->
+    <string name="cdma_priority_normal">一般</string>
+    <string name="cdma_priority_interactive">交互</string>
+    <string name="cdma_priority_urgent">急</string>
+    <string name="cdma_priority_emergency">紧急</string>
+    <string name="pref_title_cdma_priority">短信优先级</string>
+    <string name="pref_summary_cdma_priority">CDMA短信优先级设置</string>
+    <string name="prefDialogTitle_cdma_priority">优先级</string>
 </resources>
