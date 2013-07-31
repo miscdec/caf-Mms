@@ -1059,7 +1059,7 @@ public class MessageUtils {
      */
     public static boolean isValidMmsAddress(String address) {
         String retVal = parseMmsAddress(address);
-        return (retVal != null);
+        return (retVal != null && !retVal.equals(""));
     }
 
     /**
