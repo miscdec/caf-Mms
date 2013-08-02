@@ -46,6 +46,10 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.provider.Telephony.Threads;
+import android.telephony.MSimTelephonyManager;
+import android.telephony.MSimSmsManager;
+import android.telephony.TelephonyManager;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
@@ -112,6 +116,7 @@ public class MessageUtils {
     private static final String TAG = LogTag.TAG;
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
+
     // Ext action define as TelephonyIntents.ACTION_SIM_STATE_CHANGED + subID
     public static final String ACTION_SIM_STATE_CHANGED0 =
            "android.intent.action.SIM_STATE_CHANGED0";
@@ -945,6 +950,98 @@ public class MessageUtils {
         return accumulator;
     }
 
+    public static String getRecipientsByIds(Context context,
+            String recipientIds, boolean allowQuery) {
+        String value = sRecipientAddress.get(recipientIds);
+        if (value != null) {
+            return value;
+        }
+        if (!TextUtils.isEmpty(recipientIds)) {
+            StringBuilder addressBuf = extractIdsToAddresses(context, recipientIds, allowQuery);
+            if (addressBuf == null) {
+                // temporary error? Don't memoize.
+                return "";
+            }
+            value = addressBuf.toString();
+        } else {
+            value = "";
+        }
+        sRecipientAddress.put(recipientIds, value);
+        return value;
+    }
+
+    private static StringBuilder extractIdsToAddresses(Context context, String recipients,
+            boolean allowQuery) {
+        StringBuilder addressBuf = new StringBuilder();
+        String[] recipientIds = recipients.split(" ");
+        boolean firstItem = true;
+        for (String recipientId : recipientIds) {
+            String value = sRecipientAddress.get(recipientId);
+
+            if (value == null) {
+                if (!allowQuery) {
+                    // when allowQuery is false, if any value from
+                    // sRecipientAddress.get() is null,
+                    // return null for the whole thing. We don't want to stick
+                    // partial result
+                    // into sRecipientAddress for multiple recipient ids.
+                    return null;
+                }
+
+                Uri uri = Uri.parse("content://mms-sms/canonical-address/" + recipientId);
+                Cursor c = SqliteWrapper.query(context, context.getContentResolver(), uri, null,
+                        null, null, null);
+                if (c != null) {
+                    try {
+                        if (c.moveToFirst()) {
+                            value = c.getString(0);
+                            sRecipientAddress.put(recipientId, value);
+                        }
+                    } finally {
+                        c.close();
+                    }
+                }
+            }
+            if (value == null) {
+                continue;
+            }
+            if (firstItem) {
+                firstItem = false;
+            } else {
+                addressBuf.append(";");
+            }
+            addressBuf.append(value);
+        }
+
+        return (addressBuf.length() == 0) ? null : addressBuf;
+    }
+
+    public static String getAddressByThreadId(Context context, long threadId) {
+        String[] projection = new String[] {
+                Threads.RECIPIENT_IDS
+        };
+
+        Uri.Builder builder = Threads.CONTENT_URI.buildUpon();
+        builder.appendQueryParameter("simple", "true");
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(), builder.build(),
+                projection, Threads._ID + "=" + threadId, null, null);
+
+        if (cursor != null) {
+            try {
+                if ((cursor.getCount() == 1) && cursor.moveToFirst()) {
+                    String address = getRecipientsByIds(context, cursor.getString(0),
+                            true /* allow query*/);
+                    if (!TextUtils.isEmpty(address)) {
+                        return address;
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
     /**
      * Play/view the message attachments.
      * TOOD: We need to save the draft before launching another activity to view the attachments.
@@ -1118,8 +1215,62 @@ public class MessageUtils {
         return null;
     }
 
+    public static void dialRecipient(Context context, String address, int subscription) {
+        if (!Mms.isEmailAddress(address)) {
+            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + address));
+            if (isMultiSimEnabledMms()) {
+                dialIntent.putExtra(SUB_KEY, subscription);
+            }
+            context.startActivity(dialIntent);
+        }
+    }
+
+    /**
+     * Return whether it has card in according slot -the input subscription is 0
+     * or 1 -It is only used in DSDS
+     */
+    public static boolean hasIccCard(int subscription) {
+        boolean hasCard = false;
+        if (isMultiSimEnabledMms()) {
+            MSimTelephonyManager msimTelephonyManager = MSimTelephonyManager.getDefault();
+            hasCard = msimTelephonyManager.hasIccCard(subscription);
+        } else {
+            TelephonyManager telephonyManager = TelephonyManager.getDefault();
+            if (subscription == telephonyManager.getDefaultSubscription()) {
+                hasCard = telephonyManager.hasIccCard();
+            }
+        }
+        return hasCard;
+    }
+
+    /**
+     * Return whether it has card no matter in DSDS or not
+     */
+    public static boolean hasIccCard() {
+        return TelephonyManager.getDefault().hasIccCard();
+    }
+
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);
+    }
+
+    /**
+     * Return the sim name of subscription.
+     */
+    public static String getMultiSimName(Context context, int subscription) {
+        if (subscription >= MSimTelephonyManager.getDefault().getPhoneCount() || subscription < 0) {
+            return null;
+        }
+        String multiSimName = Settings.System.getString(context.getContentResolver(),
+                Settings.System.MULTI_SIM_NAME[subscription]);
+        if (multiSimName == null) {
+            if (subscription == MSimConstants.SUB1) {
+                return context.getString(R.string.slot1);
+            } else if (subscription == MSimConstants.SUB2) {
+                return context.getString(R.string.slot2);
+            }
+        }
+        return multiSimName;
     }
 
     // TODO: should be better according to TS 24.008 10.5.4.7

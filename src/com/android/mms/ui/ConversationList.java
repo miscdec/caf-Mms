@@ -42,6 +42,7 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemProperties;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
@@ -439,6 +440,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (item != null) {
             item.setVisible(mListAdapter.getCount() > 0);
         }
+
+        if (!SystemProperties.getBoolean("persist.env.mms.mailbox", false)) {
+            item = menu.findItem(R.id.action_change_mode);
+            if (item != null) {
+                item.setVisible(false);
+            }
+        }
+
         if (!LogTag.DEBUG_DUMP) {
             item = menu.findItem(R.id.action_debug_dump);
             if (item != null) {
@@ -469,6 +478,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             case R.id.action_settings:
                 Intent intent = new Intent(this, MessagingPreferenceActivity.class);
                 startActivityIfNeeded(intent, -1);
+                break;
+            case R.id.action_change_mode:
+                Intent modeIntent = new Intent(this, MailBoxMessageList.class);
+                startActivityIfNeeded(modeIntent, -1);
+                finish();
                 break;
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
