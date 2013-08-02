@@ -33,6 +33,8 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.os.SystemProperties;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
@@ -87,6 +89,11 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     public static final String AUTO_DELETE              = "pref_key_auto_delete";
     public static final String GROUP_MMS_MODE           = "pref_key_mms_group_mms";
     public static final String SMS_CDMA_PRIORITY        = "pref_key_sms_cdma_priority";
+
+    // AirPlane mode flag
+    private final static int AIR_PLANE_MODE_CHANGED = 1;
+    private final static int AIR_PLANE_MODE_ENABLE = 2;
+    private final static int AIR_PLANE_MODE_DISABLE = 3;
 
     // Expiry of MMS
     private final static String EXPIRY_ONE_WEEK = "604800"; // 7 * 24 * 60 * 60
@@ -525,6 +532,24 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         return result;
     }
 
+    // Add this handler to update the ui when AirPlane mode changed
+    Handler mAirPlaneModeHandler = new Handler() {
+        public void handleMessage(android.os.Message msg) {
+            super.handleMessage(msg);
+            if (msg.what == AIR_PLANE_MODE_CHANGED) {
+                PreferenceCategory smsCategory =
+                        (PreferenceCategory) findPreference("pref_key_sms_settings");
+                if (msg.arg1 == AIR_PLANE_MODE_ENABLE) {
+                    // is AirPlaneMode, remove the SIM-related prefs
+                    smsCategory.removePreference(mManageSimPref);
+                } else {
+                    // Not AirPlaneMode, add the SIM-related prefs
+                    smsCategory.addPreference(mManageSimPref);
+                }
+            }
+        };
+    };
+
     private void registerReceiver() {
         if (mReceiver != null) return;
         mReceiver = new BroadcastReceiver() {
@@ -535,6 +560,10 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                     // set the default as the airplane mode is off
                     boolean on = intent.getBooleanExtra("state", false);
                     updateSMSCPref(ALL_SUB, on);
+                    Message msg = new Message();
+                    msg.what = AIR_PLANE_MODE_CHANGED;
+                    msg.arg1 = (on ? AIR_PLANE_MODE_ENABLE : AIR_PLANE_MODE_DISABLE);
+                    mAirPlaneModeHandler.sendMessage(msg);
                 } else if (NOTIFY_SMSC_ERROR.equals(action)) {
                     showToast(R.string.set_smsc_error);
                 } else if (NOTIFY_SMSC_SUCCESS.equals(action)) {
