@@ -112,7 +112,7 @@ public class BoxMessageItem {
             mLocked = cursor.getInt(COLUMN_SMS_LOCKED);
             mThreadId = cursor.getInt(COLUMN_THREAD_ID);          
             // For incoming messages, the ADDRESS field contains the sender.
-            mName = Contact.get(mAddress, true).getName();                         
+            mName = Contact.get(mAddress, true).getContactName(mAddress);  
         }                   
         
         mDateStr = MessageUtils.formatTimeStampString(context,

@@ -207,25 +207,31 @@ public class MailBoxMessageListAdapter extends CursorAdapter
             avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);            
         }
 
-        if(mAddress.equals("Browser Information"))
-        {
-            avatarDrawable = sDefaultContactImagePush;
-            mAvatarView.assignContactUri(null);
-            mAvatarView.setClickable(false);
-            mAvatarView.setImageDrawable(avatarDrawable);
-            mAvatarView.setVisibility(View.VISIBLE);
-            return;
-        }
-       
-        if (contact.existsInDatabase()) {
-            mAvatarView.assignContactUri(contact.getUri());
-        } else {
-            // identify it is phone number or email address,handle it respectively
-            if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
-                mAvatarView.assignContactFromEmail(contact.getNumber(), true);
-            } else {
-                mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+        if(!mAddress.contains(Contact.SEPARATOR)){
+            if(mAddress.equals("Browser Information"))
+            {
+                avatarDrawable = sDefaultContactImagePush;
+                mAvatarView.assignContactUri(null);
+                mAvatarView.setClickable(false);
+                mAvatarView.setImageDrawable(avatarDrawable);
+                mAvatarView.setVisibility(View.VISIBLE);
+                return;
             }
+            
+            if (contact.existsInDatabase()) {
+                mAvatarView.assignContactUri(contact.getUri());
+            } else {
+                // identify it is phone number or email address,handle it respectively
+                if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
+                    mAvatarView.assignContactFromEmail(contact.getNumber(), true);
+                } else {
+                    mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+                }
+            }
+        }else {
+            // TODO get a multiple recipients asset (or do something else)
+            avatarDrawable = sDefaultContactImage;
+            mAvatarView.assignContactUri(null);
         }
 
         mAvatarView.setImageDrawable(avatarDrawable);
