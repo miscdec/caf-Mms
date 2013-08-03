@@ -31,5 +31,7 @@ LOCAL_PACKAGE_NAME := MmsTests
 
 LOCAL_INSTRUMENTATION_FOR := Mms
 
+#Disable building package
+ifndef REDUCED_APPS
 include $(BUILD_PACKAGE)
-
+endif

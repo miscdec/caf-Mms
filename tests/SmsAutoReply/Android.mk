@@ -25,4 +25,7 @@ LOCAL_SRC_FILES := $(call all-java-files-under, src)
 
 LOCAL_PACKAGE_NAME := SmsAutoReply
 
+#Disable building package
+ifndef REDUCED_APPS
 include $(BUILD_PACKAGE)
+endif
