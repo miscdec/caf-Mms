@@ -48,6 +48,7 @@ public class Contact {
     private static final String TAG = "Contact";
     private static ContactsCache sContactCache;
     private static final String SELF_ITEM_KEY = "Self_Item_Key";
+    public static final String SEPARATOR = ";";
 
 //    private static final ContentObserver sContactsObserver = new ContentObserver(new Handler()) {
 //        @Override
@@ -266,6 +267,69 @@ public class Contact {
         } else {
             return mName;
         }
+    }
+
+    /**
+     * Get the display names of contacts. Contacts can be either email address or
+     * phone number.
+     *
+     * @param address the addresses to lookup, separated by ";"
+     * @return a nicely formatted version of the contact names to display
+     */
+    public static String getContactName(String address) {
+        if (TextUtils.isEmpty(address))
+        {
+            return "";
+        }
+        if (address.contains(SEPARATOR))
+        {
+            return getContactNameWithMulti(address, SEPARATOR);
+        }
+        String name = Contact.get(address, true).getName();
+        if (TextUtils.isEmpty(name))
+        {
+            name = address;
+        }
+        return name;
+    }
+
+    /**
+     * Get the display names of contacts. Contacts can be either email address or
+     * phone number.
+     *
+     * @param context the context to use
+     * @param address the addresses to lookup, separated by ";"
+     * @return a nicely formatted version of the contact names to display
+     */
+    public static String getContactNameWithMulti(String address, String seperator) {
+        if (TextUtils.isEmpty(address)) {
+            return "";
+        }
+                    
+        StringBuilder result = new StringBuilder();
+        for (String value : address.split(seperator)) 
+        {
+            if (value.length() > 0) 
+            {
+                result.append(seperator);
+                String name = Contact.get(value, true).getName();
+                if (TextUtils.isEmpty(name))
+                {
+                    name = value;
+                }
+                if (!TextUtils.isEmpty(name))
+                {
+                    result.append(name);
+                }
+            }
+        }
+
+        if (result.length() > 0) {
+            // Skip the first ";"
+            return result.substring(1);
+        }
+
+        return "";
     }
 
     public synchronized String getNameAndNumber() {
