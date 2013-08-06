@@ -57,12 +57,20 @@ import android.view.MenuItem;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
+import android.telephony.MSimSmsManager;
+import android.util.Log;
 
+import com.android.internal.telephony.MSimConstants;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.transaction.TransactionService;
+
+import android.telephony.TelephonyManager;
+import android.telephony.MSimTelephonyManager;
+
 import com.android.mms.util.Recycler;
+//import static com.android.internal.telephony.MSimConstants.MAX_PHONE_COUNT_DS;
 
 import java.util.ArrayList;
 
@@ -99,6 +107,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private final static String EXPIRY_ONE_WEEK = "604800"; // 7 * 24 * 60 * 60
     private final static String EXPIRY_TWO_DAYS = "172800"; // 2 * 24 * 60 * 60
 
+    private static final String TAG = "MessagingPreferenceActivity";
     // Menu entries
     private static final int MENU_RESTORE_DEFAULTS    = 1;
 
@@ -216,6 +225,18 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // next time the user runs the Messaging app and it will either turn on the setting
         // by default, or if the user is over the limits, encourage them to turn on the setting
         // manually.
+    }
+
+    private int hasIccCardCount() {
+        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+        int count = 0;
+        for (int i = 0; i < tm.getPhoneCount(); i++) {
+            if (tm.hasIccCard(i)) {
+                count++;
+            }
+
+        }
+        return count;
     }
 
     private void setMessagePreferences() {
@@ -436,7 +457,19 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         } else if (preference == mSmsTemplate) {
             startActivity(new Intent(this, MessageTemplate.class));
         } else if (preference == mManageSimPref) {
-            startActivity(new Intent(this, ManageSimMessages.class));
+            if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                    || hasIccCardCount() < 2) {// MAX_PHONE_COUNT_DS) {
+                Intent intent = new Intent(this, ManageSimMessages.class);
+                intent.putExtra(MSimConstants.SUBSCRIPTION_KEY,
+                        MessageUtils.isIccCardActivated(MessageUtils.SUB1) ? MessageUtils.SUB1
+                                : MessageUtils.SUB2);
+                startActivity(intent);
+            } else {
+                Intent intent = new Intent(this, SelectSubscription.class);
+                intent.putExtra(SelectSubscription.PACKAGE, TARGET_PACKAGE);
+                intent.putExtra(SelectSubscription.TARGET_CLASS, TARGET_CLASS);
+                startActivity(intent);
+            }
         } else if (preference == mClearHistoryPref) {
             showDialog(CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG);
             return true;

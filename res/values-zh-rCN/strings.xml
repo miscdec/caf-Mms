@@ -349,6 +349,7 @@
     <string name="notification_separator" msgid="2334673105226536422">"  "</string>
     <string name="enumeration_comma" msgid="213598026698964628">"、 "</string>
     <string name="message_timestamp_format" msgid="4188999027493614617">"<xliff:g id="STRING_0">%1$s</xliff:g> - <xliff:g id="STRING_1">%2$s</xliff:g>"</string>
+
     <!-- 短信模板相关的 -->
     <string name="pref_summary_message_template">编辑短信模板</string>
     <string name="pref_title_message_template">短信模板</string>
@@ -366,7 +367,15 @@
     <string name="pref_summary_enable_signature">短信签名已启用</string>
     <string name="pref_summary_disable_signature">短信签名已禁用</string>
     <string name="pref_title_edit_signature">编辑短信签名</string>
-    <string name="menu_reply">回复</string>
+
+    <!-- Copy message to sim -->
+    <string name="menu_copy_to">"复制"</string>
+    <string name="operation_to_card_memory">"到SIM卡"</string>
+    <string name="operate_success">"操作成功！"</string>
+    <string name="operate_failure">"操作失败！"</string>
+    <string name="copy_success_full">"复制成功，卡已满！"</string>
+    <string name="copy_failure_full">"复制失败，卡已满！"</string>
+    <string name="menu_reply">"回复"</string>
     <string name="copy_to_sim">"复制到SIM卡"</string>
     <string name="copy_to_sim_success">"信息已保存"</string>
     <string name="copy_to_sim_fail">"信息保存失败"</string>
@@ -380,7 +389,6 @@
     <string name="import_vcard">导入</string>
     <string name="attach_add_contact_as_text">联系人信息</string>
     <string name="attach_add_contact_as_vcard">电子名片</string>
-
     <string name="contact_info_text_as_name">姓名：</string>
     <string name="contact_info_text_as_phone">电话：</string>
     <string name="contact_info_text_as_email">电子邮件：</string>

@@ -92,6 +92,7 @@ import android.telephony.MSimSmsManager;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsMessage;
+import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -100,6 +101,7 @@ import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.text.format.Time;
 import android.text.method.TextKeyListener;
 import android.text.style.URLSpan;
 import android.text.util.Linkify;
@@ -231,6 +233,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_SAVE_RINGTONE         = 30;
     private static final int MENU_PREFERENCES           = 31;
     private static final int MENU_GROUP_PARTICIPANTS    = 32;
+    private static final int MENU_COPY_TO_SIM           = 33;
     private static final int MENU_IMPORT_TEMPLATE       = 34;
     private static final int MENU_RESEND                = 35;
     private static final int MENU_COPY_EXTRACT_URL      = 36;
@@ -340,6 +343,9 @@ public class ComposeMessageActivity extends Activity
                                             // so we can remember it after re-entering the activity.
                                             // If the value >= 0, then we jump to that line. If the
                                             // value is maxint, then we jump to the end.
+    private static final int MSG_COPY_TO_SIM_FAILED = 1;
+    private static final int MSG_COPY_TO_SIM_SUCCESS = 2;
+    private static final int SHOW_COPY_TOAST = 1;
     private long mLastMessageId;
 
     // If a message A is currently being edited, and user decides to edit
@@ -398,6 +404,24 @@ public class ComposeMessageActivity extends Activity
      * Whether the audio attachment player activity is launched and running
      */
     private boolean mIsAudioPlayerActivityRunning = false;
+    // handler for handle copy mms to sim with toast.
+    private Handler CopyToSimWithToastHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+        int resId = 0;
+            switch (msg.what){
+                case SHOW_COPY_TOAST:
+                {
+                    String toastStr = (String) msg.obj;
+                    Toast.makeText(ComposeMessageActivity.this,
+                            toastStr, Toast.LENGTH_LONG).show();
+                    break;
+                }
+                default:
+                     break;
+            }
+        }
+    };
 
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
@@ -891,6 +915,12 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private String getMultiSimName(int subscription) {
+        return "Sub " + subscription;
+        //return Settings.System.getString(getApplicationContext().getContentResolver(),
+        //                Settings.Global.MULTI_SIM_NAME[subscription]);
+    }
+
     private void confirmSendMessageIfNeeded() {
         if (!isRecipientsEditorVisible()) {
             if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
@@ -1374,6 +1404,14 @@ public class ComposeMessageActivity extends Activity
                     .setOnMenuItemClickListener(l);
             }
 
+            if (msgItem.isSms()
+                    && MessageUtils.isValidSimAddress(msgItem.mAddress)) {
+                if (MessageUtils.getActivatedIccCardCount() > 0) {
+                    menu.add(0, MENU_COPY_TO_SIM, 0, R.string.copy_to_sim)
+                            .setOnMenuItemClickListener(l);
+                }
+            }
+
             menu.add(0, MENU_VIEW_MESSAGE_DETAILS, 0, R.string.view_message_details)
                 .setOnMenuItemClickListener(l);
 
@@ -1666,10 +1704,138 @@ public class ComposeMessageActivity extends Activity
                     copyToClipboard(copyedUrl);
                     return true;
 
+                case MENU_COPY_TO_SIM: {
+                    if (MessageUtils.getActivatedIccCardCount() > 1) {
+                        showCopySelectDialog(mMsgItem);
+                    } else if (MessageUtils.isMultiSimEnabledMms()) {
+                        new Thread(new CopyToSimThread(mMsgItem,
+                                MessageUtils.isIccCardActivated(MessageUtils.SUB1) ?
+                                MessageUtils.SUB1 : MessageUtils.SUB2)).start();
+                    } else {
+                        new Thread(new CopyToSimThread(mMsgItem)).start();
+                    }
+                    return true;
+                }
                 default:
                     return false;
             }
         }
+    }
+
+    private void showCopySelectDialog(final MessageItem msgItem) {
+        String[] items = new String[MessageUtils.getActivatedIccCardCount()];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = getMultiSimName(i);
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        if (items.length > 1) {
+            builder.setTitle(getString(R.string.menu_copy_to));
+        } else {
+            builder.setTitle(getString(R.string.operation_to_card_memory));
+        }
+        builder.setCancelable(true);
+        builder.setItems(items, new DialogInterface.OnClickListener() {
+            public final void onClick(DialogInterface dialog, int which) {
+                if (which == 0) {
+                    new Thread(new CopyToSimThread(msgItem, MessageUtils.SUB1)).start();
+                } else {
+                    new Thread(new CopyToSimThread(msgItem, MessageUtils.SUB2)).start();
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    //Thread for CopyToSim
+    private class CopyToSimThread extends Thread {
+        private MessageItem msgItem;
+        private int subscription;
+        public CopyToSimThread(MessageItem msgItem) {
+            this.msgItem = msgItem;
+            this.subscription = MessageUtils.SUB_INVALID;
+        }
+
+        public CopyToSimThread(MessageItem msgItem, int subscription) {
+            this.msgItem = msgItem;
+            this.subscription = subscription;
+        }
+
+        @Override
+        public void run() {
+            copyToSim(msgItem, subscription);
+        }
+    }
+
+    private void copyToSim(MessageItem msgItem, int subscription) {
+        int boxId = msgItem.mBoxId;
+        String address = msgItem.mAddress;
+        String text = msgItem.mBody;
+        long timestamp = msgItem.mDate != 0 ? msgItem.mDate : System.currentTimeMillis();
+        Time then = new Time();
+        then.set(timestamp);
+        byte[] datepdu = formatDateToPduGSM(then);
+
+        ArrayList<String> messages = SmsManager.getDefault().divideMessage(text);
+        final int messageCount = messages.size();
+        Log.e(TAG, "copyToSim : Copy message count = "+messageCount);
+        Message msg = CopyToSimWithToastHandler.obtainMessage();
+        msg.what = SHOW_COPY_TOAST;
+        msg.obj = getString(R.string.operate_success);
+
+        for (int j = 0; j < messageCount; j++) {
+            String content = messages.get(j);
+            Log.e(TAG, "copyToSim : Copy message content = "+content);
+            if (TextUtils.isEmpty(content)) {
+                if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                    Log.e(TAG, "copyToSim : Copy error for empty content!");
+                }
+                continue;
+            }
+            ContentValues values = new ContentValues(6);
+            values.put(Sms.DATE, timestamp);
+            values.put(Sms.BODY, content);
+            values.put(Sms.TYPE, boxId);
+            values.put(Sms.ADDRESS, address);
+            values.put(Sms.READ, MessageUtils.MESSAGE_READ);
+            // -1 for MessageUtils.SUB_INVALID , 0 for MessageUtils.SUB1, 1 for MessageUtils.SUB2
+            values.put(Sms.SUB_ID, subscription);
+            Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+            Log.e(TAG, "copyToSim : Copy message uriStr = " + uriStr);
+            Uri retUri = SqliteWrapper.insert(ComposeMessageActivity.this, getContentResolver(),
+                    uriStr, values);
+            if (uriStr != null && retUri != null) {
+                Log.e(TAG, "copyToCard : uriStr = " + uriStr.toString()
+                        + ", retUri = " + retUri.toString());
+            }
+
+            if (retUri == null) {
+                msg.obj = getString(R.string.operate_failure);
+                break;
+            } else if (MessageUtils.COPY_SUCCESS_FULL.equals(retUri.toString())) {
+                msg.obj = getString(R.string.copy_success_full);
+                break;
+            } else if (MessageUtils.COPY_FAILURE_FULL.equals(retUri.toString())) {
+                msg.obj = getString(R.string.copy_failure_full);
+                break;
+            }
+        }
+        msg.sendToTarget();
+    }
+
+    private byte[] formatDateToPduGSM(Time then) {
+        byte tArr[] = new byte[7];
+        tArr[0] = (byte)((then.year > 2000)?(then.year - 2000):(then.year - 1900));
+        tArr[1] = (byte)(then.month + 1);
+        tArr[2] = (byte)then.monthDay;
+        tArr[3] = (byte)then.hour;
+        tArr[4] = (byte)then.minute;
+        tArr[5] = (byte)then.second;
+        tArr[6] = (byte)0x00;
+        for (int i = 0; i < 7; i++) {
+            tArr[i] = (byte) ((((tArr[i]/10)%10) & 0x0F) | (((tArr[i]%10) & 0x0F)<<4));
+        }
+        return tArr;
     }
 
     private void lockMessage(MessageItem msgItem, boolean locked) {
