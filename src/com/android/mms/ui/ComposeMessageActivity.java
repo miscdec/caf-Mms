@@ -120,6 +120,7 @@ import android.text.util.Linkify;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -318,6 +319,9 @@ public class ComposeMessageActivity extends Activity
     private ImageButton mRecipientsPicker;       // UI control for recipients picker
     private ImageButton mRecipientsPickerGroups; // UI control for group recipients picker
 
+    private ImageView mIndicatorForSim1, mIndicatorForSim2;
+    private View mIndicatorContainerOne, mIndicatorContainerTwo;
+
     // For HW keyboard, 'mIsKeyboardOpen' indicates if the HW keyboard is open.
     // For SW keyboard, 'mIsKeyboardOpen' should always be true.
     private boolean mIsKeyboardOpen;
@@ -424,6 +428,11 @@ public class ComposeMessageActivity extends Activity
     */
     private boolean mIsProcessPickedRecipients = false;
     private int mExistsRecipientsCount = 0;
+
+    // Show two call button in conversation
+    // Call directly via press call button
+    private final static boolean SHOW_TWO_CALL_BUTTON_ON_ACTION_BAR = SystemProperties
+            .getBoolean("persist.env.sys.btnstyle", false);
 
     /**
      * Whether the audio attachment player activity is launched and running
@@ -3349,8 +3358,60 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private void dialRecipient(int subscription) {
+        if (isRecipientCallable()) {
+            String number = getRecipients().get(0).getNumber();
+            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+            if (subscription != MessageUtils.SUB_INVALID) {
+                dialIntent.putExtra("dial_widget_switched", subscription);
+            }
+            startActivity(dialIntent);
+        }
+    }
+
+    private void initTwoCallButtonOnActionBar() {
+        ActionBar mActionBar = getActionBar();
+        if (mActionBar == null) {
+            return;
+        }
+        // Configure action bar.
+        mActionBar.setDisplayOptions(ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME
+               | ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_SHOW_CUSTOM);
+
+        // Prepare the custom view
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View view = inflater.inflate(R.layout.action_bar_call_button, null);
+        mActionBar.setCustomView(view, new ActionBar.LayoutParams(
+                ActionBar.LayoutParams.WRAP_CONTENT,
+                ActionBar.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER_VERTICAL | Gravity.RIGHT));
+
+        mIndicatorContainerOne = (View)view.findViewById(R.id.indicatorContainerOne);
+        mIndicatorContainerTwo = (View)view.findViewById(R.id.indicatorContainerTwo);
+        mIndicatorForSim1 = (ImageView)view.findViewById(R.id.sim_card_indicator1);
+        mIndicatorForSim2 = (ImageView)view.findViewById(R.id.sim_card_indicator2);
+
+        View mCallSim1 = view.findViewById(R.id.indicatorContainerOne);
+        mCallSim1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                dialRecipient(MessageUtils.SUB1);
+            }
+        });
+
+        View mCallSim2 = view.findViewById(R.id.indicatorContainerTwo);
+        mCallSim2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                dialRecipient(MessageUtils.SUB2);
+            }
+        });
+    }
+
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
+        boolean hasSim1 = MessageUtils.isIccInSlot(MessageUtils.SUB1);
+        boolean hasSim2 = MessageUtils.isIccInSlot(MessageUtils.SUB2);
         super.onPrepareOptionsMenu(menu) ;
 
         menu.clear();
@@ -3362,13 +3423,35 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (isRecipientCallable()) {
-            MenuItem item = menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
-                .setIcon(R.drawable.ic_menu_call)
-                .setTitle(R.string.menu_call);
-            if (!isRecipientsEditorVisible()) {
-                // If we're not composing a new message, show the call icon in the actionbar
-                item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            if (hasSim1 && hasSim2) {
+                if (SHOW_TWO_CALL_BUTTON_ON_ACTION_BAR) {
+                    if (mIndicatorContainerOne != null && mIndicatorContainerTwo != null
+                            && mIndicatorForSim1 != null && mIndicatorForSim2 != null) {
+                        mIndicatorForSim1.setImageDrawable(MessageUtils
+                                .getMultiSimIcon(this, MessageUtils.SUB1));
+                        mIndicatorForSim2.setImageDrawable(MessageUtils
+                                .getMultiSimIcon(this, MessageUtils.SUB2));
+                        mIndicatorContainerOne.setVisibility(View.VISIBLE);
+                        mIndicatorContainerTwo.setVisibility(View.VISIBLE);
+                    }
+                }
             }
+
+            if (!SHOW_TWO_CALL_BUTTON_ON_ACTION_BAR || (hasSim1 && !hasSim2)
+                    || (!hasSim1 && hasSim2)) {
+                if (mIndicatorContainerOne != null && mIndicatorContainerTwo != null) {
+                    mIndicatorContainerOne.setVisibility(View.GONE);
+                    mIndicatorContainerTwo.setVisibility(View.GONE);
+                }
+                MenuItem item = menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
+                        .setIcon(R.drawable.ic_menu_call)
+                        .setTitle(R.string.menu_call);
+                if (!isRecipientsEditorVisible()) {
+                    // If we're not composing a new message, show the call icon in the actionbar
+                    item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+                }
+            }
+
         }
 
         if (MmsConfig.getMmsEnabled()) {
@@ -4660,6 +4743,9 @@ public class ComposeMessageActivity extends Activity
         mAttachmentEditor = (AttachmentEditor) findViewById(R.id.attachment_editor);
         mAttachmentEditor.setHandler(mAttachmentEditorHandler);
         mAttachmentEditorScrollView = findViewById(R.id.attachment_editor_scroll_view);
+        if (SHOW_TWO_CALL_BUTTON_ON_ACTION_BAR) {
+            initTwoCallButtonOnActionBar();
+        }
     }
 
     private void confirmDeleteDialog(OnClickListener listener, boolean locked) {
