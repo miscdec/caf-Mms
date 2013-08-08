@@ -106,7 +106,7 @@ public class ManageSimMessages extends Activity
         super.onCreate(icicle);
 
         int subscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY, SUB_INVALID);
-        mIccUri = getIccUriBySubscription(0);
+        mIccUri = getIccUriBySubscription(subscription);
 
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
