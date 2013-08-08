@@ -57,8 +57,15 @@ public class AudioModel extends MediaModel {
 
     private void initModelFromUri(Uri uri) throws MmsException {
         ContentResolver cr = mContext.getContentResolver();
-        Cursor c = SqliteWrapper.query(mContext, cr, uri, null, null, null, null);
-
+        Cursor c = null;
+        boolean initFromFile = false;
+        if (uri.getScheme().equals("file")) {
+            initFromFile = true;
+            c = cr.query(Audio.Media.EXTERNAL_CONTENT_URI, null,
+                    Audio.Media.DATA + "='" + uri.getPath() + "'", null, null);
+        } else {
+            c = SqliteWrapper.query(mContext, cr, uri, null, null, null, null);
+        }
         if (c != null) {
             try {
                 if (c.moveToFirst()) {
