@@ -135,6 +135,7 @@
     <string name="duration_not_a_number" msgid="2856636898040421237">"时长必须为数字。"</string>
     <string name="duration_zero" msgid="3549377790195185977">"时长必须大于 0 秒。"</string>
     <string name="secs" msgid="6886003523109967972">"秒"</string>
+    <string name="title_send_message">发送信息</string>
   <string-array name="select_dialog_items">
     <item msgid="4840183714016984112">"1 秒"</item>
     <item msgid="3734955613666864447">"2 秒"</item>

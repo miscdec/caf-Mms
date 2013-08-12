@@ -782,7 +782,7 @@ public class WorkingMessage {
      * Gets internal message state ready for storage.  Should be called any
      * time the message is about to be sent or written to disk.
      */
-    private void prepareForSave(boolean notify) {
+    public void prepareForSave(boolean notify) {
         // Make sure our working set of recipients is resolved
         // to first-class Contact objects before we save.
         syncWorkingRecipients();
