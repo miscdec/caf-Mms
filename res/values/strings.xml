@@ -919,5 +919,7 @@
     <string name="type_slot2">Card2</string>
     <!--add for showing slot type in MailBoxMessageContent -->
     <string name="slot_type">Slot : %s</string>
+    <!-- select contact group -->
+    <string name="no_contact_group">No groups</string>
 </resources>
 
