@@ -577,6 +577,10 @@ public class MessageListItem extends LinearLayout implements
 
     ForegroundColorSpan mColorSpan = null;  // set in ctor
 
+    private boolean isSimCardMessage() {
+        return mContext instanceof ManageSimMessages;
+    }
+
     private CharSequence formatMessage(MessageItem msgItem, String body,
                                        int subId, String subject, Pattern highlight,
                                        String contentType) {
@@ -610,6 +614,16 @@ public class MessageListItem extends LinearLayout implements
                 }
                 buf.append(parser.addSmileySpans(body));
             }
+        }
+
+        if(isSimCardMessage()) {
+            buf.append("\n");
+            if (msgItem.mBoxId == Sms.MESSAGE_TYPE_INBOX) {
+                buf.append(mContext.getString(R.string.from_label));
+            } else {
+                buf.append(mContext.getString(R.string.to_address_label));
+            }
+            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
         }
 
         if (highlight != null) {
