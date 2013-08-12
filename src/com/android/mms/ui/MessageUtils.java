@@ -95,6 +95,7 @@ public class MessageUtils {
     public static final int SUB_INVALID = -1;  //  for single card product
     public static final int SUB1 = 0;  // for DSDS product of slot one
     public static final int SUB2 = 1;  // for DSDS product of slot two
+    public static final String SUB_KEY  = MSimConstants.SUBSCRIPTION_KEY; // subscription
     // add for getting the read status when copy messages to sim card
     public static final int MESSAGE_READ = 1;
     // add for obtaining icc uri when copying messages to card
@@ -108,6 +109,12 @@ public class MessageUtils {
     private static final String TAG = LogTag.TAG;
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
+    // Ext action define as TelephonyIntents.ACTION_SIM_STATE_CHANGED + subID
+    public static final String ACTION_SIM_STATE_CHANGED0 =
+           "android.intent.action.SIM_STATE_CHANGED0";
+    public static final String ACTION_SIM_STATE_CHANGED1 =
+           "android.intent.action.SIM_STATE_CHANGED1";
+
     // distinguish view vcard from mms but not from contacts.
     private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
 
@@ -140,6 +147,7 @@ public class MessageUtils {
     // Indentify RECIPIENT editText is empty
     public static final int ALL_RECIPIENTS_EMPTY   = -2;
 
+    public static boolean sIsIccLoaded  = false;
     static {
         for (int i = 0; i < NUMERIC_CHARS_SUGAR.length; i++) {
             numericSugarMap.put(NUMERIC_CHARS_SUGAR[i], NUMERIC_CHARS_SUGAR[i]);
@@ -1190,5 +1198,9 @@ public class MessageUtils {
             default:
                 return ICC_URI;
         }
+    }
+
+    public static void setIsIccLoaded(boolean isIccLoaded) {
+        sIsIccLoaded = isIccLoaded;
     }
 }

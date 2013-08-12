@@ -27,6 +27,7 @@ import java.util.GregorianCalendar;
 
 import android.app.Activity;
 import android.app.Service;
+import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -34,6 +35,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.Handler;
@@ -54,12 +56,14 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.Conversation;
 import com.android.mms.ui.ClassZeroActivity;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.Recycler;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.widget.MmsWidgetProvider;
@@ -102,6 +106,7 @@ public class SmsReceiverService extends Service {
     };
 
     public Handler mToastHandler = new Handler();
+    private AsyncQueryHandler mQueryHandler = null;
 
     // This must match SEND_PROJECTION.
     private static final int SEND_COLUMN_ID         = 0;
@@ -113,6 +118,13 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_PRIORITY   = 6;
 
     private int mResultCode;
+
+    static final int TOKEN_QUERY_ICC1  = 4097;
+    static final int TOKEN_QUERY_ICC2  = 4098;
+    static final int TOKEN_QUERY_ICC   = 4099;
+    static final int TOKEN_DELETE_ICC1 = 4100;
+    static final int TOKEN_DELETE_ICC2 = 4101;
+    static final int TOKEN_DELETE_ICC  = 4102;
 
     @Override
     public void onCreate() {
@@ -129,6 +141,40 @@ public class SmsReceiverService extends Service {
 
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
+        mQueryHandler = new QueryHandler(getContentResolver());
+    }
+
+    private class QueryHandler extends AsyncQueryHandler {
+        public QueryHandler(ContentResolver cr) {
+            super(cr);
+        }
+
+        @Override
+        protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+            Log.d(TAG, "onQueryComplete: token = " + token + ";cursor = " + cursor);
+
+            return;
+        }
+
+        @Override
+        protected void onDeleteComplete(int token, Object cookie, int result) {
+            Log.d(TAG, "onDeleteComplete: token = " + token + ";result = " + result);
+
+            Uri iccUri = null;
+            if (token == TOKEN_DELETE_ICC) {
+                iccUri = MessageUtils.getIccUriBySubscription(MessageUtils.SUB_INVALID);
+            } else if (token == TOKEN_DELETE_ICC1) {
+                iccUri = MessageUtils.getIccUriBySubscription(MessageUtils.SUB1);
+            } else if (token == TOKEN_DELETE_ICC2) {
+                iccUri = MessageUtils.getIccUriBySubscription(MessageUtils.SUB2);
+            }
+
+            if (iccUri != null) {
+                ContentResolver resolver = getContentResolver();
+                resolver.notifyChange(iccUri, null);
+            }
+            return;
+        }
     }
 
     @Override
@@ -221,7 +267,47 @@ public class SmsReceiverService extends Service {
                     handleSendMessage();
                 } else if (ACTION_SEND_INACTIVE_MESSAGE.equals(action)) {
                     handleSendInactiveMessage();
-                }
+                } else if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
+                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY,
+                            MessageUtils.SUB_INVALID);
+                    String stateExtra = intent.getStringExtra(
+                            IccCardConstants.INTENT_KEY_ICC_STATE);
+
+                    Log.d(TAG, "ACTION_SIM_STATE_CHANGED : stateExtra= " + stateExtra
+                            + ", subscription= " + subscription);
+                    if (!MessageUtils.isMultiSimEnabledMms()) {
+                        subscription = MessageUtils.SUB_INVALID;
+                    }
+
+                    if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_ICC_UNKNOWN.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_LOCKED_ON_PIN.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    } else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(true);
+                        queryIccSms(subscription);
+                    }
+                } else if (MessageUtils.ACTION_SIM_STATE_CHANGED0.equals(action)
+                        || MessageUtils.ACTION_SIM_STATE_CHANGED1.equals(action)) {
+                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY,
+                            MessageUtils.SUB_INVALID);
+
+                    String stateExtra = intent.getStringExtra(
+                            IccCardConstants.INTENT_KEY_ICC_STATE);
+
+                    if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_ICC_UNKNOWN.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_LOCKED_ON_PIN.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    } else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(true);
+                        queryIccSms(subscription);
+                    }
+               }
             }
             // NOTE: We MUST not call stopSelf() directly, since we need to
             // make sure the wake lock acquired by AlertReceiver is released.
@@ -716,6 +802,35 @@ public class SmsReceiverService extends Service {
             context.unregisterReceiver(SmsReceiver.getInstance());
         } catch (IllegalArgumentException e) {
             // Allow un-matched register-unregister calls
+        }
+    }
+
+    private void queryIccSms(int subscription) {
+        Uri iccUri = MessageUtils.getIccUriBySubscription(subscription);
+        int tokenId = TOKEN_QUERY_ICC;
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            tokenId = subscription == MessageUtils.SUB1 ? TOKEN_QUERY_ICC1 : TOKEN_QUERY_ICC2;
+        }
+
+        try {
+            mQueryHandler.startQuery(tokenId, null, iccUri, null, null, null, null);
+        } catch (SQLiteException e) {
+            SqliteWrapper.checkSQLiteException(this, e);
+        }
+    }
+
+    private void handleIccAbsent(int subscription) {
+        Log.d(TAG, "handleIccAbsent : subscription = " + subscription);
+        Uri iccUri = MessageUtils.getIccUriBySubscription(subscription);
+        int tokenId = TOKEN_DELETE_ICC;
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            tokenId = subscription == MessageUtils.SUB1 ? TOKEN_DELETE_ICC1 : TOKEN_DELETE_ICC2;
+        }
+
+        try {
+            mQueryHandler.startDelete(tokenId, null, iccUri, null, null);
+        } catch (SQLiteException e) {
+            SqliteWrapper.checkSQLiteException(this, e);
         }
     }
 }
