@@ -891,7 +891,6 @@ public class ComposeMessageActivity extends Activity
         mMsimDialog.setCanceledOnTouchOutside(true);
 
         int[] smsBtnIds = {R.id.BtnSubOne, R.id.BtnSubTwo, R.id.BtnSubThree};
-        int[] subString={R.string.sub1, R.string.sub2, R.string.sub3};
         int phoneCount = MSimTelephonyManager.getDefault().getPhoneCount();
         Button[] smsBtns = new Button[phoneCount];
 
@@ -899,7 +898,7 @@ public class ComposeMessageActivity extends Activity
             final int subscription = i;
             smsBtns[i] = (Button) layout.findViewById(smsBtnIds[i]);
             smsBtns[i].setVisibility(View.VISIBLE);
-            smsBtns[i].setText(subString[i]);
+            smsBtns[i].setText(getMultiSimName(i));
             smsBtns[i].setOnClickListener(
                 new View.OnClickListener() {
                     public void onClick(View v) {
@@ -923,9 +922,8 @@ public class ComposeMessageActivity extends Activity
     }
 
     private String getMultiSimName(int subscription) {
-        return "Sub " + subscription;
-        //return Settings.System.getString(getApplicationContext().getContentResolver(),
-        //                Settings.Global.MULTI_SIM_NAME[subscription]);
+        return Settings.System.getString(getApplicationContext().getContentResolver(),
+                        Settings.System.MULTI_SIM_NAME[subscription]);
     }
 
     private void showSendConfirm() {
