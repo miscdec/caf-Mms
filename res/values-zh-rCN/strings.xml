@@ -432,4 +432,30 @@
     <string name="pref_title_cdma_priority">短信优先级</string>
     <string name="pref_summary_cdma_priority">CDMA短信优先级设置</string>
     <string name="prefDialogTitle_cdma_priority">优先级</string>
+
+    <string name="confirm_delete_selected_messages">选中的信息将被删除</string>
+    <!-- menu item of mailboxmessagecontent -->
+    <string name="menu_load_push">载入</string>
+    <string name="menu_delete_msg">删除</string>
+    <!-- toast for send result -->
+    <string name="send_failure">发送失败！</string>
+    <string name="send_success">发送成功！</string>
+    <!-- title of mailboxmessagecontent -->
+    <string name="message_detail">信息详情</string>
+    <string name="select_messages">选择信息</string>
+    <string name="no_message">无信息</string>
+    <string name="change_mode">切换模式</string>
+    <!-- Spinner item of box type in mailbox-mode -->
+    <string name="box_type_select">选择信箱</string>
+    <string name="type_inbox">收件箱</string>
+    <string name="type_sent">已发信息</string>
+    <string name="type_outbox">发件箱</string>
+    <string name="type_draft">草稿</string>
+    <!-- Spinner item of slot type in mailbox-mode -->
+    <string name="slot_type_select">选择卡槽</string>
+    <string name="type_all">全部</string>
+    <string name="type_slot1">卡1</string>
+    <string name="type_slot2">卡2</string>
+    <!--add for showing slot type in MailBoxMessageContent -->
+    <string name="slot_type">卡槽 : %s</string>
 </resources>
