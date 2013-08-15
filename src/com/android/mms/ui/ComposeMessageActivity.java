@@ -3390,6 +3390,16 @@ public class ComposeMessageActivity extends Activity
         return super.onCreateDialog(id);
     }
 
+    @Override
+    protected void onPrepareDialog(int id, Dialog dialog) {
+        switch (id) {
+            case DIALOG_IMPORT_TEMPLATE:
+                removeDialog(id);
+                break;
+        }
+        super.onPrepareDialog(id, dialog);
+    }
+
     private Dialog showImportTemplateDialog(){
         String [] smsTempArray = null;
         Uri uri = Uri.parse("content://com.android.mms.MessageTemplateProvider/messages");
