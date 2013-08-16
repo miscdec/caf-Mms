@@ -459,4 +459,6 @@
     <string name="type_slot2">卡2</string>
     <!--add for showing slot type in MailBoxMessageContent -->
     <string name="slot_type">卡槽 : %s</string>
+    <!-- select contact group -->
+    <string name="no_contact_group">没有任何群组</string>
 </resources>
