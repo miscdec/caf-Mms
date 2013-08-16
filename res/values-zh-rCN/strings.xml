@@ -387,6 +387,18 @@
     <string name="subscription2_title">"Sim卡2"</string>
     <string name="cancel_sms">"取消"</string>
 
+    <!-- Subscription selection strings -->
+    <string name="pending_mms_title">"彩信等待由另一个卡槽处理"</string>
+    <string name="pending_mms">"信息：一条或多条彩信正在等待中"</string>
+    <string name="pending_mms_text">"点击切换卡槽"</string>
+
+    <string name="abort_mms">"信息: 终止彩信发送"</string>
+    <string name="abort_mms_text ">"点击可终止发送并返回"</string>
+
+    <string name="progress_mms_title">"彩信正在另一个卡槽处理中"</string>
+    <string name="progress_mms">"信息: 彩信正在处理中..."</string>
+    <string name="progress_mms_text ">"点击重试"</string>
+
     <!-- Add for share contact feature -->
     <string name="type_vcard">电子名片</string>
     <string name="import_vcard">导入</string>
