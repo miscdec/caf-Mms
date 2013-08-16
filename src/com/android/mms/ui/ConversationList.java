@@ -64,6 +64,7 @@ import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
@@ -918,9 +919,29 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     }
 
+    public void checkAll() {
+        int count = getListView().getCount();
+
+        for (int i = 0; i < count; i++) {
+            getListView().setItemChecked(i, true);
+        }
+        mListAdapter.notifyDataSetChanged();
+    }
+
+    public void unCheckAll() {
+        int count = getListView().getCount();
+
+        for (int i = 0; i < count; i++) {
+            getListView().setItemChecked(i, false);
+        }
+        mListAdapter.notifyDataSetChanged();
+    }
+
     private class ModeCallback implements ListView.MultiChoiceModeListener {
         private View mMultiSelectActionBarView;
         private TextView mSelectedConvCount;
+        private ImageView mSelectedAll;
+        private boolean mHasSelectAll = false;
         private HashSet<Long> mSelectedThreadIds;
 
         @Override
@@ -939,6 +960,23 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mode.setCustomView(mMultiSelectActionBarView);
             ((TextView)mMultiSelectActionBarView.findViewById(R.id.title))
                 .setText(R.string.select_conversations);
+
+            mSelectedAll = (ImageView) mMultiSelectActionBarView.findViewById(R.id.selecte_all);
+            mSelectedAll.setImageResource(R.drawable.ic_menu_select_all);
+            mSelectedAll.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mHasSelectAll) {
+                        mHasSelectAll = false;
+                        unCheckAll();
+                        mSelectedAll.setImageResource(R.drawable.ic_menu_select_all);
+                    } else {
+                        mHasSelectAll = true;
+                        checkAll();
+                        mSelectedAll.setImageResource(R.drawable.ic_menu_unselect_all);
+                    }
+                }
+            });
             return true;
         }
 
