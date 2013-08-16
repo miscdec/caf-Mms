@@ -564,6 +564,8 @@
     <string name="sms_full_title">Text message memory full</string>
     <!-- Device Full Notification dialog text. -->
     <string name="sms_full_body">An incoming message was rejected due to full memory. Delete some old messages.</string>
+    <!-- Mms size is too large dialog text. -->
+    <string name="mms_too_large">The message is too large to download.</string>
 
     <!-- Sms's Being Rejected Notification dialog title. -->
     <string name="sms_rejected_title">Text message rejected</string>

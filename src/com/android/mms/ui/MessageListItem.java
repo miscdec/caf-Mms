@@ -62,6 +62,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.android.mms.MmsApp;
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.WorkingMessage;
@@ -259,16 +260,29 @@ public class MessageListItem extends LinearLayout implements
                             NotificationInd nInd = (NotificationInd) PduPersister.getPduPersister(
                                     mContext).load(mMessageItem.mMessageUri);
                             Log.d(TAG, "Download notify Uri = " + mMessageItem.mMessageUri);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                            builder.setTitle(R.string.download);
+                            builder.setCancelable(true);
                             if (nInd.getExpiry() < System.currentTimeMillis() / 1000L) {
-                                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-                                builder.setTitle(R.string.download);
                                 // builder.setIcon(R.drawable.ic_dialog_alert_holo_light);
-                                builder.setCancelable(true);
                                 builder.setMessage(mContext
                                         .getString(R.string.service_message_not_found));
                                 builder.show();
                                 SqliteWrapper.delete(mContext, mContext.getContentResolver(),
                                         mMessageItem.mMessageUri, null, null);
+                                return;
+                            }
+                            // Judge whether memory is full
+                            else if (MessageUtils.isMmsMemoryFull(mContext)) {
+                                builder.setMessage(mContext.getString(R.string.sms_full_body));
+                                builder.show();
+                                return;
+                            }
+                            // Judge whether message size is too large
+                            else if ((int) nInd.getMessageSize() >
+                                    MmsConfig.getMaxMessageSize()) {
+                                builder.setMessage(mContext.getString(R.string.mms_too_large));
+                                builder.show();
                                 return;
                             }
                         } catch (MmsException e) {
