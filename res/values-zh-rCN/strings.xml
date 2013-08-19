@@ -354,7 +354,12 @@
     <string name="notification_separator" msgid="2334673105226536422">"  "</string>
     <string name="enumeration_comma" msgid="213598026698964628">"、 "</string>
     <string name="message_timestamp_format" msgid="4188999027493614617">"<xliff:g id="STRING_0">%1$s</xliff:g> - <xliff:g id="STRING_1">%2$s</xliff:g>"</string>
-
+    <string name="mail_to">发送邮件至:</string>
+    <!-- Menu item to connect the extract url in WwwContextMenuActivity  -->
+    <string name="menu_connect_url">连接</string>
+    <!-- Menu item to add the extract url to boomark in WwwContextMenuActivity  -->
+    <string name="menu_add_to_label">保存到书签</string>
+    <string name="loadurlinfo_str">加载此URL?</string>
     <!-- 短信模板相关的 -->
     <string name="pref_summary_message_template">编辑短信模板</string>
     <string name="pref_title_message_template">短信模板</string>
