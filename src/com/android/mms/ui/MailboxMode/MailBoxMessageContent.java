@@ -48,11 +48,15 @@ import android.provider.Telephony.Sms;
 import android.text.method.HideReturnsTransformationMethod;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.util.Log;
+import android.util.TypedValue;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -92,6 +96,10 @@ public class MailBoxMessageContent extends Activity {
     private TextView mTimeDetailTextView;
     private TextView mNumberView;
     private TextView mSlotTypeView;
+    /*Operations for gesture to scale the current text fontsize of content*/
+    private float mScaleFactor = 1;
+    private  ScaleGestureDetector mScaleDetector;
+    private  GestureDetector mGestureDetector;
 
     private static final int MENU_CALL_RECIPIENT = Menu.FIRST;
     private static final int MENU_DELETE = Menu.FIRST + 1;
@@ -107,6 +115,14 @@ public class MailBoxMessageContent extends Activity {
     private static final int OPERATE_DEL_SINGLE_OVER = 1;
     private static final int UPDATE_TITLE = 2;
     private static final int SHOW_TOAST = 3;
+
+    private static final int ZOOM_IN = 4;
+    private static final int ZOOM_OUT = 5;
+    private final int MAX_ZOOM_IN_SIZE = 60;
+    private final int MAX_ZOOM_OUT_SIZE = 20;
+    private final int THE_SIZE_OF_PER_ZOOM = 9;
+    private float mTextSize = 27;
+    private int mZoomMsg = -1;
 
     private SetReadThread mSetReadThread = null;
     private ContentResolver mContentResolver;
@@ -397,6 +413,10 @@ public class MailBoxMessageContent extends Activity {
         mBodyTextView.setText(formatMessage(mMsgText));
         mFromTextView = (TextView) findViewById(R.id.TextViewFrom);
         mFromTextView.setText(mFromtoLabel);
+        mScaleDetector = new ScaleGestureDetector(this, new MyScaleListener());
+        mGestureDetector = new GestureDetector(this,
+                new GestureDetector.SimpleOnGestureListener(){ });
+        mGestureDetector.setOnDoubleTapListener(null);
         mNumberView = (TextView) findViewById(R.id.TextViewNumber);
         mNumberView.setText(mMsgFrom);
         mTimeTextView = (TextView) findViewById(R.id.TextViewTime);
@@ -474,6 +494,14 @@ public class MailBoxMessageContent extends Activity {
                 Toast.makeText(MailBoxMessageContent.this, toastStr,
                         Toast.LENGTH_SHORT).show();
                 break;
+            case ZOOM_IN:
+                 zoomIn();
+                 mBodyTextView.invalidate();
+                 break;
+            case ZOOM_OUT:
+                 zoomOut();
+                 mBodyTextView.invalidate();
+                 break;
             case OPERATE_DEL_SINGLE_OVER:
                 int result = msg.arg1;
                 if (result > 0) {
@@ -491,6 +519,107 @@ public class MailBoxMessageContent extends Activity {
             }
         }
     };
+
+    private void zoomIn() {
+        mTextSize = mTextSize + THE_SIZE_OF_PER_ZOOM <= MAX_ZOOM_IN_SIZE ?
+                mTextSize + THE_SIZE_OF_PER_ZOOM : MAX_ZOOM_IN_SIZE;
+        if (mTextSize >= MAX_ZOOM_IN_SIZE) {
+            mTextSize = MAX_ZOOM_IN_SIZE;
+        }
+        mBodyTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,mTextSize);
+    }
+
+    private void zoomOut() {
+        mTextSize = mTextSize - THE_SIZE_OF_PER_ZOOM < MAX_ZOOM_OUT_SIZE ?
+                MAX_ZOOM_OUT_SIZE : mTextSize - THE_SIZE_OF_PER_ZOOM;
+        if (mTextSize <= MAX_ZOOM_OUT_SIZE) {
+           mTextSize = MAX_ZOOM_OUT_SIZE;
+        }
+        mBodyTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,mTextSize);
+    }
+
+    private class MyScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            float scale = detector.getScaleFactor();
+            if (scale < 0.999999 || scale > 1.00001) {
+                mScaleFactor = scale;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            return true;
+        }
+
+        @Override
+        public void onScaleEnd(ScaleGestureDetector detector) {
+            float scale = detector.getScaleFactor();
+            if (mScaleFactor > 1.0) {
+                mZoomMsg = ZOOM_IN;
+            } else if (mScaleFactor < 1.0) {
+                mZoomMsg = ZOOM_OUT;
+            }
+        }
+    }
+
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        mScaleDetector.onTouchEvent(ev);
+        final int action = ev.getAction();
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                mGestureDetector.onTouchEvent(ev);
+                return false;
+
+            case MotionEvent.ACTION_MOVE:
+               mGestureDetector.onTouchEvent(ev);
+               return false;
+
+            case MotionEvent.ACTION_UP:
+                mGestureDetector.onTouchEvent(ev);
+                Message msg = Message.obtain();
+                msg.what = mZoomMsg;
+                mUiHandler.sendMessage(msg);
+                mZoomMsg = -1;
+                return false;
+        }
+        return true;
+    }
+
+    public boolean onTouchEvent(MotionEvent ev) {
+        mScaleDetector.onTouchEvent(ev);
+        final int action = ev.getAction();
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                mGestureDetector.onTouchEvent(ev);
+               return true;
+
+            case MotionEvent.ACTION_MOVE:
+               mGestureDetector.onTouchEvent(ev);
+               return true;
+
+            case MotionEvent.ACTION_UP:
+                mGestureDetector.onTouchEvent(ev);
+                Message msg = Message.obtain();
+                msg.what = mZoomMsg;
+                mUiHandler.sendMessage(msg);
+                mZoomMsg = -1;
+                return true;
+
+            case MotionEvent.ACTION_CANCEL:
+                mGestureDetector.onTouchEvent(ev);
+                return true;
+
+            default:
+                if (mGestureDetector.onTouchEvent(ev)) {
+                    return true;
+                }
+
+           return true;
+        }
+    }
 
     private CharSequence formatMessage(String body) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
