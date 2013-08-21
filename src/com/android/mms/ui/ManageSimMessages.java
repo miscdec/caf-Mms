@@ -22,10 +22,14 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.AsyncQueryHandler;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
@@ -53,7 +57,10 @@ import android.widget.TextView;
 
 import com.android.mms.R;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.telephony.MSimConstants;
+import com.android.internal.telephony.TelephonyIntents;
+
 import java.util.ArrayList;
 
 /**
@@ -81,6 +88,7 @@ public class ManageSimMessages extends Activity
     private static final int SHOW_EMPTY = 1;
     private static final int SHOW_BUSY = 2;
     private int mState;
+    private int mSubscription;
 
     private Uri mIccUri;
     private ContentResolver mContentResolver;
@@ -94,6 +102,9 @@ public class ManageSimMessages extends Activity
 
     public static final int SIM_FULL_NOTIFICATION_ID = 234;
 
+    // The flag of contacts need update again.
+    private boolean mIsNeedUpdateContacts = false;
+
     private final ContentObserver simChangeObserver =
             new ContentObserver(new Handler()) {
         @Override
@@ -102,12 +113,21 @@ public class ManageSimMessages extends Activity
         }
     };
 
+    // Define this ContentObserver for update the ListView
+    // when Contacts information be changed
+    private final ContentObserver mContactsChangedObserver = new ContentObserver(new Handler()) {
+        @Override
+        public void onChange(boolean selfUpdate) {
+            mIsNeedUpdateContacts = updateContacts();
+        }
+    };
+
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
-        int subscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY, SUB_INVALID);
-        mIccUri = getIccUriBySubscription(subscription);
+        mSubscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY, SUB_INVALID);
+        mIccUri = getIccUriBySubscription(mSubscription);
 
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
@@ -122,6 +142,7 @@ public class ManageSimMessages extends Activity
 
         init();
         registerSimChangeObserver();
+        registerSimChangedReceiver();
     }
 
     @Override
@@ -136,8 +157,56 @@ public class ManageSimMessages extends Activity
                 SIM_FULL_NOTIFICATION_ID);
 
         updateState(SHOW_BUSY);
-        startQuery();
+        if (MessageUtils.sIsIccLoaded) {
+            startQuery();
+        }
     }
+
+    /**
+     * A wrapper of a broadcast receiver which provides network connectivity information
+     * for all kinds of network: wifi, mobile, etc.
+     */
+    private final BroadcastReceiver mIccStateChangedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = "
+                    + intent + ", stateExtra = " + stateExtra);
+
+                if (!MessageUtils.isMultiSimEnabledMms()) {
+                    subscription = MessageUtils.SUB_INVALID;
+                }
+
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)
+                        && subscription == mSubscription) {
+                    startQuery();
+                }
+            } else if (MessageUtils.ACTION_SIM_STATE_CHANGED0.equals(action)) {
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = "
+                    + intent + ", stateExtra = " + stateExtra);
+
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)
+                        && subscription == mSubscription) {
+                    startQuery();
+                }
+            } else if (MessageUtils.ACTION_SIM_STATE_CHANGED1.equals(action)) {
+                int subscription = intent.getIntExtra(MessageUtils.SUB_KEY, -1);
+                String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
+                Log.d(TAG, "mIccStateChangedReceiver: Handling incoming intent = "
+                    + intent + ", stateExtra = " + stateExtra);
+
+                if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)
+                        && subscription == mSubscription) {
+                    startQuery();
+                }
+            }
+        }
+    };
 
     private Uri getIccUriBySubscription(int subscription) {
         switch (subscription) {
@@ -367,8 +436,20 @@ public class ManageSimMessages extends Activity
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        MessagingNotification.setCurrentlyDisplayedCardList(false);
+
+        if (mCursor != null && !mCursor.isClosed()) {
+            mCursor.close();
+        }
+    }
+
+    @Override
     public void onDestroy() {
         mContentResolver.unregisterContentObserver(simChangeObserver);
+        mContentResolver.unregisterContentObserver(mContactsChangedObserver);
+        unregisterReceiver(mIccStateChangedReceiver);
         super.onDestroy();
     }
 
@@ -384,6 +465,16 @@ public class ManageSimMessages extends Activity
     private void registerSimChangeObserver() {
         mContentResolver.registerContentObserver(
                 mIccUri, true, simChangeObserver);
+        mContentResolver.registerContentObserver(Contacts.CONTENT_URI, true,
+                mContactsChangedObserver);
+    }
+
+    private void registerSimChangedReceiver() {
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+        intentFilter.addAction(MessageUtils.ACTION_SIM_STATE_CHANGED0);
+        intentFilter.addAction(MessageUtils.ACTION_SIM_STATE_CHANGED1);
+        registerReceiver(mIccStateChangedReceiver, intentFilter);
     }
 
     private void copyToPhoneMemory(Cursor cursor) {
@@ -535,6 +626,59 @@ public class ManageSimMessages extends Activity
 
     private void viewMessage(Cursor cursor) {
         // TODO: Add this.
+    }
+
+    private void setMessageRead(Context context) {
+        Log.d(TAG, "setMessageRead : mSubscription = " + mSubscription);
+
+        ContentValues values = new ContentValues(1);
+        values.put("status_on_icc", MessageUtils.STATUS_ON_SIM_READ);
+        SqliteWrapper.update(context, getContentResolver(),
+            MessageUtils.getIccUriBySubscription(mSubscription),
+            values, null, null);
+    }
+
+    /**
+     * update contact icon, the method be used after add or delete a contact
+     * from ManagerSimMessages
+     */
+    private boolean updateContacts() {
+
+        int count = mSimList.getCount();
+        int number = 0;
+
+        for (int i = 0; i < count; i++) {
+            MessageListItem item = (MessageListItem) mSimList.getChildAt(i);
+
+            // if the item doesn't show at the interface, it will be null.
+            if (item != null) {
+                boolean isSelf = Sms.isOutgoingFolder(item.getMessageItem().mBoxId);
+                String addr = isSelf ? null : item.getMessageItem().mAddress;
+                item.updateAvatarView(this, addr, false);
+            } else {
+                number++;
+            }
+        }
+
+        return number == count;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        MessagingNotification.setCurrentlyDisplayedCardList(true);
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                SIM_FULL_NOTIFICATION_ID);
+        MessagingNotification.cancelNotification(getApplicationContext(),
+                MessagingNotification.getNotificationIDBySubscription(mSubscription));
+
+        setMessageRead(this);
+
+        // if updateContacts call before this method, it will doesn't work well,
+        // need updateContacts again.
+        if (mIsNeedUpdateContacts) {
+            mIsNeedUpdateContacts = updateContacts();
+        }
     }
 }
 

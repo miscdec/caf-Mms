@@ -44,6 +44,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
+import android.os.SystemProperties;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Sms.Inbox;
 import android.provider.Telephony.Sms.Intents;
@@ -92,6 +93,8 @@ public class SmsReceiverService extends Service {
             "com.android.mms.transaction.SEND_MESSAGE";
     public static final String ACTION_SEND_INACTIVE_MESSAGE =
             "com.android.mms.transaction.SEND_INACTIVE_MESSAGE";
+    public static final String ICC_SMS_RECEIVED_ACTION =
+            "com.android.mms.transaction.ICC_SMS_RECEIVED";
 
     // This must match the column IDs below.
     private static final String[] SEND_PROJECTION = new String[] {
@@ -152,7 +155,23 @@ public class SmsReceiverService extends Service {
         @Override
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
             Log.d(TAG, "onQueryComplete: token = " + token + ";cursor = " + cursor);
-
+            if (cursor != null) {
+                cursor.close();
+            }
+            switch (token) {
+                case TOKEN_QUERY_ICC1:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(
+                            SmsReceiverService.this, MessageUtils.SUB1);
+                    return;
+                case TOKEN_QUERY_ICC2:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(
+                            SmsReceiverService.this, MessageUtils.SUB2);
+                    return;
+                case TOKEN_QUERY_ICC:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(
+                            SmsReceiverService.this, MessageUtils.SUB_INVALID);
+                    return;
+            }
             return;
         }
 
@@ -474,21 +493,55 @@ public class SmsReceiverService extends Service {
     private void handleSmsReceived(Intent intent, int error) {
         SmsMessage[] msgs = Intents.getMessagesFromIntent(intent);
         String format = intent.getStringExtra("format");
-        Uri messageUri = insertMessage(this, msgs, error, format);
-
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
-            SmsMessage sms = msgs[0];
-            Log.v(TAG, "handleSmsReceived" + (sms.isReplace() ? "(replace)" : "") +
-                    " messageUri: " + messageUri +
-                    ", address: " + sms.getOriginatingAddress() +
-                    ", body: " + sms.getMessageBody());
+        Uri messageUri = null;
+        // If user setting prefer store is ICC card, we need to copy received SMS to ICC card.
+        boolean isNeedStoreToICC = false;
+        if (SystemProperties.getBoolean("persist.env.mms.savelocation", false)) {
+            int curPreStore = MessageUtils.getCurSmsPreferStore(this, msgs[0].getSubId());
+            if (curPreStore == MessageUtils.STORE_TO_ICC) {
+                isNeedStoreToICC = true;
+            }
+            Log.d(TAG, "handleSmsReceived : subscription: " + msgs[0].getSubId() +
+                    " is need saving to ICC: " + isNeedStoreToICC);
         }
 
-        if (messageUri != null) {
-            long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
-            // Called off of the UI thread so ok to block.
-            Log.d(TAG, "handleSmsReceived messageUri: " + messageUri + " threadId: " + threadId);
-            MessagingNotification.blockingUpdateNewMessageIndicator(this, threadId, false);
+        if (isNeedStoreToICC) {
+            for (int i = 0; i < msgs.length; i++) {
+                SmsMessage sms = msgs[i];
+                if (sms.mWrappedSmsMessage != null) {
+                    messageUri = storeMessageToIcc(sms, sms.getSubId());
+                }
+                if (messageUri != null) {
+                    if (MessageUtils.COPY_FAILURE_FULL.equals(messageUri.toString())) {
+                        Log.e(TAG, "Save to card fail because ICC has been full.");
+                        MessageUtils.handleIccFull(this, sms.getSubId());
+                        return;
+                    }
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this,
+                            sms.getSubId());
+                } else {
+                    Toast.makeText(this, getString(R.string.pref_sms_store_card_unknown_fail),
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        } else {
+            messageUri = insertMessage(this, msgs, error, format);
+
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
+                SmsMessage sms = msgs[0];
+                Log.v(TAG, "handleSmsReceived" + (sms.isReplace() ? "(replace)" : "") +
+                        " messageUri: " + messageUri +
+                        ", address: " + sms.getOriginatingAddress() +
+                        ", body: " + sms.getMessageBody());
+            }
+
+            if (messageUri != null) {
+                long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
+                // Called off of the UI thread so ok to block.
+                Log.d(TAG, "handleSmsReceived messageUri: " + messageUri +
+                        " threadId: " + threadId);
+                MessagingNotification.blockingUpdateNewMessageIndicator(this, threadId, false);
+            }
         }
     }
 
@@ -507,6 +560,13 @@ public class SmsReceiverService extends Service {
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
                 this, MessagingNotification.THREAD_ALL, false);
+
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            handleIccAbsent(MessageUtils.SUB1);
+            handleIccAbsent(MessageUtils.SUB2);
+        } else {
+            handleIccAbsent(MessageUtils.SUB_INVALID);
+        }
     }
 
     /**
@@ -832,6 +892,45 @@ public class SmsReceiverService extends Service {
         } catch (SQLiteException e) {
             SqliteWrapper.checkSQLiteException(this, e);
         }
+    }
+
+    private Uri storeMessageToIcc(SmsMessage sms, int subscription) {
+        if (sms == null) {
+            return null;
+        }
+
+        String content = replaceFormFeeds(sms.getDisplayMessageBody());
+        if (content == null) {
+            content = "";
+        }
+        long timestamp = sms.getTimestampMillis() != 0 ?
+                sms.getTimestampMillis() : System.currentTimeMillis();
+
+        ContentValues values = new ContentValues(13);
+        values.put("service_center_address", sms.getServiceCenterAddress());
+        values.put(Sms.ADDRESS, sms.getDisplayOriginatingAddress());
+        values.put("message_class", String.valueOf(sms.getMessageClass()));
+        values.put(Sms.BODY, content);
+        values.put(Sms.DATE, timestamp);
+        values.put(Sms.STATUS, Sms.STATUS_NONE);
+        values.put("is_status_report", -1);
+        values.put("transport_type", "sms");
+        values.put(Sms.TYPE, Sms.MESSAGE_TYPE_INBOX);
+        values.put(Sms.SUB_ID, subscription);
+        values.put("status_on_icc", SmsManager.STATUS_ON_ICC_UNREAD);
+        values.put("status", SmsManager.STATUS_ON_ICC_UNREAD);
+        values.put(Sms.READ, SmsManager.STATUS_ON_ICC_FREE);
+
+        Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+        Log.e(TAG, "storeMessageToIcc : save message uriStr = " + uriStr);
+        Uri retUri = SqliteWrapper.insert(SmsReceiverService.this, getContentResolver(),
+                uriStr, values);
+        if (uriStr != null && retUri != null) {
+            Log.e(TAG, "storeSmsToICC : uriStr = " + uriStr.toString()
+                    + ", retUri = " + retUri.toString());
+        }
+
+        return retUri;
     }
 }
 

@@ -491,4 +491,12 @@
     <string name="slot_type">卡槽 : %s</string>
     <!-- select contact group -->
     <string name="no_contact_group">没有任何群组</string>
+
+    <!-- Settings item description for Preferred storage -->
+    <string name="pref_title_sms_store">优先存储器</string>
+    <string name="pref_title_sms_store_card1">卡1优先存储器</string>
+    <string name="pref_title_sms_store_card2">卡2优先存储器</string>
+    <string name="pref_sms_store_phone">话机</string>
+    <string name="pref_sms_store_card">SIM卡</string>
+    <string name="pref_sms_store_card_unknown_fail">新短信接收失败，无法正确读取SIM卡</string>
 </resources>

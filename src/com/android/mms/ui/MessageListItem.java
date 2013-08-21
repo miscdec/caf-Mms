@@ -965,4 +965,31 @@ public class MessageListItem extends LinearLayout implements
     public void setVcardVisibility(boolean visible) {
         // TODO Auto-generated method stub
     }
+
+    // Add this fuction for ManagerSimMessages to update Contact icon
+    public void updateAvatarView(Context context, String addr, boolean isSelf) {
+        Drawable avatarDrawable;
+        if (isSelf || !TextUtils.isEmpty(addr)) {
+            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
+            avatarDrawable = contact.getAvatar(context, sDefaultContactImage);
+
+            if (isSelf) {
+                mAvatar.assignContactUri(Profile.CONTENT_URI);
+            } else {
+                if (contact.existsInDatabase()) {
+                    mAvatar.assignContactUri(contact.getUri());
+                } else {
+                    mAvatar.assignContactFromPhone(contact.getNumber(), true);
+                }
+            }
+        } else {
+            avatarDrawable = sDefaultContactImage;
+        }
+        mAvatar.setImageDrawable(avatarDrawable);
+
+        if (isSelf) {
+            mAvatar.setClickable(false);
+        }
+    }
+
 }

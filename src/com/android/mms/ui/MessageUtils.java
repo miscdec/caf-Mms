@@ -28,12 +28,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.database.Cursor;
@@ -46,6 +50,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.StatFs;
 import android.os.storage.StorageManager;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
@@ -109,6 +114,8 @@ public class MessageUtils {
     public static final String SUB_KEY  = MSimConstants.SUBSCRIPTION_KEY; // subscription
     // add for getting the read status when copy messages to sim card
     public static final int MESSAGE_READ = 1;
+    // Received and read (TS 51.011 10.5.3)
+    static public final int STATUS_ON_SIM_READ = 1;
     // add for obtaining icc uri when copying messages to card
     public static final Uri ICC_URI = Uri.parse("content://sms/icc");
     public static final Uri ICC1_URI = Uri.parse("content://sms/icc1");
@@ -168,6 +175,12 @@ public class MessageUtils {
     public static final int ALL_RECIPIENTS_EMPTY   = -2;
 
     public static boolean sIsIccLoaded  = false;
+
+    public static final int STORE_TO_PHONE = 1;
+    public static final int STORE_TO_ICC = 2;
+    public static final int CARD_SUB1 = MSimConstants.SUB1;
+    public static final int CARD_SUB2 = MSimConstants.SUB2;
+
     static {
         for (int i = 0; i < NUMERIC_CHARS_SUGAR.length; i++) {
             numericSugarMap.put(NUMERIC_CHARS_SUGAR[i], NUMERIC_CHARS_SUGAR[i]);
@@ -1529,5 +1542,44 @@ public class MessageUtils {
             }
         }
         return result;
+    }
+
+    public static int getCurSmsPreferStore(Context context, int subscription) {
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
+        int preferStore = STORE_TO_PHONE;
+
+        if (isMultiSimEnabledMms()) {
+            if (subscription == SUB1) {
+                preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store_card1", "1"));
+            } else {
+                preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store_card2", "1"));
+            }
+        } else {
+            preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store", "1"));
+        }
+
+        return preferStore;
+    }
+
+    public static void handleIccFull(Context context, int subscription) {
+        NotificationManager nm = (NotificationManager)
+                context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        Intent viewSimIntent = new Intent(context, ManageSimMessages.class);
+        viewSimIntent.setAction(Intent.ACTION_VIEW);
+        viewSimIntent.putExtra(MessageUtils.SUB_KEY, subscription);
+        viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, viewSimIntent, 0);
+
+        Notification notification = new Notification();
+        notification.icon = R.drawable.stat_sys_no_sim;
+        notification.tickerText = context.getString(R.string.sim_full_title);
+        notification.defaults = Notification.DEFAULT_ALL;
+
+        notification.setLatestEventInfo(context, context.getString(R.string.sim_full_title),
+                context.getString(R.string.sim_full_body), pendingIntent);
+        nm.notify(ManageSimMessages.SIM_FULL_NOTIFICATION_ID, notification);
     }
 }

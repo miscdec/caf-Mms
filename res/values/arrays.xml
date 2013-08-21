@@ -122,4 +122,13 @@
         <item>@string/type_slot1</item>
         <item>@string/type_slot2</item>
     </string-array>
+
+    <string-array name="entries_sms_store_value">
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="entries_sms_store">
+        <item>@string/pref_sms_store_phone</item>
+        <item>@string/pref_sms_store_card</item>
+    </string-array>
 </resources>
