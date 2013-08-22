@@ -399,6 +399,10 @@ public class RecipientsEditor extends RecipientEditTextView {
     private static String getNumberAt(Spanned sp, int start, int end, Context context) {
         String number = getFieldAt("number", sp, start, end, context);
         number = PhoneNumberUtils.replaceUnicodeDigits(number);
+        // If number contains '@', it should be an email, so we delete the blank space.
+        if (number != null && number.contains("@")) {
+            number = number.replace(" ", "");
+        }
         if (!TextUtils.isEmpty(number)) {
             int pos = number.indexOf('<');
             if (pos >= 0 && pos < number.indexOf('>')) {
