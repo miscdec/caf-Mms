@@ -124,6 +124,9 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private CheckBoxPreference mMmsAutoRetrievialPref;
     private ListPreference mMmsExpiryPref;
     private RingtonePreference mRingtonePref;
+    private ListPreference mSmsStorePref;
+    private ListPreference mSmsStoreCard1Pref;
+    private ListPreference mSmsStoreCard2Pref;
     private Recycler mSmsRecycler;
     private Recycler mMmsRecycler;
     private Preference mSmsTemplate;
@@ -200,6 +203,9 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mSmsSignaturePref = (CheckBoxPreference) findPreference("pref_key_enable_signature");
         mSmsSignatureEditPref = (EditTextPreference) findPreference("pref_key_edit_signature");
         mRingtonePref = (RingtonePreference) findPreference(NOTIFICATION_RINGTONE);
+        mSmsStorePref = (ListPreference) findPreference("pref_key_sms_store");
+        mSmsStoreCard1Pref = (ListPreference) findPreference("pref_key_sms_store_card1");
+        mSmsStoreCard2Pref = (ListPreference) findPreference("pref_key_sms_store_card2");
 
         if (SystemProperties.getBoolean("persist.env.mms.priority", false)) {
             Preference priorotySettings =  findPreference(SMS_CDMA_PRIORITY);
@@ -297,6 +303,42 @@ public class MessagingPreferenceActivity extends PreferenceActivity
 
         setEnabledNotificationsPref();
 
+        if (SystemProperties.getBoolean("persist.env.mms.savelocation", false)) {
+            if (MessageUtils.isMultiSimEnabledMms()) {
+                PreferenceCategory storageOptions =
+                    (PreferenceCategory)findPreference("pref_key_storage_settings");
+                storageOptions.removePreference(mSmsStorePref);
+
+                if (!MessageUtils.hasIccCard(MessageUtils.CARD_SUB1)) {
+                    storageOptions.removePreference(mSmsStoreCard1Pref);
+                } else {
+                    setSmsPreferStoreSummary(MessageUtils.CARD_SUB1);
+                }
+                if (!MessageUtils.hasIccCard(MessageUtils.CARD_SUB2)) {
+                    storageOptions.removePreference(mSmsStoreCard2Pref);
+                } else {
+                    setSmsPreferStoreSummary(MessageUtils.CARD_SUB2);
+                }
+            } else {
+                PreferenceCategory storageOptions =
+                    (PreferenceCategory)findPreference("pref_key_storage_settings");
+                storageOptions.removePreference(mSmsStoreCard1Pref);
+                storageOptions.removePreference(mSmsStoreCard2Pref);
+
+                if (!MessageUtils.hasIccCard()) {
+                    storageOptions.removePreference(mSmsStorePref);
+                } else {
+                    setSmsPreferStoreSummary();
+                }
+            }
+        } else {
+            PreferenceCategory storageOptions =
+                    (PreferenceCategory)findPreference("pref_key_storage_settings");
+            storageOptions.removePreference(mSmsStorePref);
+            storageOptions.removePreference(mSmsStoreCard1Pref);
+            storageOptions.removePreference(mSmsStoreCard2Pref);
+        }
+
         // If needed, migrate vibration setting from the previous tri-state setting stored in
         // NOTIFICATION_VIBRATE_WHEN to the boolean setting stored in NOTIFICATION_VIBRATE.
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -358,6 +400,48 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             updateSMSCPref(i, airplaneModeOn);
         }
         registerReceiver();
+    }
+
+    private void setSmsPreferStoreSummary() {
+        mSmsStorePref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                final String summary = newValue.toString();
+                int index = mSmsStorePref.findIndexOfValue(summary);
+                mSmsStorePref.setSummary(mSmsStorePref.getEntries()[index]);
+                mSmsStorePref.setValue(summary);
+                return true;
+            }
+        });
+        mSmsStorePref.setSummary(mSmsStorePref.getEntry());
+    }
+
+    private void setSmsPreferStoreSummary(int subscription) {
+        if (MessageUtils.CARD_SUB1 == subscription) {
+            mSmsStoreCard1Pref.setOnPreferenceChangeListener(
+                    new Preference.OnPreferenceChangeListener() {
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    final String summary = newValue.toString();
+                    int index = mSmsStoreCard1Pref.findIndexOfValue(summary);
+                    mSmsStoreCard1Pref.setSummary(mSmsStoreCard1Pref.getEntries()[index]);
+                    mSmsStoreCard1Pref.setValue(summary);
+                    return false;
+                }
+            });
+            mSmsStoreCard1Pref.setSummary(mSmsStoreCard1Pref.getEntry());
+        } else {
+            mSmsStoreCard2Pref.setOnPreferenceChangeListener(
+                    new Preference.OnPreferenceChangeListener() {
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    final String summary = newValue.toString();
+                    int index = mSmsStoreCard2Pref.findIndexOfValue(summary);
+                    mSmsStoreCard2Pref.setSummary(mSmsStoreCard2Pref.getEntries()[index]);
+                    mSmsStoreCard2Pref.setValue(summary);
+                    //setSmsPreferStorage(Integer.parseInt(summary),MessageUtils.CARD_SUB2);
+                    return false;
+                }
+            });
+            mSmsStoreCard2Pref.setSummary(mSmsStoreCard2Pref.getEntry());
+        }
     }
 
     private void setEnabledNotificationsPref() {
