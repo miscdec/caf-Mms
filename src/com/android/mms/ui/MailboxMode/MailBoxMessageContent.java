@@ -35,6 +35,7 @@ import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -46,6 +47,7 @@ import android.provider.ContactsContract.Contacts;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.text.method.HideReturnsTransformationMethod;
+import android.text.style.URLSpan;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.view.GestureDetector;
@@ -54,9 +56,11 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.util.Log;
 import android.util.TypedValue;
+import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -66,6 +70,7 @@ import com.android.mms.R;
 import com.android.mms.transaction.MessageSender;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.SmsMessageSender;
+import com.android.mms.ui.WwwContextMenuActivity;
 import com.android.mms.util.SmileyParser;
 import com.google.android.mms.MmsException;
 
@@ -411,6 +416,12 @@ public class MailBoxMessageContent extends Activity {
         mBodyTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
         mBodyTextView.setTextIsSelectable(true);
         mBodyTextView.setText(formatMessage(mMsgText));
+        mBodyTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onMailBoxMessageClick(MailBoxMessageContent.this);
+            }
+        });
         mFromTextView = (TextView) findViewById(R.id.TextViewFrom);
         mFromTextView.setText(mFromtoLabel);
         mScaleDetector = new ScaleGestureDetector(this, new MyScaleListener());
@@ -447,6 +458,87 @@ public class MailBoxMessageContent extends Activity {
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+    }
+
+    public void onMailBoxMessageClick(final Context context) {
+        // Check for links. If none, do nothing; if 1, open it; if >1, ask user
+        // to pick one
+        final URLSpan[] spans = mBodyTextView.getUrls();
+        if (spans.length == 1) {
+            Uri uri = Uri.parse(spans[0].getURL());
+            Intent intent = new Intent(MailBoxMessageContent.this, WwwContextMenuActivity.class);
+            intent.setData(uri);
+            context.startActivity(intent);
+        } else if (spans.length > 1) {
+            ArrayAdapter<URLSpan> adapter = new ArrayAdapter<URLSpan>(context,
+                    android.R.layout.select_dialog_item, spans) {
+
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View v = super.getView(position, convertView, parent);
+                    try {
+                        URLSpan span = getItem(position);
+                        String url = span.getURL();
+                        Uri uri = Uri.parse(url);
+                        TextView tv = (TextView) v;
+                        Drawable d = context.getPackageManager().getActivityIcon(
+                                new Intent(Intent.ACTION_VIEW, uri));
+                        if (d != null) {
+                            d.setBounds(0, 0, d.getIntrinsicHeight(),
+                                    d.getIntrinsicHeight());
+                            tv.setCompoundDrawablePadding(10);
+                            tv.setCompoundDrawables(d, null, null, null);
+                        }
+                        // If prefix string is "mailto" then translate
+                        // it.
+                        final String mailPrefix = "mailto:";
+                        String tmpUrl = null;
+                        if (url != null) {
+                            if (url.startsWith(mailPrefix)) {
+                                url = context.getResources().getString(R.string.mail_to) +
+                                        url.substring(mailPrefix.length());
+                            }
+                            tmpUrl = url.replaceAll("tels", "");
+                        }
+                        tv.setText(tmpUrl);
+                    } catch (android.content.pm.PackageManager.NameNotFoundException ex) {
+                        // it's ok if we're unable to set the drawable
+                        // for this view - the user
+                        // can still use it
+                    }
+                    return v;
+                }
+            };
+
+            AlertDialog.Builder b = new AlertDialog.Builder(context);
+
+            DialogInterface.OnClickListener click = new DialogInterface.OnClickListener() {
+                @Override
+                public final void onClick(DialogInterface dialog, int which) {
+                    if (which >= 0) {
+                        Uri uri = Uri.parse(spans[which].getURL());
+                        Intent intent = new Intent(MailBoxMessageContent.this,
+                                WwwContextMenuActivity.class);
+                        intent.setData(uri);
+                        context.startActivity(intent);
+                    }
+                    dialog.dismiss();
+                }
+            };
+
+            b.setTitle(R.string.select_link_title);
+            b.setCancelable(true);
+            b.setAdapter(adapter, click);
+
+            b.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                @Override
+                public final void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+
+            b.show();
+        }
     }
 
     private class DeleteMessageListener implements OnClickListener {
