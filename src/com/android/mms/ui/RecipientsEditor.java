@@ -326,19 +326,15 @@ public class RecipientsEditor extends RecipientEditTextView {
         } else {
             // Clear the recipient when add contact again
             setText("");
-            for (int i = 0; i < list.size(); i++) {
+            for (Contact c : list) {
                 // Calling setText to set the recipients won't create chips,
                 // but calling append() will.
 
                 // Need to judge  whether contactToToken(c) return valid data,if it is not,
                 // do not append it so that the comma can not be displayed.
-                CharSequence charSequence = contactToToken(list.get(i));
+                CharSequence charSequence = contactToToken(c);
                 if (charSequence != null && charSequence.length() > 0) {
-                    if (i < list.size() - 1) {
-                        append(charSequence + ", ");
-                    } else if (i == list.size() - 1) {
-                        append(charSequence + ",");
-                    }
+                    append( charSequence+ ", ");
                 }
             }
         }
