@@ -535,6 +535,10 @@ public class SmsReceiverService extends Service {
                         ", body: " + sms.getMessageBody());
             }
 
+            if (MessageUtils.MAX_SMS_MESSAGE_COUNT != -1) {
+                MessageUtils.checkIsPhoneMessageFull(this);
+            }
+
             if (messageUri != null) {
                 long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
                 // Called off of the UI thread so ok to block.
