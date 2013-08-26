@@ -49,6 +49,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.StatFs;
+import android.os.SystemProperties;
 import android.os.storage.StorageManager;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
@@ -81,6 +82,7 @@ import com.android.mms.model.MediaModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.VcardModel;
+import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
 import com.google.android.mms.ContentType;
@@ -180,6 +182,13 @@ public class MessageUtils {
     public static final int STORE_TO_ICC = 2;
     public static final int CARD_SUB1 = MSimConstants.SUB1;
     public static final int CARD_SUB2 = MSimConstants.SUB2;
+
+    // the max short message count
+    public static int MAX_SMS_MESSAGE_COUNT =
+            SystemProperties.getInt("persist.env.c.mms.maxcount", -1);
+    // add for obtaining all short message count
+    public static final Uri MAILBOX_SMS_MESSAGES_COUNT =
+            Uri.parse("content://mms-sms/messagescount");
 
     static {
         for (int i = 0; i < NUMERIC_CHARS_SUGAR.length; i++) {
@@ -1581,5 +1590,41 @@ public class MessageUtils {
         notification.setLatestEventInfo(context, context.getString(R.string.sim_full_title),
                 context.getString(R.string.sim_full_body), pendingIntent);
         nm.notify(ManageSimMessages.SIM_FULL_NOTIFICATION_ID, notification);
+    }
+
+    /* check to see whether short message count is up to 2000 */
+    public static void checkIsPhoneMessageFull(Context context) {
+        int msgCount = getSmsMessageCount(context);
+        boolean isPhoneSmsCountFull = (msgCount >= MAX_SMS_MESSAGE_COUNT);
+
+        Log.d(TAG, "checkIsPhoneMessageFull : isPhoneSmsCountFull = " + isPhoneSmsCountFull);
+
+        if (isPhoneSmsCountFull) {
+            MessagingNotification.updateSmsMessageFullIndicator(context, true);
+        } else {
+            MessagingNotification.updateSmsMessageFullIndicator(context, false);
+        }
+    }
+
+    public static int getSmsMessageCount(Context context) {
+        int msgCount = -1;
+
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                MAILBOX_SMS_MESSAGES_COUNT, null, null, null, null);
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    msgCount = cursor.getInt(0);
+                } else {
+                    Log.d(TAG, "getSmsMessageCount returned no rows!");
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+
+        Log.d(TAG, "getSmsMessageCount : msgCount = " + msgCount);
+        return msgCount;
     }
 }
