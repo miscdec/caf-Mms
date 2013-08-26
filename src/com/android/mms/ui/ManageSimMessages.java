@@ -522,7 +522,7 @@ public class ManageSimMessages extends Activity
                 int count = cursor.getCount();
 
                 for (int i = 0; i < count; ++i) {
-                    if (!mIsDeleteAll) {
+                    if (!mIsDeleteAll || cursor.isClosed()) {
                         break;
                     }
                     cursor.moveToPosition(i);
