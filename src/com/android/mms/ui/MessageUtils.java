@@ -190,6 +190,9 @@ public class MessageUtils {
     public static final Uri MAILBOX_SMS_MESSAGES_COUNT =
             Uri.parse("content://mms-sms/messagescount");
 
+    private static final String[] WEB_SCHEMA =
+                        new String[] { "http://", "https://", "rtsp://" };
+
     static {
         for (int i = 0; i < NUMERIC_CHARS_SUGAR.length; i++) {
             numericSugarMap.put(NUMERIC_CHARS_SUGAR[i], NUMERIC_CHARS_SUGAR[i]);
@@ -1626,5 +1629,14 @@ public class MessageUtils {
 
         Log.d(TAG, "getSmsMessageCount : msgCount = " + msgCount);
         return msgCount;
+    }
+
+    public static boolean isWebUrl(String url) {
+        for (String schema : WEB_SCHEMA) {
+            if (url.startsWith(schema)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
