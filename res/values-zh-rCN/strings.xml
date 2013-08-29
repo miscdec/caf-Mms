@@ -448,6 +448,7 @@
     <string name="sim_card1">SIM卡1</string>
     <string name="sim_card2">SIM卡2</string>
     <string name="please_wait">请稍候...</string>
+    <string name="get_sms_failed">"获取Sim卡短信失败"</string>
 
     <string name="open_wap_push_title">"浏览器信息"</string>
     <string name="open_wap_push_body">"是否要访问网站？"</string>
