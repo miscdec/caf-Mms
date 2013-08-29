@@ -439,10 +439,6 @@ public class ManageSimMessages extends Activity
     protected void onStop() {
         super.onStop();
         MessagingNotification.setCurrentlyDisplayedCardList(false);
-
-        if (mCursor != null && !mCursor.isClosed()) {
-            mCursor.close();
-        }
     }
 
     @Override
