@@ -22,6 +22,8 @@ import android.os.SystemProperties;
 import android.util.Config;
 import android.util.Log;
 
+import com.android.mms.R;
+
 /**
  * Default retry scheme, based on specs.
  */
@@ -35,6 +37,8 @@ public class DefaultRetryScheme extends AbstractRetryScheme {
 
     private static final int[] sCmccRetryScheme = {
         0, 0, 5 * 60 * 1000, 10 * 60 * 1000, 30 * 60 * 1000};
+
+    private int mDefaultRetryTimes = -1;
 
     private static int[] sDefaultRetryScheme;
 
@@ -50,12 +54,15 @@ public class DefaultRetryScheme extends AbstractRetryScheme {
         mRetriedTimes = mRetriedTimes >= sDefaultRetryScheme.length
                 ? sDefaultRetryScheme.length - 1 : mRetriedTimes;
 
+        mDefaultRetryTimes = context.getResources().getInteger(R.integer.def_retry_times);
+        mDefaultRetryTimes = mDefaultRetryTimes > 0 ? mDefaultRetryTimes :
+                       sDefaultRetryScheme.length;
         // TODO Get retry scheme from preference.
     }
 
     @Override
     public int getRetryLimit() {
-        return sDefaultRetryScheme.length;
+        return mDefaultRetryTimes;
     }
 
     @Override
