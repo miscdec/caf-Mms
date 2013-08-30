@@ -252,6 +252,8 @@ public class MailBoxMessageContent extends Activity {
                 Intent intentReplay = new Intent(this, ComposeMessageActivity.class);
                 intentReplay.putExtra("address", mMsgFrom);
                 intentReplay.putExtra("exit_on_sent", true);
+                // Reuse forward mode to be compatible with preexisting logic in target activity.
+                intentReplay.putExtra("forwarded_message", true);
                 this.startActivity(intentReplay);
                 break;
             case MENU_LOCK:
