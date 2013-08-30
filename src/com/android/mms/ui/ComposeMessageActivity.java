@@ -2486,6 +2486,18 @@ public class ComposeMessageActivity extends Activity
         mTopPanel.setVisibility(anySubViewsVisible ? View.VISIBLE : View.GONE);
     }
 
+    /**
+     * Indicates if the message is reject the call via custom message.
+     */
+    private boolean isRejectCustomMessage() {
+        String actionName = getIntent().getAction();
+        if (actionName != null
+                && actionName.equals(TelephonyManager.ACTION_RESPOND_VIA_MESSAGE)) {
+            return true;
+        }
+        return false;
+    }
+
     public void initialize(Bundle savedInstanceState, long originalThreadId) {
         // Create a new empty working message.
         mWorkingMessage = WorkingMessage.createEmpty(this);
@@ -2522,7 +2534,8 @@ public class ComposeMessageActivity extends Activity
         // We don't attempt to handle the Intent.ACTION_SEND when saveInstanceState is non-null.
         // saveInstanceState is non-null when this activity is killed. In that case, we already
         // handled the attachment or the send, so we don't try and parse the intent again.
-        if (savedInstanceState == null && (handleSendIntent() || handleForwardedMessage())) {
+        if (savedInstanceState == null && (handleSendIntent() || handleForwardedMessage()
+                || isRejectCustomMessage())) {
             mShouldLoadDraft = false;
         }
 
