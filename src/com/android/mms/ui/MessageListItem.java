@@ -280,7 +280,7 @@ public class MessageListItem extends LinearLayout implements
                                 return;
                             }
                             // Judge whether memory is full
-                            else if (MessageUtils.isMmsMemoryFull(mContext)) {
+                            else if (MessageUtils.isMmsMemoryFull()) {
                                 builder.setMessage(mContext.getString(R.string.sms_full_body));
                                 builder.show();
                                 return;
