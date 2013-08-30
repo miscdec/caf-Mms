@@ -19,6 +19,7 @@ package com.android.mms.ui;
 
 import android.content.Context;
 import android.net.Uri;
+import android.os.SystemProperties;
 import android.util.Log;
 
 import com.android.mms.model.AudioModel;
@@ -27,6 +28,7 @@ import com.android.mms.model.RegionModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.TextModel;
+import com.android.mms.model.VcardModel;
 import com.android.mms.model.VideoModel;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
@@ -36,8 +38,10 @@ import com.google.android.mms.MmsException;
  */
 public class SlideshowEditor {
     private static final String TAG = "Mms:slideshow";
-
-    public static final int MAX_SLIDE_NUM = 10;
+    private static final int MAX_SLIDE_NUM_DEFAULT_VALUE = 10;
+    public static final int MAX_SLIDE_NUM = SystemProperties
+            .getInt("persist.env.c.mms.maxslidenum",
+                    MAX_SLIDE_NUM_DEFAULT_VALUE);
 
     private final Context mContext;
     private SlideshowModel mModel;
@@ -143,6 +147,10 @@ public class SlideshowEditor {
         return mModel.get(position).removeAudio();
     }
 
+    public boolean removeVcard(int position) {
+        return mModel.get(position).removeVcard();
+    }
+
     public void changeText(int position, String newText) {
         if (newText != null) {
             SlideModel slide = mModel.get(position);
@@ -177,6 +185,13 @@ public class SlideshowEditor {
         SlideModel slide = mModel.get(position);
         slide.add(video);
         slide.updateDuration(video.getDuration());
+    }
+
+    public void changeVcard(int position, Uri newVcard) throws MmsException {
+        VcardModel vCard = new VcardModel(mContext, newVcard);
+        SlideModel slide = mModel.get(position);
+        slide.add(vCard);
+        slide.updateDuration(vCard.getDuration());
     }
 
     public void moveSlideUp(int position) {

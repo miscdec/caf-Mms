@@ -89,7 +89,7 @@ public class UriImage {
                 extension = mPath.substring(dotPos + 1);
             }
         }
-        mContentType = mimeTypeMap.getMimeTypeFromExtension(extension);
+        mContentType = mimeTypeMap.getMimeTypeFromExtension(extension.toLowerCase());
         // It's ok if mContentType is null. Eventually we'll show a toast telling the
         // user the picture couldn't be attached.
 
@@ -333,8 +333,8 @@ public class UriImage {
                             (os != null && os.size() > byteLimit)) {
                         // The decoder does not support the inSampleSize option.
                         // Scale the bitmap using Bitmap library.
-                        int scaledWidth = (int)(outWidth * scaleFactor);
-                        int scaledHeight = (int)(outHeight * scaleFactor);
+                        int scaledWidth = (int)Math.ceil(outWidth * scaleFactor);
+                        int scaledHeight = (int)Math.ceil(outHeight * scaleFactor);
 
                         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                             Log.v(TAG, "getResizedImageData: retry scaling using " +

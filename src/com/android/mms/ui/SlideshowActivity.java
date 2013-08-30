@@ -263,6 +263,17 @@ public class SlideshowActivity extends Activity implements EventListener {
     }
 
     @Override
+    protected void onResume() {
+
+        // we need add this eventListener.Because this listener is been remove in method onPause()
+        if (null != mSmilDoc) {
+            ((EventTarget) mSmilDoc).addEventListener(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT,
+                    this, false);
+        }
+        super.onResume();
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         if (mSmilDoc != null) {
@@ -280,13 +291,21 @@ public class SlideshowActivity extends Activity implements EventListener {
         if ((null != mSmilPlayer)) {
             if (isFinishing()) {
                 mSmilPlayer.stop();
-            } else {
+                //only delete the element while this activity finish.
                 mSmilPlayer.stopWhenReload();
             }
             if (mMediaController != null) {
                 // Must do this so we don't leak a window.
                 mMediaController.hide();
             }
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (null != mSmilPlayer) {
+            mSmilPlayer.resetState();
         }
     }
 

@@ -108,7 +108,7 @@ public class MmsWidgetProvider extends AppWidgetProvider {
         // On click intent for Conversation
         TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(context);
         taskStackBuilder.addParentStack(ComposeMessageActivity.class);
-        Intent msgIntent = new Intent(Intent.ACTION_VIEW);
+        Intent msgIntent = new Intent(Intent.ACTION_MAIN);
         msgIntent.setType("vnd.android-dir/mms-sms");
         taskStackBuilder.addNextIntent(msgIntent);
         remoteViews.setPendingIntentTemplate(R.id.conversation_list,

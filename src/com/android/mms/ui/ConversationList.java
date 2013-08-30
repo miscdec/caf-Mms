@@ -42,6 +42,7 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemProperties;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
@@ -63,6 +64,7 @@ import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
@@ -117,6 +119,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private final static String LAST_LIST_OFFSET = "last_list_offset";
 
     static private final String CHECKED_MESSAGE_LIMITS = "checked_message_limits";
+
+    private static boolean isCheckBox = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -342,6 +346,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        Contact.clearListener();
+    }
+
+    @Override
     public void onDraftChanged(final long threadId, final boolean hasDraft) {
         // Run notifyDataSetChanged() on the main thread.
         mQueryHandler.post(new Runnable() {
@@ -430,6 +441,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (item != null) {
             item.setVisible(mListAdapter.getCount() > 0);
         }
+
+        if (!SystemProperties.getBoolean("persist.env.mms.mailbox", false)) {
+            item = menu.findItem(R.id.action_change_mode);
+            if (item != null) {
+                item.setVisible(false);
+            }
+        }
+
         if (!LogTag.DEBUG_DUMP) {
             item = menu.findItem(R.id.action_debug_dump);
             if (item != null) {
@@ -460,6 +479,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             case R.id.action_settings:
                 Intent intent = new Intent(this, MessagingPreferenceActivity.class);
                 startActivityIfNeeded(intent, -1);
+                break;
+            case R.id.action_change_mode:
+                Intent modeIntent = new Intent(this, MailBoxMessageList.class);
+                startActivityIfNeeded(modeIntent, -1);
+                finish();
+                break;
+            case R.id.action_memory_status:
+                startActivity(new Intent(this, MemoryStatusActivity.class));
                 break;
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
@@ -666,6 +693,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @Override
                 public void onClick(View v) {
                     listener.setDeleteLockedMessage(checkbox.isChecked());
+                    isCheckBox=checkbox.isChecked();
                 }
             });
         }
@@ -697,6 +725,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             return false;
         }
     };
+
+    public static boolean getExitDialogueSign() {
+        return isCheckBox;
+    }
+
+    public static void setExitDialogueSign() {
+        isCheckBox=false;
+    }
 
     public static class DeleteThreadListener implements OnClickListener {
         private final Collection<Long> mThreadIds;
@@ -886,9 +922,29 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     }
 
+    public void checkAll() {
+        int count = getListView().getCount();
+
+        for (int i = 0; i < count; i++) {
+            getListView().setItemChecked(i, true);
+        }
+        mListAdapter.notifyDataSetChanged();
+    }
+
+    public void unCheckAll() {
+        int count = getListView().getCount();
+
+        for (int i = 0; i < count; i++) {
+            getListView().setItemChecked(i, false);
+        }
+        mListAdapter.notifyDataSetChanged();
+    }
+
     private class ModeCallback implements ListView.MultiChoiceModeListener {
         private View mMultiSelectActionBarView;
         private TextView mSelectedConvCount;
+        private ImageView mSelectedAll;
+        private boolean mHasSelectAll = false;
         private HashSet<Long> mSelectedThreadIds;
 
         @Override
@@ -907,6 +963,23 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mode.setCustomView(mMultiSelectActionBarView);
             ((TextView)mMultiSelectActionBarView.findViewById(R.id.title))
                 .setText(R.string.select_conversations);
+
+            mSelectedAll = (ImageView) mMultiSelectActionBarView.findViewById(R.id.selecte_all);
+            mSelectedAll.setImageResource(R.drawable.ic_menu_select_all);
+            mSelectedAll.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mHasSelectAll) {
+                        mHasSelectAll = false;
+                        unCheckAll();
+                        mSelectedAll.setImageResource(R.drawable.ic_menu_select_all);
+                    } else {
+                        mHasSelectAll = true;
+                        checkAll();
+                        mSelectedAll.setImageResource(R.drawable.ic_menu_unselect_all);
+                    }
+                }
+            });
             return true;
         }
 

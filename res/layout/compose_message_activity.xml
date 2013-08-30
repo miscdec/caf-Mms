@@ -108,6 +108,11 @@
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"/>
 
+                  <ViewStub android:id="@+id/vcard_attachment_view_stub"
+                      android:layout="@layout/vcard_attachment_view"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"/>
+
                   <ViewStub android:id="@+id/slideshow_attachment_view_stub"
                       android:layout="@layout/slideshow_attachment_view"
                       android:layout_width="match_parent"
@@ -144,7 +149,6 @@
                     android:maxLines="3"
                     android:inputType="textShortMessage|textAutoCorrect|textCapSentences|textMultiLine"
                     android:imeOptions="actionSend|flagNoEnterAction"
-                    android:maxLength="2000"
                 />
 
                 <LinearLayout

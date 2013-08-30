@@ -18,6 +18,7 @@
 package com.android.mms.transaction;
 
 import android.content.Context;
+import android.os.SystemProperties;
 import android.util.Config;
 import android.util.Log;
 
@@ -29,12 +30,22 @@ public class DefaultRetryScheme extends AbstractRetryScheme {
     private static final boolean DEBUG = false;
     private static final boolean LOCAL_LOGV = DEBUG ? Config.LOGD : Config.LOGV;
 
-    private static final int[] sDefaultRetryScheme = {
+    private static final int[] sRetryScheme = {
         0, 1 * 60 * 1000, 5 * 60 * 1000, 10 * 60 * 1000, 30 * 60 * 1000};
+
+    private static final int[] sCmccRetryScheme = {
+        0, 0, 5 * 60 * 1000, 10 * 60 * 1000, 30 * 60 * 1000};
+
+    private static int[] sDefaultRetryScheme;
 
     public DefaultRetryScheme(Context context, int retriedTimes) {
         super(retriedTimes);
 
+        if (SystemProperties.getBoolean("persist.env.mms.retryatonce", false)) {
+            sDefaultRetryScheme = sCmccRetryScheme;
+        } else {
+            sDefaultRetryScheme = sRetryScheme;
+        }
         mRetriedTimes = mRetriedTimes < 0 ? 0 : mRetriedTimes;
         mRetriedTimes = mRetriedTimes >= sDefaultRetryScheme.length
                 ? sDefaultRetryScheme.length - 1 : mRetriedTimes;
