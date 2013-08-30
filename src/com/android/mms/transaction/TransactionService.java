@@ -55,6 +55,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.mms.LogTag;
 import com.android.mms.R;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.MultiSimUtility;
 import com.android.mms.util.RateController;
@@ -328,7 +329,7 @@ public class TransactionService extends Service implements Observer {
                                             isTransientFailure(failureType) + " autoDownload=" +
                                             autoDownload);
                                 }
-                                if (!autoDownload) {
+                                if (!autoDownload || MessageUtils.isMmsMemoryFull()) {
                                     // If autodownload is turned off, don't process the
                                     // transaction.
                                     if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {

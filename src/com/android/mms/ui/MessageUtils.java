@@ -1423,19 +1423,9 @@ public class MessageUtils {
         return availableBlocks * blockSize;
     }
 
-    public static boolean isPhoneMemoryFull(Context context) {
-        long available = getStoreUnused();
-        StorageManager sm = StorageManager.from(context);
-
-        if (available < sm.getStorageFullBytes(new File(MMS_DATA_DATA_DIR))) {
-            return true;
-        }
-        return false;
-    }
-
     /* Used for judge whether have memory for save mms */
-    public static boolean isMmsMemoryFull(Context context) {
-        boolean isMemoryFull = isPhoneMemoryFull(context);
+    public static boolean isMmsMemoryFull() {
+        boolean isMemoryFull = isPhoneMemoryFull();
         if (isMemoryFull) {
             Log.d(TAG, "isMmsMemoryFull : isMemoryFull = " + isMemoryFull);
             return true;

@@ -153,7 +153,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
     public void run() {
         DownloadManager downloadManager = DownloadManager.getInstance();
         boolean autoDownload = allowAutoDownload();
-        boolean isMemoryFull = MessageUtils.isMmsMemoryFull(mContext);
+        boolean isMemoryFull = MessageUtils.isMmsMemoryFull();
         boolean isTooLarge = isMmsSizeTooLarge(mNotificationInd);
         try {
             if (LOCAL_LOGV) {
