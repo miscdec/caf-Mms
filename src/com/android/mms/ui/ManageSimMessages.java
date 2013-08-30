@@ -122,6 +122,19 @@ public class ManageSimMessages extends Activity
         }
     };
 
+    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
+                //can't view sim card message when airplane mode is on
+                if (intent.getBooleanExtra("state", false)) {
+                    closeContextMenu();
+                    updateState(SHOW_EMPTY);
+                }
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -143,6 +156,11 @@ public class ManageSimMessages extends Activity
         init();
         registerSimChangeObserver();
         registerSimChangedReceiver();
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        registerReceiver(mBroadcastReceiver, filter);
+
     }
 
     @Override
@@ -446,6 +464,8 @@ public class ManageSimMessages extends Activity
         mContentResolver.unregisterContentObserver(simChangeObserver);
         mContentResolver.unregisterContentObserver(mContactsChangedObserver);
         unregisterReceiver(mIccStateChangedReceiver);
+        unregisterReceiver(mBroadcastReceiver);
+
         super.onDestroy();
     }
 
