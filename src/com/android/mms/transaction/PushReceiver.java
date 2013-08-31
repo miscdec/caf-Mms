@@ -225,7 +225,7 @@ public class PushReceiver extends BroadcastReceiver {
                             // because it causes UI jank.
                             Uri uri = p.persist(pdu, Inbox.CONTENT_URI,
                                     !NotificationTransaction.allowAutoDownload() ||
-                                    MessageUtils.isMmsMemoryFull(mContext) ||
+                                    MessageUtils.isMmsMemoryFull() ||
                                     NotificationTransaction.isMmsSizeTooLarge(nInd),
                                     MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
                                     null);

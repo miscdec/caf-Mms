@@ -252,6 +252,8 @@ public class MailBoxMessageContent extends Activity {
                 Intent intentReplay = new Intent(this, ComposeMessageActivity.class);
                 intentReplay.putExtra("address", mMsgFrom);
                 intentReplay.putExtra("exit_on_sent", true);
+                // Reuse forward mode to be compatible with preexisting logic in target activity.
+                intentReplay.putExtra("forwarded_message", true);
                 this.startActivity(intentReplay);
                 break;
             case MENU_LOCK:
@@ -465,10 +467,15 @@ public class MailBoxMessageContent extends Activity {
         // to pick one
         final URLSpan[] spans = mBodyTextView.getUrls();
         if (spans.length == 1) {
-            Uri uri = Uri.parse(spans[0].getURL());
-            Intent intent = new Intent(MailBoxMessageContent.this, WwwContextMenuActivity.class);
-            intent.setData(uri);
-            context.startActivity(intent);
+            String url = spans[0].getURL();
+            if (MessageUtils.isWebUrl(url)) {
+                Uri uri = Uri.parse(url);
+                Intent intent = new Intent(context, WwwContextMenuActivity.class);
+                intent.setData(uri);
+                context.startActivity(intent);
+            } else {
+                spans[0].onClick(mBodyTextView);
+            }
         } else if (spans.length > 1) {
             ArrayAdapter<URLSpan> adapter = new ArrayAdapter<URLSpan>(context,
                     android.R.layout.select_dialog_item, spans) {
@@ -516,11 +523,16 @@ public class MailBoxMessageContent extends Activity {
                 @Override
                 public final void onClick(DialogInterface dialog, int which) {
                     if (which >= 0) {
-                        Uri uri = Uri.parse(spans[which].getURL());
-                        Intent intent = new Intent(MailBoxMessageContent.this,
-                                WwwContextMenuActivity.class);
-                        intent.setData(uri);
-                        context.startActivity(intent);
+                        String url = spans[which].getURL();
+                        if (MessageUtils.isWebUrl(url)) {
+                            Uri uri = Uri.parse(url);
+                            Intent intent = new Intent(MailBoxMessageContent.this,
+                                    WwwContextMenuActivity.class);
+                            intent.setData(uri);
+                            context.startActivity(intent);
+                        } else {
+                            spans[which].onClick(mBodyTextView);
+                        }
                     }
                     dialog.dismiss();
                 }

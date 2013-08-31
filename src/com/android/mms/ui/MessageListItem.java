@@ -280,7 +280,7 @@ public class MessageListItem extends LinearLayout implements
                                 return;
                             }
                             // Judge whether memory is full
-                            else if (MessageUtils.isMmsMemoryFull(mContext)) {
+                            else if (MessageUtils.isMmsMemoryFull()) {
                                 builder.setMessage(mContext.getString(R.string.sms_full_body));
                                 builder.show();
                                 return;
@@ -739,10 +739,15 @@ public class MessageListItem extends LinearLayout implements
                         .setCancelable(true)
                         .show();
             } else {
-                Uri uri = Uri.parse(spans[0].getURL());
-                Intent intent = new Intent(mContext, WwwContextMenuActivity.class);
-                intent.setData(uri);
-                mContext.startActivity(intent);
+                String url = spans[0].getURL();
+                if (MessageUtils.isWebUrl(url)) {
+                    Uri uri = Uri.parse(url);
+                    Intent intent = new Intent(mContext, WwwContextMenuActivity.class);
+                    intent.setData(uri);
+                    mContext.startActivity(intent);
+                } else {
+                    spans[0].onClick(mBodyTextView);
+                }
             }
         } else {
             ArrayAdapter<URLSpan> adapter =
@@ -787,10 +792,15 @@ public class MessageListItem extends LinearLayout implements
                 @Override
                 public final void onClick(DialogInterface dialog, int which) {
                     if (which >= 0) {
-                        Uri uri = Uri.parse(spans[which].getURL());
-                        Intent intent = new Intent(mContext, WwwContextMenuActivity.class);
-                        intent.setData(uri);
-                        mContext.startActivity(intent);
+                        String url = spans[which].getURL();
+                        if (MessageUtils.isWebUrl(url)) {
+                            Uri uri = Uri.parse(url);
+                            Intent intent = new Intent(mContext, WwwContextMenuActivity.class);
+                            intent.setData(uri);
+                            mContext.startActivity(intent);
+                        } else {
+                            spans[which].onClick(mBodyTextView);
+                        }
                     }
                     dialog.dismiss();
                 }

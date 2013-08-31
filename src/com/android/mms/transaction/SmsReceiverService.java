@@ -781,6 +781,11 @@ public class SmsReceiverService extends Service {
 
         Uri insertedUri = SqliteWrapper.insert(context, resolver, Inbox.CONTENT_URI, values);
 
+        //Update SIM table cache in SmsProvider for MT Class2 SMS
+        if (sms.getMessageClass() == SmsMessage.MessageClass.CLASS_2) {
+            storeClass2SmsToIccDb(values, sms.getSubId(), sms.getIndexOnIcc());
+        }
+
         // Now make sure we're not over the limit in stored messages
         Recycler.getSmsRecycler().deleteOldMessagesByThreadId(context, threadId);
         MmsWidgetProvider.notifyDatasetChanged(context);
@@ -936,6 +941,37 @@ public class SmsReceiverService extends Service {
 
         return retUri;
     }
+
+    private Uri storeClass2SmsToIccDb(ContentValues initialValues, int subscription, int index) {
+        if (initialValues == null) {
+            return null;
+        }
+
+        ContentValues values = new ContentValues(15);
+        values.put("service_center_address", initialValues.getAsString(Inbox.SERVICE_CENTER));
+        values.put(Sms.ADDRESS, initialValues.getAsString(Inbox.ADDRESS));
+        values.put("message_class", String.valueOf(SmsMessage.MessageClass.CLASS_2));
+        values.put(Sms.BODY, initialValues.getAsString(Inbox.BODY));
+        values.put(Sms.DATE, initialValues.getAsString(Inbox.DATE));
+        values.put(Sms.STATUS, Sms.STATUS_NONE);
+        values.put("is_status_report", -1);
+        values.put("transport_type", "sms");
+        values.put(Sms.TYPE, Sms.MESSAGE_TYPE_INBOX);
+        values.put(Sms.SUB_ID, subscription);
+        values.put("status_on_icc", SmsManager.STATUS_ON_ICC_UNREAD);
+        values.put("status", SmsManager.STATUS_ON_ICC_UNREAD);
+        values.put(Sms.READ, SmsManager.STATUS_ON_ICC_FREE);
+
+        //Dont write to card. Just update SIM table cache.
+        values.put("write_to_card", false);
+        values.put("index_on_icc", index);
+
+        Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+        Log.i(TAG, "storeClass2SmsToIccDb : save message uriStr = " + uriStr + " index = " + index);
+        Uri retUri = SqliteWrapper.insert(SmsReceiverService.this, getContentResolver(),
+                uriStr, values);
+        Log.i(TAG, "storeClass2SmsToIccDb : retUri = " + retUri.toString());
+
+        return retUri;
+    }
 }
-
-
