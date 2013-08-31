@@ -839,7 +839,10 @@ public class ComposeMessageActivity extends Activity
     private class SendIgnoreInvalidRecipientListener implements OnClickListener {
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
-            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            boolean isMms = mWorkingMessage.requiresMms();
+            if (MessageUtils.isMobileDataDisabled(ComposeMessageActivity.this) && isMms) {
+                showMobileDataDisabledDialog();
+            } else if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMsimMessage(true);
             } else {
                 sendMessage(true);
@@ -986,8 +989,11 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void confirmSendMessageIfNeeded() {
+        boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+                showMobileDataDisabledDialog();
+            } else if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMsimMessage(true);
             } else {
                 sendMessage(true);
@@ -995,9 +1001,10 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
-        boolean isMms = mWorkingMessage.requiresMms();
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
+        } else if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+            showMobileDataDisabledDialog();
         } else {
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
@@ -1030,6 +1037,24 @@ public class ComposeMessageActivity extends Activity
                 .setPositiveButton(R.string.yes, new CancelSendingListener())
                 .show();
         }
+    }
+
+    private void showMobileDataDisabledDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.send);
+        builder.setMessage(R.string.mobile_data_disable);
+        builder.setPositiveButton(R.string.yes, new OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    sendMsimMessage(true);
+                } else {
+                    sendMessage(true);
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.setNegativeButton(R.string.no, null);
+        builder.show();
     }
 
     private final TextWatcher mRecipientsWatcher = new TextWatcher() {

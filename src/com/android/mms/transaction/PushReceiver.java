@@ -226,7 +226,8 @@ public class PushReceiver extends BroadcastReceiver {
                             Uri uri = p.persist(pdu, Inbox.CONTENT_URI,
                                     !NotificationTransaction.allowAutoDownload() ||
                                     MessageUtils.isMmsMemoryFull() ||
-                                    NotificationTransaction.isMmsSizeTooLarge(nInd),
+                                    NotificationTransaction.isMmsSizeTooLarge(nInd) ||
+                                    MessageUtils.isMobileDataDisabled(mContext),
                                     MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
                                     null);
 
