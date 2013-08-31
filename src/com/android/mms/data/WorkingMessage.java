@@ -125,6 +125,7 @@ public class WorkingMessage {
     public static final int VIDEO = 2;
     public static final int AUDIO = 3;
     public static final int SLIDESHOW = 4;
+    public static final int VCARD = 5;
 
     // Current attachment type of the message; one of the above values.
     private int mAttachmentType;
@@ -272,6 +273,8 @@ public class WorkingMessage {
                 mAttachmentType = VIDEO;
             } else if (slide.hasAudio()) {
                 mAttachmentType = AUDIO;
+            } else if (slide.hasVcard()) {
+                mAttachmentType = VCARD;
             }
         }
 
@@ -654,6 +657,8 @@ public class WorkingMessage {
                 slideShowEditor.changeVideo(slideNum, uri);
             } else if (type == AUDIO) {
                 slideShowEditor.changeAudio(slideNum, uri);
+            } else if (type == VCARD) {
+                slideShowEditor.changeVcard(slideNum, uri);
             } else {
                 result = UNSUPPORTED_TYPE;
             }
@@ -777,7 +782,7 @@ public class WorkingMessage {
      * Gets internal message state ready for storage.  Should be called any
      * time the message is about to be sent or written to disk.
      */
-    private void prepareForSave(boolean notify) {
+    public void prepareForSave(boolean notify) {
         // Make sure our working set of recipients is resolved
         // to first-class Contact objects before we save.
         syncWorkingRecipients();
@@ -1352,6 +1357,9 @@ public class WorkingMessage {
 
         // Be paranoid and clean any draft SMS up.
         deleteDraftSmsMessage(threadId);
+
+        // if convert one Mms Draft to Sms and send it,so need delete Mms Draft.
+        deleteDraftMmsMessage(threadId);
     }
 
     private void sendSmsWorker(String msgText, String semiSepRecipients, long threadId) {
@@ -1632,12 +1640,12 @@ public class WorkingMessage {
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             LogTag.debug("asyncUpdateDraftMmsMessage conv=%s mMessageUri=%s", conv, mMessageUri);
         }
-        final HashMap<Uri, InputStream> preOpenedFiles =
-                mSlideshow.openPartFiles(mContentResolver);
 
         new Thread(new Runnable() {
             @Override
             public void run() {
+                final HashMap<Uri, InputStream> preOpenedFiles =
+                        mSlideshow.openPartFiles(mContentResolver);
                 try {
                     DraftCache.getInstance().setSavingDraft(true);
 
@@ -1840,6 +1848,11 @@ public class WorkingMessage {
         SqliteWrapper.delete(mActivity, mContentResolver,
                 ContentUris.withAppendedId(Sms.Conversations.CONTENT_URI, threadId),
                 SMS_DRAFT_WHERE, null);
+    }
+
+    private void deleteDraftMmsMessage(long threadId) {
+        SqliteWrapper.delete(mActivity, mContentResolver,Mms.Draft.CONTENT_URI,
+                Mms.THREAD_ID + " = " +threadId, null);
     }
 
     private void asyncDeleteDraftMmsMessage(Conversation conv) {

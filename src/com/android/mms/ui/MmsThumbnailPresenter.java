@@ -18,12 +18,15 @@
 package com.android.mms.ui;
 
 import android.content.Context;
+import android.net.Uri;
+import android.text.TextUtils;
 
 import com.android.mms.model.AudioModel;
 import com.android.mms.model.ImageModel;
 import com.android.mms.model.Model;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
+import com.android.mms.model.VcardModel;
 import com.android.mms.model.VideoModel;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ItemLoadedFuture;
@@ -56,6 +59,8 @@ public class MmsThumbnailPresenter extends Presenter {
             presentVideoThumbnail(view, slide.getVideo());
         } else if (slide.hasAudio()) {
             presentAudioThumbnail(view, slide.getAudio());
+        } else if (slide.hasVcard()) {
+            presentVcardThumbnail(view, slide.getVcard());
         }
     }
 
@@ -78,7 +83,13 @@ public class MmsThumbnailPresenter extends Presenter {
                             ((SlideViewInterface)mView).setVideoThumbnail(null,
                                     imageLoaded.mBitmap);
                         } else if (slide.hasImage() && !imageLoaded.mIsVideo) {
-                            ((SlideViewInterface)mView).setImage(null, imageLoaded.mBitmap);
+                            // only when Loaded uri is match current ImageModel uri,
+                            // it is allowed to update image.
+                            String uri = imageLoaded.getUri();
+                            Uri imageUri = slide.getImage().getUri();
+                            if (uri != null && uri.equals(imageUri.toString())) {
+                                ((SlideViewInterface)mView).setImage(null, imageLoaded.mBitmap);
+                            }
                         }
                     }
                 }
@@ -96,6 +107,12 @@ public class MmsThumbnailPresenter extends Presenter {
 
     protected void presentAudioThumbnail(SlideViewInterface view, AudioModel audio) {
         view.setAudio(audio.getUri(), audio.getSrc(), audio.getExtras());
+    }
+
+    protected void presentVcardThumbnail(SlideViewInterface view, VcardModel vcard) {
+        view.setVcard(
+                TextUtils.isEmpty(vcard.getLookupUri()) ? null : Uri.parse(vcard.getLookupUri()),
+                vcard.getSrc());
     }
 
     public void onModelChanged(Model model, boolean dataChanged) {

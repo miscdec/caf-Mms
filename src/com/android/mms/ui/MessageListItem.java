@@ -21,10 +21,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.sqlite.SqliteWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Paint.FontMetricsInt;
 import android.graphics.Typeface;
@@ -32,6 +37,8 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.Browser;
+import android.os.SystemProperties;
 import android.provider.ContactsContract.Profile;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Mms;
@@ -52,6 +59,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -60,6 +68,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.android.mms.MmsApp;
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.WorkingMessage;
@@ -68,13 +77,18 @@ import com.android.mms.model.SlideshowModel;
 import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
 import com.android.mms.transaction.TransactionService;
+import com.android.mms.ui.MessageUtils;
+import com.android.mms.ui.WwwContextMenuActivity;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.MultiSimUtility;
 import com.android.mms.util.SmileyParser;
 import com.android.mms.util.ThumbnailManager.ImageLoaded;
 import com.google.android.mms.ContentType;
+import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.NotificationInd;
 import com.google.android.mms.pdu.PduHeaders;
+import com.google.android.mms.pdu.PduPersister;
 
 /**
  * This class provides view of a message in the messages list.
@@ -86,6 +100,8 @@ public class MessageListItem extends LinearLayout implements
     private static final String TAG = "MessageListItem";
     private static final boolean DEBUG = false;
     private static final boolean DEBUG_DONT_LOAD_IMAGES = false;
+    // The message is from Browser
+    private static final String BROWSER_ADDRESS = "Browser Information";
 
     static final int MSG_LIST_EDIT    = 1;
     static final int MSG_LIST_PLAY    = 2;
@@ -96,6 +112,7 @@ public class MessageListItem extends LinearLayout implements
     private ImageView mLockedIndicator;
     private ImageView mDeliveredIndicator;
     private ImageView mDetailsIndicator;
+    private ImageView mSimIndicatorView;
     private ImageButton mSlideShowButton;
     private TextView mBodyTextView;
     private Button mDownloadButton;
@@ -143,6 +160,7 @@ public class MessageListItem extends LinearLayout implements
         mDeliveredIndicator = (ImageView) findViewById(R.id.delivered_indicator);
         mDetailsIndicator = (ImageView) findViewById(R.id.details_indicator);
         mAvatar = (QuickContactDivot) findViewById(R.id.avatar);
+        mSimIndicatorView = (ImageView) findViewById(R.id.sim_indicator_icon);
         mMessageBlock = findViewById(R.id.message_block);
     }
 
@@ -244,6 +262,40 @@ public class MessageListItem extends LinearLayout implements
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        // Judge notification weather is expired
+                        try {
+                            NotificationInd nInd = (NotificationInd) PduPersister.getPduPersister(
+                                    mContext).load(mMessageItem.mMessageUri);
+                            Log.d(TAG, "Download notify Uri = " + mMessageItem.mMessageUri);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                            builder.setTitle(R.string.download);
+                            builder.setCancelable(true);
+                            if (nInd.getExpiry() < System.currentTimeMillis() / 1000L) {
+                                // builder.setIcon(R.drawable.ic_dialog_alert_holo_light);
+                                builder.setMessage(mContext
+                                        .getString(R.string.service_message_not_found));
+                                builder.show();
+                                SqliteWrapper.delete(mContext, mContext.getContentResolver(),
+                                        mMessageItem.mMessageUri, null, null);
+                                return;
+                            }
+                            // Judge whether memory is full
+                            else if (MessageUtils.isMmsMemoryFull(mContext)) {
+                                builder.setMessage(mContext.getString(R.string.sms_full_body));
+                                builder.show();
+                                return;
+                            }
+                            // Judge whether message size is too large
+                            else if ((int) nInd.getMessageSize() >
+                                    MmsConfig.getMaxMessageSize()) {
+                                builder.setMessage(mContext.getString(R.string.mms_too_large));
+                                builder.show();
+                                return;
+                            }
+                        } catch (MmsException e) {
+                            Log.e(TAG, e.getMessage(), e);
+                            return;
+                        }
                         mDownloadingLabel.setVisibility(View.VISIBLE);
                         mDownloadButton.setVisibility(View.GONE);
                         Intent intent = new Intent(mContext, TransactionService.class);
@@ -494,8 +546,9 @@ public class MessageListItem extends LinearLayout implements
         showMmsView(true);
 
         try {
+            // if bitmap is null, don't show the ImageView
             mImageView.setImageBitmap(bitmap);
-            mImageView.setVisibility(VISIBLE);
+            mImageView.setVisibility(bitmap == null ? GONE : VISIBLE);
         } catch (java.lang.OutOfMemoryError e) {
             Log.e(TAG, "setImage: out of memory: ", e);
         }
@@ -548,15 +601,19 @@ public class MessageListItem extends LinearLayout implements
 
     ForegroundColorSpan mColorSpan = null;  // set in ctor
 
+    private boolean isSimCardMessage() {
+        return mContext instanceof ManageSimMessages;
+    }
+
     private CharSequence formatMessage(MessageItem msgItem, String body,
                                        int subId, String subject, Pattern highlight,
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
 
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            int subscription = subId + 1;
-            buf.append("SUB" + subscription + ":");
-            buf.append("\n");
+            Drawable mSimIndicatorIcon = MessageUtils.getMultiSimIcon(mContext,subId);
+            mSimIndicatorView.setImageDrawable(mSimIndicatorIcon);
+            mSimIndicatorView.setVisibility(View.VISIBLE);
         }
 
         boolean hasSubject = !TextUtils.isEmpty(subject);
@@ -581,6 +638,16 @@ public class MessageListItem extends LinearLayout implements
                 }
                 buf.append(parser.addSmileySpans(body));
             }
+        }
+
+        if(isSimCardMessage()) {
+            buf.append("\n");
+            if (msgItem.mBoxId == Sms.MESSAGE_TYPE_INBOX) {
+                buf.append(mContext.getString(R.string.from_label));
+            } else {
+                buf.append(mContext.getString(R.string.to_address_label));
+            }
+            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
         }
 
         if (highlight != null) {
@@ -655,7 +722,28 @@ public class MessageListItem extends LinearLayout implements
         if (spans.length == 0) {
             sendMessage(mMessageItem, MSG_LIST_DETAILS);    // show the message details dialog
         } else if (spans.length == 1) {
-            spans[0].onClick(mBodyTextView);
+            if((mMessageItem != null)
+                    && BROWSER_ADDRESS.equals(mMessageItem.mAddress)
+                    && SystemProperties.getBoolean("persist.env.mms.wappushdialog", false)) {
+                DialogInterface.OnClickListener click = new DialogInterface.OnClickListener() {
+                    @Override
+                    public final void onClick(DialogInterface dialog, int which) {
+                        spans[0].onClick(mBodyTextView);
+                    }
+                };
+                new AlertDialog.Builder(mContext)
+                        .setTitle(mContext.getString(R.string.open_wap_push_title))
+                        .setMessage(mContext.getString(R.string.open_wap_push_body))
+                        .setPositiveButton(android.R.string.ok, click)
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setCancelable(true)
+                        .show();
+            } else {
+                Uri uri = Uri.parse(spans[0].getURL());
+                Intent intent = new Intent(mContext, WwwContextMenuActivity.class);
+                intent.setData(uri);
+                mContext.startActivity(intent);
+            }
         } else {
             ArrayAdapter<URLSpan> adapter =
                 new ArrayAdapter<URLSpan>(mContext, android.R.layout.select_dialog_item, spans) {
@@ -699,7 +787,10 @@ public class MessageListItem extends LinearLayout implements
                 @Override
                 public final void onClick(DialogInterface dialog, int which) {
                     if (which >= 0) {
-                        spans[which].onClick(mBodyTextView);
+                        Uri uri = Uri.parse(spans[which].getURL());
+                        Intent intent = new Intent(mContext, WwwContextMenuActivity.class);
+                        intent.setData(uri);
+                        mContext.startActivity(intent);
                     }
                     dialog.dismiss();
                 }
@@ -722,6 +813,7 @@ public class MessageListItem extends LinearLayout implements
 
     private void setOnClickListener(final MessageItem msgItem) {
         switch(msgItem.mAttachmentType) {
+            case WorkingMessage.VCARD:
             case WorkingMessage.IMAGE:
             case WorkingMessage.VIDEO:
                 mImageView.setOnClickListener(new OnClickListener() {
@@ -813,8 +905,9 @@ public class MessageListItem extends LinearLayout implements
         showMmsView(true);
 
         try {
+            // if bitmap is null, don't show the ImageView
             mImageView.setImageBitmap(bitmap);
-            mImageView.setVisibility(VISIBLE);
+            mImageView.setVisibility(bitmap == null ? GONE : VISIBLE);
         } catch (java.lang.OutOfMemoryError e) {
             Log.e(TAG, "setVideo: out of memory: ", e);
         }
@@ -867,4 +960,49 @@ public class MessageListItem extends LinearLayout implements
         // TODO Auto-generated method stub
 
     }
+
+    @Override
+    public void setVcard(Uri lookupUri, String name) {
+        showMmsView(true);
+
+        try {
+            mImageView.setImageResource(R.drawable.ic_attach_vcard);
+            mImageView.setVisibility(VISIBLE);
+        } catch (java.lang.OutOfMemoryError e) {
+            // shouldn't be here.
+            Log.e(TAG, "setVcard: out of memory: ", e);
+        }
+    }
+
+    @Override
+    public void setVcardVisibility(boolean visible) {
+        // TODO Auto-generated method stub
+    }
+
+    // Add this fuction for ManagerSimMessages to update Contact icon
+    public void updateAvatarView(Context context, String addr, boolean isSelf) {
+        Drawable avatarDrawable;
+        if (isSelf || !TextUtils.isEmpty(addr)) {
+            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
+            avatarDrawable = contact.getAvatar(context, sDefaultContactImage);
+
+            if (isSelf) {
+                mAvatar.assignContactUri(Profile.CONTENT_URI);
+            } else {
+                if (contact.existsInDatabase()) {
+                    mAvatar.assignContactUri(contact.getUri());
+                } else {
+                    mAvatar.assignContactFromPhone(contact.getNumber(), true);
+                }
+            }
+        } else {
+            avatarDrawable = sDefaultContactImage;
+        }
+        mAvatar.setImageDrawable(avatarDrawable);
+
+        if (isSelf) {
+            mAvatar.setClickable(false);
+        }
+    }
+
 }

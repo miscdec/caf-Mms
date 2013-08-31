@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2013, The Linux Foundation. All rights reserved.
+     Not a Contribution
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dip"
+        android:layout_weight="1"
+        android:scrollbarStyle="outsideOverlay"
+        android:fadingEdge="none"
+        android:fillViewport="true">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <TextView
+                android:id="@+id/phone"
+                android:layout_width="match_parent"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_height="wrap_content"
+                android:text="@string/phoneall"
+                android:background="#cccccc"
+                android:textStyle="bold" >
+            </TextView>
+            <LinearLayout
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_width="match_parent">
+                <TextView
+                    android:id="@+id/phonecount"
+                    android:layout_width="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="20dip"
+                    android:text="@string/phonecount"
+                    android:minWidth="120dip">
+                </TextView>
+            </LinearLayout>
+            <TextView android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/blank">
+            </TextView>
+
+            <LinearLayout
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_width="match_parent">
+                <TextView android:layout_width="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/mms_memory_used"
+                    android:layout_marginLeft="20dip"
+                    android:text="@string/mms_phoneused"
+                    android:minWidth="120dip">
+                </TextView>
+                <TextView android:layout_width="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/mms_memory_useddetail">
+                </TextView>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_width="match_parent">
+
+                <TextView android:layout_width="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/else_memory_used"
+                    android:layout_marginLeft="20dip"
+                    android:text="@string/else_phoneused"
+                    android:minWidth="120dip">
+                </TextView>
+                <TextView android:layout_width="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/else_memory_useddetail">
+                </TextView>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent">
+                <TextView android:layout_width="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/unused_memory"
+                    android:text="@string/phone_unused"
+                    android:layout_marginLeft="20dip"
+                    android:minWidth="120dip">
+                </TextView>
+                <TextView android:layout_width="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/unused_memory_detail">
+                </TextView>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_width="match_parent">
+                <TextView android:layout_width="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/memory_all"
+                    android:layout_marginLeft="20dip"
+                    android:text="@string/all_phone"
+                    android:minWidth="120dip">
+                </TextView>
+                <TextView android:layout_width="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/memory_all_detail">
+                </TextView>
+            </LinearLayout>
+
+            <TextView android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/blank">
+            </TextView>
+            <TextView
+                android:id="@+id/cardlabel"
+                android:layout_width="match_parent"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_height="wrap_content"
+                android:text="@string/memory_card"
+                android:background="#cccccc"
+                android:textStyle="bold">
+            </TextView>
+            <TextView
+                android:id="@+id/card"
+                android:layout_width="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:layout_height="wrap_content" >
+            </TextView>
+            <TextView
+                android:id="@+id/carddetail"
+                android:layout_width="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="20dip">
+            </TextView>
+            <TextView
+                android:id="@+id/cardtwo"
+                android:layout_width="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:layout_height="wrap_content" >
+            </TextView>
+            <TextView
+                android:id="@+id/cardtwodetail"
+                android:layout_width="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="20dip">
+            </TextView>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

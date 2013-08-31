@@ -25,7 +25,7 @@
                       android:title="@string/pref_mms_clear_search_history_title"
                       android:summary="@string/pref_mms_clear_search_history_summary" />
 -->
-     <CheckBoxPreference android:defaultValue="false"
+     <CheckBoxPreference android:defaultValue="true"
                       android:key="pref_key_auto_delete"
                       android:summary="@string/pref_summary_auto_delete"
                       android:title="@string/pref_title_auto_delete" />
@@ -39,6 +39,24 @@
                       android:persistent="false"
                       android:summary="@string/pref_summary_delete_limit"
                       android:title="@string/pref_title_mms_delete" />
+    <ListPreference android:key="pref_key_sms_store"
+                      android:title="@string/pref_title_sms_store"
+                      android:defaultValue="1"
+                      android:dialogTitle="@string/pref_title_sms_store"
+                      android:entries="@array/entries_sms_store"
+                      android:entryValues="@array/entries_sms_store_value" />
+    <ListPreference android:key="pref_key_sms_store_card1"
+                      android:title="@string/pref_title_sms_store_card1"
+                      android:defaultValue="1"
+                      android:dialogTitle="@string/pref_title_sms_store"
+                      android:entries="@array/entries_sms_store"
+                      android:entryValues="@array/entries_sms_store_value" />
+    <ListPreference android:key="pref_key_sms_store_card2"
+                      android:title="@string/pref_title_sms_store_card2"
+                      android:defaultValue="1"
+                      android:dialogTitle="@string/pref_title_sms_store"
+                      android:entries="@array/entries_sms_store"
+                      android:entryValues="@array/entries_sms_store_value" />
   </PreferenceCategory>
   <PreferenceCategory android:title="@string/pref_sms_settings_title"
                       android:key="pref_key_sms_settings" >
@@ -53,6 +71,15 @@
                       android:summary="@string/pref_summary_manage_sim_messages"
                       android:title="@string/pref_title_manage_sim_messages" />
   </PreferenceCategory>
+
+  <ListPreference
+        android:key="pref_key_sms_cdma_priority"
+        android:title="@string/pref_title_cdma_priority"
+        android:summary="@string/pref_summary_cdma_priority"
+        android:entries="@array/entries_cdma_priority"
+        android:entryValues="@array/values_cdma_priority"
+        android:defaultValue="@string/default_cdma_priority"
+        android:dialogTitle="@string/prefDialogTitle_cdma_priority" />
 
   <PreferenceCategory android:title="@string/pref_sms_signature_title"
                       android:key="pref_key_sms_signature" >
@@ -88,6 +115,13 @@
                         android:key="pref_key_mms_retrieval_during_roaming"
                         android:title="@string/pref_title_mms_retrieval_during_roaming"
                         android:summary="@string/pref_summary_mms_retrieval_during_roaming" />
+    <ListPreference android:key="pref_key_mms_expiry"
+                    android:title="@string/pref_title_mms_save_time"
+                    android:dialogTitle="@string/pref_title_mms_save_time"
+                    android:entries="@array/save_time"
+                    android:entryValues="@array/save_time_values"
+                    android:defaultValue="0"
+                    android:summary="@string/save_description" />
   </PreferenceCategory>
   <PreferenceCategory android:title="@string/pref_notification_settings_title">
     <CheckBoxPreference android:key="pref_key_enable_notifications"
@@ -102,5 +136,8 @@
                         android:title="@string/pref_title_notification_vibrateWhen"
                         android:dependency="pref_key_enable_notifications"
                         android:defaultValue="false" />
+  </PreferenceCategory>
+  <PreferenceCategory android:title="@string/pref_smsc_title"
+                      android:key="pref_key_smsc" >
   </PreferenceCategory>
 </PreferenceScreen>

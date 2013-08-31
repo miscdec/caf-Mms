@@ -83,4 +83,52 @@
         <item>Please call me later.</item>
         <item>Will you please call me back?</item>
     </string-array>
+
+    <string-array name="save_time">
+        <item>@string/mms_max</item>
+        <item>@string/mms_one_week</item>
+        <item>@string/mms_two_days</item>
+    </string-array>
+
+    <string-array name="save_time_values">
+        <item>0</item>  <!-- maxmum -->
+        <item>604800</item>   <!--7*24*60*60 -->
+        <item>172800</item>   <!--2*24*60*60 -->
+    </string-array>
+
+    <string-array name="entries_cdma_priority" translatable="false">
+        <item>@string/cdma_priority_normal</item>
+        <item>@string/cdma_priority_interactive</item>
+        <item>@string/cdma_priority_urgent</item>
+        <item>@string/cdma_priority_emergency</item>
+    </string-array>
+
+    <string-array name="values_cdma_priority" translatable="false">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+
+    <string-array name="box_type">
+        <item>@string/type_inbox</item>
+        <item>@string/type_sent</item>
+        <item>@string/type_outbox</item>
+        <item>@string/type_draft</item>
+    </string-array>
+
+    <string-array name="slot_type">
+        <item>@string/type_all</item>
+        <item>@string/type_slot1</item>
+        <item>@string/type_slot2</item>
+    </string-array>
+
+    <string-array name="entries_sms_store_value">
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="entries_sms_store">
+        <item>@string/pref_sms_store_phone</item>
+        <item>@string/pref_sms_store_card</item>
+    </string-array>
 </resources>

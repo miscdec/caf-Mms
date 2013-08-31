@@ -12,12 +12,15 @@ import android.telephony.MSimSmsManager;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.data.Conversation;
 import com.android.mms.ui.MessageUtils;
+
 import com.google.android.mms.MmsException;
 
 public class SmsSingleRecipientSender extends SmsMessageSender {
@@ -26,6 +29,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
     private String mDest;
     private Uri mUri;
     private static final String TAG = "SmsSingleRecipientSender";
+    private int priority = -1;
 
     public SmsSingleRecipientSender(Context context, String dest, String msgText, long threadId,
             boolean requestDeliveryReport, Uri uri, int subscription) {
@@ -34,6 +38,10 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
         mDest = dest;
         mUri = uri;
     }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
+     }
 
     public boolean sendMessage(long token) throws MmsException {
         if (LogTag.DEBUG_SEND) {
@@ -117,11 +125,24 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
         try {
             if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 MSimSmsManager smsManagerMSim = MSimSmsManager.getDefault();
-                smsManagerMSim.sendMultipartTextMessage(mDest, mServiceCenter, messages,
-                           sentIntents, deliveryIntents, mSubscription);
+                if (MSimTelephonyManager.getDefault().getPhoneType(mSubscription)
+                        == PhoneConstants.PHONE_TYPE_CDMA) {
+                    Log.d(TAG,"priority="+priority+" mSubscription="+mSubscription);
+                    smsManagerMSim.sendMultipartTextMessageWithPriority(mDest, mServiceCenter, messages,
+                               sentIntents, deliveryIntents, priority, mSubscription);
+                } else {
+                    smsManagerMSim.sendMultipartTextMessage(mDest, mServiceCenter, messages,
+                               sentIntents, deliveryIntents, mSubscription);
+                }
             } else {
-                smsManager.sendMultipartTextMessage(mDest, mServiceCenter, messages, sentIntents,
-                           deliveryIntents);
+                if (TelephonyManager.getDefault().getPhoneType()
+                        == PhoneConstants.PHONE_TYPE_CDMA) {
+                    smsManager.sendMultipartTextMessageWithPriority(mDest, mServiceCenter, messages,
+                               sentIntents, deliveryIntents, priority);
+                } else {
+                    smsManager.sendMultipartTextMessage(mDest, mServiceCenter, messages,
+                               sentIntents, deliveryIntents);
+                }
             }
         } catch (Exception ex) {
             Log.e(TAG, "SmsMessageSender.sendMessage: caught", ex);

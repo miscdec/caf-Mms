@@ -27,6 +27,7 @@ import java.util.GregorianCalendar;
 
 import android.app.Activity;
 import android.app.Service;
+import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -34,6 +35,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.Handler;
@@ -42,6 +44,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
+import android.os.SystemProperties;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Sms.Inbox;
 import android.provider.Telephony.Sms.Intents;
@@ -54,12 +57,14 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.Conversation;
 import com.android.mms.ui.ClassZeroActivity;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.Recycler;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.widget.MmsWidgetProvider;
@@ -88,6 +93,8 @@ public class SmsReceiverService extends Service {
             "com.android.mms.transaction.SEND_MESSAGE";
     public static final String ACTION_SEND_INACTIVE_MESSAGE =
             "com.android.mms.transaction.SEND_INACTIVE_MESSAGE";
+    public static final String ICC_SMS_RECEIVED_ACTION =
+            "com.android.mms.transaction.ICC_SMS_RECEIVED";
 
     // This must match the column IDs below.
     private static final String[] SEND_PROJECTION = new String[] {
@@ -97,10 +104,12 @@ public class SmsReceiverService extends Service {
         Sms.BODY,       //3
         Sms.STATUS,     //4
         Sms.SUB_ID,     //5
+        Sms.PRIORITY,   //6
 
     };
 
     public Handler mToastHandler = new Handler();
+    private AsyncQueryHandler mQueryHandler = null;
 
     // This must match SEND_PROJECTION.
     private static final int SEND_COLUMN_ID         = 0;
@@ -109,8 +118,16 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_BODY       = 3;
     private static final int SEND_COLUMN_STATUS     = 4;
     private static final int SEND_COLUMN_SUB_ID     = 5;
+    private static final int SEND_COLUMN_PRIORITY   = 6;
 
     private int mResultCode;
+
+    static final int TOKEN_QUERY_ICC1  = 4097;
+    static final int TOKEN_QUERY_ICC2  = 4098;
+    static final int TOKEN_QUERY_ICC   = 4099;
+    static final int TOKEN_DELETE_ICC1 = 4100;
+    static final int TOKEN_DELETE_ICC2 = 4101;
+    static final int TOKEN_DELETE_ICC  = 4102;
 
     @Override
     public void onCreate() {
@@ -127,6 +144,56 @@ public class SmsReceiverService extends Service {
 
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
+        mQueryHandler = new QueryHandler(getContentResolver());
+    }
+
+    private class QueryHandler extends AsyncQueryHandler {
+        public QueryHandler(ContentResolver cr) {
+            super(cr);
+        }
+
+        @Override
+        protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+            Log.d(TAG, "onQueryComplete: token = " + token + ";cursor = " + cursor);
+            if (cursor != null) {
+                cursor.close();
+            }
+            switch (token) {
+                case TOKEN_QUERY_ICC1:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(
+                            SmsReceiverService.this, MessageUtils.SUB1);
+                    return;
+                case TOKEN_QUERY_ICC2:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(
+                            SmsReceiverService.this, MessageUtils.SUB2);
+                    return;
+                case TOKEN_QUERY_ICC:
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(
+                            SmsReceiverService.this, MessageUtils.SUB_INVALID);
+                    return;
+            }
+            return;
+        }
+
+        @Override
+        protected void onDeleteComplete(int token, Object cookie, int result) {
+            Log.d(TAG, "onDeleteComplete: token = " + token + ";result = " + result);
+
+            Uri iccUri = null;
+            if (token == TOKEN_DELETE_ICC) {
+                iccUri = MessageUtils.getIccUriBySubscription(MessageUtils.SUB_INVALID);
+            } else if (token == TOKEN_DELETE_ICC1) {
+                iccUri = MessageUtils.getIccUriBySubscription(MessageUtils.SUB1);
+            } else if (token == TOKEN_DELETE_ICC2) {
+                iccUri = MessageUtils.getIccUriBySubscription(MessageUtils.SUB2);
+            }
+
+            if (iccUri != null) {
+                ContentResolver resolver = getContentResolver();
+                resolver.notifyChange(iccUri, null);
+            }
+            return;
+        }
     }
 
     @Override
@@ -219,7 +286,47 @@ public class SmsReceiverService extends Service {
                     handleSendMessage();
                 } else if (ACTION_SEND_INACTIVE_MESSAGE.equals(action)) {
                     handleSendInactiveMessage();
-                }
+                } else if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
+                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY,
+                            MessageUtils.SUB_INVALID);
+                    String stateExtra = intent.getStringExtra(
+                            IccCardConstants.INTENT_KEY_ICC_STATE);
+
+                    Log.d(TAG, "ACTION_SIM_STATE_CHANGED : stateExtra= " + stateExtra
+                            + ", subscription= " + subscription);
+                    if (!MessageUtils.isMultiSimEnabledMms()) {
+                        subscription = MessageUtils.SUB_INVALID;
+                    }
+
+                    if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_ICC_UNKNOWN.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_LOCKED_ON_PIN.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    } else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(true);
+                        queryIccSms(subscription);
+                    }
+                } else if (MessageUtils.ACTION_SIM_STATE_CHANGED0.equals(action)
+                        || MessageUtils.ACTION_SIM_STATE_CHANGED1.equals(action)) {
+                    int subscription = intent.getIntExtra(MessageUtils.SUB_KEY,
+                            MessageUtils.SUB_INVALID);
+
+                    String stateExtra = intent.getStringExtra(
+                            IccCardConstants.INTENT_KEY_ICC_STATE);
+
+                    if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_ICC_UNKNOWN.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(stateExtra)
+                            || IccCardConstants.INTENT_VALUE_LOCKED_ON_PIN.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(false);
+                        handleIccAbsent(subscription);
+                    } else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+                        MessageUtils.setIsIccLoaded(true);
+                        queryIccSms(subscription);
+                    }
+               }
             }
             // NOTE: We MUST not call stopSelf() directly, since we need to
             // make sure the wake lock acquired by AlertReceiver is released.
@@ -272,11 +379,16 @@ public class SmsReceiverService extends Service {
 
                     int msgId = c.getInt(SEND_COLUMN_ID);
                     int subId = c.getInt(SEND_COLUMN_SUB_ID);
+                    int priority = c.getInt(SEND_COLUMN_PRIORITY);
                     Uri msgUri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgId);
 
                     SmsMessageSender sender = new SmsSingleRecipientSender(this,
                             address, msgText, threadId, status == Sms.STATUS_PENDING,
                             msgUri, subId);
+
+                    if(priority != -1){
+                        ((SmsSingleRecipientSender)sender).setPriority(priority);
+                    }
 
                     if (LogTag.DEBUG_SEND ||
                             LogTag.VERBOSE ||
@@ -381,21 +493,59 @@ public class SmsReceiverService extends Service {
     private void handleSmsReceived(Intent intent, int error) {
         SmsMessage[] msgs = Intents.getMessagesFromIntent(intent);
         String format = intent.getStringExtra("format");
-        Uri messageUri = insertMessage(this, msgs, error, format);
-
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
-            SmsMessage sms = msgs[0];
-            Log.v(TAG, "handleSmsReceived" + (sms.isReplace() ? "(replace)" : "") +
-                    " messageUri: " + messageUri +
-                    ", address: " + sms.getOriginatingAddress() +
-                    ", body: " + sms.getMessageBody());
+        Uri messageUri = null;
+        // If user setting prefer store is ICC card, we need to copy received SMS to ICC card.
+        boolean isNeedStoreToICC = false;
+        if (SystemProperties.getBoolean("persist.env.mms.savelocation", false)) {
+            int curPreStore = MessageUtils.getCurSmsPreferStore(this, msgs[0].getSubId());
+            if (curPreStore == MessageUtils.STORE_TO_ICC) {
+                isNeedStoreToICC = true;
+            }
+            Log.d(TAG, "handleSmsReceived : subscription: " + msgs[0].getSubId() +
+                    " is need saving to ICC: " + isNeedStoreToICC);
         }
 
-        if (messageUri != null) {
-            long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
-            // Called off of the UI thread so ok to block.
-            Log.d(TAG, "handleSmsReceived messageUri: " + messageUri + " threadId: " + threadId);
-            MessagingNotification.blockingUpdateNewMessageIndicator(this, threadId, false);
+        if (isNeedStoreToICC) {
+            for (int i = 0; i < msgs.length; i++) {
+                SmsMessage sms = msgs[i];
+                if (sms.mWrappedSmsMessage != null) {
+                    messageUri = storeMessageToIcc(sms, sms.getSubId());
+                }
+                if (messageUri != null) {
+                    if (MessageUtils.COPY_FAILURE_FULL.equals(messageUri.toString())) {
+                        Log.e(TAG, "Save to card fail because ICC has been full.");
+                        MessageUtils.handleIccFull(this, sms.getSubId());
+                        return;
+                    }
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this,
+                            sms.getSubId());
+                } else {
+                    Toast.makeText(this, getString(R.string.pref_sms_store_card_unknown_fail),
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        } else {
+            messageUri = insertMessage(this, msgs, error, format);
+
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
+                SmsMessage sms = msgs[0];
+                Log.v(TAG, "handleSmsReceived" + (sms.isReplace() ? "(replace)" : "") +
+                        " messageUri: " + messageUri +
+                        ", address: " + sms.getOriginatingAddress() +
+                        ", body: " + sms.getMessageBody());
+            }
+
+            if (MessageUtils.MAX_SMS_MESSAGE_COUNT != -1) {
+                MessageUtils.checkIsPhoneMessageFull(this);
+            }
+
+            if (messageUri != null) {
+                long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
+                // Called off of the UI thread so ok to block.
+                Log.d(TAG, "handleSmsReceived messageUri: " + messageUri +
+                        " threadId: " + threadId);
+                MessagingNotification.blockingUpdateNewMessageIndicator(this, threadId, false);
+            }
         }
     }
 
@@ -414,6 +564,13 @@ public class SmsReceiverService extends Service {
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
                 this, MessagingNotification.THREAD_ALL, false);
+
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            handleIccAbsent(MessageUtils.SUB1);
+            handleIccAbsent(MessageUtils.SUB2);
+        } else {
+            handleIccAbsent(MessageUtils.SUB_INVALID);
+        }
     }
 
     /**
@@ -710,6 +867,74 @@ public class SmsReceiverService extends Service {
         } catch (IllegalArgumentException e) {
             // Allow un-matched register-unregister calls
         }
+    }
+
+    private void queryIccSms(int subscription) {
+        Uri iccUri = MessageUtils.getIccUriBySubscription(subscription);
+        int tokenId = TOKEN_QUERY_ICC;
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            tokenId = subscription == MessageUtils.SUB1 ? TOKEN_QUERY_ICC1 : TOKEN_QUERY_ICC2;
+        }
+
+        try {
+            mQueryHandler.startQuery(tokenId, null, iccUri, null, null, null, null);
+        } catch (SQLiteException e) {
+            SqliteWrapper.checkSQLiteException(this, e);
+        }
+    }
+
+    private void handleIccAbsent(int subscription) {
+        Log.d(TAG, "handleIccAbsent : subscription = " + subscription);
+        Uri iccUri = MessageUtils.getIccUriBySubscription(subscription);
+        int tokenId = TOKEN_DELETE_ICC;
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            tokenId = subscription == MessageUtils.SUB1 ? TOKEN_DELETE_ICC1 : TOKEN_DELETE_ICC2;
+        }
+
+        try {
+            mQueryHandler.startDelete(tokenId, null, iccUri, null, null);
+        } catch (SQLiteException e) {
+            SqliteWrapper.checkSQLiteException(this, e);
+        }
+    }
+
+    private Uri storeMessageToIcc(SmsMessage sms, int subscription) {
+        if (sms == null) {
+            return null;
+        }
+
+        String content = replaceFormFeeds(sms.getDisplayMessageBody());
+        if (content == null) {
+            content = "";
+        }
+        long timestamp = sms.getTimestampMillis() != 0 ?
+                sms.getTimestampMillis() : System.currentTimeMillis();
+
+        ContentValues values = new ContentValues(13);
+        values.put("service_center_address", sms.getServiceCenterAddress());
+        values.put(Sms.ADDRESS, sms.getDisplayOriginatingAddress());
+        values.put("message_class", String.valueOf(sms.getMessageClass()));
+        values.put(Sms.BODY, content);
+        values.put(Sms.DATE, timestamp);
+        values.put(Sms.STATUS, Sms.STATUS_NONE);
+        values.put("is_status_report", -1);
+        values.put("transport_type", "sms");
+        values.put(Sms.TYPE, Sms.MESSAGE_TYPE_INBOX);
+        values.put(Sms.SUB_ID, subscription);
+        values.put("status_on_icc", SmsManager.STATUS_ON_ICC_UNREAD);
+        values.put("status", SmsManager.STATUS_ON_ICC_UNREAD);
+        values.put(Sms.READ, SmsManager.STATUS_ON_ICC_FREE);
+
+        Uri uriStr = MessageUtils.getIccUriBySubscription(subscription);
+        Log.e(TAG, "storeMessageToIcc : save message uriStr = " + uriStr);
+        Uri retUri = SqliteWrapper.insert(SmsReceiverService.this, getContentResolver(),
+                uriStr, values);
+        if (uriStr != null && retUri != null) {
+            Log.e(TAG, "storeSmsToICC : uriStr = " + uriStr.toString()
+                    + ", retUri = " + retUri.toString());
+        }
+
+        return retUri;
     }
 }
 
