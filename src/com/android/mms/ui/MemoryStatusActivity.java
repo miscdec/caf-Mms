@@ -285,6 +285,9 @@ public class MemoryStatusActivity extends Activity {
                             mIccCount = cursor.getCount();
                             updateState(SHOW_LIST, MessageUtils.SUB1);
                             cursor.close();
+                        } else {
+                            mIccCount = -1;
+                            updateState(SHOW_LIST, MessageUtils.SUB1);
                         }
                     }
 
@@ -299,6 +302,9 @@ public class MemoryStatusActivity extends Activity {
                             mIcc2Count = cursor.getCount();
                             updateState(SHOW_LIST, MessageUtils.SUB2);
                             cursor.close();
+                        } else {
+                            mIcc2Count = -1;
+                            updateState(SHOW_LIST, MessageUtils.SUB2);
                         }
                     }
 
@@ -329,31 +335,39 @@ public class MemoryStatusActivity extends Activity {
                 if (MessageUtils.SUB1 == subscription) {
                     mCard1Label.setVisibility(View.VISIBLE);
 
-                    if (!MessageUtils.isMultiSimEnabledMms()) {
-                        allCount = SmsManager.getDefault().getSmsCapacityOnIcc();
+                    if (-1 == mIccCount) {
+                        mCard1Detail.setText(getString(R.string.get_sms_failed));
                     } else {
-                        allCount = MSimSmsManager.getDefault().getSmsCapacityOnIcc(subscription);
-                    }
+                        if (!MessageUtils.isMultiSimEnabledMms()) {
+                            allCount = SmsManager.getDefault().getSmsCapacityOnIcc();
+                        } else {
+                            allCount = MSimSmsManager.getDefault().getSmsCapacityOnIcc(subscription);
+                        }
 
-                    if (allCount > 0) {
-                        String tempStr = Integer.toString(mIccCount) + "/"
-                                + Integer.toString(allCount);
-                        mCard1Detail.setText(tempStr);
-                    } else {
-                        mCard1Detail.setText(getString(R.string.please_wait));
+                        if (allCount > 0) {
+                            String tempStr = Integer.toString(mIccCount) + "/"
+                                    + Integer.toString(allCount);
+                            mCard1Detail.setText(tempStr);
+                        } else {
+                            mCard1Detail.setText(getString(R.string.please_wait));
+                        }
                     }
 
                     isIcc1Unavailable = true;
                 } else {
                     mCard2Label.setVisibility(View.VISIBLE);
-                    allCount = MSimSmsManager.getDefault().getSmsCapacityOnIcc(subscription);
 
-                    if (allCount > 0) {
-                        String tempStr = Integer.toString(mIcc2Count) + "/"
-                                + Integer.toString(allCount);
-                        mCard2Detail.setText(tempStr);
+                    if (-1 == mIcc2Count) {
+                        mCard2Detail.setText(getString(R.string.get_sms_failed));
                     } else {
-                        mCard2Detail.setText(getString(R.string.please_wait));
+                        allCount = MSimSmsManager.getDefault().getSmsCapacityOnIcc(subscription);
+                        if (allCount > 0) {
+                            String tempStr = Integer.toString(mIcc2Count) + "/"
+                                    + Integer.toString(allCount);
+                            mCard2Detail.setText(tempStr);
+                        } else {
+                            mCard2Detail.setText(getString(R.string.please_wait));
+                        }
                     }
 
                     isIcc2Unavailable = true;

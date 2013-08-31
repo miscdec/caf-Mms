@@ -899,6 +899,7 @@
     <string name="sim_card1">SIM card1</string>
     <string name="sim_card2">SIM card2</string>
     <string name="please_wait">Please waiting...</string>
+    <string name= "get_sms_failed">Get SIM sms failed</string>
 
     <string name="open_wap_push_title">Browser Information</string>
     <string name="open_wap_push_body">Do you want to open the web site?</string>
