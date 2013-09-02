@@ -70,6 +70,7 @@ import com.android.mms.R;
 import com.android.mms.transaction.MessageSender;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.SmsMessageSender;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.WwwContextMenuActivity;
 import com.android.mms.util.SmileyParser;
 import com.google.android.mms.MmsException;
@@ -211,7 +212,8 @@ public class MailBoxMessageContent extends Activity {
             menu.add(0, MENU_LOCK, 0, R.string.menu_lock);
         }
 
-        if (!Contact.get(mMsgFrom, false).existsInDatabase()) {
+        if (!Contact.get(mMsgFrom, false).existsInDatabase()
+                && !MessageUtils.isWapPushNumber(mMsgFrom)) {
             menu.add(0, MENU_SAVE_TO_CONTACT, 0, R.string.menu_add_to_contacts);
         }
 

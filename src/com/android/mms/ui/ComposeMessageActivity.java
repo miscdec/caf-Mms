@@ -1202,7 +1202,7 @@ public class ComposeMessageActivity extends Activity
         }
         if (!(Mms.isEmailAddress(name) ||
                 Telephony.Mms.isPhoneNumber(name) ||
-                contact.isMe())) {
+                contact.isMe()) || MessageUtils.isWapPushNumber(name)) {
             return false;
         }
         return true;

@@ -368,6 +368,18 @@ public class MessageListItem extends LinearLayout implements
         } else {
             avatarDrawable = sDefaultContactImage;
         }
+
+        if (!TextUtils.isEmpty(addr)) {
+            if (MessageUtils.isWapPushNumber(addr)) {
+                avatarDrawable = mContext.getResources().getDrawable(
+                        R.drawable.ic_contact_wappush);
+                mAvatar.setClickable(false);
+                mAvatar.assignContactUri(null);
+                mAvatar.setImageDrawable(avatarDrawable);
+                mAvatar.setVisibility(View.VISIBLE);
+                return;
+            }
+        }
         mAvatar.setImageDrawable(avatarDrawable);
     }
 
