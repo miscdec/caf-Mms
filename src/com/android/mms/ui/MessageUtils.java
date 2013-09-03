@@ -171,6 +171,8 @@ public class MessageUtils {
 
     private static HashMap numericSugarMap = new HashMap (NUMERIC_CHARS_SUGAR.length);
 
+    public static String WAPPUSH = "Browser Information"; // Wap push key
+
     public static final int ALL_RECIPIENTS_VALID   = 0;
     public static final int ALL_RECIPIENTS_INVALID = -1;
     // Indentify RECIPIENT editText is empty
@@ -1224,6 +1226,16 @@ public class MessageUtils {
         String retVal = parseMmsAddress(address);
         return (retVal != null && !retVal.equals(""));
     }
+
+    /**
+     * Returns true if the address passed in is a Browser wap push MMS address.
+     */
+    public static boolean isWapPushNumber(String address) {
+        if(address.contains(WAPPUSH)){
+            return true;
+        }
+        return false;
+   }
 
     /**
      * parse the input address to be a valid MMS address.
