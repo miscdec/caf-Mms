@@ -3104,11 +3104,7 @@ public class ComposeMessageActivity extends Activity
 
     private void goToConversationList() {
         finish();
-        Intent newIntent = new Intent();
-        newIntent.setClass(this, ConversationList.class);
-        newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        newIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(newIntent);
+        startActivity(new Intent(this, ConversationList.class));
     }
 
     private void hideRecipientEditor() {
