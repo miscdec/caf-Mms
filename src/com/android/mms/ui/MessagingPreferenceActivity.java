@@ -233,18 +233,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // manually.
     }
 
-    private int hasIccCardCount() {
-        MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
-        int count = 0;
-        for (int i = 0; i < tm.getPhoneCount(); i++) {
-            if (tm.hasIccCard(i)) {
-                count++;
-            }
-
-        }
-        return count;
-    }
-
     private void setMessagePreferences() {
         mManageSimPref = findPreference("pref_key_manage_sim_messages");
         mSmsLimitPref = findPreference("pref_key_sms_delete_limit");
@@ -542,7 +530,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             startActivity(new Intent(this, MessageTemplate.class));
         } else if (preference == mManageSimPref) {
             if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
-                    || hasIccCardCount() < 2) {// MAX_PHONE_COUNT_DS) {
+                    || MessageUtils.getActivatedIccCardCount() < 2) {
                 Intent intent = new Intent(this, ManageSimMessages.class);
                 intent.putExtra(MSimConstants.SUBSCRIPTION_KEY,
                         MessageUtils.isIccCardActivated(MessageUtils.SUB1) ? MessageUtils.SUB1
@@ -748,8 +736,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // We need update the preference summary.
         if (prefEnabled) {
             Intent get = new Intent();
-            get.setComponent(new ComponentName("com.android.smsc",
-                    "com.android.smsc.SmscService"));
+            get.setComponent(new ComponentName("com.android.phonefeature.smsc",
+                    "com.android.phonefeature.smsc.SmscService"));
             get.setAction(COMMAND_GET_SMSC);
             get.putExtra(SUB, id);
             startService(get);
@@ -844,8 +832,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                     .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int whichButton) {
                             Intent intent = new Intent();
-                            intent.setComponent(new ComponentName("com.android.smsc",
-                                    "com.android.smsc.SmscService"));
+                            intent.setComponent(new ComponentName("com.android.phonefeature.smsc",
+                                    "com.android.phonefeature.smsc.SmscService"));
                             intent.setAction(COMMAND_SET_SMSC);
                             intent.putExtra(SUB, sub);
                             intent.putExtra(SMSC, displayedSMSC);
