@@ -286,7 +286,7 @@ public class MailBoxMessageList extends ListActivity implements
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 int oldQueryType = mQueryBoxType;
-                // position 0-3 means box: inbox, sent, outbox, draft
+                // position 0-3 means box: inbox, sent, draft, outbox
                 mQueryBoxType = position + 1;
                 if(mQueryBoxType>TYPE_OUTBOX)
                     mQueryBoxType=TYPE_OUTBOX;
