@@ -217,7 +217,7 @@ public class Contact {
         }
 
         if (!TextUtils.isEmpty(name) && !name.equals(number)) {
-            return name + " <" + formattedNumber + ">";
+            return "\"" + name + "\" <" + formattedNumber + ">";
         } else {
             return formattedNumber;
         }
