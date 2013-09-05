@@ -268,7 +268,6 @@ public class ManageSimMessages extends Activity
                     mListAdapter.changeCursor(mCursor);
                     updateState(SHOW_LIST);
                 }
-                startManagingCursor(mCursor);
             } else {
                 // Let user know the SIM is empty
                 updateState(SHOW_EMPTY);
@@ -294,7 +293,6 @@ public class ManageSimMessages extends Activity
     private void refreshMessageList() {
         updateState(SHOW_BUSY);
         if (mCursor != null) {
-            stopManagingCursor(mCursor);
             mCursor.close();
         }
         startQuery();
@@ -457,6 +455,10 @@ public class ManageSimMessages extends Activity
     protected void onStop() {
         super.onStop();
         MessagingNotification.setCurrentlyDisplayedCardList(false);
+
+        if (mCursor != null && !mCursor.isClosed()) {
+            mCursor.close();
+        }
     }
 
     @Override

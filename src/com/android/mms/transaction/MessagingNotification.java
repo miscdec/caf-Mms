@@ -26,10 +26,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -1131,6 +1133,9 @@ public class MessagingNotification {
                 }
             }
         }
+        // Send custom broadcast solution the message notification can't be viewed
+        // in status bar at the WebView is full screen mode.
+        notifyUserIfFullScreen(context, title);
 
         nm.notify(NOTIFICATION_ID, notification);
     }
@@ -1290,6 +1295,9 @@ public class MessagingNotification {
                 Log.d(TAG, "updateIccNotification: multi messages for single thread");
             }
         }
+        // Send custom broadcast solution the message notification can't be viewed
+        // in status bar at the WebView is full screen mode.
+        notifyUserIfFullScreen(context, title);
 
         nm.notify(getNotificationIDBySubscription(subscription), notification);
     }
@@ -1720,5 +1728,21 @@ public class MessagingNotification {
         notification.tickerText = title;
         notification.setLatestEventInfo(context, title, description, intent);
         nm.notify(FULL_NOTIFICATION_ID, notification);
+    }
+
+    private static void notifyUserIfFullScreen(Context context, String from) {
+        ActivityManager am = (ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> runningTasks = am.getRunningTasks(1);
+
+        if (runningTasks.size() > 0) {
+            String topActivity = runningTasks.get(0).topActivity.getClassName();
+            Log.d(TAG, "checkIsFullScreenMode: the top activity is: " + topActivity);
+            if ((topActivity != null)
+                    && (topActivity.equals("com.android.browser.BrowserActivity"))) {
+                Intent intent = new Intent("com.android.mms.transaction.MESSAGE_RECEIVED");
+                intent.putExtra("from", from);
+                context.sendBroadcast(intent);
+            }
+        }
     }
 }
