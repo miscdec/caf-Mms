@@ -44,6 +44,8 @@ import android.os.Looper;
 import android.os.Message;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
+import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.text.method.HideReturnsTransformationMethod;
@@ -220,13 +222,33 @@ public class MailBoxMessageContent extends Activity {
         return true;
     }
 
+    private boolean isPromptEnabled() {
+        boolean bPrompt = false;
+        int nValue = 0;
+        try {
+            nValue = Settings.Global.getInt(mContentResolver,
+                    Settings.Global.MULTI_SIM_VOICE_PROMPT);
+        } catch (SettingNotFoundException snfe) {
+            Log.e(TAG, "Settings Exception: Reading Dual Sim Voice Prompt Values");
+        }
+        bPrompt = (nValue == 0) ? false : true ;
+
+        return bPrompt;
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case MENU_CALL_RECIPIENT:
                 if (MessageUtils.isMultiSimEnabledMms()) {
                     if (MessageUtils.getActivatedIccCardCount() > 1) {
-                        showCallSelectDialog();
+                        if (isPromptEnabled()) {
+                            Intent dialIntent = new Intent(Intent.ACTION_CALL,
+                                    Uri.parse("tel:" + mMsgFrom));
+                            startActivity(dialIntent);
+                        } else {
+                            showCallSelectDialog();
+                        }
                     } else {
                         if (MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
                             MessageUtils.dialRecipient(this, mMsgFrom, MessageUtils.SUB1);
