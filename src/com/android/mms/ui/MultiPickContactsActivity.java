@@ -104,6 +104,7 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
 
         mOkBtn = (Button) findViewById(R.id.btn_ok);
         mOkBtn.setOnClickListener(this);
+        setOKButtonState();
         mCancelBtn = (Button) findViewById(R.id.btn_cancel);
         mCancelBtn.setOnClickListener(this);
         mSearchText = (EditText) findViewById(R.id.search_field);
@@ -161,6 +162,7 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
             cb.setChecked(true);
             mSelected.addSelected(data);
         }
+        setOKButtonState();
         return super.onChildClick(parent, v, groupPosition, childPosition, id);
     }
 
@@ -210,6 +212,7 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
                 } else {
                     mSelected.removeSelected(contactId);
                 }
+                setOKButtonState();
                 break;
             case R.id.pick_item_radiobutton:
                 RadioButton rb = (RadioButton) v;
@@ -218,6 +221,7 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
                 if (rbChecked) {
                     mSelected.addSelected(lookupKey);
                 }
+                setOKButtonState();
                 break;
         }
     }
@@ -238,6 +242,26 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
     @Override
     public void onTextChanged(CharSequence s, int start, int before, int count) {
         // do nothing
+    }
+
+    private void setOKButtonState() {
+        if (mMode == MODE_INFO) {
+            if (mSelected.mSelectedMap != null) {
+                if (mSelected.mSelectedMap.size() > 0) {
+                    mOkBtn.setEnabled(true);
+                } else {
+                    mOkBtn.setEnabled(false);
+                }
+            } else {
+                mOkBtn.setEnabled(false);
+            }
+        } else if (mMode == MODE_VCARD) {
+            if (mSelected.mSelectedContactLookupKey != null) {
+                mOkBtn.setEnabled(true);
+            } else {
+                mOkBtn.setEnabled(false);
+            }
+        }
     }
 
     private void init(Cursor c) {
