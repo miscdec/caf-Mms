@@ -414,7 +414,9 @@ public class ManageSimMessages extends Activity
         }
 
         final Cursor cursor = (Cursor) mListAdapter.getItem(info.position);
-
+        String messageIndexString =
+                cursor.getString(cursor.getColumnIndexOrThrow("index_on_icc"));
+        final Uri uri = mIccUri.buildUpon().appendPath(messageIndexString).build();
         switch (item.getItemId()) {
             case MENU_COPY_TO_PHONE_MEMORY:
                 copyToPhoneMemory(cursor);
@@ -423,7 +425,7 @@ public class ManageSimMessages extends Activity
                 confirmDeleteDialog(new OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         updateState(SHOW_BUSY);
-                        deleteFromSim(cursor);
+                        deleteFromSim(uri);
                         dialog.dismiss();
                     }
                 }, R.string.confirm_delete_SIM_message);
@@ -520,6 +522,14 @@ public class ManageSimMessages extends Activity
 
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
+    }
+
+    private void deleteFromSim(Uri uri) {
+        try {
+            mQueryHandler.startDelete(0, null, uri, null, null);
+        } catch (SQLiteException e) {
+            SqliteWrapper.checkSQLiteException(this, e);
+        }
     }
 
     private void deleteFromSim(Cursor cursor) {
