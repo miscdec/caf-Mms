@@ -950,6 +950,10 @@
     <!-- select contact group -->
     <string name="no_contact_group">No groups</string>
 
+    <string name="sim_capacity_title">Sim capacity</string>
+    <string name="sim_capacity_used">Used:  </string>
+    <string name="sim_capacity_all">Capacity:  </string>
+
     <!-- Settings item description for Preferred storage -->
     <string name="pref_title_sms_store">Preferred storage</string>
     <string name="pref_title_sms_store_card1">Card1 preferred storage</string>
