@@ -302,10 +302,7 @@ public class ManageSimMessages extends Activity
     public void onCreateContextMenu(
             ContextMenu menu, View v,
             ContextMenu.ContextMenuInfo menuInfo) {
-        menu.add(0, MENU_COPY_TO_PHONE_MEMORY, 0,
-                 R.string.sim_copy_to_phone_memory);
-        menu.add(0, MENU_DELETE_FROM_SIM, 0, R.string.sim_delete);
-
+        menu.setHeaderTitle(R.string.message_options);
         Cursor cursor = mListAdapter.getCursor();
         if (isIncomingMessage(cursor)) {
             String address = cursor.getString(cursor.getColumnIndexOrThrow("address"));
@@ -313,6 +310,10 @@ public class ManageSimMessages extends Activity
             menu.add(0, MENU_REPLY, 0, R.string.menu_reply).setIntent(intent);
         }
         menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
+        menu.add(0, MENU_DELETE_FROM_SIM, 0, R.string.sim_delete);
+        menu.add(0, MENU_COPY_TO_PHONE_MEMORY, 0,
+                 R.string.sim_copy_to_phone_memory);
+
         addCallAndContactMenuItems(menu, cursor);
 
         // TODO: Enable this once viewMessage is written.

@@ -114,6 +114,7 @@ public class MessageListItem extends LinearLayout implements
     private ImageView mDetailsIndicator;
     private ImageView mSimIndicatorView;
     private ImageButton mSlideShowButton;
+    private TextView mSimMessageAddress;
     private TextView mBodyTextView;
     private Button mDownloadButton;
     private TextView mDownloadingLabel;
@@ -162,6 +163,7 @@ public class MessageListItem extends LinearLayout implements
         mAvatar = (QuickContactDivot) findViewById(R.id.avatar);
         mSimIndicatorView = (ImageView) findViewById(R.id.sim_indicator_icon);
         mMessageBlock = findViewById(R.id.message_block);
+        mSimMessageAddress = (TextView) findViewById(R.id.sim_message_address);
     }
 
     public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position) {
@@ -408,6 +410,19 @@ public class MessageListItem extends LinearLayout implements
             updateAvatarView(addr, isSelf);
         }
 
+        // Add SIM sms address above body.
+        if (isSimCardMessage()) {
+            mSimMessageAddress.setVisibility(VISIBLE);
+            SpannableStringBuilder buf = new SpannableStringBuilder();
+            if (mMessageItem.mBoxId == Sms.MESSAGE_TYPE_INBOX) {
+                buf.append(mContext.getString(R.string.from_label));
+            } else {
+                buf.append(mContext.getString(R.string.to_address_label));
+            }
+            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
+            mSimMessageAddress.setText(buf);
+        }
+
         // Get and/or lazily set the formatted message from/on the
         // MessageItem.  Because the MessageItem instances come from a
         // cache (currently of size ~50), the hit rate on avoiding the
@@ -650,16 +665,6 @@ public class MessageListItem extends LinearLayout implements
                 }
                 buf.append(parser.addSmileySpans(body));
             }
-        }
-
-        if(isSimCardMessage()) {
-            buf.append("\n");
-            if (msgItem.mBoxId == Sms.MESSAGE_TYPE_INBOX) {
-                buf.append(mContext.getString(R.string.from_label));
-            } else {
-                buf.append(mContext.getString(R.string.to_address_label));
-            }
-            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
         }
 
         if (highlight != null) {
