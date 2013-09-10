@@ -1166,7 +1166,22 @@ public class TransactionService extends Service implements Observer {
                         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                             Log.v(TAG, "   retrying mms connectivity for it's available");
                         }
-                        renewMmsConnectivity();
+                        if(!mPending.isEmpty() && mProcessing.isEmpty()) {
+                            //If have pending transaction, may be feature use already expire.
+                            //need to start mms feature.
+                            mServiceHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        beginMmsConnectivity();
+                                    } catch(IOException e) {
+                                         Log.w(TAG, "Attempt to use of MMS connectivity failed"+e);
+                                    }
+                                }
+                            });
+                        } else {
+                            renewMmsConnectivity();
+                        }
                     }
                 }
             }
