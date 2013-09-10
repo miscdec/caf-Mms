@@ -300,7 +300,8 @@ public class MmsWidgetService extends RemoteViewsService {
             RemoteViews view = new RemoteViews(mContext.getPackageName(), R.layout.widget_loading);
             view.setTextViewText(
                     R.id.loading_text, mContext.getText(R.string.view_more_conversations));
-            view.setOnClickFillInIntent(R.id.widget_loading, new Intent());
+            view.setOnClickFillInIntent(R.id.widget_loading,
+                    new Intent(mContext, ConversationList.class));
             return view;
         }
 
