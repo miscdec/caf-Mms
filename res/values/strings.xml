@@ -890,16 +890,10 @@
 
     <!-- String used in MemoryStatusActivity.java -->
     <string name="memory_status_title">Memory status</string>
-    <string name="phoneall">Phone</string>
-    <string name="phonecount">All count</string>
-    <string name="mms_phoneused">Mms Used:</string>
-    <string name="else_phoneused">Else Used:</string>
-    <string name="phone_unused">Unused:</string>
-    <string name="all_phone">All:</string>
-    <string name="sim_card1">SIM card1</string>
-    <string name="sim_card2">SIM card2</string>
-    <string name="please_wait">Please waiting...</string>
-    <string name= "get_sms_failed">Get SIM sms failed</string>
+    <string name="sms_phone_used">Sms Used:</string>
+    <string name="sms_phone_capacity">Sms Capacity:</string>
+    <string name="mms_phone_used">Mms Used:</string>
+    <string name="mms_phone_capacity">Mms Capacity:</string>
 
     <string name="open_wap_push_title">Browser Information</string>
     <string name="open_wap_push_body">Do you want to open the web site?</string>
