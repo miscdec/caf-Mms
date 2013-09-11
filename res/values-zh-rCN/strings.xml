@@ -498,6 +498,10 @@
     <!-- select contact group -->
     <string name="no_contact_group">没有任何群组</string>
 
+    <string name="sim_capacity_title">"Sim卡容量"</string>
+    <string name="sim_capacity_used">"已使用:"</string>
+    <string name="sim_capacity_all">"总容量:"</string>
+
     <!-- Settings item description for Preferred storage -->
     <string name="pref_title_sms_store">优先存储器</string>
     <string name="pref_title_sms_store_card1">卡1优先存储器</string>

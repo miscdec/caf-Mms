@@ -78,6 +78,7 @@ import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.ui.MessageUtils;
+import com.android.mms.util.MultiSimUtility;
 import com.android.mms.ui.WwwContextMenuActivity;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.ItemLoadedCallback;
@@ -114,6 +115,7 @@ public class MessageListItem extends LinearLayout implements
     private ImageView mDetailsIndicator;
     private ImageView mSimIndicatorView;
     private ImageButton mSlideShowButton;
+    private TextView mSimMessageAddress;
     private TextView mBodyTextView;
     private Button mDownloadButton;
     private TextView mDownloadingLabel;
@@ -162,6 +164,7 @@ public class MessageListItem extends LinearLayout implements
         mAvatar = (QuickContactDivot) findViewById(R.id.avatar);
         mSimIndicatorView = (ImageView) findViewById(R.id.sim_indicator_icon);
         mMessageBlock = findViewById(R.id.message_block);
+        mSimMessageAddress = (TextView) findViewById(R.id.sim_message_address);
     }
 
     public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position) {
@@ -244,11 +247,18 @@ public class MessageListItem extends LinearLayout implements
                 boolean autoDownload = downloadManager.isAuto();
                 boolean dataSuspended = (MmsApp.getApplication().getTelephonyManager()
                         .getDataState() == TelephonyManager.DATA_SUSPENDED);
+                // We must check if the target data subscription is user prefer
+                // data subscription, if we don't check this, here will be
+                // a problem, when user want to download a MMS is not in default
+                // data subscription, the other MMS will mark as downloading status.
+                // But they can't be download, this will make user confuse.
+                boolean isTargetDefaultDataSubscription = mMessageItem.mSubscription ==
+                        MultiSimUtility.getCurrentDataSubscription(mContext);
 
                 // If we're going to automatically start downloading the mms attachment, then
                 // don't bother showing the download button for an instant before the actual
                 // download begins. Instead, show downloading as taking place.
-                if (autoDownload && !dataSuspended) {
+                if (autoDownload && !dataSuspended && isTargetDefaultDataSubscription) {
                     showDownloadingAttachment();
                     break;
                 }
@@ -406,6 +416,19 @@ public class MessageListItem extends LinearLayout implements
             boolean isSelf = Sms.isOutgoingFolder(mMessageItem.mBoxId);
             String addr = isSelf ? null : mMessageItem.mAddress;
             updateAvatarView(addr, isSelf);
+        }
+
+        // Add SIM sms address above body.
+        if (isSimCardMessage()) {
+            mSimMessageAddress.setVisibility(VISIBLE);
+            SpannableStringBuilder buf = new SpannableStringBuilder();
+            if (mMessageItem.mBoxId == Sms.MESSAGE_TYPE_INBOX) {
+                buf.append(mContext.getString(R.string.from_label));
+            } else {
+                buf.append(mContext.getString(R.string.to_address_label));
+            }
+            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
+            mSimMessageAddress.setText(buf);
         }
 
         // Get and/or lazily set the formatted message from/on the
@@ -650,16 +673,6 @@ public class MessageListItem extends LinearLayout implements
                 }
                 buf.append(parser.addSmileySpans(body));
             }
-        }
-
-        if(isSimCardMessage()) {
-            buf.append("\n");
-            if (msgItem.mBoxId == Sms.MESSAGE_TYPE_INBOX) {
-                buf.append(mContext.getString(R.string.from_label));
-            } else {
-                buf.append(mContext.getString(R.string.to_address_label));
-            }
-            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
         }
 
         if (highlight != null) {
