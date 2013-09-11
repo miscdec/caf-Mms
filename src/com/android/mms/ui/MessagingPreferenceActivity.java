@@ -207,7 +207,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mSmsStoreCard1Pref = (ListPreference) findPreference("pref_key_sms_store_card1");
         mSmsStoreCard2Pref = (ListPreference) findPreference("pref_key_sms_store_card2");
 
-        if (SystemProperties.getBoolean("persist.env.mms.priority", false)) {
+        if (!SystemProperties.getBoolean("persist.env.mms.smspriority", false)) {
             Preference priorotySettings =  findPreference(SMS_CDMA_PRIORITY);
             PreferenceScreen prefSet = getPreferenceScreen();
             prefSet.removePreference(priorotySettings);
