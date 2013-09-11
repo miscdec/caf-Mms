@@ -40,6 +40,8 @@ import android.os.Handler;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.Telephony.Sms;
+import android.telephony.MSimSmsManager;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.SmsManager;
 import android.text.TextUtils;
 import android.text.SpannableString;
@@ -80,7 +82,9 @@ public class ManageSimMessages extends Activity
     private static final int MENU_CALL_BACK = 5;
     private static final int MENU_ADD_ADDRESS_TO_CONTACTS = 6;
     private static final int MENU_SEND_EMAIL = 7;
+
     private static final int OPTION_MENU_DELETE_ALL = 0;
+    private static final int OPTION_MENU_SIM_CAPACITY = 1;
 
     private static final int SUB_INVALID = -1;
 
@@ -302,10 +306,7 @@ public class ManageSimMessages extends Activity
     public void onCreateContextMenu(
             ContextMenu menu, View v,
             ContextMenu.ContextMenuInfo menuInfo) {
-        menu.add(0, MENU_COPY_TO_PHONE_MEMORY, 0,
-                 R.string.sim_copy_to_phone_memory);
-        menu.add(0, MENU_DELETE_FROM_SIM, 0, R.string.sim_delete);
-
+        menu.setHeaderTitle(R.string.message_options);
         Cursor cursor = mListAdapter.getCursor();
         if (isIncomingMessage(cursor)) {
             String address = cursor.getString(cursor.getColumnIndexOrThrow("address"));
@@ -313,6 +314,10 @@ public class ManageSimMessages extends Activity
             menu.add(0, MENU_REPLY, 0, R.string.menu_reply).setIntent(intent);
         }
         menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
+        menu.add(0, MENU_DELETE_FROM_SIM, 0, R.string.sim_delete);
+        menu.add(0, MENU_COPY_TO_PHONE_MEMORY, 0,
+                 R.string.sim_copy_to_phone_memory);
+
         addCallAndContactMenuItems(menu, cursor);
 
         // TODO: Enable this once viewMessage is written.
@@ -577,6 +582,7 @@ public class ManageSimMessages extends Activity
             menu.add(0, OPTION_MENU_DELETE_ALL, 0, R.string.menu_delete_messages).setIcon(
                     android.R.drawable.ic_menu_delete);
         }
+        menu.add(0, OPTION_MENU_SIM_CAPACITY, 0, R.string.sim_capacity_title);
 
         return true;
     }
@@ -599,6 +605,10 @@ public class ManageSimMessages extends Activity
                 }, R.string.confirm_delete_all_SIM_messages);
                 break;
 
+            case OPTION_MENU_SIM_CAPACITY:
+                showSimCapacityDialog();
+                break;
+
             case android.R.id.home:
                 // The user clicked on the Messaging icon in the action bar. Take them back from
                 // wherever they came from
@@ -617,6 +627,28 @@ public class ManageSimMessages extends Activity
         builder.setPositiveButton(R.string.yes, listener);
         builder.setNegativeButton(R.string.no, null);
         builder.setMessage(messageId);
+
+        builder.show();
+    }
+
+    private void showSimCapacityDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.sim_capacity_title);
+        builder.setCancelable(true);
+        builder.setPositiveButton(R.string.yes, null);
+        StringBuilder capacityMessage = new StringBuilder();
+        capacityMessage.append(getString(R.string.sim_capacity_used));
+        capacityMessage.append(" " + mCursor.getCount() + "\n");
+        capacityMessage.append(getString(R.string.sim_capacity_all));
+        int iccCapacityAll = -1;
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            iccCapacityAll = MSimSmsManager.getDefault().getSmsCapacityOnIcc(mSubscription);
+        } else {
+            iccCapacityAll = SmsManager.getDefault().getSmsCapacityOnIcc();
+        }
+
+        capacityMessage.append(" " + iccCapacityAll);
+        builder.setMessage(capacityMessage);
 
         builder.show();
     }

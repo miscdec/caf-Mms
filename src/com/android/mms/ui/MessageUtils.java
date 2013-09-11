@@ -1604,7 +1604,7 @@ public class MessageUtils {
 
         Log.d(TAG, "checkIsPhoneMessageFull : isPhoneSmsCountFull = " + isPhoneSmsCountFull);
 
-        if (isPhoneSmsCountFull) {
+        if (isPhoneMemoryFull() || isPhoneSmsCountFull) {
             MessagingNotification.updateSmsMessageFullIndicator(context, true);
         } else {
             MessagingNotification.updateSmsMessageFullIndicator(context, false);
