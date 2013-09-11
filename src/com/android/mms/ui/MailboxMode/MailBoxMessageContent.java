@@ -224,19 +224,8 @@ public class MailBoxMessageContent extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case MENU_CALL_RECIPIENT:
-                if (MessageUtils.isMultiSimEnabledMms()) {
-                    if (MessageUtils.getActivatedIccCardCount() > 1) {
-                        showCallSelectDialog();
-                    } else {
-                        if (MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
-                            MessageUtils.dialRecipient(this, mMsgFrom, MessageUtils.SUB1);
-                        } else if (MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
-                            MessageUtils.dialRecipient(this, mMsgFrom, MessageUtils.SUB2);
-                        }
-                    }
-                } else {
-                    MessageUtils.dialRecipient(this, mMsgFrom, MessageUtils.SUB_INVALID);
-                }
+                Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + mMsgFrom));
+                this.startActivity(dialIntent);
                 break;
             case MENU_DELETE:
                 mLock = isLockMessage();
