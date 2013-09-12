@@ -191,7 +191,18 @@ public class MailBoxMessageList extends ListActivity implements
         }
 
         try {
-            if ("sms".equals(c.getString(COLUMN_MSG_TYPE))) {
+            boolean isDraft = "sms".equals(c.getString(COLUMN_MSG_TYPE))
+                    && (c.getInt(COLUMN_SMS_TYPE) == Sms.MESSAGE_TYPE_DRAFT);
+            isDraft |= "mms".equals(c.getString(COLUMN_MSG_TYPE))
+                    && (c.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_BOX)
+                            == Mms.MESSAGE_BOX_DRAFTS);
+
+            if (isDraft) {
+                Intent intent = new Intent(this, ComposeMessageActivity.class);
+                intent.putExtra("thread_id", c.getLong(COLUMN_THREAD_ID));
+                startActivity(intent);
+                return;
+            } else if ("sms".equals(c.getString(COLUMN_MSG_TYPE))) {
                 showSmsMessageContent(c);
             } else {
                 MessageUtils.viewMmsMessageAttachment(MailBoxMessageList.this,
