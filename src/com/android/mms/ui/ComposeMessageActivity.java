@@ -2281,6 +2281,16 @@ public class ComposeMessageActivity extends Activity
         }
     };
 
+    private final IntentFilter mSimStateFilter = new IntentFilter(
+            TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+
+    private final BroadcastReceiver mSimStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            updateSendButtonState();
+        }
+    };
+
     private static ContactList sEmptyContactList;
 
     private ContactList getRecipients() {
@@ -2711,6 +2721,8 @@ public class ComposeMessageActivity extends Activity
 
         // Register a BroadcastReceiver to listen on HTTP I/O process.
         registerReceiver(mHttpProgressReceiver, mHttpProgressFilter);
+        // Register a BroadcastReceiver to listen SIM state change
+        registerReceiver(mSimStateReceiver, mSimStateFilter);
 
         // figure out whether we need to show the keyboard or not.
         // if there is draft to be loaded for 'mConversation', we'll show the keyboard;
@@ -2944,6 +2956,7 @@ public class ComposeMessageActivity extends Activity
 
         // Cleanup the BroadcastReceiver.
         unregisterReceiver(mHttpProgressReceiver);
+        unregisterReceiver(mSimStateReceiver);
     }
 
     @Override
@@ -4728,7 +4741,8 @@ public class ComposeMessageActivity extends Activity
     private boolean isPreparedForSending() {
         int recipientCount = recipientCount();
 
-        return recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
+        return MessageUtils.getActivatedIccCardCount() > 0 && recipientCount > 0
+                && recipientCount <= MmsConfig.getRecipientLimit() &&
             (mWorkingMessage.hasAttachment() ||
                     mWorkingMessage.hasText() ||
                     mWorkingMessage.hasSubject());
