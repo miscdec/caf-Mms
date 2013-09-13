@@ -1641,4 +1641,24 @@ public class MessageUtils {
         }
         return false;
     }
+
+    public static void showMemoryStatusDialog(Context context) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(R.string.memory_status_title);
+        builder.setCancelable(true);
+        builder.setPositiveButton(R.string.yes, null);
+        StringBuilder memoryStatus = new StringBuilder();
+        memoryStatus.append(context.getString(R.string.sms_phone_used));
+        memoryStatus.append(" " + getSmsMessageCount(context) + "\n");
+        memoryStatus.append(context.getString(R.string.sms_phone_capacity));
+        memoryStatus.append(" " + MAX_SMS_MESSAGE_COUNT + "\n\n");
+
+        memoryStatus.append(context.getString(R.string.mms_phone_used));
+        memoryStatus.append(" " + formatMemorySize(getMmsUsed(context)) + "\n");
+        memoryStatus.append(context.getString(R.string.mms_phone_capacity));
+        memoryStatus.append(" " + formatMemorySize(getStoreAll()) + "\n");
+        builder.setMessage(memoryStatus);
+
+        builder.show();
+    }
 }
