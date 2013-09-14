@@ -169,6 +169,11 @@ public class MessageUtils {
         '-', '.', ',', '(', ')', ' ', '/', '\\', '*', '#', '+'
     };
 
+    // Dialog item options for number
+    private static final int DIALOG_ITEM_CALL         = 0;
+    private static final int DIALOG_ITEM_SMS          = 1;
+    private static final int DIALOG_ITEM_ADD_CONTACTS = 2;
+
     private static HashMap numericSugarMap = new HashMap (NUMERIC_CHARS_SUGAR.length);
 
     public static String WAPPUSH = "Browser Information"; // Wap push key
@@ -1659,6 +1664,40 @@ public class MessageUtils {
         memoryStatus.append(" " + formatMemorySize(getStoreAll()) + "\n");
         builder.setMessage(memoryStatus);
 
+        builder.show();
+    }
+
+    public static void showNumberOptions(Context context, String number) {
+        final Context localContext = context;
+        final String extractNumber = number;
+        AlertDialog.Builder builder = new AlertDialog.Builder(localContext);
+        builder.setTitle(number);
+        builder.setCancelable(true);
+        builder.setItems(R.array.number_options,
+                new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DIALOG_ITEM_CALL:
+                        Intent dialIntent = new Intent(Intent.ACTION_CALL,
+                                Uri.parse("tel:" + extractNumber));
+                        localContext.startActivity(dialIntent);
+                        break;
+                    case DIALOG_ITEM_SMS:
+                        Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
+                                Uri.parse("smsto:" + extractNumber));
+                        localContext.startActivity(smsIntent);
+                        break;
+                    case DIALOG_ITEM_ADD_CONTACTS:
+                        Intent intent = ConversationList
+                                .createAddContactIntent(extractNumber);
+                        localContext.startActivity(intent);
+                        break;
+                    default:
+                        break;
+                }
+                dialog.dismiss();
+            }
+        });
         builder.show();
     }
 }

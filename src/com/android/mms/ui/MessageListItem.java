@@ -771,7 +771,15 @@ public class MessageListItem extends LinearLayout implements
                     intent.setData(uri);
                     mContext.startActivity(intent);
                 } else {
-                    spans[0].onClick(mBodyTextView);
+                    final String telPrefix = "tel:";
+                    if (url.startsWith(telPrefix)) {
+                        url = url.substring(telPrefix.length());
+                    }
+                    if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                        MessageUtils.showNumberOptions(mContext, url);
+                    } else {
+                        spans[0].onClick(mBodyTextView);
+                    }
                 }
             }
         } else {
@@ -824,7 +832,15 @@ public class MessageListItem extends LinearLayout implements
                             intent.setData(uri);
                             mContext.startActivity(intent);
                         } else {
-                            spans[which].onClick(mBodyTextView);
+                            final String telPrefix = "tel:";
+                            if (url.startsWith(telPrefix)) {
+                                url = url.substring(telPrefix.length());
+                            }
+                            if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                                MessageUtils.showNumberOptions(mContext, url);
+                            } else {
+                                spans[which].onClick(mBodyTextView);
+                            }
                         }
                     }
                     dialog.dismiss();
