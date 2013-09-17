@@ -60,7 +60,7 @@ public class WwwContextMenuActivity extends Activity {
 
     private void initUi(Intent intent) {
         Uri uri = intent.getData();
-        mUrlString = uri.getAuthority();
+        mUrlString = uri.toString();
         showMenu();
     }
 
