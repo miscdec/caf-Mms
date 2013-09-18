@@ -165,6 +165,9 @@ public class MultiPickContactGroups extends ListActivity implements
             value = new String[] { String.valueOf(cache.group_id),
                     cache.group_title, cache.group_count };
             mChoiceSet.putStringArray(String.valueOf(id), value);
+            if(mChoiceSet.size() == l.getChildCount() && !mSelectAllCheckBox.isChecked()) {
+               mSelectAllCheckBox.setChecked(true);
+            }
         } else {
             mChoiceSet.remove(String.valueOf(id));
             mSelectAllCheckBox.setChecked(false);
