@@ -736,7 +736,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // We need update the preference summary.
         if (prefEnabled) {
             Intent get = new Intent();
-            get.setComponent(new ComponentName("com.android.phonefeature.smsc",
+            get.setComponent(new ComponentName("com.android.phonefeature",
                     "com.android.phonefeature.smsc.SmscService"));
             get.setAction(COMMAND_GET_SMSC);
             get.putExtra(SUB, id);
@@ -832,7 +832,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                     .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int whichButton) {
                             Intent intent = new Intent();
-                            intent.setComponent(new ComponentName("com.android.phonefeature.smsc",
+                            intent.setComponent(new ComponentName("com.android.phonefeature",
                                     "com.android.phonefeature.smsc.SmscService"));
                             intent.setAction(COMMAND_SET_SMSC);
                             intent.putExtra(SUB, sub);
