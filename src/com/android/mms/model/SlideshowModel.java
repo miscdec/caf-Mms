@@ -603,6 +603,14 @@ public class SlideshowModel extends Model
         if (dataChanged) {
             mDocumentCache = null;
             mPduBodyCache = null;
+
+            // initialize message size before call createFromPduBody()
+            mTotalMessageSize = 0;
+            for (SlideModel slide : mSlides) {
+                for (MediaModel m : slide) {
+                    mTotalMessageSize += m.getMediaSize();
+                }
+            }
         }
     }
 
