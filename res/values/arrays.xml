@@ -131,4 +131,9 @@
         <item>@string/pref_sms_store_phone</item>
         <item>@string/pref_sms_store_card</item>
     </string-array>
+    <string-array name="number_options">
+        <item>@string/menu_call</item>
+        <item>@string/title_send_message</item>
+        <item>@string/menu_add_to_contacts</item>
+    </string-array>
 </resources>
