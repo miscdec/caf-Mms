@@ -948,6 +948,8 @@
     <string name="sim_capacity_used">Used:  </string>
     <string name="sim_capacity_all">Capacity:  </string>
 
+    <string name="unsupported_content_type">Can\'t display MMS: Unsupported attachment type.</string>
+
     <!-- Settings item description for Preferred storage -->
     <string name="pref_title_sms_store">Preferred storage</string>
     <string name="pref_title_sms_store_card1">Card1 preferred storage</string>
