@@ -64,6 +64,7 @@ import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.os.AsyncTask;
 import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.text.style.URLSpan;
@@ -175,6 +176,8 @@ public class MessageUtils {
     private static final int DIALOG_ITEM_ADD_CONTACTS = 2;
 
     private static HashMap numericSugarMap = new HashMap (NUMERIC_CHARS_SUGAR.length);
+    //for showing memory status dialog.
+    private static AlertDialog memoryStatusDialog = null;
 
     public static String WAPPUSH = "Browser Information"; // Wap push key
 
@@ -1647,26 +1650,15 @@ public class MessageUtils {
         return false;
     }
 
-    public static void showMemoryStatusDialog(Context context) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(R.string.memory_status_title);
-        builder.setCancelable(true);
-        builder.setPositiveButton(R.string.yes, null);
-        StringBuilder memoryStatus = new StringBuilder();
-        memoryStatus.append(context.getString(R.string.sms_phone_used));
-        memoryStatus.append(" " + getSmsMessageCount(context) + "\n");
-        memoryStatus.append(context.getString(R.string.sms_phone_capacity));
-        memoryStatus.append(" " + MAX_SMS_MESSAGE_COUNT + "\n\n");
-
-        memoryStatus.append(context.getString(R.string.mms_phone_used));
-        memoryStatus.append(" " + formatMemorySize(getMmsUsed(context)) + "\n");
-        memoryStatus.append(context.getString(R.string.mms_phone_capacity));
-        memoryStatus.append(" " + formatMemorySize(getStoreAll()) + "\n");
-        builder.setMessage(memoryStatus);
-
-        builder.show();
+    public static void removeDialogs() {
+        if(memoryStatusDialog != null && memoryStatusDialog.isShowing()) {
+            memoryStatusDialog.dismiss();
+            memoryStatusDialog = null;
+        }
     }
-
+    public static void showMemoryStatusDialog(Context context) {
+       new ShowDialog(context).execute();
+    }
     public static void showNumberOptions(Context context, String number) {
         final Context localContext = context;
         final String extractNumber = number;
@@ -1699,5 +1691,37 @@ public class MessageUtils {
             }
         });
         builder.show();
+    }
+    private static class ShowDialog extends AsyncTask<String, Void, StringBuilder> {
+        private Context mContext;
+        public ShowDialog(Context context) {
+            mContext = context;
+        }
+
+        @Override
+        protected StringBuilder doInBackground(String... params) {
+            StringBuilder memoryStatus = new StringBuilder();
+            memoryStatus.append(mContext.getString(R.string.sms_phone_used));
+            memoryStatus.append(" " + getSmsMessageCount(mContext) + "\n");
+            memoryStatus.append(mContext.getString(R.string.sms_phone_capacity));
+            memoryStatus.append(" " + MAX_SMS_MESSAGE_COUNT + "\n\n");
+            memoryStatus.append(mContext.getString(R.string.mms_phone_used));
+            memoryStatus.append(" " + formatMemorySize(getMmsUsed(mContext)) + "\n");
+            memoryStatus.append(mContext.getString(R.string.mms_phone_capacity));
+            memoryStatus.append(" " + formatMemorySize(getStoreAll()) + "\n");
+            return memoryStatus;
+        }
+        @Override
+        protected void onPostExecute(StringBuilder memoryStatus) {
+            if(memoryStatus != null && !memoryStatus.toString().isEmpty()) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                builder.setTitle(R.string.memory_status_title);
+                builder.setCancelable(true);
+                builder.setPositiveButton(R.string.yes, null);
+                builder.setMessage(memoryStatus);
+                memoryStatusDialog = builder.create();
+                memoryStatusDialog.show();
+            }
+        }
     }
 }

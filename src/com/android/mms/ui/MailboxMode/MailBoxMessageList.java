@@ -530,6 +530,7 @@ public class MailBoxMessageList extends ListActivity implements
         if (mListAdapter != null) {
             mListAdapter.changeCursor(null);
         }
+        MessageUtils.removeDialogs();
     }
 
     private void confirmDeleteMessages() {

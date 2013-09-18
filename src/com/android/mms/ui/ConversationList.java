@@ -363,6 +363,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         super.onDestroy();
 
         Contact.clearListener();
+        MessageUtils.removeDialogs();
     }
 
     @Override
