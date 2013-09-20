@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
  *
@@ -52,6 +55,11 @@ import android.os.StatFs;
 import android.os.SystemProperties;
 import android.os.storage.StorageManager;
 import android.preference.PreferenceManager;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.CommonDataKinds.StructuredName;
+import android.provider.ContactsContract.Data;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
@@ -187,6 +195,11 @@ public class MessageUtils {
     public static final int ALL_RECIPIENTS_EMPTY   = -2;
 
     public static boolean sIsIccLoaded  = false;
+
+    // add for different search mode in SearchActivityExtend
+    public static final int SEARCH_MODE_CONTENT = 0;
+    public static final int SEARCH_MODE_NAME    = 1;
+    public static final int SEARCH_MODE_NUMBER  = 2;
 
     public static final int STORE_TO_PHONE = 1;
     public static final int STORE_TO_ICC = 2;
@@ -1355,6 +1368,72 @@ public class MessageUtils {
             }
         }
         return subId;
+    }
+
+    public static String getAddressByName(Context context, String name) {
+        String resultAddr = "";
+        Cursor c = null;
+        Uri nameUri = null;
+        if (TextUtils.isEmpty(name)) {
+            return resultAddr;
+        }
+
+        try {
+            c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+                    new String[] {ContactsContract.Data.RAW_CONTACT_ID},
+                    ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME
+                    + " =? "  , new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
+
+            if (c == null) {
+                return resultAddr;
+            }
+
+            if (!c.moveToFirst()) {
+                c.close();
+                return resultAddr;
+            }
+
+            long raw_contact_id = c.getLong(0);
+            resultAddr = queryPhoneNumbersWithRaw(context, raw_contact_id);
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+
+        return resultAddr;
+    }
+
+    private static String queryPhoneNumbersWithRaw(Context context, long rawContactId) {
+        Cursor c = null;
+        String addrs = "";
+        try {
+            c = context.getContentResolver().query(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                    new String[] {Phone.NUMBER}, Phone.RAW_CONTACT_ID + " = " + rawContactId,
+                    null, null);
+
+            if (c != null && c.moveToFirst()) {
+                int i = 0;
+                while (!c.isAfterLast()) {
+                    String addrValue = c.getString(0);
+                    if (!TextUtils.isEmpty(addrValue)) {
+                        if (i == 0) {
+                            addrs = addrValue;
+                        } else {
+                            addrs = addrs + "," + addrValue;
+                        }
+                        i++;
+                    }
+                    c.moveToNext();
+                }
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+        return addrs;
     }
 
     /**
