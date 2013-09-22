@@ -46,6 +46,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.mms.R;
 import com.android.mms.ContentRestrictionException;
 import com.android.mms.ExceedMessageSizeException;
 import com.android.mms.LogTag;
@@ -54,6 +55,7 @@ import com.android.mms.dom.smil.parser.SmilXmlSerializer;
 import com.android.mms.layout.LayoutManager;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.CharacterSets;
 import com.google.android.mms.pdu.GenericPdu;
 import com.google.android.mms.pdu.MultimediaMessagePdu;
 import com.google.android.mms.pdu.PduBody;
@@ -76,6 +78,7 @@ public class SlideshowModel extends Model
 
     // amount of space to leave in a slideshow for text and overhead.
     public static final int SLIDESHOW_SLOP = 1024;
+    private static final int DEFAULT_MEDIA_NUMBER = 1;
 
     private SlideshowModel(Context context) {
         mLayout = new LayoutModel();
@@ -214,6 +217,32 @@ public class SlideshowModel extends Model
                     Log.e(TAG, e.getMessage(), e);
                 } catch (IllegalArgumentException e) {
                     Log.e(TAG, e.getMessage(), e);
+                }
+            }
+            // Add vcard and vcalendar when receive from other products
+            // without ref target in smil.
+            if (mediaNum == 0 && slidesNum == 1) {
+                int partsNum = pb.getPartsNum();
+                for (int k = 0; k < partsNum; k++) {
+                    PduPart part = pb.getPart(k);
+                    if (new String(part.getContentType()).equals(ContentType.TEXT_VCARD)) {
+                        MediaModel vMedia = new VcardModel(context, new String(
+                                part.getContentType()), new String(part.getContentLocation()),
+                                part.getDataUri());
+                        mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
+                        mediaSet.add(vMedia);
+                        totalMessageSize += vMedia.getMediaSize();
+                        break;
+                    }
+                    if (new String(part.getContentType()).equals(ContentType.TEXT_VCALENDAR)) {
+                        MediaModel tMedia = new TextModel(context, ContentType.TEXT_PLAIN, null,
+                                CharacterSets.UTF_8, context.getString(
+                                        R.string.unsupported_content_type).getBytes(), null);
+                        mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
+                        mediaSet.add(tMedia);
+                        totalMessageSize += tMedia.getMediaSize();
+                        break;
+                    }
                 }
             }
 
