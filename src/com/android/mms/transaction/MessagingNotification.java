@@ -54,6 +54,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.PowerManager;
+import android.os.SystemProperties;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
@@ -146,9 +147,13 @@ public class MessagingNotification {
     private static final String[] SMS_THREAD_ID_PROJECTION = new String[] { Sms.THREAD_ID };
     private static final String[] MMS_THREAD_ID_PROJECTION = new String[] { Mms.THREAD_ID };
 
+    // Notify unread messages for CT Mode
+    private static final boolean NOTIFY_BY_UNREAD = SystemProperties
+            .getBoolean("persist.env.mms.notifybyunread", false);
+
     private static final String NEW_INCOMING_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
-            + " AND " + Sms.SEEN + " = 0)";
+            + " AND " + (NOTIFY_BY_UNREAD ? Sms.READ : Sms.SEEN) + " = 0)";
 
     private static final String NEW_DELIVERY_SM_CONSTRAINT =
         "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_SENT
@@ -156,7 +161,7 @@ public class MessagingNotification {
 
     private static final String NEW_INCOMING_MM_CONSTRAINT =
             "(" + Mms.MESSAGE_BOX + "=" + Mms.MESSAGE_BOX_INBOX
-            + " AND " + Mms.SEEN + "=0"
+            + " AND " + (NOTIFY_BY_UNREAD ? Mms.READ : Mms.SEEN) + "=0"
             + " AND (" + Mms.MESSAGE_TYPE + "=" + MESSAGE_TYPE_NOTIFICATION_IND
             + " OR " + Mms.MESSAGE_TYPE + "=" + MESSAGE_TYPE_RETRIEVE_CONF + "))";
 
