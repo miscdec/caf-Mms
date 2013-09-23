@@ -400,6 +400,10 @@
     <string name="pending_mms">"信息：一条或多条彩信正在等待中"</string>
     <string name="pending_mms_text">"点击切换卡槽"</string>
 
+    <string name="switch_data_subscription">数据通道切换</string>
+    <string name="switch_data_subscription_success">成功。</string>
+    <string name="switch_data_subscription_failed">失败。</string>
+
     <string name="abort_mms">"信息: 终止彩信发送"</string>
     <string name="abort_mms_text ">"点击可终止发送并返回"</string>
 
