@@ -323,13 +323,15 @@ public class TransactionService extends Service implements Observer {
                                                 PendingMessages.ERROR_TYPE));
                                 DownloadManager downloadManager = DownloadManager.getInstance();
                                 boolean autoDownload = downloadManager.isAuto();
+                                boolean isMobileDataEnabled = mConnMgr.getMobileDataEnabled();
                                 if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                                     Log.v(TAG, "onNewIntent: failureType=" + failureType +
                                             " action=" + action + " isTransientFailure:" +
                                             isTransientFailure(failureType) + " autoDownload=" +
                                             autoDownload);
                                 }
-                                if (!autoDownload || MessageUtils.isMmsMemoryFull()) {
+                                if (!autoDownload || MessageUtils.isMmsMemoryFull()
+                                        || !isMobileDataEnabled) {
                                     // If autodownload is turned off, don't process the
                                     // transaction.
                                     if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {

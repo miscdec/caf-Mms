@@ -45,6 +45,7 @@ import android.database.sqlite.SqliteWrapper;
 import android.graphics.drawable.Drawable;
 import android.media.CamcorderProfile;
 import android.media.RingtoneManager;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
@@ -1692,6 +1693,7 @@ public class MessageUtils {
         });
         builder.show();
     }
+
     private static class ShowDialog extends AsyncTask<String, Void, StringBuilder> {
         private Context mContext;
         public ShowDialog(Context context) {
@@ -1723,5 +1725,15 @@ public class MessageUtils {
                 memoryStatusDialog.show();
             }
         }
+    }
+
+    public static boolean isMobileDataDisabled(Context context) {
+        // Notice: Only set the special property, this method can actually return the
+        // mobile data state. Otherwise, it will always return false.
+        boolean enableMmsData = SystemProperties
+                .getBoolean("persist.env.mms.setupmmsdata", false);
+        ConnectivityManager mConnService = (ConnectivityManager) context
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        return !mConnService.getMobileDataEnabled() && enableMmsData;
     }
 }
