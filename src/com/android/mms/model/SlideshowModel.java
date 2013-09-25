@@ -225,7 +225,8 @@ public class SlideshowModel extends Model
                 int partsNum = pb.getPartsNum();
                 for (int k = 0; k < partsNum; k++) {
                     PduPart part = pb.getPart(k);
-                    if (new String(part.getContentType()).equals(ContentType.TEXT_VCARD)) {
+                    if ((new String(part.getContentType())).toLowerCase().equals(
+                            ContentType.TEXT_VCARD.toLowerCase())) {
                         MediaModel vMedia = new VcardModel(context, new String(
                                 part.getContentType()), new String(part.getContentLocation()),
                                 part.getDataUri());
@@ -234,7 +235,8 @@ public class SlideshowModel extends Model
                         totalMessageSize += vMedia.getMediaSize();
                         break;
                     }
-                    if (new String(part.getContentType()).equals(ContentType.TEXT_VCALENDAR)) {
+                    if ((new String(part.getContentType())).toLowerCase().equals(
+                            ContentType.TEXT_VCALENDAR.toLowerCase())) {
                         MediaModel tMedia = new TextModel(context, ContentType.TEXT_PLAIN, null,
                                 CharacterSets.UTF_8, context.getString(
                                         R.string.unsupported_content_type).getBytes(), null);
