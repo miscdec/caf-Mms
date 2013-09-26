@@ -49,7 +49,7 @@ public class VcardModel extends MediaModel {
     private String mLookupUri = null;
 
     public VcardModel(Context context, Uri uri) throws MmsException {
-        this(context, null, null, uri);
+        this(context, ContentType.TEXT_VCARD, null, uri);
         initModelFromUri(uri);
     }
 
@@ -62,8 +62,6 @@ public class VcardModel extends MediaModel {
     }
 
     private void initModelFromUri(Uri uri) throws MmsException {
-        mContentType = ContentType.TEXT_VCARD;
-
         String scheme = uri.getScheme();
         if (scheme == null) {
             Log.e(TAG, "The uri's scheme is null.");
