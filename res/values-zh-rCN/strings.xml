@@ -420,6 +420,7 @@
     <string name="contact_info_text_as_name">姓名：</string>
     <string name="contact_info_text_as_phone">电话：</string>
     <string name="contact_info_text_as_email">电子邮件：</string>
+    <string name="import_contact_vcard">是否要将电子名片导入通讯录？</string>
 
     <!-- SMSC -->
     <string name="pref_smsc_title">短消息中心设置</string>

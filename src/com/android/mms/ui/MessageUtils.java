@@ -139,7 +139,7 @@ public class MessageUtils {
            "android.intent.action.SIM_STATE_CHANGED1";
 
     // distinguish view vcard from mms but not from contacts.
-    private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
+    public static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
     // add for obtain mms data path
     private static final String MMS_DATA_DATA_DIR = "/data/data";
     private static final String MMS_DATA_DIR = "/data/phonedata";
