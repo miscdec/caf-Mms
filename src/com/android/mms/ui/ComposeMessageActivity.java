@@ -267,6 +267,7 @@ public class ComposeMessageActivity extends Activity
     private static final String KEY_FORWARDED_MESSAGE = "forwarded_message";
 
     private static final String EXIT_ECM_RESULT = "exit_ecm_result";
+    private static final String ACTION_SEND_MULTIPLE="action_send_multiple";
 
     // When the conversation has a lot of messages and a new message is sent, the list is scrolled
     // so the user sees the just sent message. If we have to scroll the list more than 20 items,
@@ -366,6 +367,7 @@ public class ComposeMessageActivity extends Activity
 
     // Add a Uri for attach file.
     private Uri mAttachFileUri;
+    private boolean mIsSendMultiple = false;
 
     // If a message A is currently being edited, and user decides to edit
     // another sent message B, we need to send message A and put B in edit state
@@ -530,6 +532,7 @@ public class ComposeMessageActivity extends Activity
                 case AttachmentEditor.MSG_REMOVE_ATTACHMENT:
                     mWorkingMessage.removeAttachment(true);
                     mAttachFileUri = null;
+                    mIsSendMultiple = false;
                     break;
 
                 default:
@@ -2864,6 +2867,8 @@ public class ComposeMessageActivity extends Activity
         if (mAttachFileUri != null && mWorkingMessage.hasAttachment()) {
             outState.putString("attach_fille_uri", mAttachFileUri.toString());
             outState.putInt("attach_fille_type", mWorkingMessage.getAttachmentType());
+        } else if (mIsSendMultiple && mWorkingMessage.hasAttachment()) {
+            outState.putBoolean(ACTION_SEND_MULTIPLE, mIsSendMultiple);
         }
 
         mWorkingMessage.writeStateToBundle(outState);
@@ -3782,6 +3787,7 @@ public class ComposeMessageActivity extends Activity
             case REQUEST_CODE_CREATE_SLIDESHOW:
                 if (data != null) {
                     mAttachFileUri = data.getData();
+                    mIsSendMultiple = false;
                     WorkingMessage newMessage = WorkingMessage.load(this, mAttachFileUri);
                     if (newMessage != null) {
                         // Here we should keep the subject from the old mWorkingMessage.
@@ -4222,6 +4228,7 @@ public class ComposeMessageActivity extends Activity
                 getAsyncDialog().runAsync(new Runnable() {
                     @Override
                     public void run() {
+                        mAttachFileUri = uri;
                         addAttachment(mimeType, uri, false);
                     }
                 }, null, R.string.adding_attachments_title);
@@ -4230,10 +4237,13 @@ public class ComposeMessageActivity extends Activity
                 mWorkingMessage.setText(extras.getString(Intent.EXTRA_TEXT));
                 return true;
             }
-        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action) &&
-                extras.containsKey(Intent.EXTRA_STREAM)) {
+        } else if ((Intent.ACTION_SEND_MULTIPLE.equals(action) &&
+                extras.containsKey(Intent.EXTRA_STREAM)) || mIsSendMultiple) {
             SlideshowModel slideShow = mWorkingMessage.getSlideshow();
             final ArrayList<Parcelable> uris = extras.getParcelableArrayList(Intent.EXTRA_STREAM);
+            if (uris.size() > 0) {
+                mIsSendMultiple = true;
+            }
             int currentSlideCount = slideShow != null ? slideShow.size() : 0;
             int importCount = uris.size();
             if (importCount + currentSlideCount > SlideshowEditor.MAX_SLIDE_NUM) {
@@ -5555,6 +5565,8 @@ public class ComposeMessageActivity extends Activity
                             break;
                     }
                 }
+            } else if (mIsSendMultiple = bundle.getBoolean(ACTION_SEND_MULTIPLE)) {
+                handleSendIntent();
             }
         }
     }
