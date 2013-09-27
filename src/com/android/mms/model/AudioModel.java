@@ -173,6 +173,9 @@ public class AudioModel extends MediaModel {
         }
 
         appendAction(action);
+        if (action == MediaAction.STOP) {
+            return;
+        }
         notifyModelChanged(false);
     }
 
