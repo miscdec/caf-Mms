@@ -73,6 +73,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
     private OnListContentChangedListener mListChangedListener;
     private final LinkedHashMap<String, BoxMessageItem> mMessageItemCache;
     private static final int CACHE_SIZE = 50;
+    private static final String SEPARATOR = ";";
 
     // For posting UI update Runnables from other threads:
     private Handler mHandler = new Handler();
@@ -146,7 +147,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
                     .getResources().getDrawable(R.drawable.ic_contact_picture_mms_card2);
         }
 
-        Contact contact = Contact.get(mAddress, true);
+        Contact contact = Contact.get(getFirstAddress(mAddress), true);
         if (mMsgType.equals("mms")) {
             avatarDrawable = sDefaultContactImageMms;
         } else {
@@ -171,10 +172,22 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         mHandler.post(new Runnable() {
             public void run() {
                 updateAvatarView();
-                mName = Contact.get(mAddress, true).getName();
+                mName = Contact.get(getFirstAddress(mAddress), true).getName();
                 formatNameView(mAddress, mName);
             }
         });
+    }
+
+    private String getFirstAddress(String addresses) {
+        if (TextUtils.isEmpty(addresses)) {
+            return "";
+        }
+        if (addresses.contains(SEPARATOR)) {
+            String[] mAddresses = addresses.split(SEPARATOR);
+            return mAddresses[0];
+        } else {
+            return addresses;
+        }
     }
 
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
