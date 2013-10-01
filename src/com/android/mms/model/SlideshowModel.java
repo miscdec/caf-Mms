@@ -79,6 +79,7 @@ public class SlideshowModel extends Model
     // amount of space to leave in a slideshow for text and overhead.
     public static final int SLIDESHOW_SLOP = 1024;
     private static final int DEFAULT_MEDIA_NUMBER = 1;
+    private static final float MIN_PAT_DURATION = (float)1.0;
 
     private SlideshowModel(Context context) {
         mLayout = new LayoutModel();
@@ -247,8 +248,11 @@ public class SlideshowModel extends Model
                     }
                 }
             }
-
-            SlideModel slide = new SlideModel((int) (par.getDur() * 1000), mediaSet);
+            float duration = par.getDur();
+            if (duration < MIN_PAT_DURATION) {
+                duration = MIN_PAT_DURATION;
+            }
+            SlideModel slide = new SlideModel((int) (duration * 1000), mediaSet);
             slide.setFill(par.getFill());
             SmilHelper.addParElementEventListeners((EventTarget) par, slide);
             slides.add(slide);
