@@ -149,6 +149,7 @@ public class SlideshowModel extends Model
         int slidesNum = slideNodes.getLength();
         ArrayList<SlideModel> slides = new ArrayList<SlideModel>(slidesNum);
         int totalMessageSize = 0;
+        boolean classCastFailed = false;
 
         for (int i = 0; i < slidesNum; i++) {
             // FIXME: This is NOT compatible with the SMILDocument which is
@@ -161,7 +162,14 @@ public class SlideshowModel extends Model
             ArrayList<MediaModel> mediaSet = new ArrayList<MediaModel>(mediaNum);
 
             for (int j = 0; j < mediaNum; j++) {
-                SMILMediaElement sme = (SMILMediaElement) mediaNodes.item(j);
+                SMILMediaElement sme = null;
+                try {
+                    sme = (SMILMediaElement) mediaNodes.item(j);
+                } catch (ClassCastException e) {
+                    classCastFailed = true;
+                    Log.e(TAG, e.getMessage());
+                    continue;
+                }
                 try {
                     MediaModel media = MediaModelFactory.getMediaModel(
                             context, sme, layouts, pb);
@@ -222,7 +230,8 @@ public class SlideshowModel extends Model
             }
             // Add vcard and vcalendar when receive from other products
             // without ref target in smil.
-            if (mediaNum == 0 && slidesNum == 1) {
+            if ((mediaNum == 0 || classCastFailed) && slidesNum == 1) {
+                classCastFailed = false;
                 int partsNum = pb.getPartsNum();
                 for (int k = 0; k < partsNum; k++) {
                     PduPart part = pb.getPart(k);
