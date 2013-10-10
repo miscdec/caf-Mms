@@ -1608,12 +1608,17 @@ public class MessageUtils {
 
     /* check to see whether short message count is up to 2000 */
     public static void checkIsPhoneMessageFull(Context context) {
-        int msgCount = getSmsMessageCount(context);
-        boolean isPhoneSmsCountFull = (msgCount >= MAX_SMS_MESSAGE_COUNT);
+        boolean isPhoneMemoryFull = isPhoneMemoryFull();
+        boolean isPhoneSmsCountFull = false;
+        if (MAX_SMS_MESSAGE_COUNT != -1) {
+            int msgCount = getSmsMessageCount(context);
+            isPhoneSmsCountFull = msgCount >= MAX_SMS_MESSAGE_COUNT;
+        }
 
-        Log.d(TAG, "checkIsPhoneMessageFull : isPhoneSmsCountFull = " + isPhoneSmsCountFull);
+        Log.d(TAG, "checkIsPhoneMessageFull : isPhoneMemoryFull = " + isPhoneMemoryFull
+                + "isPhoneSmsCountFull = " + isPhoneSmsCountFull);
 
-        if (isPhoneMemoryFull() || isPhoneSmsCountFull) {
+        if (isPhoneMemoryFull || isPhoneSmsCountFull) {
             MessagingNotification.updateSmsMessageFullIndicator(context, true);
         } else {
             MessagingNotification.updateSmsMessageFullIndicator(context, false);
