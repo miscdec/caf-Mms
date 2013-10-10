@@ -46,6 +46,7 @@ import android.widget.QuickContactBadge;
 import android.widget.TextView;
 
 import com.android.mms.data.Contact;
+import com.android.mms.data.ContactList;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
@@ -73,6 +74,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
     private OnListContentChangedListener mListChangedListener;
     private final LinkedHashMap<String, BoxMessageItem> mMessageItemCache;
     private static final int CACHE_SIZE = 50;
+    private static final String SEPARATOR = ";";
 
     // For posting UI update Runnables from other threads:
     private Handler mHandler = new Handler();
@@ -243,6 +245,12 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             bodyStr = item.mBody;
             dateStr = item.mDateStr;
             nameContact = item.mName;
+            if (item.mSmsType == Sms.MESSAGE_TYPE_DRAFT) {
+                recipientIds = cursor.getString(COLUMN_RECIPIENT_IDS);
+                if (!TextUtils.isEmpty(recipientIds)) {
+                    nameContact = ContactList.getByIds(recipientIds, true).formatNames(SEPARATOR);
+                }
+            }
         } else if (type.equals("mms")) {
             final int mmsRead = cursor.getInt(COLUMN_MMS_READ);
             mSubscription = cursor.getInt(COLUMN_MMS_SUB_ID);
