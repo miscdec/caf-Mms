@@ -2704,6 +2704,7 @@ public class ComposeMessageActivity extends Activity
             saveDraft(false);    // if we've got a draft, save it first
 
             initialize(null, originalThreadId);
+            mMessagesAndDraftLoaded = false;
         }
         loadMessagesAndDraft(0);
     }
