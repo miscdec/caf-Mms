@@ -497,9 +497,6 @@ public class MailBoxMessageList extends ListActivity implements
             case R.id.action_memory_status:
                 MessageUtils.showMemoryStatusDialog(this);
                 break;
-            case R.id.action_debug_dump:
-                LogTag.dumpInternalTables(this);
-                break;
             case R.id.action_cell_broadcasts:
                 Intent cellBroadcastIntent = new Intent(Intent.ACTION_MAIN);
                 cellBroadcastIntent.setComponent(new ComponentName(

@@ -44,6 +44,4 @@
     <item android:id="@+id/action_cell_broadcasts"
         android:title="@string/menu_cell_broadcasts" />
 
-    <item android:id="@+id/action_debug_dump"
-        android:title="@string/menu_debug_dump" />
 </menu>

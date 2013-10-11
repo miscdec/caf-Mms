@@ -467,12 +467,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             }
         }
 
-        if (!LogTag.DEBUG_DUMP) {
-            item = menu.findItem(R.id.action_debug_dump);
-            if (item != null) {
-                item.setVisible(false);
-            }
-        }
         return true;
     }
 
@@ -505,9 +499,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 break;
             case R.id.action_memory_status:
                 MessageUtils.showMemoryStatusDialog(this);
-                break;
-            case R.id.action_debug_dump:
-                LogTag.dumpInternalTables(this);
                 break;
             case R.id.action_cell_broadcasts:
                 Intent cellBroadcastIntent = new Intent(Intent.ACTION_MAIN);
