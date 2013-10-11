@@ -194,6 +194,9 @@ public class MessageUtils {
     public static final int CARD_SUB1 = MSimConstants.SUB1;
     public static final int CARD_SUB2 = MSimConstants.SUB2;
 
+    // Save the thread id for same recipient forward mms
+    public static ArrayList<Long> sSameRecipientList = new ArrayList<Long>();
+
     // the max short message count
     public static int MAX_SMS_MESSAGE_COUNT =
             SystemProperties.getInt("persist.env.c.mms.maxcount", -1);
