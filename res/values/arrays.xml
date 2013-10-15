@@ -133,6 +133,7 @@
     </string-array>
     <string-array name="number_options">
         <item>@string/menu_call</item>
+        <item>@string/menu_videocall</item>
         <item>@string/title_send_message</item>
         <item>@string/menu_add_to_contacts</item>
     </string-array>

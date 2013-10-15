@@ -173,8 +173,9 @@ public class MessageUtils {
 
     // Dialog item options for number
     private static final int DIALOG_ITEM_CALL         = 0;
-    private static final int DIALOG_ITEM_SMS          = 1;
-    private static final int DIALOG_ITEM_ADD_CONTACTS = 2;
+    private static final int DIALOG_ITEM_VIDEOCALL    = 1;
+    private static final int DIALOG_ITEM_SMS          = 2;
+    private static final int DIALOG_ITEM_ADD_CONTACTS = 3;
 
     private static HashMap numericSugarMap = new HashMap (NUMERIC_CHARS_SUGAR.length);
     //for showing memory status dialog.
@@ -1231,6 +1232,16 @@ public class MessageUtils {
         return builder.toString();
     }
 
+  private static Intent getVTCallIntent(String number) {
+        Intent intent = new Intent("com.borqs.videocall.action.LaunchVideoCallScreen");
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+        intent.putExtra("IsCallOrAnswer", true); // true as a call, while false as answer
+        intent.putExtra("LaunchMode", 1); // 1 as telephony, while 0 as socket
+        intent.putExtra("call_number_key", number);
+        return intent;
+    }
+
     /**
      * Returns true if the address passed in is a valid MMS address.
      */
@@ -1682,6 +1693,10 @@ public class MessageUtils {
                         Intent dialIntent = new Intent(Intent.ACTION_CALL,
                                 Uri.parse("tel:" + extractNumber));
                         localContext.startActivity(dialIntent);
+                        break;
+                    case DIALOG_ITEM_VIDEOCALL:
+                        Intent videocallIntent = new Intent(getVTCallIntent(extractNumber));
+                        localContext.startActivity(videocallIntent);
                         break;
                     case DIALOG_ITEM_SMS:
                         Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
