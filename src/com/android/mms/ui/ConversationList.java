@@ -109,7 +109,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private Handler mHandler;
     private boolean mDoOnceAfterFirstQuery;
     private TextView mUnreadConvCount;
-    private MenuItem mSearchItem;
     private SearchView mSearchView;
     private int mSavedFirstVisiblePosition = AdapterView.INVALID_POSITION;
     private int mSavedFirstItemOffset;
@@ -391,39 +390,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     }
 
-    SearchView.OnQueryTextListener mQueryTextListener = new SearchView.OnQueryTextListener() {
-        @Override
-        public boolean onQueryTextSubmit(String query) {
-            Intent intent = new Intent();
-            intent.setClass(ConversationList.this, SearchActivity.class);
-            intent.putExtra(SearchManager.QUERY, query);
-            startActivity(intent);
-            mSearchItem.collapseActionView();
-            return true;
-        }
-
-        @Override
-        public boolean onQueryTextChange(String newText) {
-            return false;
-        }
-    };
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
-
-        mSearchItem = menu.findItem(R.id.search);
-        mSearchView = (SearchView) mSearchItem.getActionView();
-
-        mSearchView.setOnQueryTextListener(mQueryTextListener);
-        mSearchView.setQueryHint(getString(R.string.search_hint));
-        mSearchView.setIconifiedByDefault(true);
-        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-
-        if (searchManager != null) {
-            SearchableInfo info = searchManager.getSearchableInfo(this.getComponentName());
-            mSearchView.setSearchableInfo(info);
-        }
 
         MenuItem cellBroadcastItem = menu.findItem(R.id.action_cell_broadcasts);
         if (cellBroadcastItem != null) {
@@ -472,15 +441,16 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     @Override
     public boolean onSearchRequested() {
-        if (mSearchItem != null) {
-            mSearchItem.expandActionView();
-        }
-        return true;
+        return false;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
+            case R.id.search:
+                Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                startActivityIfNeeded(searchintent, -1);
+                break;
             case R.id.action_compose_new:
                 createNewMessage();
                 break;
