@@ -163,7 +163,8 @@ public class MessagingNotification {
             "(" + Mms.MESSAGE_BOX + "=" + Mms.MESSAGE_BOX_INBOX
             + " AND " + (NOTIFY_BY_UNREAD ? Mms.READ : Mms.SEEN) + "=0"
             + " AND (" + Mms.MESSAGE_TYPE + "=" + MESSAGE_TYPE_NOTIFICATION_IND
-            + " OR " + Mms.MESSAGE_TYPE + "=" + MESSAGE_TYPE_RETRIEVE_CONF + "))";
+            + " OR " + Mms.MESSAGE_TYPE + "=" + MESSAGE_TYPE_RETRIEVE_CONF + "))"
+            + " AND " + Mms.THREAD_ID + "!=0" ;
 
     private static final String NEW_INCOMING_ICC_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
