@@ -460,6 +460,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             if (item != null) {
                 item.setVisible(false);
             }
+            item = menu.findItem(R.id.action_memory_status);
+            if (item != null) {
+                item.setVisible(false);
+            }
         }
 
         if (!LogTag.DEBUG_DUMP) {
@@ -499,7 +503,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 finish();
                 break;
             case R.id.action_memory_status:
-                startActivity(new Intent(this, MemoryStatusActivity.class));
+                MessageUtils.showMemoryStatusDialog(this);
                 break;
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);

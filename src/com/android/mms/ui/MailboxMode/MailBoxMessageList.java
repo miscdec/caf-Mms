@@ -69,6 +69,7 @@ import com.android.mms.data.Contact;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.ui.MessageListAdapter;
+import com.android.mms.ui.MessageUtils;
 import com.google.android.mms.pdu.PduHeaders;
 
 import static com.android.mms.ui.MessageListAdapter.MAILBOX_PROJECTION;
@@ -482,6 +483,9 @@ public class MailBoxMessageList extends ListActivity implements
                 Intent modeIntent = new Intent(this, ConversationList.class);
                 startActivityIfNeeded(modeIntent, -1);
                 finish();
+                break;
+            case R.id.action_memory_status:
+                MessageUtils.showMemoryStatusDialog(this);
                 break;
             default:
                 return true;
