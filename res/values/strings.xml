@@ -40,6 +40,8 @@
     <string name="menu_add_address_to_contacts">Add <xliff:g id="contactEmailOrNumber">%s</xliff:g> to People</string>
     <!-- Menu item to call the recipient of the conversation on the phone (imperative verb) -->
     <string name="menu_call">Call</string>
+    <!-- Menu item used to initiate videocall from mms -->
+    <string name="menu_videocall">Video call</string>
     <!-- Menu item for search -->
     <string name="menu_search">Search</string>
     <!-- Menu item for deleting all conversations -->
