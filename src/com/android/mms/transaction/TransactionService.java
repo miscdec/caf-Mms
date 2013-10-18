@@ -54,6 +54,7 @@ import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.mms.LogTag;
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.DownloadManager;
@@ -152,6 +153,10 @@ public class TransactionService extends Service implements Observer {
     // How often to extend the use of the MMS APN while a transaction
     // is still being processed.
     private static final int APN_EXTENSION_WAIT = 30 * 1000;
+
+    // Retry limit times indicate the pending messages retried in current sub
+    // if need to switch data back.
+    private static final int CURRENT_SUB_RETRY_LIMIT = 1;
 
     private ServiceHandler mServiceHandler;
     private Looper mServiceLooper;
@@ -453,7 +458,7 @@ public class TransactionService extends Service implements Observer {
                         isSilent = false;
                     }
 
-                    if (isSilent) {
+                    if (isSilent && !hasPendingInCurrentSub()) {
                         int nextSub = req.originSub;
                         Log.d(TAG, "MMS silent transaction finished for sub="+nextSub);
                         Intent silentIntent = new Intent(getApplicationContext(),
@@ -463,6 +468,7 @@ public class TransactionService extends Service implements Observer {
                         silentIntent.putExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
                         silentIntent.putExtra("TRIGGER_SWITCH_ONLY", 1);
                         getApplicationContext().startService(silentIntent);
+                        MmsConfig.clearDefaultDataSubscription();
                     }
                 }
             }
@@ -579,6 +585,23 @@ public class TransactionService extends Service implements Observer {
         }
     }
 
+    private void updateTxnRequestOriginSub(int servId, int originSub) {
+        for (TxnRequest req : txnRequestsMap) {
+            if (req.serviceId == servId) {
+                req.originSub = originSub;
+            }
+        }
+    }
+
+    private int getTxnRequestOriginSub(int servId) {
+        for (TxnRequest req : txnRequestsMap) {
+            if (req.serviceId == servId) {
+                return req.originSub;
+            }
+        }
+        return MmsConfig.SUBSCRIPTION_INVALID;
+    }
+
     /**
      * Handle status change of Transaction (The Observable).
      */
@@ -668,9 +691,89 @@ public class TransactionService extends Service implements Observer {
             sendBroadcast(intent);
         } finally {
             transaction.detach(this);
+            boolean hasPendingInCurrentSub = hasPendingInCurrentSub();
+            boolean needSwitchDataBack = needSwitchDataBack(serviceId);
+            if (hasPendingInCurrentSub && needSwitchDataBack) {
+                int originalSub = getTxnRequestOriginSub(serviceId);
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
+                    Log.v(TAG, "Has pending message in current sub, " +
+                            "record the original sub. originalSub=" + originalSub);
+                }
+                MmsConfig.setDefaultDataSubscription(originalSub);
+            }
+            if (!hasPendingInCurrentSub &&
+                    MmsConfig.sDefaultDataSubscription != MmsConfig.SUBSCRIPTION_INVALID) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
+                    Log.v(TAG, "Message in current sub has been processed, update the " +
+                            "final message original sub.");
+                }
+                updateTxnRequestOriginSub(serviceId, MmsConfig.sDefaultDataSubscription);
+            }
             removeNotification(serviceId);
-            stopSelfIfIdle(serviceId);
+            stopSelf(serviceId);
         }
+    }
+
+    private boolean needSwitchDataBack(int startId) {
+        for (TxnRequest req : txnRequestsMap ) {
+            if (req.serviceId == startId) {
+                return req.destSub != req.originSub;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasPendingInCurrentSub() {
+        Cursor cursor = PduPersister.getPduPersister(this).getPendingMessages(
+                System.currentTimeMillis());
+        if (cursor != null) {
+            try {
+                int columnIndexOfMsgId = cursor.getColumnIndexOrThrow(PendingMessages.MSG_ID);
+                int columnIndexOfMsgType = cursor.getColumnIndexOrThrow(PendingMessages.MSG_TYPE);
+                while (cursor.moveToNext()) {
+                    int msgType = cursor.getInt(columnIndexOfMsgType);
+                    int transactionType = getTransactionType(msgType);
+                    Uri uri = ContentUris.withAppendedId(
+                            Mms.CONTENT_URI,
+                            cursor.getLong(columnIndexOfMsgId));
+                    int failureType = cursor.getInt(
+                            cursor.getColumnIndexOrThrow(PendingMessages.ERROR_TYPE));
+                    DownloadManager downloadManager = DownloadManager.getInstance();
+                    boolean autoDownload = downloadManager.isAuto();
+                    boolean memoryFull = MessageUtils.isMmsMemoryFull();
+                    boolean isMobileDataEnabled = mConnMgr.getMobileDataEnabled();
+                    int retryIndex = cursor.getInt(cursor.getColumnIndexOrThrow(
+                            PendingMessages.RETRY_INDEX));
+                    // 1.Limit retry times to avoid wait too long for transaction failed MMS.
+                    // 2.Don't handle the transaction that will be skipped.
+                    if (retryIndex > CURRENT_SUB_RETRY_LIMIT) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
+                            Log.v(TAG, "hasPendingInCurrentSub: ignore the over limit retry " +
+                                    "times transaction. retryIndex="
+                                    + retryIndex + " ,uri=" + uri);
+                        }
+                        continue;
+                    } else if (transactionType == Transaction.RETRIEVE_TRANSACTION &&
+                            (!autoDownload || memoryFull || !isMobileDataEnabled ||
+                            !(failureType == MmsSms.NO_ERROR ||
+                            isTransientFailure(failureType)))) {
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
+                            Log.v(TAG, "hasPendingInCurrentSub: ignore the transaction " +
+                                    "that will be skipped. uri=" + uri);
+                        }
+                        continue;
+                    }
+                    int subId = getSubIdFromDb(uri);
+                    if (subId == MultiSimUtility.getCurrentDataSubscription
+                            (getApplicationContext())) {
+                        return true;
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return false;
     }
 
     private synchronized void createWakeLock() {
