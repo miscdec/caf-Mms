@@ -37,6 +37,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemProperties;
 import android.provider.Browser;
 import android.os.SystemProperties;
 import android.provider.ContactsContract.Profile;
@@ -103,6 +104,7 @@ public class MessageListItem extends LinearLayout implements
     private static final boolean DEBUG_DONT_LOAD_IMAGES = false;
     // The message is from Browser
     private static final String BROWSER_ADDRESS = "Browser Information";
+    private static final String CANCEL_URI = "canceluri";
 
     static final int MSG_LIST_EDIT    = 1;
     static final int MSG_LIST_PLAY    = 2;
@@ -118,7 +120,7 @@ public class MessageListItem extends LinearLayout implements
     private TextView mSimMessageAddress;
     private TextView mBodyTextView;
     private Button mDownloadButton;
-    private TextView mDownloadingLabel;
+    private View mDownloading;
     private Handler mHandler;
     private MessageItem mMessageItem;
     private String mDefaultCountryIso;
@@ -130,6 +132,9 @@ public class MessageListItem extends LinearLayout implements
     private int mPosition;      // for debugging
     private ImageLoadedCallback mImageLoadedCallback;
     private boolean mMultiRecipients;
+    // Cancle download MMS during downloading for CT
+    private boolean isMmsCancelable = SystemProperties
+            .getBoolean("persist.env.mms.mmscancelable", false);
 
     public MessageListItem(Context context) {
         super(context);
@@ -270,7 +275,7 @@ public class MessageListItem extends LinearLayout implements
             default:
                 setLongClickable(true);
                 inflateDownloadControls();
-                mDownloadingLabel.setVisibility(View.GONE);
+                mDownloading.setVisibility(View.GONE);
                 mDownloadButton.setVisibility(View.VISIBLE);
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
@@ -337,7 +342,7 @@ public class MessageListItem extends LinearLayout implements
     }
 
     private void startDownloadAttachment() {
-        mDownloadingLabel.setVisibility(View.VISIBLE);
+        mDownloading.setVisibility(View.VISIBLE);
         mDownloadButton.setVisibility(View.GONE);
         Intent intent = new Intent(mContext, TransactionService.class);
         intent.putExtra(TransactionBundle.URI, mMessageItem.mMessageUri.toString());
@@ -377,7 +382,7 @@ public class MessageListItem extends LinearLayout implements
 
     private void showDownloadingAttachment() {
         inflateDownloadControls();
-        mDownloadingLabel.setVisibility(View.VISIBLE);
+        mDownloading.setVisibility(View.VISIBLE);
         mDownloadButton.setVisibility(View.GONE);
     }
 
@@ -417,7 +422,7 @@ public class MessageListItem extends LinearLayout implements
     private void bindCommonMessage(final boolean sameItem) {
         if (mDownloadButton != null) {
             mDownloadButton.setVisibility(View.GONE);
-            mDownloadingLabel.setVisibility(View.GONE);
+            mDownloading.setVisibility(View.GONE);
         }
         // Since the message text should be concatenated with the sender's
         // address(or name), I have to display it here instead of
@@ -585,6 +590,17 @@ public class MessageListItem extends LinearLayout implements
         }
     }
 
+    DialogInterface.OnClickListener mCancelLinstener = new DialogInterface.OnClickListener() {
+        @Override
+        public void onClick(DialogInterface dialog, final int whichButton) {
+            Intent intent = new Intent(mContext, TransactionService.class);
+            intent.putExtra(CANCEL_URI, mMessageItem.mMessageUri.toString());
+            mContext.startService(intent);
+            DownloadManager.getInstance().markState(mMessageItem.mMessageUri,
+                    DownloadManager.STATE_UNSTARTED);
+        }
+    };
+
     @Override
     public void startAudio() {
         // TODO Auto-generated method stub
@@ -642,7 +658,24 @@ public class MessageListItem extends LinearLayout implements
             //inflate the download controls
             findViewById(R.id.mms_downloading_view_stub).setVisibility(VISIBLE);
             mDownloadButton = (Button) findViewById(R.id.btn_download_msg);
-            mDownloadingLabel = (TextView) findViewById(R.id.label_downloading);
+            if (isMmsCancelable) {
+                mDownloading = (Button) findViewById(R.id.btn_cancel_download);
+                mDownloading.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                        builder.setTitle(R.string.cancel_downloading)
+                                .setIconAttribute(android.R.attr.alertDialogIcon)
+                                .setCancelable(true)
+                                .setPositiveButton(R.string.yes, mCancelLinstener)
+                                .setNegativeButton(R.string.no, null)
+                                .setMessage(R.string.confirm_cancel_downloading)
+                                .show();
+                    }
+                });
+            } else {
+                mDownloading = (TextView) findViewById(R.id.label_downloading);
+            }
         }
     }
 
