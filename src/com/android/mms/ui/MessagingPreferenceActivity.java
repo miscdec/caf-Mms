@@ -532,9 +532,13 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
                     || MessageUtils.getActivatedIccCardCount() < 2) {
                 Intent intent = new Intent(this, ManageSimMessages.class);
-                intent.putExtra(MSimConstants.SUBSCRIPTION_KEY,
-                        MessageUtils.isIccCardActivated(MessageUtils.SUB1) ? MessageUtils.SUB1
-                                : MessageUtils.SUB2);
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    intent.putExtra(MSimConstants.SUBSCRIPTION_KEY,
+                            MessageUtils.isIccCardActivated(MessageUtils.SUB1) ? MessageUtils.SUB1
+                                    : MessageUtils.SUB2);
+                } else {
+                    intent.putExtra(MSimConstants.SUBSCRIPTION_KEY, MessageUtils.SUB_INVALID);
+                }
                 startActivity(intent);
             } else {
                 Intent intent = new Intent(this, SelectSubscription.class);

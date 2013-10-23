@@ -508,17 +508,18 @@ public class SmsReceiverService extends Service {
         if (isNeedStoreToICC) {
             for (int i = 0; i < msgs.length; i++) {
                 SmsMessage sms = msgs[i];
+                int sub = MessageUtils.isMultiSimEnabledMms() ? sms.getSubId()
+                        : MessageUtils.SUB_INVALID;
                 if (sms.mWrappedSmsMessage != null) {
-                    messageUri = storeMessageToIcc(sms, sms.getSubId());
+                    messageUri = storeMessageToIcc(sms, sub);
                 }
                 if (messageUri != null) {
                     if (MessageUtils.COPY_FAILURE_FULL.equals(messageUri.toString())) {
                         Log.e(TAG, "Save to card fail because ICC has been full.");
-                        MessageUtils.handleIccFull(this, sms.getSubId());
+                        MessageUtils.handleIccFull(this, sub);
                         return;
                     }
-                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this,
-                            sms.getSubId());
+                    MessagingNotification.blockingUpdateNewMessageOnIccIndicator(this, sub);
                 } else {
                     Toast.makeText(this, getString(R.string.pref_sms_store_card_unknown_fail),
                             Toast.LENGTH_LONG).show();
