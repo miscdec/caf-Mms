@@ -1444,8 +1444,10 @@ public class ComposeMessageActivity extends Activity
                         .setOnMenuItemClickListener(l);
             }
 
-            menu.add(0, MENU_SELECT_COPY_MESSAGE_TEXT, 0, R.string.select_copy_message_text)
-                    .setOnMenuItemClickListener(l);
+            if (!msgItem.isMms() || msgItem.isDownloaded()) {
+                menu.add(0, MENU_SELECT_COPY_MESSAGE_TEXT, 0, R.string.select_copy_message_text)
+                        .setOnMenuItemClickListener(l);
+            }
 
             //only failed send message have resend function
             if (msgItem.isFailedMessage()) {
