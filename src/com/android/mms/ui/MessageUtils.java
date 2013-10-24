@@ -181,9 +181,9 @@ public class MessageUtils {
 
     // Dialog item options for number
     private static final int DIALOG_ITEM_CALL         = 0;
-    private static final int DIALOG_ITEM_VIDEOCALL    = 1;
-    private static final int DIALOG_ITEM_SMS          = 2;
-    private static final int DIALOG_ITEM_ADD_CONTACTS = 3;
+    private static final int DIALOG_ITEM_SMS          = 1;
+    private static final int DIALOG_ITEM_ADD_CONTACTS = 2;
+    private static final int DIALOG_ITEM_VIDEOCALL    = 3;
 
     private static HashMap numericSugarMap = new HashMap (NUMERIC_CHARS_SUGAR.length);
     //for showing memory status dialog.
@@ -1255,6 +1255,12 @@ public class MessageUtils {
         return intent;
     }
 
+    private static boolean isVTSupported() {
+        return SystemProperties.getBoolean(
+                "persist.radio.csvt.enabled"
+        /*TelephonyProperties.PROPERTY_CSVT_ENABLED*/, false);
+    }
+
     /**
      * Returns true if the address passed in is a valid MMS address.
      */
@@ -1761,10 +1767,12 @@ public class MessageUtils {
     public static void showNumberOptions(Context context, String number) {
         final Context localContext = context;
         final String extractNumber = number;
+        final int numberOptions =
+                (isVTSupported()) ? R.array.number_options_add_csvt : R.array.number_options;
         AlertDialog.Builder builder = new AlertDialog.Builder(localContext);
         builder.setTitle(number);
         builder.setCancelable(true);
-        builder.setItems(R.array.number_options,
+        builder.setItems(numberOptions,
                 new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
@@ -1772,10 +1780,6 @@ public class MessageUtils {
                         Intent dialIntent = new Intent(Intent.ACTION_CALL,
                                 Uri.parse("tel:" + extractNumber));
                         localContext.startActivity(dialIntent);
-                        break;
-                    case DIALOG_ITEM_VIDEOCALL:
-                        Intent videocallIntent = new Intent(getVTCallIntent(extractNumber));
-                        localContext.startActivity(videocallIntent);
                         break;
                     case DIALOG_ITEM_SMS:
                         Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
@@ -1786,6 +1790,10 @@ public class MessageUtils {
                         Intent intent = ConversationList
                                 .createAddContactIntent(extractNumber);
                         localContext.startActivity(intent);
+                        break;
+                  case DIALOG_ITEM_VIDEOCALL:
+                        Intent videocallIntent = new Intent(getVTCallIntent(extractNumber));
+                        localContext.startActivity(videocallIntent);
                         break;
                     default:
                         break;
