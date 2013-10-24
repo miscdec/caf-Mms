@@ -102,6 +102,9 @@ public class MmsConfig {
     // activity.
     private static boolean mEnableGroupMms = true;
 
+    public static final int SUBSCRIPTION_INVALID = -1;
+    public static int sDefaultDataSubscription = SUBSCRIPTION_INVALID;
+
     public static void init(Context context) {
         if (LOCAL_LOGV) {
             Log.v(TAG, "MmsConfig.init()");
@@ -411,6 +414,14 @@ public class MmsConfig {
                         errorStr);
             Log.e(TAG, err);
         }
+    }
+
+    public static void setDefaultDataSubscription(int sub) {
+        sDefaultDataSubscription = sub;
+    }
+
+    public static void clearDefaultDataSubscription() {
+        sDefaultDataSubscription = SUBSCRIPTION_INVALID;
     }
 
 }
