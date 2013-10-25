@@ -30,6 +30,7 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
@@ -68,6 +69,7 @@ import com.android.mms.transaction.SmsMessageSender;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.ui.SearchActivity;
 import com.android.mms.ui.SlideshowEditor;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
@@ -873,6 +875,7 @@ public class WorkingMessage {
             mHasMmsDraft = true;
         } finally {
             DraftCache.getInstance().setSavingDraft(false);
+            updateSearchResult();
         }
         return mMessageUri;
     }
@@ -946,6 +949,7 @@ public class WorkingMessage {
         // Delete any associated drafts if there are any.
         if (mHasMmsDraft) {
             asyncDeleteDraftMmsMessage(mConversation);
+            updateSearchResult();
         }
         if (mHasSmsDraft) {
             asyncDeleteDraftSmsMessage(mConversation);
@@ -1398,6 +1402,17 @@ public class WorkingMessage {
         long threadId = 0;
         Cursor cursor = null;
         boolean newMessage = false;
+        boolean forwardMessage = conv.getHasMmsForward();
+        boolean sameRecipient = false;
+        ContactList contactList = conv.getRecipients();
+        if (contactList != null) {
+            String[] numbers = contactList.getNumbers();
+            if (numbers != null && numbers.length == 1) {
+                if (numbers[0].equals(conv.getForwardRecipientNumber())) {
+                    sameRecipient = true;
+                }
+            }
+        }
         try {
             // Put a placeholder message in the database first
             DraftCache.getInstance().setSavingDraft(true);
@@ -1406,6 +1421,9 @@ public class WorkingMessage {
             // Make sure we are still using the correct thread ID for our
             // recipient set.
             threadId = conv.ensureThreadId();
+            if (forwardMessage && sameRecipient) {
+                MessageUtils.sSameRecipientList.add(threadId);
+            }
 
             if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 LogTag.debug("sendMmsWorker: update draft MMS message " + mmsUri +
@@ -1532,7 +1550,11 @@ public class WorkingMessage {
         } catch (Exception e) {
             Log.e(TAG, "Failed to send message: " + mmsUri + ", threadId=" + threadId, e);
         }
+        if (forwardMessage && sameRecipient) {
+            MessageUtils.sSameRecipientList.remove(threadId);
+        }
         MmsWidgetProvider.notifyDatasetChanged(mActivity);
+        updateSearchResult();
     }
 
     private void markMmsMessageWithError(Uri mmsUri) {
@@ -1679,6 +1701,7 @@ public class WorkingMessage {
                 } finally {
                     DraftCache.getInstance().setSavingDraft(false);
                     closePreOpenedFiles(preOpenedFiles);
+                    updateSearchResult();
                 }
             }
         }, "WorkingMessage.asyncUpdateDraftMmsMessage").start();
@@ -1837,6 +1860,7 @@ public class WorkingMessage {
             @Override
             public void run() {
                 SqliteWrapper.delete(mActivity, mContentResolver, uri, selection, selectionArgs);
+                updateSearchResult();
             }
         }, "WorkingMessage.asyncDelete").start();
     }
@@ -1878,6 +1902,12 @@ public class WorkingMessage {
 
     public boolean getResendMultiRecipients() {
         return mResendMultiRecipients;
+    }
+
+    private void updateSearchResult(){
+        // Because save Mms Draft will comsume a long time than sms Draft.
+        // so need  notice SearchActivity update again after save Mms Draft successful.
+        mActivity.sendBroadcast(new Intent(SearchActivity.QUERY_MMS));
     }
 
     /**

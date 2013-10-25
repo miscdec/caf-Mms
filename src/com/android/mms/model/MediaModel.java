@@ -247,6 +247,22 @@ public abstract class MediaModel extends Model implements EventListener {
                 // does below, but that turns out to be very slow. We'll deal with a zero size
                 // when we resize the media.
 
+                // f.getChannel().size() will be zero if share contacts in Contacts app, and the
+                // vCard is non-resizable. In this case, we count media size by read().
+                int maxSize = MmsConfig.getMaxMessageSize();
+                if (isVcard() && mSize == 0) {
+                    while (-1 != input.read()) {
+                        mSize++;
+                        // If the non-resizable media is larger than max message size, it will
+                        // not allowed to add as attachment.
+                        if (mSize > maxSize) {
+                            Log.w(TAG, "initMediaSize: Vcard size larger than max message size: "
+                                    + maxSize);
+                            break;
+                        }
+                    }
+                }
+
                 if (isVideo() && mSize > MmsConfig.getMaxMessageSize()) {
                     Log.w(TAG, "initMediaSize: Video size: f.getChannel().size(): " + mSize +
                             " larger than max message size: " + MmsConfig.getMaxMessageSize());

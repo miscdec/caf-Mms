@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
  *
@@ -45,6 +48,7 @@ import android.database.sqlite.SqliteWrapper;
 import android.graphics.drawable.Drawable;
 import android.media.CamcorderProfile;
 import android.media.RingtoneManager;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
@@ -52,6 +56,11 @@ import android.os.StatFs;
 import android.os.SystemProperties;
 import android.os.storage.StorageManager;
 import android.preference.PreferenceManager;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.CommonDataKinds.StructuredName;
+import android.provider.ContactsContract.Data;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
@@ -64,6 +73,7 @@ import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.os.AsyncTask;
 import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.text.style.URLSpan;
@@ -137,7 +147,7 @@ public class MessageUtils {
            "android.intent.action.SIM_STATE_CHANGED1";
 
     // distinguish view vcard from mms but not from contacts.
-    private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
+    public static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
     // add for obtain mms data path
     private static final String MMS_DATA_DATA_DIR = "/data/data";
     private static final String MMS_DATA_DIR = "/data/phonedata";
@@ -169,7 +179,15 @@ public class MessageUtils {
         '-', '.', ',', '(', ')', ' ', '/', '\\', '*', '#', '+'
     };
 
+    // Dialog item options for number
+    private static final int DIALOG_ITEM_CALL         = 0;
+    private static final int DIALOG_ITEM_SMS          = 1;
+    private static final int DIALOG_ITEM_ADD_CONTACTS = 2;
+    private static final int DIALOG_ITEM_VIDEOCALL    = 3;
+
     private static HashMap numericSugarMap = new HashMap (NUMERIC_CHARS_SUGAR.length);
+    //for showing memory status dialog.
+    private static AlertDialog memoryStatusDialog = null;
 
     public static String WAPPUSH = "Browser Information"; // Wap push key
 
@@ -180,10 +198,18 @@ public class MessageUtils {
 
     public static boolean sIsIccLoaded  = false;
 
+    // add for different search mode in SearchActivityExtend
+    public static final int SEARCH_MODE_CONTENT = 0;
+    public static final int SEARCH_MODE_NAME    = 1;
+    public static final int SEARCH_MODE_NUMBER  = 2;
+
     public static final int STORE_TO_PHONE = 1;
     public static final int STORE_TO_ICC = 2;
     public static final int CARD_SUB1 = MSimConstants.SUB1;
     public static final int CARD_SUB2 = MSimConstants.SUB2;
+
+    // Save the thread id for same recipient forward mms
+    public static ArrayList<Long> sSameRecipientList = new ArrayList<Long>();
 
     // the max short message count
     public static int MAX_SMS_MESSAGE_COUNT =
@@ -1219,6 +1245,22 @@ public class MessageUtils {
         return builder.toString();
     }
 
+  private static Intent getVTCallIntent(String number) {
+        Intent intent = new Intent("com.borqs.videocall.action.LaunchVideoCallScreen");
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+        intent.putExtra("IsCallOrAnswer", true); // true as a call, while false as answer
+        intent.putExtra("LaunchMode", 1); // 1 as telephony, while 0 as socket
+        intent.putExtra("call_number_key", number);
+        return intent;
+    }
+
+    private static boolean isVTSupported() {
+        return SystemProperties.getBoolean(
+                "persist.radio.csvt.enabled"
+        /*TelephonyProperties.PROPERTY_CSVT_ENABLED*/, false);
+    }
+
     /**
      * Returns true if the address passed in is a valid MMS address.
      */
@@ -1347,6 +1389,72 @@ public class MessageUtils {
             }
         }
         return subId;
+    }
+
+    public static String getAddressByName(Context context, String name) {
+        String resultAddr = "";
+        Cursor c = null;
+        Uri nameUri = null;
+        if (TextUtils.isEmpty(name)) {
+            return resultAddr;
+        }
+
+        try {
+            c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
+                    new String[] {ContactsContract.Data.RAW_CONTACT_ID},
+                    ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME
+                    + " =? "  , new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
+
+            if (c == null) {
+                return resultAddr;
+            }
+
+            if (!c.moveToFirst()) {
+                c.close();
+                return resultAddr;
+            }
+
+            long raw_contact_id = c.getLong(0);
+            resultAddr = queryPhoneNumbersWithRaw(context, raw_contact_id);
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+
+        return resultAddr;
+    }
+
+    private static String queryPhoneNumbersWithRaw(Context context, long rawContactId) {
+        Cursor c = null;
+        String addrs = "";
+        try {
+            c = context.getContentResolver().query(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                    new String[] {Phone.NUMBER}, Phone.RAW_CONTACT_ID + " = " + rawContactId,
+                    null, null);
+
+            if (c != null && c.moveToFirst()) {
+                int i = 0;
+                while (!c.isAfterLast()) {
+                    String addrValue = c.getString(0);
+                    if (!TextUtils.isEmpty(addrValue)) {
+                        if (i == 0) {
+                            addrs = addrValue;
+                        } else {
+                            addrs = addrs + "," + addrValue;
+                        }
+                        i++;
+                    }
+                    c.moveToNext();
+                }
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+        return addrs;
     }
 
     /**
@@ -1599,12 +1707,17 @@ public class MessageUtils {
 
     /* check to see whether short message count is up to 2000 */
     public static void checkIsPhoneMessageFull(Context context) {
-        int msgCount = getSmsMessageCount(context);
-        boolean isPhoneSmsCountFull = (msgCount >= MAX_SMS_MESSAGE_COUNT);
+        boolean isPhoneMemoryFull = isPhoneMemoryFull();
+        boolean isPhoneSmsCountFull = false;
+        if (MAX_SMS_MESSAGE_COUNT != -1) {
+            int msgCount = getSmsMessageCount(context);
+            isPhoneSmsCountFull = msgCount >= MAX_SMS_MESSAGE_COUNT;
+        }
 
-        Log.d(TAG, "checkIsPhoneMessageFull : isPhoneSmsCountFull = " + isPhoneSmsCountFull);
+        Log.d(TAG, "checkIsPhoneMessageFull : isPhoneMemoryFull = " + isPhoneMemoryFull
+                + "isPhoneSmsCountFull = " + isPhoneSmsCountFull);
 
-        if (isPhoneMemoryFull() || isPhoneSmsCountFull) {
+        if (isPhoneMemoryFull || isPhoneSmsCountFull) {
             MessagingNotification.updateSmsMessageFullIndicator(context, true);
         } else {
             MessagingNotification.updateSmsMessageFullIndicator(context, false);
@@ -1642,23 +1755,95 @@ public class MessageUtils {
         return false;
     }
 
+    public static void removeDialogs() {
+        if(memoryStatusDialog != null && memoryStatusDialog.isShowing()) {
+            memoryStatusDialog.dismiss();
+            memoryStatusDialog = null;
+        }
+    }
     public static void showMemoryStatusDialog(Context context) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(R.string.memory_status_title);
+       new ShowDialog(context).execute();
+    }
+    public static void showNumberOptions(Context context, String number) {
+        final Context localContext = context;
+        final String extractNumber = number;
+        final int numberOptions =
+                (isVTSupported()) ? R.array.number_options_add_csvt : R.array.number_options;
+        AlertDialog.Builder builder = new AlertDialog.Builder(localContext);
+        builder.setTitle(number);
         builder.setCancelable(true);
-        builder.setPositiveButton(R.string.yes, null);
-        StringBuilder memoryStatus = new StringBuilder();
-        memoryStatus.append(context.getString(R.string.sms_phone_used));
-        memoryStatus.append(" " + getSmsMessageCount(context) + "\n");
-        memoryStatus.append(context.getString(R.string.sms_phone_capacity));
-        memoryStatus.append(" " + MAX_SMS_MESSAGE_COUNT + "\n\n");
-
-        memoryStatus.append(context.getString(R.string.mms_phone_used));
-        memoryStatus.append(" " + formatMemorySize(getMmsUsed(context)) + "\n");
-        memoryStatus.append(context.getString(R.string.mms_phone_capacity));
-        memoryStatus.append(" " + formatMemorySize(getStoreAll()) + "\n");
-        builder.setMessage(memoryStatus);
-
+        builder.setItems(numberOptions,
+                new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DIALOG_ITEM_CALL:
+                        Intent dialIntent = new Intent(Intent.ACTION_CALL,
+                                Uri.parse("tel:" + extractNumber));
+                        localContext.startActivity(dialIntent);
+                        break;
+                    case DIALOG_ITEM_SMS:
+                        Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
+                                Uri.parse("smsto:" + extractNumber));
+                        localContext.startActivity(smsIntent);
+                        break;
+                    case DIALOG_ITEM_ADD_CONTACTS:
+                        Intent intent = ConversationList
+                                .createAddContactIntent(extractNumber);
+                        localContext.startActivity(intent);
+                        break;
+                  case DIALOG_ITEM_VIDEOCALL:
+                        Intent videocallIntent = new Intent(getVTCallIntent(extractNumber));
+                        localContext.startActivity(videocallIntent);
+                        break;
+                    default:
+                        break;
+                }
+                dialog.dismiss();
+            }
+        });
         builder.show();
+    }
+
+    private static class ShowDialog extends AsyncTask<String, Void, StringBuilder> {
+        private Context mContext;
+        public ShowDialog(Context context) {
+            mContext = context;
+        }
+
+        @Override
+        protected StringBuilder doInBackground(String... params) {
+            StringBuilder memoryStatus = new StringBuilder();
+            memoryStatus.append(mContext.getString(R.string.sms_phone_used));
+            memoryStatus.append(" " + getSmsMessageCount(mContext) + "\n");
+            memoryStatus.append(mContext.getString(R.string.sms_phone_capacity));
+            memoryStatus.append(" " + MAX_SMS_MESSAGE_COUNT + "\n\n");
+            memoryStatus.append(mContext.getString(R.string.mms_phone_used));
+            memoryStatus.append(" " + formatMemorySize(getMmsUsed(mContext)) + "\n");
+            memoryStatus.append(mContext.getString(R.string.mms_phone_capacity));
+            memoryStatus.append(" " + formatMemorySize(getStoreAll()) + "\n");
+            return memoryStatus;
+        }
+        @Override
+        protected void onPostExecute(StringBuilder memoryStatus) {
+            if(memoryStatus != null && !memoryStatus.toString().isEmpty()) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                builder.setTitle(R.string.memory_status_title);
+                builder.setCancelable(true);
+                builder.setPositiveButton(R.string.yes, null);
+                builder.setMessage(memoryStatus);
+                memoryStatusDialog = builder.create();
+                memoryStatusDialog.show();
+            }
+        }
+    }
+
+    public static boolean isMobileDataDisabled(Context context) {
+        // Notice: Only set the special property, this method can actually return the
+        // mobile data state. Otherwise, it will always return false.
+        boolean enableMmsData = SystemProperties
+                .getBoolean("persist.env.mms.setupmmsdata", false);
+        ConnectivityManager mConnService = (ConnectivityManager) context
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        return !mConnService.getMobileDataEnabled() && enableMmsData;
     }
 }

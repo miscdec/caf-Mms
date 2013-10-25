@@ -40,6 +40,8 @@
     <string name="menu_add_address_to_contacts">Add <xliff:g id="contactEmailOrNumber">%s</xliff:g> to People</string>
     <!-- Menu item to call the recipient of the conversation on the phone (imperative verb) -->
     <string name="menu_call">Call</string>
+    <!-- Menu item used to initiate videocall from mms -->
+    <string name="menu_videocall">Video call</string>
     <!-- Menu item for search -->
     <string name="menu_search">Search</string>
     <!-- Menu item for deleting all conversations -->
@@ -52,6 +54,7 @@
     <string name="menu_debug_dump">DEBUG DUMP</string>
     <!-- Message that appears on screen while SIM card messages are retrieved -->
     <string name="refreshing">Refreshing\u2026</string>
+    <string name="deleting_threads">Deleting threads\u2026</string>
 
     <!-- Menu item to show received cell broadcasts. [CHAR LIMIT=30] -->
     <string name="menu_cell_broadcasts">Cell broadcasts</string>
@@ -102,6 +105,8 @@
     <!-- Message displayed in place of the "download message" button once it has been pressed,
          indicating that the download is in progress -->
     <string name="downloading">Downloading</string>
+    <string name="cancel_downloading">Cancel</string>
+    <string name="confirm_cancel_downloading">Do you want to cancel downloading mms?</string>
     <!-- Formatting for subject displayed inline, prepended to MMS message text -->
     <string name="inline_subject">"&lt;Subject: <xliff:g id="subject">%s</xliff:g>&gt;"</string>
     <!-- Text to display when the actual text is inaccessible due to DRM protection -->
@@ -570,6 +575,8 @@
     <string name="sms_full_body">An incoming message was rejected due to full memory. Delete some old messages.</string>
     <!-- Mms size is too large dialog text. -->
     <string name="mms_too_large">The message is too large to download.</string>
+    <!-- Mobile data disable dialog text. -->
+    <string name="mobile_data_disable">Mobile data is turned off, if continues will generate data traffic.</string>
 
     <!-- Sms's Being Rejected Notification dialog title. -->
     <string name="sms_rejected_title">Text message rejected</string>
@@ -815,6 +822,10 @@
     <string name="pending_mms">Messaging: One or more MMS are pending.</string>
     <string name="pending_mms_text">Touch to switch the subscription.</string>
 
+    <string name="switch_data_subscription">Data subscription switch&#160;</string>
+    <string name="switch_data_subscription_success">was success.</string>
+    <string name="switch_data_subscription_failed">failed.</string>
+
     <string name="abort_mms">Messaging: Abort MMS</string>
     <string name="abort_mms_text ">Touch to abort and switch back.</string>
 
@@ -860,6 +871,7 @@
     <string name="import_vcard">Import</string>
     <string name="attach_add_contact_as_text">Insert contact info</string>
     <string name="attach_add_contact_as_vcard">Contact vCard</string>
+    <string name="import_contact_vcard">Do you want to import this vCard into Contacts?</string>
 
     <string name="contact_info_text_as_name">Name:</string>
     <string name="contact_info_text_as_phone">Tel:</string>
@@ -939,6 +951,14 @@
     <string name="type_all">All</string>
     <string name="type_slot1">Card1</string>
     <string name="type_slot2">Card2</string>
+    <!-- String used in SearchActivityExtend.java -->
+    <string name="search_title">"Message search"</string>
+    <string name="search_key">Search keyword</string>
+    <string name="search_mode">Search mode</string>
+    <string name="search_as_name">Name</string>
+    <string name="search_as_number">Number</string>
+    <string name="search_as_content">Content</string>
+    <string name="invalid_name_toast">Please input valid name!</string>
     <!--add for showing slot type in MailBoxMessageContent -->
     <string name="slot_type">Slot : %s</string>
     <!-- select contact group -->
@@ -947,6 +967,8 @@
     <string name="sim_capacity_title">Sim capacity</string>
     <string name="sim_capacity_used">Used:  </string>
     <string name="sim_capacity_all">Capacity:  </string>
+
+    <string name="unsupported_content_type">Can\'t display MMS: Unsupported attachment type.</string>
 
     <!-- Settings item description for Preferred storage -->
     <string name="pref_title_sms_store">Preferred storage</string>

@@ -28,12 +28,14 @@
     <string name="menu_preferences" msgid="4693148116114749414">"设置"</string>
     <string name="menu_add_address_to_contacts" msgid="4491980950419914944">"将 <xliff:g id="CONTACTEMAILORNUMBER">%s</xliff:g> 添加到联系人"</string>
     <string name="menu_call" msgid="5877123227307074690">"呼叫"</string>
+    <string name="menu_videocall">"可视电话"</string>
     <string name="menu_search" msgid="2289469305728821360">"搜索"</string>
     <string name="menu_delete_all" msgid="808729454898114735">"删除所有会话"</string>
     <string name="menu_delete" msgid="1851666911396479006">"删除会话"</string>
     <string name="menu_view" msgid="7448852683948080108">"查看会话"</string>
     <string name="menu_debug_dump" msgid="6855869130206549643">"DEBUG DUMP"</string>
     <string name="refreshing" msgid="987335057871404222">"正在刷新..."</string>
+    <string name="deleting_threads">"正在删除会话..."</string>
     <string name="menu_cell_broadcasts" msgid="5646161375983084660">"小区广播"</string>
     <string name="has_draft" msgid="2487465595514636160">"草稿"</string>
     <string name="no_subject_view" msgid="7795086723069563537">"（无主题）"</string>
@@ -55,6 +57,8 @@
     <string name="menu_resend">"重新发送"</string>
     <string name="download" msgid="4488877642230207631">"下载"</string>
     <string name="downloading" msgid="1779557575565350637">"正在下载"</string>
+    <string name="cancel_downloading">"取消下载"</string>
+    <string name="confirm_cancel_downloading">"确定取消彩信下载？"</string>
     <string name="inline_subject" msgid="4057621785274119260">"&lt;主题：<xliff:g id="SUBJECT">%s</xliff:g>&gt;"</string>
     <string name="drm_protected_text" msgid="1396394157870730742">"* 受 DRM 保护的文本 *"</string>
     <string name="insufficient_drm_rights" msgid="6989074725969164383">"检测到 DRM 权限不足。"</string>
@@ -267,6 +271,7 @@
     <string name="sms_full_title" msgid="6041287140125011854">"短信内存已满"</string>
     <string name="sms_full_body" msgid="4885861852397651868">"存储空间已满，无法接收短信，请删除部分旧短信。"</string>
     <string name="mms_too_large">"彩信过大，无法下载。"</string>
+    <string name="mobile_data_disable">"移动数据已关闭，若继续将会产生数据流量。"</string>
     <string name="sms_rejected_title" msgid="8548394922491529811">"短信遭拒"</string>
     <string name="sms_rejected_body" msgid="7813671133968158562">"由于未知原因导致收不到短信。"</string>
     <string name="type_audio" msgid="3842064092332309756">"音频"</string>
@@ -400,6 +405,10 @@
     <string name="pending_mms">"信息：一条或多条彩信正在等待中"</string>
     <string name="pending_mms_text">"点击切换卡槽"</string>
 
+    <string name="switch_data_subscription">数据通道切换</string>
+    <string name="switch_data_subscription_success">成功。</string>
+    <string name="switch_data_subscription_failed">失败。</string>
+
     <string name="abort_mms">"信息: 终止彩信发送"</string>
     <string name="abort_mms_text ">"点击可终止发送并返回"</string>
 
@@ -415,6 +424,7 @@
     <string name="contact_info_text_as_name">姓名：</string>
     <string name="contact_info_text_as_phone">电话：</string>
     <string name="contact_info_text_as_email">电子邮件：</string>
+    <string name="import_contact_vcard">是否要将电子名片导入通讯录？</string>
 
     <!-- SMSC -->
     <string name="pref_smsc_title">短消息中心设置</string>
@@ -487,6 +497,14 @@
     <string name="type_all">全部</string>
     <string name="type_slot1">卡1</string>
     <string name="type_slot2">卡2</string>
+    <!-- String used in SearchActivityExtend.java -->
+    <string name="search_title">"信息查找"</string>
+    <string name="search_key">"查找关键字"</string>
+    <string name="search_mode">"查找方式"</string>
+    <string name="search_as_name">姓名</string>
+    <string name="search_as_number">号码</string>
+    <string name="search_as_content">内容</string>
+    <string name="invalid_name_toast">请输入有效的姓名！</string>
     <!--add for showing slot type in MailBoxMessageContent -->
     <string name="slot_type">卡槽 : %s</string>
     <!-- select contact group -->
@@ -495,6 +513,8 @@
     <string name="sim_capacity_title">"Sim卡容量"</string>
     <string name="sim_capacity_used">"已使用:"</string>
     <string name="sim_capacity_all">"总容量:"</string>
+
+    <string name="unsupported_content_type">无法显示彩信：不支持的彩信类型。</string>
 
     <!-- Settings item description for Preferred storage -->
     <string name="pref_title_sms_store">优先存储器</string>

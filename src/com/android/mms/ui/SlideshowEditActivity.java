@@ -450,9 +450,10 @@ public class SlideshowEditActivity extends ListActivity {
                 menu.add(0, MENU_MOVE_DOWN, 0, R.string.move_down).setIcon(
                         R.drawable.ic_menu_move_down);
             }
-
-            menu.add(0, MENU_ADD_SLIDE, 0, R.string.add_slide).setIcon(
-                    R.drawable.ic_menu_add_slide);
+            if (mSlideshowModel.size() < SlideshowEditor.MAX_SLIDE_NUM) {
+                menu.add(0, MENU_ADD_SLIDE, 0, R.string.add_slide).setIcon(
+                        R.drawable.ic_menu_add_slide);
+            }
 
             menu.add(0, MENU_REMOVE_SLIDE, 0, R.string.remove_slide).setIcon(
                     android.R.drawable.ic_menu_delete);

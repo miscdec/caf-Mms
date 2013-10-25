@@ -155,6 +155,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
         boolean autoDownload = allowAutoDownload();
         boolean isMemoryFull = MessageUtils.isMmsMemoryFull();
         boolean isTooLarge = isMmsSizeTooLarge(mNotificationInd);
+        boolean isMobileDataDisabled= MessageUtils.isMobileDataDisabled(mContext);
         try {
             if (LOCAL_LOGV) {
                 Log.v(TAG, "Notification transaction launched: " + this);
@@ -165,7 +166,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
             // download a MM immediately.
             int status = STATUS_DEFERRED;
             // Don't try to download when data is suspended, as it will fail, so defer download
-            if (!autoDownload) {
+            if (!autoDownload || isMobileDataDisabled) {
                 downloadManager.markState(mUri, DownloadManager.STATE_UNSTARTED);
                 sendNotifyRespInd(status);
                 return;
@@ -266,7 +267,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
             Log.e(TAG, Log.getStackTraceString(t));
         } finally {
             mTransactionState.setContentUri(mUri);
-            if (!autoDownload || isMemoryFull || isTooLarge) {
+            if (!autoDownload || isMemoryFull || isTooLarge || isMobileDataDisabled) {
                 // Always mark the transaction successful for deferred
                 // download since any error here doesn't make sense.
                 mTransactionState.setState(SUCCESS);

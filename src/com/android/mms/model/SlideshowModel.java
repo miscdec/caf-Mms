@@ -46,6 +46,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.mms.R;
 import com.android.mms.ContentRestrictionException;
 import com.android.mms.ExceedMessageSizeException;
 import com.android.mms.LogTag;
@@ -54,6 +55,7 @@ import com.android.mms.dom.smil.parser.SmilXmlSerializer;
 import com.android.mms.layout.LayoutManager;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.CharacterSets;
 import com.google.android.mms.pdu.GenericPdu;
 import com.google.android.mms.pdu.MultimediaMessagePdu;
 import com.google.android.mms.pdu.PduBody;
@@ -76,6 +78,8 @@ public class SlideshowModel extends Model
 
     // amount of space to leave in a slideshow for text and overhead.
     public static final int SLIDESHOW_SLOP = 1024;
+    private static final int DEFAULT_MEDIA_NUMBER = 1;
+    private static final float MIN_PAT_DURATION = (float)1.0;
 
     private SlideshowModel(Context context) {
         mLayout = new LayoutModel();
@@ -145,6 +149,7 @@ public class SlideshowModel extends Model
         int slidesNum = slideNodes.getLength();
         ArrayList<SlideModel> slides = new ArrayList<SlideModel>(slidesNum);
         int totalMessageSize = 0;
+        boolean classCastFailed = false;
 
         for (int i = 0; i < slidesNum; i++) {
             // FIXME: This is NOT compatible with the SMILDocument which is
@@ -157,7 +162,14 @@ public class SlideshowModel extends Model
             ArrayList<MediaModel> mediaSet = new ArrayList<MediaModel>(mediaNum);
 
             for (int j = 0; j < mediaNum; j++) {
-                SMILMediaElement sme = (SMILMediaElement) mediaNodes.item(j);
+                SMILMediaElement sme = null;
+                try {
+                    sme = (SMILMediaElement) mediaNodes.item(j);
+                } catch (ClassCastException e) {
+                    classCastFailed = true;
+                    Log.e(TAG, e.getMessage());
+                    continue;
+                }
                 try {
                     MediaModel media = MediaModelFactory.getMediaModel(
                             context, sme, layouts, pb);
@@ -216,8 +228,40 @@ public class SlideshowModel extends Model
                     Log.e(TAG, e.getMessage(), e);
                 }
             }
-
-            SlideModel slide = new SlideModel((int) (par.getDur() * 1000), mediaSet);
+            // Add vcard and vcalendar when receive from other products
+            // without ref target in smil.
+            if ((mediaNum == 0 || classCastFailed) && slidesNum == 1) {
+                classCastFailed = false;
+                int partsNum = pb.getPartsNum();
+                for (int k = 0; k < partsNum; k++) {
+                    PduPart part = pb.getPart(k);
+                    if ((new String(part.getContentType())).toLowerCase().equals(
+                            ContentType.TEXT_VCARD.toLowerCase())) {
+                        MediaModel vMedia = new VcardModel(context, new String(
+                                part.getContentType()), new String(part.getContentLocation()),
+                                part.getDataUri());
+                        mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
+                        mediaSet.add(vMedia);
+                        totalMessageSize += vMedia.getMediaSize();
+                        break;
+                    }
+                    if ((new String(part.getContentType())).toLowerCase().equals(
+                            ContentType.TEXT_VCALENDAR.toLowerCase())) {
+                        MediaModel tMedia = new TextModel(context, ContentType.TEXT_PLAIN, null,
+                                CharacterSets.UTF_8, context.getString(
+                                        R.string.unsupported_content_type).getBytes(), null);
+                        mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
+                        mediaSet.add(tMedia);
+                        totalMessageSize += tMedia.getMediaSize();
+                        break;
+                    }
+                }
+            }
+            float duration = par.getDur();
+            if (duration < MIN_PAT_DURATION) {
+                duration = MIN_PAT_DURATION;
+            }
+            SlideModel slide = new SlideModel((int) (duration * 1000), mediaSet);
             slide.setFill(par.getFill());
             SmilHelper.addParElementEventListeners((EventTarget) par, slide);
             slides.add(slide);
@@ -603,6 +647,14 @@ public class SlideshowModel extends Model
         if (dataChanged) {
             mDocumentCache = null;
             mPduBodyCache = null;
+
+            // initialize message size before call createFromPduBody()
+            mTotalMessageSize = 0;
+            for (SlideModel slide : mSlides) {
+                for (MediaModel m : slide) {
+                    mTotalMessageSize += m.getMediaSize();
+                }
+            }
         }
     }
 
