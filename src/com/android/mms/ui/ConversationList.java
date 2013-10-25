@@ -24,6 +24,7 @@ import java.util.HashSet;
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.ActivityNotFoundException;
@@ -109,16 +110,17 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private Handler mHandler;
     private boolean mDoOnceAfterFirstQuery;
     private TextView mUnreadConvCount;
-    private MenuItem mSearchItem;
     private SearchView mSearchView;
     private int mSavedFirstVisiblePosition = AdapterView.INVALID_POSITION;
     private int mSavedFirstItemOffset;
+    private ProgressDialog mProgressDialog;
 
     // keys for extras and icicles
     private final static String LAST_LIST_POS = "last_list_pos";
     private final static String LAST_LIST_OFFSET = "last_list_offset";
 
     static private final String CHECKED_MESSAGE_LIMITS = "checked_message_limits";
+    private final static int DELAY_TIME = 500;
 
     private static boolean isCheckBox = false;
 
@@ -142,6 +144,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         initListAdapter();
 
         setupActionBar();
+
+        mProgressDialog = createProgressDialog();
 
         setTitle(R.string.app_label);
 
@@ -363,6 +367,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         super.onDestroy();
 
         Contact.clearListener();
+        MessageUtils.removeDialogs();
     }
 
     @Override
@@ -390,39 +395,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     }
 
-    SearchView.OnQueryTextListener mQueryTextListener = new SearchView.OnQueryTextListener() {
-        @Override
-        public boolean onQueryTextSubmit(String query) {
-            Intent intent = new Intent();
-            intent.setClass(ConversationList.this, SearchActivity.class);
-            intent.putExtra(SearchManager.QUERY, query);
-            startActivity(intent);
-            mSearchItem.collapseActionView();
-            return true;
-        }
-
-        @Override
-        public boolean onQueryTextChange(String newText) {
-            return false;
-        }
-    };
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
-
-        mSearchItem = menu.findItem(R.id.search);
-        mSearchView = (SearchView) mSearchItem.getActionView();
-
-        mSearchView.setOnQueryTextListener(mQueryTextListener);
-        mSearchView.setQueryHint(getString(R.string.search_hint));
-        mSearchView.setIconifiedByDefault(true);
-        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-
-        if (searchManager != null) {
-            SearchableInfo info = searchManager.getSearchableInfo(this.getComponentName());
-            mSearchView.setSearchableInfo(info);
-        }
 
         MenuItem cellBroadcastItem = menu.findItem(R.id.action_cell_broadcasts);
         if (cellBroadcastItem != null) {
@@ -466,26 +441,21 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             }
         }
 
-        if (!LogTag.DEBUG_DUMP) {
-            item = menu.findItem(R.id.action_debug_dump);
-            if (item != null) {
-                item.setVisible(false);
-            }
-        }
         return true;
     }
 
     @Override
     public boolean onSearchRequested() {
-        if (mSearchItem != null) {
-            mSearchItem.expandActionView();
-        }
-        return true;
+        return false;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
+            case R.id.search:
+                Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                startActivityIfNeeded(searchintent, -1);
+                break;
             case R.id.action_compose_new:
                 createNewMessage();
                 break;
@@ -504,9 +474,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 break;
             case R.id.action_memory_status:
                 MessageUtils.showMemoryStatusDialog(this);
-                break;
-            case R.id.action_debug_dump:
-                LogTag.dumpInternalTables(this);
                 break;
             case R.id.action_cell_broadcasts:
                 Intent cellBroadcastIntent = new Intent(Intent.ACTION_MAIN);
@@ -756,12 +723,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         private final ConversationQueryHandler mHandler;
         private final Context mContext;
         private boolean mDeleteLockedMessages;
+        private final Runnable mCallBack;
 
         public DeleteThreadListener(Collection<Long> threadIds, ConversationQueryHandler handler,
-                Context context) {
+                Runnable callBack, Context context) {
             mThreadIds = threadIds;
             mHandler = handler;
             mContext = context;
+            mCallBack = callBack;
         }
 
         public void setDeleteLockedMessage(boolean deleteLockedMessages) {
@@ -775,6 +744,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @Override
                 public void run() {
                     int token = DELETE_CONVERSATION_TOKEN;
+                    if (mCallBack != null) {
+                        mCallBack.run();
+                    }
                     if (mThreadIds == null) {
                         Conversation.startDeleteAll(mHandler, token, mDeleteLockedMessages);
                         DraftCache.getInstance().refresh();
@@ -876,7 +848,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @SuppressWarnings("unchecked")
                 Collection<Long> threadIds = (Collection<Long>)cookie;
                 confirmDeleteThreadDialog(new DeleteThreadListener(threadIds, mQueryHandler,
-                        ConversationList.this), threadIds,
+                        mDeletingRunnable, ConversationList.this), threadIds,
                         cursor != null && cursor.getCount() > 0,
                         ConversationList.this);
                 if (cursor != null) {
@@ -894,6 +866,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             super.onDeleteComplete(token, cookie, result);
             switch (token) {
             case DELETE_CONVERSATION_TOKEN:
+                mHandler.removeCallbacks(mShowProgressDialogRunnable);
+                if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                    mProgressDialog.dismiss();
+                }
                 long threadId = cookie != null ? (Long)cookie : -1;     // default to all threads
 
                 if (threadId == -1) {
@@ -1060,4 +1036,30 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         String s = String.format(format, args);
         Log.d(TAG, "[" + Thread.currentThread().getId() + "] " + s);
     }
+
+    private ProgressDialog createProgressDialog() {
+        ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setIndeterminate(true);
+        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCancelable(false);
+        dialog.setMessage(getText(R.string.deleting_threads));
+        return dialog;
+    }
+
+    private Runnable mDeletingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mHandler.postDelayed(mShowProgressDialogRunnable, DELAY_TIME);
+        }
+    };
+
+    private Runnable mShowProgressDialogRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mProgressDialog != null) {
+                mProgressDialog.show();
+            }
+        }
+    };
 }

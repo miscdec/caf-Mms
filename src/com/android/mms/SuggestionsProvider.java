@@ -140,7 +140,7 @@ public class SuggestionsProvider extends android.content.ContentProvider {
                 mDatabaseCursor.moveToPosition(i);
                 String snippet = mDatabaseCursor.getString(snippetColumn);
                 if (!TextUtils.equals(previousSnippet, snippet)) {
-                    if (!snippet.equals("")) {
+                    if (!snippet.trim().equals("")) {
                         mRows.add(new Row(i, snippet));
                         previousSnippet = snippet;
                     }

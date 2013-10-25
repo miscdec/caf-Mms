@@ -29,9 +29,12 @@ import org.w3c.dom.smil.SMILDocument;
 import org.w3c.dom.smil.SMILElement;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.DialogInterface;
 import android.graphics.PixelFormat;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -50,9 +53,13 @@ import com.android.mms.dom.smil.SmilPlayer;
 import com.android.mms.dom.smil.parser.SmilXmlSerializer;
 import com.android.mms.model.LayoutModel;
 import com.android.mms.model.RegionModel;
+import com.android.mms.model.MediaModel;
+import com.android.mms.model.VcardModel;
 import com.android.mms.model.SlideshowModel;
+import com.android.mms.model.SlideModel;
 import com.android.mms.model.SmilHelper;
 import com.google.android.mms.MmsException;
+import com.google.android.mms.ContentType;
 
 /**
  * Plays the given slideshow in full-screen mode with a common controller.
@@ -172,6 +179,10 @@ public class SlideshowActivity extends Activity implements EventListener {
             return;
         }
 
+        if (model != null && handleVcard(model)) {
+            return;
+        }
+
         mSlideView = (SlideView) findViewById(R.id.slide_view);
         PresenterFactory.getPresenter("SlideshowPresenter", this, mSlideView, model);
 
@@ -235,6 +246,51 @@ public class SlideshowActivity extends Activity implements EventListener {
                 }
             }
         });
+    }
+
+    private boolean handleVcard(SlideshowModel model) {
+        SlideModel slide = model.get(0);
+        if (slide.hasVcard()) {
+            final MediaModel mm = slide.getVcard();
+            String lookupUri = ((VcardModel) mm).getLookupUri();
+            final Intent vCardIntent = new Intent(Intent.ACTION_VIEW);
+            if (!TextUtils.isEmpty(lookupUri) && lookupUri.contains("contacts")) {
+                // if the uri is from the contact, we suggest to view the contact
+                vCardIntent.setData(Uri.parse(lookupUri));
+                vCardIntent.putExtra(MessageUtils.VIEW_VCARD, true);
+                startActivity(vCardIntent);
+                finish();
+            } else {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setIcon(R.drawable.ic_attach_capture_contact_vcard_holo_light);
+                builder.setTitle(R.string.attach_add_contact_as_vcard);
+                builder.setMessage(R.string.import_contact_vcard);
+                builder.setPositiveButton(android.R.string.ok,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                if (which == DialogInterface.BUTTON_POSITIVE) {
+                                    vCardIntent.setDataAndType(mm.getUri(),
+                                            ContentType.TEXT_VCARD.toLowerCase());
+                                    vCardIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                    vCardIntent.putExtra(MessageUtils.VIEW_VCARD, true);
+                                    startActivity(vCardIntent);
+                                    finish();
+                                }
+                            }
+                        });
+                builder.setNegativeButton(android.R.string.cancel,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                finish();
+                            }
+                        });
+                builder.show();
+            }
+            return true;
+        }
+        return false;
     }
 
     private void initMediaController() {

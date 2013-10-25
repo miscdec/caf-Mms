@@ -99,7 +99,9 @@ public class MailBoxMessageList extends ListActivity implements
         MailBoxMessageListAdapter.OnListContentChangedListener{
     private static final String TAG = "MailBoxMessageList";
     private static final String MAILBOX_URI = "content://mms-sms/mailbox/";
+    private static final Uri SEARCH_URI = Uri.parse("content://mms-sms/search-message");
     private static final int MESSAGE_LIST_QUERY_TOKEN = 9001;
+    private static final int MESSAGE_SEARCH_LIST_QUERY_TOKEN = 9002;
 
     // IDs of the spinner items for the box type.
     private static final int TYPE_INBOX = 1;
@@ -127,6 +129,7 @@ public class MailBoxMessageList extends ListActivity implements
     private final Object mCursorLock = new Object();
     private ListView mListView;
     private TextView mCountTextView;
+    private TextView mMessageTitle;
     private View mSpinners;
     private Spinner mBoxSpinner = null;
     private Spinner mSlotSpinner = null;
@@ -136,10 +139,18 @@ public class MailBoxMessageList extends ListActivity implements
     private MenuItem mSearchItem;
     private SearchView mSearchView;
     private CharSequence mQueryText;
+    private CharSequence mTitle;
+
+    // add for obtain parameters from SearchActivityExtend
+    private int mSearchModePosition = MessageUtils.SEARCH_MODE_CONTENT;
+    private String mSearchKeyStr = "";
+    private int mMatchWhole = 0;
+    private int mMailboxId;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        handleIntent(getIntent());
 
         mQueryHandler = new BoxMsgListQueryHandler(getContentResolver());
         setContentView(R.layout.mailbox_list_screen);
@@ -151,27 +162,23 @@ public class MailBoxMessageList extends ListActivity implements
         mListView = getListView();
         getListView().setItemsCanFocus(true);
         mModeCallback = new ModeCallback();
-        mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
-        mListView.setMultiChoiceModeListener(mModeCallback);
-
-        mListAdapter = new MailBoxMessageListAdapter(MailBoxMessageList.this,
-                MailBoxMessageList.this, null);
-        setListAdapter(mListAdapter);
-        View emptyView = (View) findViewById(R.id.emptyview);
-        mListView.setEmptyView(emptyView);
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(false);
         setupActionBar();
+
+        if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH && mTitle != null) {
+            mMessageTitle.setText(mTitle);
+            mSpinners.setVisibility(View.GONE);
+        } else {
+            mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+            mListView.setMultiChoiceModeListener(mModeCallback);
+        }
     }
 
     @Override
     public boolean onSearchRequested() {
-        // if comes into multiChoiceMode,do not continue to enter search mode ;
-        if (mSearchItem != null && !mMultiChoiceMode) {
-            mSearchItem.expandActionView();
-        }
-        return true;
+        return false;
     }
 
     @Override
@@ -287,6 +294,22 @@ public class MailBoxMessageList extends ListActivity implements
         return uriString;
     }
 
+    private void handleIntent(Intent intent) {
+        mMailboxId = intent.getIntExtra("mailboxId", Sms.MESSAGE_TYPE_SEARCH);
+
+        if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
+            mTitle = intent.getStringExtra("title");
+            mSearchModePosition = intent.getIntExtra("mode_position",
+                    MessageUtils.SEARCH_MODE_CONTENT);
+            mSearchKeyStr = intent.getStringExtra("key_str");
+            mMatchWhole = intent.getIntExtra("match_whole", 0);
+        }
+
+        if (mMailboxId < 0) {
+            mMailboxId = Sms.MESSAGE_TYPE_INBOX;
+        }
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -370,13 +393,24 @@ public class MailBoxMessageList extends ListActivity implements
                 } else if (mQuerySlotType == TYPE_SLOT_TWO) {
                     selStr = "sub_id = " + MessageUtils.SUB2;
                 }
-                String mailboxUri = MAILBOX_URI + mQueryBoxType;
-                if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-                    Log.d(TAG, "startAsyncQuery : mailboxUri = " + mailboxUri);
-                }
 
-                mQueryHandler.startQuery(MESSAGE_LIST_QUERY_TOKEN, 0, Uri.parse(mailboxUri),
-                        MAILBOX_PROJECTION, selStr, null, "normalized_date DESC");
+                if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
+                    Uri queryUri = SEARCH_URI.buildUpon().appendQueryParameter(
+                            "search_mode", Integer.toString(mSearchModePosition)).build()
+                            .buildUpon().appendQueryParameter("key_str", mSearchKeyStr).build()
+                            .buildUpon().appendQueryParameter("match_whole",
+                                    Integer.toString(mMatchWhole)).build();
+
+                    mQueryHandler.startQuery(MESSAGE_SEARCH_LIST_QUERY_TOKEN, 0,
+                        queryUri, null, null, null, null);
+                } else {
+                    String mailboxUri = MAILBOX_URI + mQueryBoxType;
+
+                    mQueryHandler.startQuery(MESSAGE_LIST_QUERY_TOKEN, 0,
+                        Uri.parse(mailboxUri),
+                        MAILBOX_PROJECTION, selStr,
+                        null, "normalized_date DESC");
+                }
             }
         } catch (SQLiteException e) {
             mHasQueryOver = true;
@@ -398,23 +432,50 @@ public class MailBoxMessageList extends ListActivity implements
                         mCursor.close();
                     }
                     mCursor = cursor;
-                    mListAdapter.changeCursor(mCursor);
-                    if (cursor.getCount() > 0) {
-                        mCountTextView.setVisibility(View.VISIBLE);
-                        if (mQueryBoxType == TYPE_INBOX) {
-                            int count = 0;
-                            while (cursor.moveToNext()) {
-                                if (cursor.getInt(COLUMN_SMS_READ) == 0
-                                        || cursor.getInt(COLUMN_MMS_READ) == 0) {
-                                    count++;
-                                }
+                    if (mListAdapter == null) {
+                        mListAdapter = new MailBoxMessageListAdapter(MailBoxMessageList.this,
+                                MailBoxMessageList.this, cursor);
+                        invalidateOptionsMenu();
+                        MailBoxMessageList.this.setListAdapter(mListAdapter);
+                        TextView emptyView = (TextView) findViewById(R.id.emptyview);
+                        mListView.setEmptyView(emptyView);
+                        if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
+                            int count = cursor.getCount();
+                            String searchKeyStr = mSearchKeyStr;
+
+                            if (mMatchWhole == 1) {
+                                searchKeyStr = Contact.get(mSearchKeyStr, true).getName();
                             }
-                            mCountTextView.setText("" + count + "/" + cursor.getCount());
-                        } else {
-                            mCountTextView.setText("" + cursor.getCount());
+
+                            if (count > 0) {
+                                mMessageTitle.setText(getResources().getQuantityString(
+                                    R.plurals.search_results_title, count, count,
+                                    searchKeyStr));
+                            } else {
+                                mMessageTitle.setText(getResources().getQuantityString(
+                                    R.plurals.search_results_title, 0, 0, searchKeyStr));
+                                emptyView.setText(getString(R.string.search_empty));
+                            }
                         }
                     } else {
-                        mCountTextView.setVisibility(View.INVISIBLE);
+                        mListAdapter.changeCursor(mCursor);
+                        if(cursor.getCount() > 0 && mMailboxId != Sms.MESSAGE_TYPE_SEARCH) {
+                            mCountTextView.setVisibility(View.VISIBLE);
+                            if (mQueryBoxType == TYPE_INBOX) {
+                                int count = 0;
+                                while (cursor.moveToNext()) {
+                                    if (cursor.getInt(COLUMN_SMS_READ) == 0
+                                            || cursor.getInt(COLUMN_MMS_READ) == 0) {
+                                        count++;
+                                    }
+                                }
+                                mCountTextView.setText("" + count + "/" + cursor.getCount());
+                            } else {
+                                mCountTextView.setText("" + cursor.getCount());
+                            }
+                        } else {
+                            mCountTextView.setVisibility(View.INVISIBLE);
+                        }
                     }
                 } else {
                     if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
@@ -448,6 +509,10 @@ public class MailBoxMessageList extends ListActivity implements
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
+            return true;
+        }
+
         getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
         mSearchItem = menu.findItem(R.id.search);
         mSearchView = (SearchView) mSearchItem.getActionView();
@@ -497,9 +562,6 @@ public class MailBoxMessageList extends ListActivity implements
             case R.id.action_memory_status:
                 MessageUtils.showMemoryStatusDialog(this);
                 break;
-            case R.id.action_debug_dump:
-                LogTag.dumpInternalTables(this);
-                break;
             case R.id.action_cell_broadcasts:
                 Intent cellBroadcastIntent = new Intent(Intent.ACTION_MAIN);
                 cellBroadcastIntent.setComponent(new ComponentName(
@@ -530,6 +592,7 @@ public class MailBoxMessageList extends ListActivity implements
         if (mListAdapter != null) {
             mListAdapter.changeCursor(null);
         }
+        MessageUtils.removeDialogs();
     }
 
     private void confirmDeleteMessages() {
@@ -706,6 +769,7 @@ public class MailBoxMessageList extends ListActivity implements
                 ActionBar.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.RIGHT));
 
         mCountTextView = (TextView) v.findViewById(R.id.message_count);
+        mMessageTitle = (TextView) v.findViewById(R.id.message_title);
     }
 
     private class ModeCallback implements ListView.MultiChoiceModeListener {

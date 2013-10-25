@@ -267,6 +267,7 @@ public class ComposeMessageActivity extends Activity
     private static final String KEY_FORWARDED_MESSAGE = "forwarded_message";
 
     private static final String EXIT_ECM_RESULT = "exit_ecm_result";
+    private static final String ACTION_SEND_MULTIPLE="action_send_multiple";
 
     // When the conversation has a lot of messages and a new message is sent, the list is scrolled
     // so the user sees the just sent message. If we have to scroll the list more than 20 items,
@@ -366,6 +367,7 @@ public class ComposeMessageActivity extends Activity
 
     // Add a Uri for attach file.
     private Uri mAttachFileUri;
+    private boolean mIsSendMultiple = false;
 
     // If a message A is currently being edited, and user decides to edit
     // another sent message B, we need to send message A and put B in edit state
@@ -391,6 +393,8 @@ public class ComposeMessageActivity extends Activity
     // sure we only load message+draft once.
     private boolean mMessagesAndDraftLoaded;
 
+    private boolean mIsFromSearchActivity = false;
+
     /**
      * Whether the attachment error is in the case of sendMms.
      */
@@ -411,6 +415,8 @@ public class ComposeMessageActivity extends Activity
     private boolean isLocked = false;
 
     private boolean mIsPickingContact = false;
+    private boolean mIsMessageChanged = false;
+
     // List for contacts picked from People.
     private ContactList mRecipientsPickList = null;
     /**
@@ -530,6 +536,7 @@ public class ComposeMessageActivity extends Activity
                 case AttachmentEditor.MSG_REMOVE_ATTACHMENT:
                     mWorkingMessage.removeAttachment(true);
                     mAttachFileUri = null;
+                    mIsSendMultiple = false;
                     break;
 
                 default:
@@ -839,7 +846,10 @@ public class ComposeMessageActivity extends Activity
     private class SendIgnoreInvalidRecipientListener implements OnClickListener {
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
-            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            boolean isMms = mWorkingMessage.requiresMms();
+            if (MessageUtils.isMobileDataDisabled(ComposeMessageActivity.this) && isMms) {
+                showMobileDataDisabledDialog();
+            } else if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMsimMessage(true);
             } else {
                 sendMessage(true);
@@ -986,8 +996,11 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void confirmSendMessageIfNeeded() {
+        boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+                showMobileDataDisabledDialog();
+            } else if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMsimMessage(true);
             } else {
                 sendMessage(true);
@@ -995,9 +1008,10 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
-        boolean isMms = mWorkingMessage.requiresMms();
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
+        } else if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+            showMobileDataDisabledDialog();
         } else {
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
@@ -1030,6 +1044,24 @@ public class ComposeMessageActivity extends Activity
                 .setPositiveButton(R.string.yes, new CancelSendingListener())
                 .show();
         }
+    }
+
+    private void showMobileDataDisabledDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.send);
+        builder.setMessage(R.string.mobile_data_disable);
+        builder.setPositiveButton(R.string.yes, new OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    sendMsimMessage(true);
+                } else {
+                    sendMessage(true);
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.setNegativeButton(R.string.no, null);
+        builder.show();
     }
 
     private final TextWatcher mRecipientsWatcher = new TextWatcher() {
@@ -1648,6 +1680,10 @@ public class ComposeMessageActivity extends Activity
                         subject += msgItem.mSubject;
                     }
                     intent.putExtra("subject", subject);
+                    String[] numbers = mConversation.getRecipients().getNumbers();
+                    if (numbers != null) {
+                        intent.putExtra("msg_recipient",numbers[0]);
+                    }
                 }
                 // ForwardMessageActivity is simply an alias in the manifest for
                 // ComposeMessageActivity. We have to make an alias because ComposeMessageActivity
@@ -2281,6 +2317,16 @@ public class ComposeMessageActivity extends Activity
         }
     };
 
+    private final IntentFilter mSimStateFilter = new IntentFilter(
+            TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+
+    private final BroadcastReceiver mSimStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            updateSendButtonState();
+        }
+    };
+
     private static ContactList sEmptyContactList;
 
     private ContactList getRecipients() {
@@ -2359,6 +2405,7 @@ public class ComposeMessageActivity extends Activity
             mRecipientsPicker = (ImageButton)findViewById(R.id.recipients_picker);
             mRecipientsPicker.setVisibility(View.VISIBLE);
             mRecipientsPickerGroups= (ImageButton)findViewById(R.id.recipients_picker_group);
+            mRecipientsPickerGroups.setVisibility(View.VISIBLE);
         }
         mRecipientsPicker.setOnClickListener(this);
         mRecipientsPickerGroups.setOnClickListener(this);
@@ -2657,6 +2704,7 @@ public class ComposeMessageActivity extends Activity
             saveDraft(false);    // if we've got a draft, save it first
 
             initialize(null, originalThreadId);
+            mMessagesAndDraftLoaded = false;
         }
         loadMessagesAndDraft(0);
     }
@@ -2711,6 +2759,8 @@ public class ComposeMessageActivity extends Activity
 
         // Register a BroadcastReceiver to listen on HTTP I/O process.
         registerReceiver(mHttpProgressReceiver, mHttpProgressFilter);
+        // Register a BroadcastReceiver to listen SIM state change
+        registerReceiver(mSimStateReceiver, mSimStateFilter);
 
         // figure out whether we need to show the keyboard or not.
         // if there is draft to be loaded for 'mConversation', we'll show the keyboard;
@@ -2733,6 +2783,11 @@ public class ComposeMessageActivity extends Activity
 
         // reset mMessagesAndDraftLoaded
         mMessagesAndDraftLoaded = false;
+        long threadId = mWorkingMessage.getConversation().getThreadId();
+        // Same recipient for ForwardMms will not load draft
+        if (MessageUtils.sSameRecipientList.contains(threadId)) {
+            mShouldLoadDraft = false;
+        }
 
         CharSequence text = mWorkingMessage.getText();
         if (text != null) {
@@ -2827,6 +2882,8 @@ public class ComposeMessageActivity extends Activity
         if (mAttachFileUri != null && mWorkingMessage.hasAttachment()) {
             outState.putString("attach_fille_uri", mAttachFileUri.toString());
             outState.putInt("attach_fille_type", mWorkingMessage.getAttachmentType());
+        } else if (mIsSendMultiple && mWorkingMessage.hasAttachment()) {
+            outState.putBoolean(ACTION_SEND_MULTIPLE, mIsSendMultiple);
         }
 
         mWorkingMessage.writeStateToBundle(outState);
@@ -2944,6 +3001,7 @@ public class ComposeMessageActivity extends Activity
 
         // Cleanup the BroadcastReceiver.
         unregisterReceiver(mHttpProgressReceiver);
+        unregisterReceiver(mSimStateReceiver);
     }
 
     @Override
@@ -3066,6 +3124,15 @@ public class ComposeMessageActivity extends Activity
         // If the message is empty, just quit -- finishing the
         // activity will cause an empty draft to be deleted.
         if (!mWorkingMessage.isWorthSaving()) {
+
+            // If is from SearchActivity, need set ResultCode is RESULT_OK
+            if (mIsFromSearchActivity) {
+                // If the msg database has changed (eg. delete or new message),
+                // we should set a result let SearchActivity refresh view.
+                setResult(mIsMessageChanged ?
+                        SearchActivity.RESULT_MSG_HAS_CHANGED : RESULT_OK, null);
+                mIsMessageChanged = false;
+            }
             exit.run();
             mWorkingMessage.discard();
             new Thread() {
@@ -3096,6 +3163,16 @@ public class ComposeMessageActivity extends Activity
         }
 
         mToastForDraftSave = true;
+
+        // If is from SearchActivity, and save sms draft,
+        // need set ResultCode is SearchActivity.RESULT_SAVE_SMS_DRAFT
+        if (mIsFromSearchActivity) {
+            if (mWorkingMessage.hasAttachment() || mWorkingMessage.hasSubject()) {
+                this.setResult(SearchActivity.RESULT_SAVE_MMS_DRAFT, null);
+            } else {
+                this.setResult(SearchActivity.RESULT_SAVE_SMS_DRAFT, null);
+            }
+        }
         exit.run();
     }
 
@@ -3744,6 +3821,7 @@ public class ComposeMessageActivity extends Activity
             case REQUEST_CODE_CREATE_SLIDESHOW:
                 if (data != null) {
                     mAttachFileUri = data.getData();
+                    mIsSendMultiple = false;
                     WorkingMessage newMessage = WorkingMessage.load(this, mAttachFileUri);
                     if (newMessage != null) {
                         // Here we should keep the subject from the old mWorkingMessage.
@@ -4146,9 +4224,17 @@ public class ComposeMessageActivity extends Activity
         // If this is a forwarded message, it will have an Intent extra
         // indicating so.  If not, bail out.
         if (!mForwardMessageMode) {
+            if (mConversation != null) {
+                mConversation.setHasMmsForward(false);
+            }
             return false;
         }
 
+        if (mConversation != null) {
+            mConversation.setHasMmsForward(true);
+            String recipientNumber = intent.getStringExtra("msg_recipient");
+            mConversation.setForwardRecipientNumber(recipientNumber);
+        }
         Uri uri = intent.getParcelableExtra("msg_uri");
 
         if (Log.isLoggable(LogTag.APP, Log.DEBUG)) {
@@ -4184,6 +4270,7 @@ public class ComposeMessageActivity extends Activity
                 getAsyncDialog().runAsync(new Runnable() {
                     @Override
                     public void run() {
+                        mAttachFileUri = uri;
                         addAttachment(mimeType, uri, false);
                     }
                 }, null, R.string.adding_attachments_title);
@@ -4192,10 +4279,13 @@ public class ComposeMessageActivity extends Activity
                 mWorkingMessage.setText(extras.getString(Intent.EXTRA_TEXT));
                 return true;
             }
-        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action) &&
-                extras.containsKey(Intent.EXTRA_STREAM)) {
+        } else if ((Intent.ACTION_SEND_MULTIPLE.equals(action) &&
+                extras.containsKey(Intent.EXTRA_STREAM)) || mIsSendMultiple) {
             SlideshowModel slideShow = mWorkingMessage.getSlideshow();
             final ArrayList<Parcelable> uris = extras.getParcelableArrayList(Intent.EXTRA_STREAM);
+            if (uris.size() > 0) {
+                mIsSendMultiple = true;
+            }
             int currentSlideCount = slideShow != null ? slideShow.size() : 0;
             int importCount = uris.size();
             if (importCount + currentSlideCount > SlideshowEditor.MAX_SLIDE_NUM) {
@@ -4637,6 +4727,9 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
+        // Set the flag of mIsFromSearchActivity
+        mIsFromSearchActivity = SearchActivity.FROM_SEARCH_ACTIVITY.equals(getIntent()
+                .getStringExtra("from"));
         String highlightString = getIntent().getStringExtra("highlight");
         Pattern highlight = highlightString == null
             ? null
@@ -4728,7 +4821,8 @@ public class ComposeMessageActivity extends Activity
     private boolean isPreparedForSending() {
         int recipientCount = recipientCount();
 
-        return recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
+        return MessageUtils.getActivatedIccCardCount() > 0 && recipientCount > 0
+                && recipientCount <= MmsConfig.getRecipientLimit() &&
             (mWorkingMessage.hasAttachment() ||
                     mWorkingMessage.hasText() ||
                     mWorkingMessage.hasSubject());
@@ -4750,6 +4844,9 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void sendMessage(boolean bCheckEcmMode) {
+        // If message is sent make the mIsMessageChanged is true
+        // when activity is from SearchActivity.
+        mIsMessageChanged = mIsFromSearchActivity;
         if (bCheckEcmMode) {
             // TODO: expose this in telephony layer for SDK build
             String inEcm = SystemProperties.get(TelephonyProperties.PROPERTY_INECM_MODE);
@@ -5206,7 +5303,7 @@ public class ComposeMessageActivity extends Activity
                     ArrayList<Long> threadIds = (ArrayList<Long>)cookie;
                     ConversationList.confirmDeleteThreadDialog(
                             new ConversationList.DeleteThreadListener(threadIds,
-                                mBackgroundQueryHandler, ComposeMessageActivity.this),
+                                mBackgroundQueryHandler, null, ComposeMessageActivity.this),
                             threadIds,
                             cursor != null && cursor.getCount() > 0,
                             ComposeMessageActivity.this);
@@ -5254,6 +5351,9 @@ public class ComposeMessageActivity extends Activity
         @Override
         protected void onDeleteComplete(int token, Object cookie, int result) {
             super.onDeleteComplete(token, cookie, result);
+            // If message is deleted make the mIsMessageChanged is true
+            // when activity is from SearchActivity.
+            mIsMessageChanged = mIsFromSearchActivity;
             switch(token) {
                 case ConversationList.DELETE_CONVERSATION_TOKEN:
                     mConversation.setMessageCount(0);
@@ -5516,6 +5616,8 @@ public class ComposeMessageActivity extends Activity
                             break;
                     }
                 }
+            } else if (mIsSendMultiple = bundle.getBoolean(ACTION_SEND_MULTIPLE)) {
+                handleSendIntent();
             }
         }
     }

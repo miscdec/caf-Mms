@@ -29,10 +29,12 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.mms.R;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.CharacterSets;
 import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduPart;
 
@@ -119,7 +121,9 @@ public class MediaModelFactory {
     // of throwing an exception and crashing, insert an empty TextModel in its place.
     private static MediaModel createEmptyTextModel(Context context,  RegionModel regionModel)
             throws IOException {
-        return new TextModel(context, ContentType.TEXT_PLAIN, null, regionModel);
+        return new TextModel(context, ContentType.TEXT_PLAIN, null, CharacterSets.UTF_8,
+                context.getText(R.string.unsupported_content_type).toString().getBytes(),
+                regionModel);
     }
 
     private static MediaModel getGenericMediaModel(Context context,

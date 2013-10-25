@@ -48,6 +48,7 @@ import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.telephony.PhoneNumberUtils;
 import android.text.method.HideReturnsTransformationMethod;
 import android.text.style.URLSpan;
 import android.text.SpannableStringBuilder;
@@ -484,7 +485,15 @@ public class MailBoxMessageContent extends Activity {
                 intent.setData(uri);
                 context.startActivity(intent);
             } else {
-                spans[0].onClick(mBodyTextView);
+                final String telPrefix = "tel:";
+                if (url.startsWith(telPrefix)) {
+                    url = url.substring(telPrefix.length());
+                }
+                if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                    MessageUtils.showNumberOptions(this, url);
+                } else {
+                    spans[0].onClick(mBodyTextView);
+                }
             }
         } else if (spans.length > 1) {
             ArrayAdapter<URLSpan> adapter = new ArrayAdapter<URLSpan>(context,
@@ -515,7 +524,7 @@ public class MailBoxMessageContent extends Activity {
                                 url = context.getResources().getString(R.string.mail_to) +
                                         url.substring(mailPrefix.length());
                             }
-                            tmpUrl = url.replaceAll("tels", "");
+                            tmpUrl = url.replaceAll("tel:", "");
                         }
                         tv.setText(tmpUrl);
                     } catch (android.content.pm.PackageManager.NameNotFoundException ex) {
@@ -541,7 +550,15 @@ public class MailBoxMessageContent extends Activity {
                             intent.setData(uri);
                             context.startActivity(intent);
                         } else {
-                            spans[which].onClick(mBodyTextView);
+                            final String telPrefix = "tel:";
+                            if (url.startsWith(telPrefix)) {
+                                url = url.substring(telPrefix.length());
+                            }
+                            if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                                MessageUtils.showNumberOptions(context, url);
+                            } else {
+                                spans[which].onClick(mBodyTextView);
+                            }
                         }
                     }
                     dialog.dismiss();

@@ -37,6 +37,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemProperties;
 import android.provider.Browser;
 import android.os.SystemProperties;
 import android.provider.ContactsContract.Profile;
@@ -103,6 +104,7 @@ public class MessageListItem extends LinearLayout implements
     private static final boolean DEBUG_DONT_LOAD_IMAGES = false;
     // The message is from Browser
     private static final String BROWSER_ADDRESS = "Browser Information";
+    private static final String CANCEL_URI = "canceluri";
 
     static final int MSG_LIST_EDIT    = 1;
     static final int MSG_LIST_PLAY    = 2;
@@ -118,7 +120,7 @@ public class MessageListItem extends LinearLayout implements
     private TextView mSimMessageAddress;
     private TextView mBodyTextView;
     private Button mDownloadButton;
-    private TextView mDownloadingLabel;
+    private View mDownloading;
     private Handler mHandler;
     private MessageItem mMessageItem;
     private String mDefaultCountryIso;
@@ -130,6 +132,9 @@ public class MessageListItem extends LinearLayout implements
     private int mPosition;      // for debugging
     private ImageLoadedCallback mImageLoadedCallback;
     private boolean mMultiRecipients;
+    // Cancle download MMS during downloading for CT
+    private boolean isMmsCancelable = SystemProperties
+            .getBoolean("persist.env.mms.mmscancelable", false);
 
     public MessageListItem(Context context) {
         super(context);
@@ -247,6 +252,7 @@ public class MessageListItem extends LinearLayout implements
                 boolean autoDownload = downloadManager.isAuto();
                 boolean dataSuspended = (MmsApp.getApplication().getTelephonyManager()
                         .getDataState() == TelephonyManager.DATA_SUSPENDED);
+
                 // We must check if the target data subscription is user prefer
                 // data subscription, if we don't check this, here will be
                 // a problem, when user want to download a MMS is not in default
@@ -254,11 +260,13 @@ public class MessageListItem extends LinearLayout implements
                 // But they can't be download, this will make user confuse.
                 boolean isTargetDefaultDataSubscription = mMessageItem.mSubscription ==
                         MultiSimUtility.getCurrentDataSubscription(mContext);
+                boolean isMobileDataDisabled = MessageUtils.isMobileDataDisabled(mContext);
 
                 // If we're going to automatically start downloading the mms attachment, then
                 // don't bother showing the download button for an instant before the actual
                 // download begins. Instead, show downloading as taking place.
-                if (autoDownload && !dataSuspended && isTargetDefaultDataSubscription) {
+                if (autoDownload && !dataSuspended && !isMobileDataDisabled
+                    && isTargetDefaultDataSubscription) {
                     showDownloadingAttachment();
                     break;
                 }
@@ -267,7 +275,7 @@ public class MessageListItem extends LinearLayout implements
             default:
                 setLongClickable(true);
                 inflateDownloadControls();
-                mDownloadingLabel.setVisibility(View.GONE);
+                mDownloading.setVisibility(View.GONE);
                 mDownloadButton.setVisibility(View.VISIBLE);
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
@@ -302,36 +310,25 @@ public class MessageListItem extends LinearLayout implements
                                 builder.show();
                                 return;
                             }
+                            // Judge whether mobile data is turned off
+                            else if (MessageUtils.isMobileDataDisabled(mContext)) {
+                                builder.setMessage(mContext
+                                        .getString(R.string.mobile_data_disable));
+                                builder.setPositiveButton(R.string.yes,
+                                        new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int whichButton) {
+                                        startDownloadAttachment();
+                                    }
+                                });
+                                builder.setNegativeButton(R.string.no, null);
+                                builder.show();
+                                return;
+                            }
                         } catch (MmsException e) {
                             Log.e(TAG, e.getMessage(), e);
                             return;
                         }
-                        mDownloadingLabel.setVisibility(View.VISIBLE);
-                        mDownloadButton.setVisibility(View.GONE);
-                        Intent intent = new Intent(mContext, TransactionService.class);
-                        intent.putExtra(TransactionBundle.URI, mMessageItem.mMessageUri.toString());
-                        intent.putExtra(TransactionBundle.TRANSACTION_TYPE,
-                                Transaction.RETRIEVE_TRANSACTION);
-                        intent.putExtra(Mms.SUB_ID, mMessageItem.mSubscription); //destination subId
-                        intent.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
-                                MultiSimUtility.getCurrentDataSubscription(mContext));
-
-                        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-                            Log.d(TAG, "Download button pressed for sub=" +
-                                       mMessageItem.mSubscription);
-                            Log.d(TAG, "Manual download is always silent transaction");
-
-                            Intent silentIntent = new Intent(mContext,
-                                    com.android.mms.ui.SelectMmsSubscription.class);
-                            silentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            silentIntent.putExtras(intent); //copy all extras
-                            mContext.startService(silentIntent);
-                        } else {
-                            mContext.startService(intent);
-                        }
-
-                        DownloadManager.getInstance().markState(
-                                 mMessageItem.mMessageUri, DownloadManager.STATE_PRE_DOWNLOADING);
+                        startDownloadAttachment();
                     }
                 });
                 break;
@@ -342,6 +339,35 @@ public class MessageListItem extends LinearLayout implements
         mDeliveredIndicator.setVisibility(View.GONE);
         mDetailsIndicator.setVisibility(View.GONE);
         updateAvatarView(mMessageItem.mAddress, false);
+    }
+
+    private void startDownloadAttachment() {
+        mDownloading.setVisibility(View.VISIBLE);
+        mDownloadButton.setVisibility(View.GONE);
+        Intent intent = new Intent(mContext, TransactionService.class);
+        intent.putExtra(TransactionBundle.URI, mMessageItem.mMessageUri.toString());
+        intent.putExtra(TransactionBundle.TRANSACTION_TYPE,
+                Transaction.RETRIEVE_TRANSACTION);
+        intent.putExtra(Mms.SUB_ID, mMessageItem.mSubscription); //destination subId
+        intent.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
+                MultiSimUtility.getCurrentDataSubscription(mContext));
+
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            Log.d(TAG, "Download button pressed for sub=" +
+                    mMessageItem.mSubscription);
+            Log.d(TAG, "Manual download is always silent transaction");
+
+            Intent silentIntent = new Intent(mContext,
+                    com.android.mms.ui.SelectMmsSubscription.class);
+            silentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            silentIntent.putExtras(intent); //copy all extras
+            mContext.startService(silentIntent);
+        } else {
+             mContext.startService(intent);
+        }
+
+        DownloadManager.getInstance().markState(
+                mMessageItem.mMessageUri, DownloadManager.STATE_PRE_DOWNLOADING);
     }
 
     private String buildTimestampLine(String timestamp) {
@@ -356,7 +382,7 @@ public class MessageListItem extends LinearLayout implements
 
     private void showDownloadingAttachment() {
         inflateDownloadControls();
-        mDownloadingLabel.setVisibility(View.VISIBLE);
+        mDownloading.setVisibility(View.VISIBLE);
         mDownloadButton.setVisibility(View.GONE);
     }
 
@@ -396,7 +422,7 @@ public class MessageListItem extends LinearLayout implements
     private void bindCommonMessage(final boolean sameItem) {
         if (mDownloadButton != null) {
             mDownloadButton.setVisibility(View.GONE);
-            mDownloadingLabel.setVisibility(View.GONE);
+            mDownloading.setVisibility(View.GONE);
         }
         // Since the message text should be concatenated with the sender's
         // address(or name), I have to display it here instead of
@@ -494,6 +520,7 @@ public class MessageListItem extends LinearLayout implements
                 showMmsView(false);
             }
             if (mMessageItem.mSlideshow == null) {
+                final int mCurrentAttachmentType = mMessageItem.mAttachmentType;
                 mMessageItem.setOnPduLoaded(new MessageItem.PduLoadedCallback() {
                     public void onPduLoaded(MessageItem messageItem) {
                         if (DEBUG) {
@@ -505,7 +532,9 @@ public class MessageListItem extends LinearLayout implements
                         if (messageItem != null && mMessageItem != null &&
                                 messageItem.getMessageId() == mMessageItem.getMessageId()) {
                             mMessageItem.setCachedFormattedMessage(null);
-                            bindCommonMessage(true);
+                            boolean isStillSame =
+                                    mCurrentAttachmentType == messageItem.mAttachmentType;
+                            bindCommonMessage(isStillSame);
                         }
                     }
                 });
@@ -560,6 +589,17 @@ public class MessageListItem extends LinearLayout implements
             }
         }
     }
+
+    DialogInterface.OnClickListener mCancelLinstener = new DialogInterface.OnClickListener() {
+        @Override
+        public void onClick(DialogInterface dialog, final int whichButton) {
+            Intent intent = new Intent(mContext, TransactionService.class);
+            intent.putExtra(CANCEL_URI, mMessageItem.mMessageUri.toString());
+            mContext.startService(intent);
+            DownloadManager.getInstance().markState(mMessageItem.mMessageUri,
+                    DownloadManager.STATE_UNSTARTED);
+        }
+    };
 
     @Override
     public void startAudio() {
@@ -618,7 +658,24 @@ public class MessageListItem extends LinearLayout implements
             //inflate the download controls
             findViewById(R.id.mms_downloading_view_stub).setVisibility(VISIBLE);
             mDownloadButton = (Button) findViewById(R.id.btn_download_msg);
-            mDownloadingLabel = (TextView) findViewById(R.id.label_downloading);
+            if (isMmsCancelable) {
+                mDownloading = (Button) findViewById(R.id.btn_cancel_download);
+                mDownloading.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                        builder.setTitle(R.string.cancel_downloading)
+                                .setIconAttribute(android.R.attr.alertDialogIcon)
+                                .setCancelable(true)
+                                .setPositiveButton(R.string.yes, mCancelLinstener)
+                                .setNegativeButton(R.string.no, null)
+                                .setMessage(R.string.confirm_cancel_downloading)
+                                .show();
+                    }
+                });
+            } else {
+                mDownloading = (TextView) findViewById(R.id.label_downloading);
+            }
         }
     }
 
@@ -771,7 +828,15 @@ public class MessageListItem extends LinearLayout implements
                     intent.setData(uri);
                     mContext.startActivity(intent);
                 } else {
-                    spans[0].onClick(mBodyTextView);
+                    final String telPrefix = "tel:";
+                    if (url.startsWith(telPrefix)) {
+                        url = url.substring(telPrefix.length());
+                    }
+                    if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                        MessageUtils.showNumberOptions(mContext, url);
+                    } else {
+                        spans[0].onClick(mBodyTextView);
+                    }
                 }
             }
         } else {
@@ -824,7 +889,15 @@ public class MessageListItem extends LinearLayout implements
                             intent.setData(uri);
                             mContext.startActivity(intent);
                         } else {
-                            spans[which].onClick(mBodyTextView);
+                            final String telPrefix = "tel:";
+                            if (url.startsWith(telPrefix)) {
+                                url = url.substring(telPrefix.length());
+                            }
+                            if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                                MessageUtils.showNumberOptions(mContext, url);
+                            } else {
+                                spans[which].onClick(mBodyTextView);
+                            }
                         }
                     }
                     dialog.dismiss();
