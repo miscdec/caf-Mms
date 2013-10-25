@@ -427,7 +427,7 @@ public class MessageUtils {
         // Message size: *** KB
         details.append('\n');
         details.append(res.getString(R.string.message_size_label));
-        details.append((size - 1)/1000 + 1);
+        details.append((size - 1)/1024 + 1);
         details.append(" KB");
 
         return details.toString();
