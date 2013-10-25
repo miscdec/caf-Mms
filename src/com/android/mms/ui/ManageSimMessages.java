@@ -287,6 +287,9 @@ public class ManageSimMessages extends Activity
             if (mIsQuery) {
                 return;
             }
+            if (mCursor != null) {
+                mCursor.close();
+            }
             mIsQuery = true;
             mQueryHandler.startQuery(0, null, mIccUri, null, null, null, null);
         } catch (SQLiteException e) {
@@ -296,9 +299,6 @@ public class ManageSimMessages extends Activity
 
     private void refreshMessageList() {
         updateState(SHOW_BUSY);
-        if (mCursor != null) {
-            mCursor.close();
-        }
         startQuery();
     }
 
