@@ -65,6 +65,8 @@ public class ImageModel extends RegionMediaModel {
 
     private int mWidth;
     private int mHeight;
+    private UriImage mUriImage;
+
     private SoftReference<Bitmap> mFullSizeBitmapCache = new SoftReference<Bitmap>(null);
     private ItemLoadedFuture mItemLoadedFuture;
 
@@ -89,6 +91,7 @@ public class ImageModel extends RegionMediaModel {
         if (TextUtils.isEmpty(mContentType)) {
             throw new MmsException("Type of media is unknown.");
         }
+        mUriImage = uriImage;
         mSrc = uriImage.getSrc();
         mWidth = uriImage.getWidth();
         mHeight = uriImage.getHeight();
@@ -138,7 +141,7 @@ public class ImageModel extends RegionMediaModel {
 
     public ItemLoadedFuture loadThumbnailBitmap(ItemLoadedCallback callback) {
         ThumbnailManager thumbnailManager = MmsApp.getApplication().getThumbnailManager();
-        mItemLoadedFuture = thumbnailManager.getThumbnail(getUri(), callback);
+        mItemLoadedFuture = thumbnailManager.getThumbnail(getUri(), callback, mUriImage);
         return mItemLoadedFuture;
     }
 

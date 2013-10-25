@@ -28,6 +28,7 @@ import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
 import android.graphics.BitmapFactory.Options;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
@@ -104,8 +105,8 @@ public class ThumbnailManager extends BackgroundLoaderManager {
      * @return
      */
     public ItemLoadedFuture getThumbnail(Uri uri,
-            final ItemLoadedCallback<ImageLoaded> callback) {
-        return getThumbnail(uri, false, callback);
+            final ItemLoadedCallback<ImageLoaded> callback, UriImage uriImage) {
+        return getThumbnail(uri, false, callback, uriImage);
     }
 
     /**
@@ -117,16 +118,16 @@ public class ThumbnailManager extends BackgroundLoaderManager {
      */
     public ItemLoadedFuture getVideoThumbnail(Uri uri,
             final ItemLoadedCallback<ImageLoaded> callback) {
-        return getThumbnail(uri, true, callback);
+        return getThumbnail(uri, true, callback, null);
     }
 
     private ItemLoadedFuture getThumbnail(Uri uri, boolean isVideo,
-            final ItemLoadedCallback<ImageLoaded> callback) {
+            final ItemLoadedCallback<ImageLoaded> callback, UriImage uriImage) {
         if (uri == null) {
             throw new NullPointerException();
         }
 
-        final Bitmap thumbnail = DEBUG_DISABLE_CACHE ? null : mThumbnailCache.get(uri);
+        Bitmap thumbnail = DEBUG_DISABLE_CACHE ? null : mThumbnailCache.get(uri);
 
         final boolean thumbnailExists = (thumbnail != null);
         final boolean taskExists = mPendingTaskUris.contains(uri);
@@ -143,6 +144,21 @@ public class ThumbnailManager extends BackgroundLoaderManager {
 
         if (thumbnailExists) {
             if (callbackRequired && !DEBUG_DISABLE_CALLBACK) {
+                if (uriImage != null) {
+                    int orientation = uriImage.getOrientation();
+                    Log.i(TAG, "orientation : " +orientation);
+                    if (orientation != 0  &&  thumbnail != null) {
+                        Matrix matrix = new Matrix();
+                        matrix.postScale(1, 1);
+                        matrix.setRotate(orientation);
+                        Bitmap tmp = Bitmap.createBitmap(thumbnail, 0, 0, thumbnail.getWidth(),
+                                thumbnail.getHeight(), matrix, true);
+                        if (!thumbnail.isRecycled()) {
+                            thumbnail.recycle();
+                        }
+                        thumbnail = tmp;
+                    }
+                }
                 ImageLoaded imageLoaded = new ImageLoaded(thumbnail, isVideo);
                 callback.onItemLoaded(imageLoaded, null);
             }
@@ -325,17 +341,16 @@ public class ThumbnailManager extends BackgroundLoaderManager {
                 data = cacheService.getImageData(path, TYPE_THUMBNAIL);
             }
 
+            Bitmap bitmap;
             if (data != null) {
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                Bitmap bitmap = requestDecode(data.mData,
+                bitmap = requestDecode(data.mData,
                         data.mOffset, data.mData.length - data.mOffset, options);
                 if (bitmap == null) {
                     Log.w(TAG, "decode cached failed " + path);
                 }
-                return bitmap;
             } else {
-                Bitmap bitmap;
                 if (isVideo) {
                     bitmap = getVideoBitmap();
                 } else {
@@ -352,8 +367,22 @@ public class ThumbnailManager extends BackgroundLoaderManager {
                     byte[] array = compressBitmap(bitmap);
                     cacheService.putImageData(path, TYPE_THUMBNAIL, array);
                 }
-                return bitmap;
             }
+
+            int orientation = uriImage.getOrientation();
+            Log.i(TAG, "orientation : " +orientation);
+            if (orientation != 0  &&  bitmap != null) {
+                Matrix matrix = new Matrix();
+                matrix.postScale(1, 1);
+                matrix.setRotate(orientation);
+                Bitmap tmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
+                        bitmap.getHeight(), matrix, true);
+                if (!bitmap.isRecycled()) {
+                    bitmap.recycle();
+                }
+                bitmap = tmp;
+            }
+            return bitmap;
         }
 
         private Bitmap getVideoBitmap() {
