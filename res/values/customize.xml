@@ -42,4 +42,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!--default sms store postion with card 2, used in dual SIM mode, 1: Phone; 2: SIM CARD, others are invalid-->
     <string name="def_sms_store_card2_value">1</string>
+
+    <!-- sms delivery reports enabled.default is false to off,true to on  -->
+    <bool name="def_sms_delivery_reports">false</bool>
+
+    <!-- mms delivery reports enabled.default is true to on,false to off  -->
+    <bool name="def_mms_delivery_reports">false</bool>
 </resources>
