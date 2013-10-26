@@ -1846,4 +1846,12 @@ public class MessageUtils {
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         return !mConnService.getMobileDataEnabled() && enableMmsData;
     }
+
+    /**
+     * return true if the slot has sim card
+     */
+    public static boolean isIccInSlot(int sub) {
+        return MSimTelephonyManager.getDefault().getSimState(sub)
+                != TelephonyManager.SIM_STATE_ABSENT;
+    }
 }

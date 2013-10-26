@@ -295,7 +295,7 @@ public class MailBoxMessageList extends ListActivity implements
     }
 
     private void handleIntent(Intent intent) {
-        mMailboxId = intent.getIntExtra("mailboxId", Sms.MESSAGE_TYPE_SEARCH);
+        mMailboxId = intent.getIntExtra("mailboxId", -1);
 
         if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
             mTitle = intent.getStringExtra("title");

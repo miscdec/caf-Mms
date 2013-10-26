@@ -515,6 +515,8 @@
     <string name="sim_capacity_all">"总容量:"</string>
 
     <string name="unsupported_content_type">无法显示彩信：不支持的彩信类型。</string>
+    <!-- toast when subject is full  -->
+    <string name="subject_full">主题已满</string>
 
     <!-- Settings item description for Preferred storage -->
     <string name="pref_title_sms_store">优先存储器</string>
