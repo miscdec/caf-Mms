@@ -78,6 +78,7 @@ import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.text.style.URLSpan;
 import android.util.Log;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
@@ -107,6 +108,8 @@ import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
+
+import java.util.Locale;
 
 /**
  * An utility class for managing messages.
@@ -156,6 +159,11 @@ public class MessageUtils {
 
     // add for query message count from iccsms table
     public static final Uri ICC_SMS_URI = Uri.parse("content://sms/iccsms");
+
+    /**
+     * Whether the LayoutDirection is RTL.
+     */
+    private static boolean isLayoutRtl = false;
 
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
@@ -261,6 +269,8 @@ public class MessageUtils {
         if (cursor == null) {
             return null;
         }
+        isLayoutRtl = (TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())
+                == View.LAYOUT_DIRECTION_RTL);
 
         if ("mms".equals(cursor.getString(MessageListAdapter.COLUMN_MSG_TYPE))) {
             int type = cursor.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_TYPE);
@@ -301,6 +311,11 @@ public class MessageUtils {
 
         // From: ***
         String from = extractEncStr(context, nInd.getFrom());
+
+        // Make sure the "from" display normally for RTL.
+        if (isLayoutRtl) {
+            from = '\u202D'+from+'\u202C';
+        }
         details.append('\n');
         details.append(res.getString(R.string.from_label));
         details.append(!TextUtils.isEmpty(from)? from:
@@ -365,6 +380,11 @@ public class MessageUtils {
         if (msg instanceof RetrieveConf) {
             // From: ***
             String from = extractEncStr(context, ((RetrieveConf) msg).getFrom());
+
+            // Make sure the "from" display normally for RTL.
+            if (isLayoutRtl) {
+                from = '\u202D'+from+'\u202C';
+            }
             details.append('\n');
             details.append(res.getString(R.string.from_label));
             details.append(!TextUtils.isEmpty(from)? from:
@@ -451,7 +471,14 @@ public class MessageUtils {
         } else {
             details.append(res.getString(R.string.from_label));
         }
-        details.append(cursor.getString(MessageListAdapter.COLUMN_SMS_ADDRESS));
+
+        // Make sure the address display normally for RTL
+        if (isLayoutRtl) {
+            details.append('\u202D'+
+                    cursor.getString(MessageListAdapter.COLUMN_SMS_ADDRESS)+'\u202C');
+        }else{
+            details.append(cursor.getString(MessageListAdapter.COLUMN_SMS_ADDRESS));
+        }
 
         // Sent: ***
         if (smsType == Sms.MESSAGE_TYPE_INBOX) {
