@@ -460,8 +460,6 @@ public class ComposeMessageActivity extends Activity
         }
     };
 
-    // default to 2kb max head size
-    private static int MMS_HEAD_SIZE = 2 * 1024;
     // 1 kilobyte
     private static int ONE_KILOBYTE = 1024;
 
@@ -989,7 +987,7 @@ public class ComposeMessageActivity extends Activity
         }
         Log.v(TAG, "compose mmsCurrentSize = " + mmsCurrentSize);
         // if the current size is less than 1 byte, set the value to 1kb
-        mmsCurrentSize = mmsCurrentSize > 1 ? (mmsCurrentSize + MMS_HEAD_SIZE) : ONE_KILOBYTE;
+        mmsCurrentSize = mmsCurrentSize > 1 ? mmsCurrentSize : ONE_KILOBYTE;
 
         if (mmsCurrentSize > messageSizeLimit) {
             mmsCurrentSize = messageSizeLimit;
@@ -1000,7 +998,7 @@ public class ComposeMessageActivity extends Activity
         builder.setCancelable(false);
         builder.setMessage(getString(R.string.message_size_label)
                 // rounding size
-                + String.valueOf((mmsCurrentSize + (ONE_KILOBYTE - 1)) / ONE_KILOBYTE)
+                + String.valueOf((mmsCurrentSize - 1) / ONE_KILOBYTE + 1)
                 + getString(R.string.kilobyte));
         builder.setPositiveButton(R.string.yes, new OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
