@@ -34,6 +34,7 @@ import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ActivityNotFoundException;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -652,7 +653,11 @@ public class MessageUtils {
         intent.putExtra("android.intent.extra.sizeLimit", sizeLimit);
         intent.putExtra("android.intent.extra.durationLimit", durationLimit);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, TempFileProvider.SCRAP_CONTENT_URI);
-        activity.startActivityForResult(intent, requestCode);
+        try {
+            activity.startActivityForResult(intent, requestCode);
+        } catch (ActivityNotFoundException e) {
+            Log.e(TAG, "startActivity failed", e);
+        }
     }
 
     public static void capturePicture(Activity activity, int requestCode) {
