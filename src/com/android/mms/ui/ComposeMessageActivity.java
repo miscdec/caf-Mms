@@ -269,6 +269,25 @@ public class ComposeMessageActivity extends Activity
 
     private static final String EXIT_ECM_RESULT = "exit_ecm_result";
     private static final String ACTION_SEND_MULTIPLE="action_send_multiple";
+    // Firt part symbol in ASCII. 0x21~0x2f: ! " # $ % & ' ( ) * + , - . /
+    private static final int SYMBOLS_START_FIRST = 0x21;
+    private static final int SYMBOLS_END_FIRST = 0x2f;
+    // Second part symbol in ASCII. 0x3a~0x40: : ; < = > ? @
+    private static final int SYMBOLS_START_SECOND = 0x3a;
+    private static final int SYMBOLS_END_SECOND = 0x40;
+    // Third part symbol in ASCII. 0x5b~0x60: [ \ ] ^ _ `
+    private static final int SYMBOLS_START_THIRD = 0x5b;
+    private static final int SYMBOLS_END_THIRD = 0x60;
+    // Fourth part symbol in ASCII. 0x7b~0x7e: { | } ~
+    private static final int SYMBOLS_START_FOURTH = 0x7b;
+    private static final int SYMBOLS_END_FOURTH = 0x7e;
+    // Legal symbols: , : < >
+    private static final int SYMBOL_COMMA = 0x2c;
+    private static final int SYMBOL_SEMICOLON = 0x3b;
+    private static final int SYMBOL_LEFT_BRACKET = 0x3c;
+    private static final int SYMBOL_RIGHT_BRACKET = 0x3e;
+    // ASCII difference between Alphanumeric symbols and Full width symbols
+    private static final int SYMBOLS_DIFF = 0xfee0;
 
     // When the conversation has a lot of messages and a new message is sent, the list is scrolled
     // so the user sees the just sent message. If we have to scroll the list more than 20 items,
@@ -1154,6 +1173,9 @@ public class ComposeMessageActivity extends Activity
             // called when textfields changes.  This should be removed when the bug
             // is fixed.
             onUserInteraction();
+            if (s.length() >= start + count) {
+                promptIllegalSymbol(s.subSequence(start, start + count));
+            }
         }
 
         @Override
@@ -1219,6 +1241,31 @@ public class ComposeMessageActivity extends Activity
             updateSendButtonState();
         }
     };
+
+    private void promptIllegalSymbol(CharSequence diffChar) {
+        int diffCharLength = diffChar.length();
+        for (int i = 0; i < diffCharLength; i++) {
+            int c = diffChar.charAt(i);
+            if (((c >= SYMBOLS_START_FIRST && c <= SYMBOLS_END_FIRST)
+                    || (c >= SYMBOLS_START_SECOND && c <= SYMBOLS_END_SECOND)
+                    || (c >= SYMBOLS_START_THIRD && c <= SYMBOLS_END_THIRD)
+                    || (c >= SYMBOLS_START_FOURTH && c <= SYMBOLS_END_FOURTH)
+                    || (c >= SYMBOLS_START_FIRST + SYMBOLS_DIFF
+                    && c <= SYMBOLS_END_FIRST + SYMBOLS_DIFF)
+                    || (c >= SYMBOLS_START_SECOND + SYMBOLS_DIFF
+                    && c <= SYMBOLS_END_SECOND + SYMBOLS_DIFF)
+                    || (c >= SYMBOLS_START_THIRD + SYMBOLS_DIFF
+                    && c <= SYMBOLS_END_THIRD + SYMBOLS_DIFF)
+                    || (c >= SYMBOLS_START_FOURTH + SYMBOLS_DIFF
+                    && c <= SYMBOLS_END_FOURTH + SYMBOLS_DIFF))
+                    && c != SYMBOL_COMMA && c != SYMBOL_SEMICOLON
+                    && c != SYMBOL_LEFT_BRACKET && c != SYMBOL_RIGHT_BRACKET) {
+                Toast.makeText(this, R.string.illegal_separate_symbol, Toast.LENGTH_SHORT)
+                        .show();
+                return;
+            }
+        }
+    }
 
     private void checkForTooManyRecipients() {
         final int recipientLimit = MmsConfig.getRecipientLimit();
