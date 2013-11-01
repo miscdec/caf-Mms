@@ -3564,10 +3564,8 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        boolean hasSim1 = MessageUtils.isIccInSlot(MessageUtils.SUB1);
-        boolean hasSim2 = MessageUtils.isIccInSlot(MessageUtils.SUB2);
-        super.onPrepareOptionsMenu(menu) ;
 
+        super.onPrepareOptionsMenu(menu) ;
         menu.clear();
 
         if (mSendDiscreetMode && !mForwardMessageMode) {
@@ -3577,22 +3575,18 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (isRecipientCallable()) {
-            if (hasSim1 && hasSim2) {
-                if (SHOW_TWO_CALL_BUTTON_ON_ACTION_BAR) {
-                    if (mIndicatorContainerOne != null && mIndicatorContainerTwo != null
-                            && mIndicatorForSim1 != null && mIndicatorForSim2 != null) {
-                        mIndicatorForSim1.setImageDrawable(MessageUtils
-                                .getMultiSimIcon(this, MessageUtils.SUB1));
-                        mIndicatorForSim2.setImageDrawable(MessageUtils
-                                .getMultiSimIcon(this, MessageUtils.SUB2));
-                        mIndicatorContainerOne.setVisibility(View.VISIBLE);
-                        mIndicatorContainerTwo.setVisibility(View.VISIBLE);
-                    }
+            if (SHOW_TWO_CALL_BUTTON_ON_ACTION_BAR && MessageUtils.isMultiSimEnabledMms()
+                    && MessageUtils.getActivatedIccCardCount() >= 2) {
+                if (mIndicatorContainerOne != null && mIndicatorContainerTwo != null
+                        && mIndicatorForSim1 != null && mIndicatorForSim2 != null) {
+                    mIndicatorForSim1.setImageDrawable(MessageUtils
+                            .getMultiSimIcon(this, MessageUtils.SUB1));
+                    mIndicatorForSim2.setImageDrawable(MessageUtils
+                            .getMultiSimIcon(this, MessageUtils.SUB2));
+                    mIndicatorContainerOne.setVisibility(View.VISIBLE);
+                    mIndicatorContainerTwo.setVisibility(View.VISIBLE);
                 }
-            }
-
-            if (!SHOW_TWO_CALL_BUTTON_ON_ACTION_BAR || (hasSim1 && !hasSim2)
-                    || (!hasSim1 && hasSim2)) {
+            } else {
                 if (mIndicatorContainerOne != null && mIndicatorContainerTwo != null) {
                     mIndicatorContainerOne.setVisibility(View.GONE);
                     mIndicatorContainerTwo.setVisibility(View.GONE);
