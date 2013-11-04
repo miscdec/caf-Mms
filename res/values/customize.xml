@@ -33,4 +33,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!--default enable or disable wappush, default value is true, other value is false-->
     <bool name="def_wap_push_enabled">true</bool>
+
+    <!--default sms store postion, used in single SIM mode, 1: Phone; 2: SIM CARD, others are invalid -->
+    <string name="def_sms_store_value">1</string>
+
+    <!--default sms store postion with card 1, used in dual SIM mode, 1: Phone; 2: SIM CARD, others are invalid-->
+    <string name="def_sms_store_card1_value">1</string>
+
+    <!--default sms store postion with card 2, used in dual SIM mode, 1: Phone; 2: SIM CARD, others are invalid-->
+    <string name="def_sms_store_card2_value">1</string>
 </resources>
