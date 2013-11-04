@@ -60,7 +60,7 @@
   </PreferenceCategory>
   <PreferenceCategory android:title="@string/pref_sms_settings_title"
                       android:key="pref_key_sms_settings" >
-    <CheckBoxPreference android:defaultValue="false"
+    <CheckBoxPreference android:defaultValue="@bool/def_sms_delivery_reports"
                       android:key="pref_key_sms_delivery_reports"
                       android:summary="@string/pref_summary_sms_delivery_reports"
                       android:title="@string/pref_title_sms_delivery_reports" />
@@ -105,7 +105,7 @@
                       android:key="pref_key_mms_read_reports"
                       android:summary="@string/pref_summary_mms_read_reports"
                       android:title="@string/pref_title_mms_read_reports" />
-    <CheckBoxPreference android:defaultValue="true"
+    <CheckBoxPreference android:defaultValue="@bool/def_mms_delivery_reports"
                       android:key="pref_key_mms_auto_retrieval"
                       android:title="@string/pref_title_mms_auto_retrieval"
                       android:summary="@string/pref_summary_mms_auto_retrieval" />
