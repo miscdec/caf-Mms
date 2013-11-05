@@ -2488,9 +2488,27 @@ public class ComposeMessageActivity extends Activity
                 title = list.get(0).getName();      // get name returns the number if there's no
                                                     // name available.
                 String number = list.get(0).getNumber();
-                if (!title.equals(number)) {
-                    subTitle = PhoneNumberUtils.formatNumber(number, number,
-                            MmsApp.getApplication().getCurrentCountryIso());
+                if (mTextCounter.isLayoutRtl()) {
+
+                    // Change the phonenumber display normally for RTL.
+                    if (title.equals(number)) {
+                        title = PhoneNumberUtils.formatNumber(number, number,
+                             MmsApp.getApplication().getCurrentCountryIso());
+                             if (title.charAt(0) != '\u202D') {
+                                 title = '\u202D' + title + '\u202C';
+                             }
+                    } else {
+                        subTitle = PhoneNumberUtils.formatNumber(number, number,
+                                MmsApp.getApplication().getCurrentCountryIso());
+                            if (subTitle.charAt(0) != '\u202D') {
+                                subTitle = '\u202D' + subTitle + '\u202C';
+                            }
+                    }
+                } else {
+                     if (!title.equals(number)) {
+                         subTitle = PhoneNumberUtils.formatNumber(number, number,
+                              MmsApp.getApplication().getCurrentCountryIso());
+                     }
                 }
                 break;
             }

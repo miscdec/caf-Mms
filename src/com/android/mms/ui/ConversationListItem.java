@@ -27,6 +27,7 @@ import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.TextAppearanceSpan;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
@@ -41,6 +42,10 @@ import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
 import com.android.mms.util.SmileyParser;
+
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * This class manages the view for given conversation.
@@ -107,27 +112,75 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         final int color = android.R.styleable.Theme_textColorSecondary;
         String from = mConversation.getRecipients().formatNames(", ");
 
+        /**
+         * Add boolean to know that the "from" haven't the Arabic and '+'.
+         * Make sure the "from" display normally for RTL.
+         */
+        Boolean isEnName = false;
+        Boolean isLayoutRtl = (TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())
+                == View.LAYOUT_DIRECTION_RTL);
+        if (isLayoutRtl && from != null) {
+            if (from.length() >= 1) {
+                Pattern pattern = Pattern.compile("[^أ-ي]+");
+                Matcher matcher = pattern.matcher(from);
+                isEnName = matcher.matches();
+                if (from.charAt(0) != '\u202D') {
+                    if (isEnName) {
+                        from = '\u202D' + from + '\u202C';
+                    }
+                }
+            }
+        }
+
         SpannableStringBuilder buf = new SpannableStringBuilder(from);
 
         if (mConversation.getMessageCount() > 1) {
             int before = buf.length();
-            buf.append(mContext.getResources().getString(R.string.message_count_format,
-                    mConversation.getMessageCount()));
-            buf.setSpan(new ForegroundColorSpan(
-                    mContext.getResources().getColor(R.color.message_count_color)),
-                    before, buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+            if (isLayoutRtl) {
+                if (isEnName) {
+                    buf.insert(1, mConversation.getMessageCount() + " ");
+                    buf.setSpan(new ForegroundColorSpan(
+                            mContext.getResources().getColor(R.color.message_count_color)),
+                            1, buf.length() - before, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+                } else {
+                    buf.append(" " + mConversation.getMessageCount());
+                    buf.setSpan(new ForegroundColorSpan(
+                            mContext.getResources().getColor(R.color.message_count_color)),
+                            before, buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+                }
+            } else {
+                buf.append(mContext.getResources().getString(R.string.message_count_format,
+                        mConversation.getMessageCount()));
+                buf.setSpan(new ForegroundColorSpan(
+                        mContext.getResources().getColor(R.color.message_count_color)),
+                        before, buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+           }
         }
         if (mConversation.hasDraft()) {
-            buf.append(mContext.getResources().getString(R.string.draft_separator));
-            int before = buf.length();
-            int size;
-            buf.append(mContext.getResources().getString(R.string.has_draft));
-            size = android.R.style.TextAppearance_Small;
-            buf.setSpan(new TextAppearanceSpan(mContext, size, color), before,
-                    buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
-            buf.setSpan(new ForegroundColorSpan(
-                    mContext.getResources().getColor(R.drawable.text_color_red)),
-                    before, buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+            if (isLayoutRtl && isEnName) {
+                buf.insert(0,'\u202E'
+                        + mContext.getResources().getString(R.string.draft_separator));
+                int before = buf.length();
+                int size;
+                buf.insert(3,mContext.getResources().getString(R.string.has_draft) + '\u202C');
+                size = android.R.style.TextAppearance_Small;
+                buf.setSpan(new TextAppearanceSpan(mContext, size, color), 3,
+                        buf.length()- before + 2, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+                buf.setSpan(new ForegroundColorSpan(
+                        mContext.getResources().getColor(R.drawable.text_color_red)),
+                        3, buf.length()- before + 2, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                buf.append(mContext.getResources().getString(R.string.draft_separator));
+                int before = buf.length();
+                int size;
+                buf.append(mContext.getResources().getString(R.string.has_draft));
+                size = android.R.style.TextAppearance_Small;
+                buf.setSpan(new TextAppearanceSpan(mContext, size, color), before,
+                        buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+                buf.setSpan(new ForegroundColorSpan(
+                        mContext.getResources().getColor(R.drawable.text_color_red)),
+                        before, buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+              }
         }
 
         // Unread messages are shown in bold
