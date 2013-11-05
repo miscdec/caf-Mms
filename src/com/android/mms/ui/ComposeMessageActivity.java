@@ -469,6 +469,9 @@ public class ComposeMessageActivity extends Activity
             .getBoolean("persist.env.sys.btnstyle", false);
     private boolean mShowTwoButtons = false;
 
+    private final static boolean SHOW_SEND_CONFIRM = SystemProperties
+            .getBoolean("persist.env.mms.sendconfirm", false);
+
     /**
      * Whether the audio attachment player activity is launched and running
      */
@@ -554,7 +557,11 @@ public class ComposeMessageActivity extends Activity
                 }
                 case AttachmentEditor.MSG_SEND_SLIDESHOW: {
                     if (isPreparedForSending()) {
-                        ComposeMessageActivity.this.showSendConfirm();
+                        if (SHOW_SEND_CONFIRM) {
+                            ComposeMessageActivity.this.showSendConfirm();
+                        } else {
+                            ComposeMessageActivity.this.confirmSendMessageIfNeeded();
+                        }
                     }
                     break;
                 }
@@ -1035,12 +1042,7 @@ public class ComposeMessageActivity extends Activity
 
         mWorkingMessage.prepareForSave(true);
         if (mWorkingMessage.getSlideshow() != null) {
-            if (mWorkingMessage.getSlideshow().getTotalMessageSize() >
-                    mWorkingMessage.getSlideshow().getCurrentMessageSize()) {
-                mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
-            } else {
-                mmsCurrentSize += mWorkingMessage.getSlideshow().getCurrentMessageSize();
-            }
+            mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
         } else if (mWorkingMessage.hasText()) {
             mmsCurrentSize += mWorkingMessage.getText().toString().getBytes().length;
         }
@@ -1049,7 +1051,12 @@ public class ComposeMessageActivity extends Activity
         mmsCurrentSize = mmsCurrentSize > 1 ? mmsCurrentSize : ONE_KILOBYTE;
 
         if (mmsCurrentSize > messageSizeLimit) {
-            mmsCurrentSize = messageSizeLimit;
+            // if current message size is larger than message size limit, prompt message size
+            // limit dialog and don't show message size dialog.
+            mIsAttachmentErrorOnSend = true;
+            handleAddAttachmentError(WorkingMessage.MESSAGE_SIZE_EXCEEDED,
+                    R.string.type_picture);
+            return;
         }
 
         builder.setTitle(R.string.title_send_message);
@@ -4060,6 +4067,14 @@ public class ComposeMessageActivity extends Activity
                         mWorkingMessage = newMessage;
                         mWorkingMessage.setConversation(mConversation);
                         updateThreadIdIfRunning();
+                        if (SHOW_SEND_CONFIRM) {
+                            getAsyncDialog().runAsync(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mWorkingMessage.getSlideshow().resizeBeforeSendMms();
+                                }
+                            }, null, R.string.adding_attachments_title);
+                        }
                         drawTopPanel(false);
                         drawBottomPanel();
                         updateSendButtonState();
@@ -4538,6 +4553,9 @@ public class ComposeMessageActivity extends Activity
                     for (int i = 0; i < numberToImport; i++) {
                         Parcelable uri = uris.get(i);
                         addAttachment(mimeType, (Uri) uri, true);
+                    }
+                    if (SHOW_SEND_CONFIRM) {
+                        mWorkingMessage.getSlideshow().resizeBeforeSendMms();
                     }
                 }
             }, null, R.string.adding_attachments_title);
