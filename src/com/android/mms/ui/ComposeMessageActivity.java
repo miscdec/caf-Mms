@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4590,15 +4592,18 @@ public class ComposeMessageActivity extends Activity
             boolean wildcard = "*/*".equals(type);
             if (type.startsWith("image/")
                     || (wildcard && uri.toString().startsWith(mImageUri))
-                    || (wildcard && isImageFile(uri))) {
+                    || (wildcard && isImageFile(uri))
+                    || (wildcard && DrmUtils.isDrmImageFile(uri))) {// DRM CHANGED
                 addImage(uri, append);
             } else if (type.startsWith("video/")
                     || (wildcard && uri.toString().startsWith(mVideoUri))
-                    || (wildcard && isVideoFile(uri))) {
+                    || (wildcard && isVideoFile(uri))
+                    || (wildcard && DrmUtils.isDrmVideoFile(uri))) {// DRM CHANGED
                 addVideo(uri, append);
             } else if (type.startsWith("audio/")
                     || (wildcard && uri.toString().startsWith(mAudioUri))
-                    || (wildcard && isAudioFile(uri))) {
+                    || (wildcard && isAudioFile(uri))
+                    || (wildcard && DrmUtils.isDrmAudioFile(uri))) {// DRM CHANGED
                 addAudio(uri, append);
             } else if (SystemProperties.getBoolean("persist.env.mms.vcard", true)
                     && (type.equals("text/x-vcard")

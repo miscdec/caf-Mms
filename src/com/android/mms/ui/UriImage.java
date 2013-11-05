@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +42,12 @@ import com.android.mms.LogTag;
 import com.android.mms.model.ImageModel;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.pdu.PduPart;
+
+// DRM CHANGE START
+import android.media.MediaFile;
+import com.android.mms.MmsApp;
+import com.android.mms.drm.DrmUtils;
+// DRM CHANGE END
 
 public class UriImage {
     private static final String TAG = "Mms/image";
@@ -92,6 +100,13 @@ public class UriImage {
         mContentType = mimeTypeMap.getMimeTypeFromExtension(extension.toLowerCase());
         // It's ok if mContentType is null. Eventually we'll show a toast telling the
         // user the picture couldn't be attached.
+
+        // DRM CHANGE START
+        if (mContentType == null && DrmUtils.isDrmImageFile(uri)) {
+            mContentType = MmsApp.getApplication().getDrmManagerClient()
+                    .getOriginalMimeType(uri);
+        }
+        // DRM CHANGE END
 
         buildSrcFromPath();
     }
@@ -182,7 +197,7 @@ public class UriImage {
             input = mContext.getContentResolver().openInputStream(mUri);
             BitmapFactory.Options opt = new BitmapFactory.Options();
             opt.inJustDecodeBounds = true;
-            BitmapFactory.decodeStream(input, null, opt);
+            BitmapFactory.decodeStream(input, null, opt, false);// DRM Change
             mWidth = opt.outWidth;
             mHeight = opt.outHeight;
         } catch (FileNotFoundException e) {
@@ -293,7 +308,7 @@ public class UriImage {
                 input = context.getContentResolver().openInputStream(uri);
                 options.inSampleSize = sampleSize;
                 try {
-                    b = BitmapFactory.decodeStream(input, null, options);
+                    b = BitmapFactory.decodeStream(input, null, options, false);// DRM Change
                     if (b == null) {
                         return null;    // Couldn't decode and it wasn't because of an exception,
                                         // bail.
