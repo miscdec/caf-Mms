@@ -29,6 +29,8 @@ import android.database.sqlite.SqliteWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.provider.MediaStore.Images;
 import android.provider.Telephony.Mms.Part;
@@ -53,6 +55,7 @@ public class UriImage {
     private String mSrc;
     private int mWidth;
     private int mHeight;
+    private int mOrientation = 0;
 
     public UriImage(Context context, Uri uri) {
         if ((null == context) || (null == uri)) {
@@ -93,6 +96,7 @@ public class UriImage {
         // It's ok if mContentType is null. Eventually we'll show a toast telling the
         // user the picture couldn't be attached.
 
+        getOrientationFromPath(mPath);
         buildSrcFromPath();
     }
 
@@ -136,6 +140,7 @@ public class UriImage {
                 }
                 mContentType = c.getString(
                         c.getColumnIndexOrThrow(Part.CONTENT_TYPE));
+                getOrientationFromPath(filePath);
             } else {
                 filePath = uri.getPath();
                 try {
@@ -150,6 +155,11 @@ public class UriImage {
                     }
                 }
 
+                try {
+                    mOrientation = c.getInt(c.getColumnIndexOrThrow(Images.Media.ORIENTATION));
+                } catch (Exception e) {
+                   Log.e(TAG, "initFromContentUri: " + uri + ", file path = " + filePath);
+                }
                 // use the original filename if possible
                 int nameIndex = c.getColumnIndex(Images.Media.DISPLAY_NAME);
                 if (nameIndex != -1) {
@@ -218,6 +228,10 @@ public class UriImage {
 
     public int getHeight() {
         return mHeight;
+    }
+
+    public int getOrientation() {
+        return mOrientation;
     }
 
     /**
@@ -400,6 +414,43 @@ public class UriImage {
         } catch (java.lang.OutOfMemoryError e) {
             Log.e(TAG, e.getMessage(), e);
             return null;
+        }
+    }
+
+    private  void getOrientationFromPath(String path) {
+        if (mContentType != null &&
+                (ContentType.IMAGE_JPG.equals(mContentType) ||
+                ContentType.IMAGE_JPEG.equals(mContentType) ||
+                ContentType.IMAGE_PNG.equals(mContentType))) {
+
+            ExifInterface exif = null;
+            try {
+                exif = new ExifInterface(path);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+
+            if (exif == null) {
+                return;
+            }
+
+            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, -1);
+
+            switch (orientation) {
+
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    mOrientation = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    mOrientation = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    mOrientation = 270;
+                    break;
+                default:
+                    mOrientation = 0;
+                    break;
+            }
         }
     }
 }
