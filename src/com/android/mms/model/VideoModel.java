@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +37,7 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.dom.events.EventImpl;
 import com.android.mms.dom.smil.SmilMediaElementImpl;
+import com.android.mms.drm.DrmUtils;// DRM Change
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ItemLoadedFuture;
 import com.android.mms.util.ThumbnailManager;
@@ -85,6 +88,14 @@ public class VideoModel extends RegionMediaModel {
         mContentType = mimeTypeMap.getMimeTypeFromExtension(extension.toLowerCase());
         // It's ok if mContentType is null. Eventually we'll show a toast telling the
         // user the video couldn't be attached.
+
+        // DRM CHANGE START
+        if (mContentType == null && DrmUtils.isDrmVideoFile(uri)) {
+            mContentType = MmsApp.getApplication().getDrmManagerClient()
+                    .getOriginalMimeType(uri);
+        }
+        // DRM CHANGE END
+
         if (TextUtils.isEmpty(mContentType)) {
             throw new MmsException("Type of media is unknown.");
         }

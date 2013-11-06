@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +39,11 @@ import com.android.mms.ContentRestrictionException;
 import com.android.mms.dom.events.EventImpl;
 import com.android.mms.dom.smil.SmilMediaElementImpl;
 import com.google.android.mms.MmsException;
+
+// DRM CHANGE START
+import com.android.mms.drm.DrmUtils;
+import com.android.mms.MmsApp;
+// DRM CHANGE END
 
 public class AudioModel extends MediaModel {
     private static final String TAG = MediaModel.TAG;
@@ -127,6 +134,14 @@ public class AudioModel extends MediaModel {
                     mContentType = mimeTypeMap.getMimeTypeFromExtension(extension);
                     // if mContentType is null , it will cause a RuntimeException, to avoid
                     // this, set it as empty.
+
+                    // DRM CHANGE START
+                    if (mContentType == null && DrmUtils.isDrmAudioFile(uri)) {
+                        mContentType = MmsApp.getApplication().getDrmManagerClient()
+                                .getOriginalMimeType(uri);
+                    }
+                    // DRM CHANGE END
+
                     if (null == mContentType) {
                         Log.e(TAG,"initFromFile: mContentType is null!");
                         mContentType = "";

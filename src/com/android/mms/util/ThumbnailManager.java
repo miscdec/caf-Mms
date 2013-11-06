@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -464,7 +466,7 @@ public class ThumbnailManager extends BackgroundLoaderManager {
             }
 
             options.inJustDecodeBounds = true;
-            BitmapFactory.decodeStream(inputStream, null, options);
+            BitmapFactory.decodeStream(inputStream, null, options, false);// DRM Change
             closeSilently(inputStream);
 
             // No way to reset the stream. Have to open it again :-(
@@ -479,7 +481,9 @@ public class ThumbnailManager extends BackgroundLoaderManager {
                     options.outWidth, options.outHeight, targetSize);
             options.inJustDecodeBounds = false;
 
-            Bitmap result = BitmapFactory.decodeStream(inputStream, null, options);
+            // DRM Change start
+            Bitmap result = BitmapFactory.decodeStream(inputStream, null, options, false);
+            // DRM Change end
             closeSilently(inputStream);
 
             if (result == null) {
