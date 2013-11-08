@@ -389,7 +389,7 @@ public class MessageListItem extends LinearLayout implements
     private void updateAvatarView(String addr, boolean isSelf) {
         Drawable avatarDrawable;
         if (isSelf || !TextUtils.isEmpty(addr)) {
-            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
+            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, true);
             avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
 
             if (isSelf) {
@@ -453,7 +453,7 @@ public class MessageListItem extends LinearLayout implements
             } else {
                 buf.append(mContext.getString(R.string.to_address_label));
             }
-            buf.append(Contact.get(mMessageItem.mAddress, false).getName());
+            buf.append(Contact.get(mMessageItem.mAddress, true).getName());
             mSimMessageAddress.setText(buf);
         }
 
@@ -831,9 +831,9 @@ public class MessageListItem extends LinearLayout implements
                     final String telPrefix = "tel:";
                     if (url.startsWith(telPrefix)) {
                         url = url.substring(telPrefix.length());
-                    }
-                    if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
-                        MessageUtils.showNumberOptions(mContext, url);
+                        if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                            MessageUtils.showNumberOptions(mContext, url);
+                        }
                     } else {
                         spans[0].onClick(mBodyTextView);
                     }
@@ -1091,7 +1091,7 @@ public class MessageListItem extends LinearLayout implements
     public void updateAvatarView(Context context, String addr, boolean isSelf) {
         Drawable avatarDrawable;
         if (isSelf || !TextUtils.isEmpty(addr)) {
-            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
+            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, true);
             avatarDrawable = contact.getAvatar(context, sDefaultContactImage);
 
             if (isSelf) {

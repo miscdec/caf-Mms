@@ -23,6 +23,7 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.SystemProperties;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.Sms;
@@ -110,6 +111,9 @@ public class MessageItem {
     private ItemLoadedFuture mItemLoadedFuture;
     long mDate;
 
+    private static final boolean DISPLAY_SENT_TIME =
+            SystemProperties.getBoolean("persist.env.mms.senttime", false);
+
     MessageItem(Context context, String type, final Cursor cursor,
             final ColumnsMap columnsMap, Pattern highlight) throws MmsException {
         mContext = context;
@@ -166,12 +170,14 @@ public class MessageItem {
                             MessageUtils.formatTimeStampString(context, mDate));
                 } else {
                     // Set "received" time stamp
-                    mDate = cursor.getLong(columnsMap.mColumnSmsDate);
+                    mDate = cursor.getLong(DISPLAY_SENT_TIME ?
+                            columnsMap.mColumnSmsDateSent : columnsMap.mColumnSmsDate);
                     //cdma sms stored in UIM card don not have timestamp
                     if (0 == mDate) {
                         mDate = System.currentTimeMillis();
                     }
-                    mTimestamp = String.format(context.getString(R.string.received_on),
+                    mTimestamp = String.format(context.getString(
+                            DISPLAY_SENT_TIME ? R.string.sent_on : R.string.received_on),
                             MessageUtils.formatTimeStampString(context, mDate));
                 }
             }
@@ -426,7 +432,8 @@ public class MessageItem {
                         mTimestamp = String.format(mContext.getString(R.string.sent_on),
                                 MessageUtils.formatTimeStampString(mContext, timestamp));
                     } else {
-                        mTimestamp = String.format(mContext.getString(R.string.received_on),
+                        mTimestamp = String.format(mContext.getString(
+                                DISPLAY_SENT_TIME ? R.string.sent_on : R.string.received_on),
                                 MessageUtils.formatTimeStampString(mContext, timestamp));
                     }
                 }
