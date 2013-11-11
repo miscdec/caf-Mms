@@ -547,6 +547,10 @@ public class MailBoxMessageList extends ListActivity implements
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.search:
+                Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                startActivityIfNeeded(searchintent, -1);
+                break;
             case R.id.action_compose_new:
                 startActivity(ComposeMessageActivity.createIntent(this, 0));
                 break;
