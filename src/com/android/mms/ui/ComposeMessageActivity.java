@@ -281,11 +281,10 @@ public class ComposeMessageActivity extends Activity
     // Fourth part symbol in ASCII. 0x7b~0x7e: { | } ~
     private static final int SYMBOLS_START_FOURTH = 0x7b;
     private static final int SYMBOLS_END_FOURTH = 0x7e;
-    // Legal symbols: , : < >
-    private static final int SYMBOL_COMMA = 0x2c;
-    private static final int SYMBOL_SEMICOLON = 0x3b;
-    private static final int SYMBOL_LEFT_BRACKET = 0x3c;
-    private static final int SYMBOL_RIGHT_BRACKET = 0x3e;
+    // Legal symbols: , : < > @ . _ -
+    private static final char[] SYMBOL_LEGAL = {
+            ',', ':', '<', '>', '@', '.', '_', '-', '+', '(', ')'
+    };
     // ASCII difference between Alphanumeric symbols and Full width symbols
     private static final int SYMBOLS_DIFF = 0xfee0;
 
@@ -467,6 +466,8 @@ public class ComposeMessageActivity extends Activity
     // Call directly via press call button
     private final static boolean SHOW_TWO_CALL_BUTTON_ON_ACTION_BAR = SystemProperties
             .getBoolean("persist.env.sys.btnstyle", false);
+    private final static boolean CHECK_ILLEGAL_SYMBOL = SystemProperties
+            .getBoolean("persist.env.mms.checksymbol", false);
     private boolean mShowTwoButtons = false;
 
     /**
@@ -1178,7 +1179,7 @@ public class ComposeMessageActivity extends Activity
             // called when textfields changes.  This should be removed when the bug
             // is fixed.
             onUserInteraction();
-            if (s.length() >= start + count) {
+            if (CHECK_ILLEGAL_SYMBOL && s.length() >= start + count) {
                 promptIllegalSymbol(s.subSequence(start, start + count));
             }
         }
@@ -1262,14 +1263,19 @@ public class ComposeMessageActivity extends Activity
                     || (c >= SYMBOLS_START_THIRD + SYMBOLS_DIFF
                     && c <= SYMBOLS_END_THIRD + SYMBOLS_DIFF)
                     || (c >= SYMBOLS_START_FOURTH + SYMBOLS_DIFF
-                    && c <= SYMBOLS_END_FOURTH + SYMBOLS_DIFF))
-                    && c != SYMBOL_COMMA && c != SYMBOL_SEMICOLON
-                    && c != SYMBOL_LEFT_BRACKET && c != SYMBOL_RIGHT_BRACKET) {
-                Toast.makeText(this, R.string.illegal_separate_symbol, Toast.LENGTH_SHORT)
-                        .show();
+                    && c <= SYMBOLS_END_FOURTH + SYMBOLS_DIFF)) && isIllegaleSymbol(c)) {
+                Toast.makeText(this, R.string.illegal_separate_symbol, Toast.LENGTH_SHORT).show();
                 return;
             }
         }
+    }
+
+    private boolean isIllegaleSymbol(int c) {
+        for (char symbol : SYMBOL_LEGAL) {
+            if (c == symbol)
+                return false;
+        }
+        return true;
     }
 
     private void checkForTooManyRecipients() {
