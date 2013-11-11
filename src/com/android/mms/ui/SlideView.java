@@ -201,7 +201,7 @@ public class SlideView extends AbsoluteLayout implements
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         mScaleDetector.onTouchEvent(ev);
-        return true;
+        return false;
     }
 
     public void setImage(String name, Bitmap bitmap) {
@@ -346,6 +346,7 @@ public class SlideView extends AbsoluteLayout implements
         }
         mTextView.setVisibility(View.VISIBLE);
         mTextView.setText(text);
+        mTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, getCurrentTextSize(mContext));
         // Let the text in Mms can be selected.
         mTextView.setTextIsSelectable(true);
     }
