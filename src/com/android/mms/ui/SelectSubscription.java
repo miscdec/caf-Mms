@@ -20,6 +20,7 @@ package com.android.mms.ui;
 
 import com.android.mms.R;
 
+import android.app.ActionBar;
 import android.content.Intent;
 import android.os.Bundle;
 import android.preference.Preference;
@@ -27,6 +28,7 @@ import android.preference.PreferenceScreen;
 import android.preference.PreferenceActivity;
 
 import android.util.Log;
+import android.view.MenuItem;
 
 import com.android.internal.telephony.MSimConstants;
 
@@ -74,6 +76,11 @@ public class SelectSubscription extends PreferenceActivity {
         addPreferencesFromResource(R.xml.select_subscription);
         mSubscription1Pref = findPreference(KEY_SUBSCRIPTION1);
         mSubscription2Pref = findPreference(KEY_SUBSCRIPTION2);
+        mSubscription1Pref.setTitle(MessageUtils.getMultiSimName(this, MessageUtils.SUB1));
+        mSubscription2Pref.setTitle(MessageUtils.getMultiSimName(this, MessageUtils.SUB2));
+
+        ActionBar actionBar = getActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
     }
 
     @Override
@@ -88,5 +95,15 @@ public class SelectSubscription extends PreferenceActivity {
     @Override
     protected void onPause() {
         super.onPause();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+        return false;
     }
 }
