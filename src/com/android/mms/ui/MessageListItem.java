@@ -858,6 +858,7 @@ public class MessageListItem extends LinearLayout implements
                             tv.setCompoundDrawables(d, null, null, null);
                         }
                         final String telPrefix = "tel:";
+                        final String mailToPrefix = "mailto:";
                         if (url.startsWith(telPrefix)) {
                             if ((mDefaultCountryIso == null) || mDefaultCountryIso.isEmpty()) {
                                 url = url.substring(telPrefix.length());
@@ -866,6 +867,8 @@ public class MessageListItem extends LinearLayout implements
                                 url = PhoneNumberUtils.formatNumber(
                                         url.substring(telPrefix.length()), mDefaultCountryIso);
                             }
+                        } else if (url.startsWith(mailToPrefix)) {
+                            url = url.substring(mailToPrefix.length());
                         }
                         tv.setText(url);
                     } catch (android.content.pm.PackageManager.NameNotFoundException ex) {
@@ -890,8 +893,11 @@ public class MessageListItem extends LinearLayout implements
                             mContext.startActivity(intent);
                         } else {
                             final String telPrefix = "tel:";
+                            final String mailToPrefix = "mailto:";
                             if (url.startsWith(telPrefix)) {
                                 url = url.substring(telPrefix.length());
+                            } else if (url.startsWith(mailToPrefix)) {
+                                url = url.substring(mailToPrefix.length());
                             }
                             if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
                                 MessageUtils.showNumberOptions(mContext, url);
