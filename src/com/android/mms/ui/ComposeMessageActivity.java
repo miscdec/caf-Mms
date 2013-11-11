@@ -914,7 +914,8 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
             boolean isMms = mWorkingMessage.requiresMms();
-            if (MessageUtils.isMobileDataDisabled(ComposeMessageActivity.this) && isMms) {
+            if (MessageUtils.isMobileDataDisabled(ComposeMessageActivity.this) &&
+                    MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
                 showMobileDataDisabledDialog();
             } else if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMsimMessage(true);
@@ -1071,7 +1072,8 @@ public class ComposeMessageActivity extends Activity
     private void confirmSendMessageIfNeeded(int subscription) {
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+            if (MessageUtils.isMobileDataDisabled(this) &&
+                    MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
                 showMobileDataDisabledDialog();
             } else {
                 sendMsimMessage(true, subscription);
@@ -1081,7 +1083,8 @@ public class ComposeMessageActivity extends Activity
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
-        } else if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+        } else if (MessageUtils.isMobileDataDisabled(this) &&
+                MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
             showMobileDataDisabledDialog();
         } else {
             // The recipients editor is still open. Make sure we use what's showing there
@@ -1095,7 +1098,8 @@ public class ComposeMessageActivity extends Activity
     private void confirmSendMessageIfNeeded() {
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+            if (MessageUtils.isMobileDataDisabled(this) &&
+                    MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
                 showMobileDataDisabledDialog();
             } else if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMsimMessage(true);
@@ -1107,7 +1111,8 @@ public class ComposeMessageActivity extends Activity
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
-        } else if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+        } else if (MessageUtils.isMobileDataDisabled(this) &&
+                MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
             showMobileDataDisabledDialog();
         } else {
             // The recipients editor is still open. Make sure we use what's showing there
