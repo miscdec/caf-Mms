@@ -219,6 +219,10 @@ public class MessageUtils {
     public static final Uri MAILBOX_SMS_MESSAGES_COUNT =
             Uri.parse("content://mms-sms/messagescount");
 
+    // If set the special property, enable mms data even if mobile data is turned off.
+    public static final boolean CAN_SETUP_MMS_DATA =
+            SystemProperties.getBoolean("persist.env.mms.setupmmsdata", false);
+
     private static final String[] WEB_SCHEMA =
                         new String[] { "http://", "https://", "rtsp://" };
 
@@ -1843,12 +1847,8 @@ public class MessageUtils {
     }
 
     public static boolean isMobileDataDisabled(Context context) {
-        // Notice: Only set the special property, this method can actually return the
-        // mobile data state. Otherwise, it will always return false.
-        boolean enableMmsData = SystemProperties
-                .getBoolean("persist.env.mms.setupmmsdata", false);
         ConnectivityManager mConnService = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
-        return !mConnService.getMobileDataEnabled() && enableMmsData;
+        return !mConnService.getMobileDataEnabled();
     }
 }
