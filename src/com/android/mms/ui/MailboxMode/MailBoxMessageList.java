@@ -211,7 +211,7 @@ public class MailBoxMessageList extends ListActivity implements
                     && (c.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_BOX)
                             == Mms.MESSAGE_BOX_DRAFTS);
 
-            if (isDraft) {
+            if (isDraft || !MessageUtils.isMailboxMode()) {
                 Intent intent = new Intent(this, ComposeMessageActivity.class);
                 intent.putExtra("thread_id", c.getLong(COLUMN_THREAD_ID));
                 startActivity(intent);
@@ -560,6 +560,7 @@ public class MailBoxMessageList extends ListActivity implements
                 break;
             case R.id.action_change_mode:
                 Intent modeIntent = new Intent(this, ConversationList.class);
+                MessageUtils.setMailboxMode(false);
                 startActivityIfNeeded(modeIntent, -1);
                 finish();
                 break;
