@@ -201,7 +201,7 @@ public class SlideView extends AbsoluteLayout implements
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         mScaleDetector.onTouchEvent(ev);
-        return true;
+        return false;
     }
 
     public void setImage(String name, Bitmap bitmap) {
