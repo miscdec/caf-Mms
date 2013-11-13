@@ -18,7 +18,9 @@
 package com.android.mms.ui;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 
 import com.android.mms.model.AudioModel;
@@ -201,20 +203,43 @@ public class SlideshowPresenter extends Presenter {
      * @param image
      * @param r
      */
-    protected void presentImage(SlideViewInterface view, ImageModel image,
+    protected void presentImage(final SlideViewInterface view, final ImageModel image,
             RegionModel r, boolean dataChanged) {
-        int transformedWidth = transformWidth(r.getWidth());
-        int transformedHeight = transformWidth(r.getHeight());
+        final int transformedWidth = transformWidth(r.getWidth());
+        final int transformedHeight = transformWidth(r.getHeight());
+        final int normalSlideH = (int)((float)transformedHeight * mHeightTransformRatio / 2);
+        final int normalSlideW = (int)((float)transformedWidth * mWidthTransformRatio / 2);
 
         if (LOCAL_LOGV) {
             Log.v(TAG, "presentImage r.getWidth: " + r.getWidth()
                     + ", r.getHeight: " + r.getHeight() +
+                    " normalSlideW: " + normalSlideW +
+                    " normalSlideH: " + normalSlideH+
                     " transformedWidth: " + transformedWidth +
                     " transformedHeight: " + transformedHeight);
         }
 
         if (dataChanged) {
-            view.setImage(image.getSrc(), image.getBitmap(transformedWidth, transformedHeight));
+            final Handler bitmapHandler = new Handler() {
+                @Override
+                public void handleMessage(Message message) {
+                    view.setImage(image.getSrc(), (Bitmap)message.obj);
+                }
+            };
+            Thread BitmapLoaderThread = new Thread() {
+                @Override
+                public void run() {
+                    Bitmap drawable;
+                    if (view instanceof SlideListItemView) {
+                        drawable = image.getBitmap(normalSlideW, normalSlideH);
+                    } else {
+                        drawable = image.getBitmap(transformedWidth, transformedHeight);
+                    }
+                    Message message = bitmapHandler.obtainMessage(1, drawable);
+                    bitmapHandler.sendMessage(message);
+                }
+            };
+            BitmapLoaderThread.start();
         }
 
         if (view instanceof AdaptableSlideViewInterface) {
@@ -224,6 +249,7 @@ public class SlideshowPresenter extends Presenter {
                     transformedWidth,
                     transformedHeight);
         }
+
         view.setImageRegionFit(r.getFit());
         view.setImageVisibility(image.isVisible());
     }
