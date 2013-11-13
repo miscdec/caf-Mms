@@ -1222,7 +1222,7 @@ public class ComposeMessageActivity extends Activity
                 mRecipientsPickList = null;
             } else {
                 // If we have gone to zero recipients, we need to update the title.
-                if (0 == s.length()) {
+                if (TextUtils.isEmpty(s.toString().trim())) {
                     ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
                     updateTitle(contacts);
                 }
@@ -2490,9 +2490,10 @@ public class ComposeMessageActivity extends Activity
             case 0: {
                 String recipient = null;
                 if (mRecipientsEditor != null) {
-                    recipient = mRecipientsEditor.getText().toString();
+                    recipient = mRecipientsEditor.getText().toString().trim();
                 }
-                title = TextUtils.isEmpty(recipient) ? getString(R.string.new_message) : recipient;
+                title = (TextUtils.isEmpty(recipient))
+                        ? getString(R.string.new_message) : recipient;
                 break;
             }
             case 1: {

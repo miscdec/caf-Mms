@@ -175,6 +175,9 @@ public class RecipientsEditor extends RecipientEditTextView {
         List<String> numbers = mTokenizer.getNumbers();
         ContactList list = new ContactList();
         for (String number : numbers) {
+            if (TextUtils.isEmpty(number.trim())) {
+                continue;
+            }
             Contact contact = Contact.get(number, blocking);
             contact.setNumber(number);
             list.add(contact);
