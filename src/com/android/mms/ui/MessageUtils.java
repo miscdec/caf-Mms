@@ -141,6 +141,7 @@ public class MessageUtils {
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
 
+    private static final String VIEW_MODE_NAME = "current_view";
     // Ext action define as TelephonyIntents.ACTION_SIM_STATE_CHANGED + subID
     public static final String ACTION_SIM_STATE_CHANGED0 =
            "android.intent.action.SIM_STATE_CHANGED0";
@@ -1352,6 +1353,19 @@ public class MessageUtils {
 
     private static void log(String msg) {
         Log.d(TAG, "[MsgUtils] " + msg);
+    }
+
+    public static boolean isMailboxMode() {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp
+                .getApplication());
+        boolean ViewMode = sp.getBoolean(VIEW_MODE_NAME, false);
+        return ViewMode;
+    }
+
+    public static void setMailboxMode(boolean mode) {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp
+                .getApplication());
+        sp.edit().putBoolean(VIEW_MODE_NAME, mode).commit();
     }
 
     /**
