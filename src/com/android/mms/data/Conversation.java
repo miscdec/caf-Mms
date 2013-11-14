@@ -649,7 +649,10 @@ public class Conversation {
                     break;
                 }
             }
-            long retVal = Threads.getOrCreateThreadId(context, recipients);
+            long retVal = 0;
+            if (null != recipients && recipients.size() > 0) {
+                retVal = Threads.getOrCreateThreadId(context, recipients);
+            }
             if (DELETEDEBUG || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 LogTag.debug("[Conversation] getOrCreateThreadId for (%s) returned %d",
                         recipients, retVal);
