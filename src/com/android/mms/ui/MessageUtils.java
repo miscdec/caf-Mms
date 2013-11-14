@@ -204,6 +204,9 @@ public class MessageUtils {
     public static final int SEARCH_MODE_CONTENT = 0;
     public static final int SEARCH_MODE_NAME    = 1;
     public static final int SEARCH_MODE_NUMBER  = 2;
+    // add for different match mode in classify search
+    public static final int MATCH_BY_ADDRESS = 0;
+    public static final int MATCH_BY_THREAD_ID = 1;
 
     public static final int STORE_TO_PHONE = 1;
     public static final int STORE_TO_ICC = 2;
