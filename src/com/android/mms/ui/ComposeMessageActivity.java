@@ -281,9 +281,9 @@ public class ComposeMessageActivity extends Activity
     // Fourth part symbol in ASCII. 0x7b~0x7e: { | } ~
     private static final int SYMBOLS_START_FOURTH = 0x7b;
     private static final int SYMBOLS_END_FOURTH = 0x7e;
-    // Legal symbols: , : < > @ . _ -
+    // Legal symbols: , ; < > @ . _ - + ( )
     private static final char[] SYMBOL_LEGAL = {
-            ',', ':', '<', '>', '@', '.', '_', '-', '+', '(', ')'
+            ',', ';', '<', '>', '@', '.', '_', '-', '+', '(', ')'
     };
     // ASCII difference between Alphanumeric symbols and Full width symbols
     private static final int SYMBOLS_DIFF = 0xfee0;
