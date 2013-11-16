@@ -312,6 +312,14 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         mNameView = (TextView) view.findViewById(R.id.TextName);
         mAvatarView = (QuickContactBadge) view.findViewById(R.id.avatar);
         mAddress = addr;
+        if (TextUtils.isEmpty(mAddress) && !TextUtils.isEmpty(recipientIds)) {
+            String[] numbers = ContactList.getByIds(recipientIds, true)
+                    .getNumbers();
+            if (numbers != null && numbers.length > 0) {
+                // use the first address
+                mAddress = numbers[0];
+            }
+        }
         mName = nameContact;
         formatNameView(mAddress, mName);
         updateAvatarView();

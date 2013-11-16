@@ -730,6 +730,7 @@ public class SmsReceiverService extends Service {
 
         if (pduCount == 1) {
             // There is only one part, so grab the body directly.
+            Log.d(TAG, "storeMessage body = " + sms.getDisplayMessageBody());
             values.put(Inbox.BODY, replaceFormFeeds(sms.getDisplayMessageBody()));
         } else {
             // Build up the body from the parts.
@@ -740,6 +741,7 @@ public class SmsReceiverService extends Service {
                     body.append(sms.getDisplayMessageBody());
                 }
             }
+            Log.d(TAG, "storeMessage body = " + body.toString());
             values.put(Inbox.BODY, replaceFormFeeds(body.toString()));
         }
 
