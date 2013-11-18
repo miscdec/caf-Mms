@@ -128,6 +128,7 @@ public class WorkingMessage {
     public static final int AUDIO = 3;
     public static final int SLIDESHOW = 4;
     public static final int VCARD = 5;
+    public static final int UNSUPPORT = 6;
 
     // Current attachment type of the message; one of the above values.
     private int mAttachmentType;
@@ -277,6 +278,8 @@ public class WorkingMessage {
                 mAttachmentType = AUDIO;
             } else if (slide.hasVcard()) {
                 mAttachmentType = VCARD;
+            } else if (slide.hasUnsupport()) {
+                mAttachmentType = UNSUPPORT;
             }
         }
 
