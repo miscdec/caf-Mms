@@ -248,9 +248,9 @@ public class SlideshowModel extends Model
                     }
                     if ((new String(part.getContentType())).toLowerCase().equals(
                             ContentType.TEXT_VCALENDAR.toLowerCase())) {
-                        MediaModel tMedia = new TextModel(context, ContentType.TEXT_PLAIN, null,
-                                CharacterSets.UTF_8, context.getString(
-                                        R.string.unsupported_content_type).getBytes(), null);
+                        MediaModel tMedia = new UnsupportModel(context, new String(
+                                part.getContentType()), new String(part.getContentLocation()),
+                                part.getDataUri());
                         mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
                         mediaSet.add(tMedia);
                         totalMessageSize += tMedia.getMediaSize();
@@ -337,6 +337,9 @@ public class SlideshowModel extends Model
                         part.setContentDisposition(((VcardModel) media).getLookupUri().getBytes());
                     }
                 } else {
+                    if (media.getUri() != null) {
+                        part.setDataUri(media.getUri());
+                    }
                     Log.w(TAG, "Unsupport media: " + media);
                 }
 

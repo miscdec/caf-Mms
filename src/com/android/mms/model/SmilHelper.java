@@ -363,8 +363,8 @@ public class SmilHelper {
                 } else if (media instanceof VcardModel) {
                     sme = SmilHelper.createMediaElement(SmilHelper.ELEMENT_TAG_REF, document, src);
                 } else {
+                    sme = SmilHelper.createMediaElement(SmilHelper.ELEMENT_TAG_REF, document, src);
                     Log.w(TAG, "Unsupport media: " + media);
-                    continue;
                 }
 
                 // Set timing information.
