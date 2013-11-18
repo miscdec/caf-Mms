@@ -28,6 +28,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.text.InputFilter;
 import android.text.InputFilter.LengthFilter;
@@ -149,8 +150,10 @@ public class SlideEditorActivity extends Activity {
         mRemoveSlide.setOnClickListener(mOnRemoveSlide);
 
         mTextEditor = (EditText) findViewById(R.id.text_message);
-        mTextEditor.setFilters(new InputFilter[] {
-                new LengthFilter(MmsConfig.getMaxTextLimit())});
+        if (SystemProperties.getInt("persist.env.c.mms.limitcount", 0) == 0) {
+            mTextEditor.setFilters(new InputFilter[] {
+                    new LengthFilter(MmsConfig.getMaxTextLimit())});
+        }
 
         mDone = (Button) findViewById(R.id.done_button);
         mDone.setOnClickListener(mDoneClickListener);
