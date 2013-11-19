@@ -640,7 +640,9 @@ public class ComposeMessageActivity extends Activity
         // that means user is continuously clicking the play button, we return this
         // thread and cancel this click event; else we put it to true and response this
         // event.
-        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO) {
+        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO
+                || requestCode == AttachmentEditor.MSG_PLAY_SLIDESHOW
+                || requestCode == AttachmentEditor.MSG_PLAY_VIDEO) {
             if (mIsAudioPlayerActivityRunning) {
                 return true;
             } else {
@@ -4057,7 +4059,9 @@ public class ComposeMessageActivity extends Activity
             }
         }
 
-        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO) {
+        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO
+                || requestCode == AttachmentEditor.MSG_PLAY_SLIDESHOW
+                || requestCode == AttachmentEditor.MSG_PLAY_VIDEO) {
             // When the audio has finished to play, we put the
             // mIsAudioPlayerActivityRunning to false.
             mIsAudioPlayerActivityRunning = false;
@@ -5317,6 +5321,8 @@ public class ComposeMessageActivity extends Activity
             mAttachmentEditor.setCanSend(false);
         }
 
+        // invalidate the menu whether the message can be send or can't.
+        invalidateOptionsMenu();
         boolean requiresMms = mWorkingMessage.requiresMms();
         if (mShowTwoButtons) {
             View[] sendButtons = showTwoSmsOrMmsSendButton(requiresMms);
