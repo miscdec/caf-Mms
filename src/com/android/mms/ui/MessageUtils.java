@@ -1258,7 +1258,7 @@ public class MessageUtils {
         return builder.toString();
     }
 
-  private static Intent getVTCallIntent(String number) {
+    public static Intent getVTCallIntent(String number) {
         Intent intent = new Intent("com.borqs.videocall.action.LaunchVideoCallScreen");
         intent.addCategory(Intent.CATEGORY_DEFAULT);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
@@ -1268,7 +1268,7 @@ public class MessageUtils {
         return intent;
     }
 
-    private static boolean isVTSupported() {
+    public static boolean isVTSupported() {
         return SystemProperties.getBoolean(
                 "persist.radio.csvt.enabled"
         /*TelephonyProperties.PROPERTY_CSVT_ENABLED*/, false);
