@@ -224,6 +224,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_CALL_RECIPIENT        = 5;
     private static final int MENU_CONVERSATION_LIST     = 6;
     private static final int MENU_DEBUG_DUMP            = 7;
+    private static final int MENU_VIDEOCALL_RECIPIENT   = 8;
 
     // Context menu ID
     private static final int MENU_VIEW_CONTACT          = 12;
@@ -3534,6 +3535,14 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private void videocallRecipient() {
+        if (isRecipientCallable()) {
+            String number = getRecipients().get(0).getNumber();
+            Intent vtIntent = MessageUtils.getVTCallIntent(number);
+            startActivity(vtIntent);
+        }
+    }
+
     private void dialRecipient(int subscription) {
         if (isRecipientCallable()) {
             String number = getRecipients().get(0).getNumber();
@@ -3622,6 +3631,11 @@ public class ComposeMessageActivity extends Activity
                 }
             }
 
+        }
+
+        if (MessageUtils.isVTSupported() && isRecipientCallable()) {
+            menu.add(0, MENU_VIDEOCALL_RECIPIENT, 0, R.string.menu_videocall)
+                    .setTitle(R.string.menu_videocall);
         }
 
         if (MmsConfig.getMmsEnabled()) {
@@ -3738,6 +3752,9 @@ public class ComposeMessageActivity extends Activity
                 break;
             case MENU_CALL_RECIPIENT:
                 dialRecipient();
+                break;
+           case MENU_VIDEOCALL_RECIPIENT:
+                videocallRecipient();
                 break;
             case MENU_INSERT_SMILEY:
                 showSmileyDialog();
