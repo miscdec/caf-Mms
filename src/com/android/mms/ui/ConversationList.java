@@ -195,6 +195,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // conversations.
         ListView listView = getListView();
         mSavedFirstVisiblePosition = listView.getFirstVisiblePosition();
+        // Simply setting the choice mode causes the previous choice mode to finish and we exit
+        // multi-select mode (if we're in it) and remove all the selections.
+        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
         View firstChild = listView.getChildAt(0);
         mSavedFirstItemOffset = (firstChild == null) ? 0 : firstChild.getTop();
     }
@@ -355,10 +358,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         super.onStop();
 
         DraftCache.getInstance().removeOnDraftChangedListener(this);
-
-        // Simply setting the choice mode causes the previous choice mode to finish and we exit
-        // multi-select mode (if we're in it) and remove all the selections.
-        getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
 
         // Close the cursor in the ListAdapter if the activity stopped.
         Cursor cursor = mListAdapter.getCursor();
