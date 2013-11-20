@@ -144,7 +144,7 @@ public class MailBoxMessageList extends ListActivity implements
     // add for obtain parameters from SearchActivityExtend
     private int mSearchModePosition = MessageUtils.SEARCH_MODE_CONTENT;
     private String mSearchKeyStr = "";
-    private int mMatchWhole = 0;
+    private int mMatchWhole = MessageUtils.MATCH_BY_ADDRESS;
     private int mMailboxId;
 
     @Override
@@ -211,7 +211,7 @@ public class MailBoxMessageList extends ListActivity implements
                     && (c.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_BOX)
                             == Mms.MESSAGE_BOX_DRAFTS);
 
-            if (isDraft) {
+            if (isDraft || !MessageUtils.isMailboxMode()) {
                 Intent intent = new Intent(this, ComposeMessageActivity.class);
                 intent.putExtra("thread_id", c.getLong(COLUMN_THREAD_ID));
                 startActivity(intent);
@@ -302,7 +302,7 @@ public class MailBoxMessageList extends ListActivity implements
             mSearchModePosition = intent.getIntExtra("mode_position",
                     MessageUtils.SEARCH_MODE_CONTENT);
             mSearchKeyStr = intent.getStringExtra("key_str");
-            mMatchWhole = intent.getIntExtra("match_whole", 0);
+            mMatchWhole = intent.getIntExtra("match_whole", MessageUtils.MATCH_BY_ADDRESS);
         }
 
         if (mMailboxId < 0) {
@@ -443,7 +443,7 @@ public class MailBoxMessageList extends ListActivity implements
                             int count = cursor.getCount();
                             String searchKeyStr = mSearchKeyStr;
 
-                            if (mMatchWhole == 1) {
+                            if (mMatchWhole == MessageUtils.MATCH_BY_THREAD_ID) {
                                 searchKeyStr = Contact.get(mSearchKeyStr, true).getName();
                             }
 
@@ -472,6 +472,22 @@ public class MailBoxMessageList extends ListActivity implements
                                 mCountTextView.setText("" + count + "/" + cursor.getCount());
                             } else {
                                 mCountTextView.setText("" + cursor.getCount());
+                            }
+                        } else if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
+                            int count = cursor.getCount();
+                            String searchKeyStr = mSearchKeyStr;
+
+                            if (mMatchWhole == MessageUtils.MATCH_BY_THREAD_ID) {
+                                searchKeyStr = Contact.get(mSearchKeyStr, true).getName();
+                            }
+
+                            if (count > 0) {
+                                mMessageTitle.setText(getResources().getQuantityString(
+                                    R.plurals.search_results_title, count, count,
+                                    searchKeyStr));
+                            } else {
+                                mMessageTitle.setText(getResources().getQuantityString(
+                                    R.plurals.search_results_title, 0, 0, searchKeyStr));
                             }
                         } else {
                             mCountTextView.setVisibility(View.INVISIBLE);
@@ -547,6 +563,10 @@ public class MailBoxMessageList extends ListActivity implements
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.search:
+                Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                startActivityIfNeeded(searchintent, -1);
+                break;
             case R.id.action_compose_new:
                 startActivity(ComposeMessageActivity.createIntent(this, 0));
                 break;
@@ -556,6 +576,7 @@ public class MailBoxMessageList extends ListActivity implements
                 break;
             case R.id.action_change_mode:
                 Intent modeIntent = new Intent(this, ConversationList.class);
+                MessageUtils.setMailboxMode(false);
                 startActivityIfNeeded(modeIntent, -1);
                 finish();
                 break;

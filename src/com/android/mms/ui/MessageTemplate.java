@@ -49,6 +49,7 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.graphics.Color;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
@@ -253,6 +254,9 @@ public class MessageTemplate extends Activity {
 
         // resume previous dialog since this activity may be rotated and re-created.
         resumePreviousDialog(icicle);
+
+        ActionBar actionBar = getActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
     }
 
     @Override
@@ -273,6 +277,16 @@ public class MessageTemplate extends Activity {
         // Hide the keyboard when stop it.
         hideDialogSoftKeyboard(mNewDlg);
         hideDialogSoftKeyboard(mEditDlg);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+        return false;
     }
 
     private void hideDialogSoftKeyboard(Dialog dialog) {

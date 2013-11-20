@@ -110,6 +110,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private Handler mHandler;
     private boolean mDoOnceAfterFirstQuery;
     private TextView mUnreadConvCount;
+    private MenuItem mSearchItem;
     private SearchView mSearchView;
     private int mSavedFirstVisiblePosition = AdapterView.INVALID_POSITION;
     private int mSavedFirstItemOffset;
@@ -121,13 +122,20 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     static private final String CHECKED_MESSAGE_LIMITS = "checked_message_limits";
     private final static int DELAY_TIME = 500;
+    private final static boolean CLASSIFY_SEARCH =
+            SystemProperties.getBoolean("persist.env.mms.classifysearch", false);
 
     private static boolean isCheckBox = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        if (MessageUtils.isMailboxMode()) {
+            Intent modeIntent = new Intent(this, MailBoxMessageList.class);
+            startActivityIfNeeded(modeIntent, -1);
+            finish();
+            return;
+        }
         setContentView(R.layout.conversation_list_screen);
 
         mQueryHandler = new ThreadListQueryHandler(getContentResolver());
@@ -395,9 +403,43 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     }
 
+    SearchView.OnQueryTextListener mQueryTextListener = new SearchView.OnQueryTextListener() {
+        @Override
+        public boolean onQueryTextSubmit(String query) {
+            Intent intent = new Intent();
+            intent.setClass(ConversationList.this, SearchActivity.class);
+            intent.putExtra(SearchManager.QUERY, query);
+            startActivity(intent);
+            mSearchItem.collapseActionView();
+            return true;
+        }
+
+        @Override
+        public boolean onQueryTextChange(String newText) {
+            return false;
+        }
+    };
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
+
+        if (!CLASSIFY_SEARCH) {
+            mSearchItem = menu.findItem(R.id.search);
+            mSearchItem.setActionView(new SearchView(getApplicationContext()));
+            mSearchView = (SearchView) mSearchItem.getActionView();
+
+            mSearchView.setOnQueryTextListener(mQueryTextListener);
+            mSearchView.setQueryHint(getString(R.string.search_hint));
+            mSearchView.setIconifiedByDefault(true);
+            SearchManager searchManager =
+                    (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+
+            if (searchManager != null) {
+                SearchableInfo info = searchManager.getSearchableInfo(this.getComponentName());
+                mSearchView.setSearchableInfo(info);
+            }
+        }
 
         MenuItem cellBroadcastItem = menu.findItem(R.id.action_cell_broadcasts);
         if (cellBroadcastItem != null) {
@@ -453,9 +495,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
             case R.id.search:
-                Intent searchintent = new Intent(this, SearchActivityExtend.class);
-                startActivityIfNeeded(searchintent, -1);
-                break;
+                if (CLASSIFY_SEARCH) {
+                    Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                    startActivityIfNeeded(searchintent, -1);
+                    break;
+                } else {
+                    return true;
+                }
             case R.id.action_compose_new:
                 createNewMessage();
                 break;
@@ -469,6 +515,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 break;
             case R.id.action_change_mode:
                 Intent modeIntent = new Intent(this, MailBoxMessageList.class);
+                MessageUtils.setMailboxMode(true);
                 startActivityIfNeeded(modeIntent, -1);
                 finish();
                 break;

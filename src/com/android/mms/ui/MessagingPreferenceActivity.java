@@ -368,8 +368,9 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         for (int i = 0; i < count; i++) {
             final Preference pref = new Preference(this);
             pref.setKey(String.valueOf(i));
-            pref.setTitle(getResources().getQuantityString(R.plurals.pref_title_smsc, count,
-                    i + 1));
+            String title = (count <= 1) ? getString(R.string.pref_one_smcs)
+                    : getString(R.string.pref_more_smcs, i + 1);
+            pref.setTitle(title);
 
             pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
                 @Override
