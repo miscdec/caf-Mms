@@ -84,6 +84,8 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private SlideView mSlideView;
     private int mSlideCount;
+    //do not auto exit if viewing simple slideshow.
+    private boolean isSimpleSlideShow = false;
 
     /**
      * @return whether the Smil has MMS conformance layout.
@@ -187,6 +189,13 @@ public class SlideshowActivity extends Activity implements EventListener {
 
         if (model != null && handleVcard(model)) {
             return;
+        }
+
+        SlideModel slide = model.get(0);
+        if (slide != null) {
+            isSimpleSlideShow = model.isSimple()
+                    || (!slide.hasImage() && !slide.hasVideo()
+                            && !slide.hasVcard() && slide.hasText());
         }
 
         mSlideView = (SlideView) findViewById(R.id.slide_view);
@@ -470,7 +479,8 @@ public class SlideshowActivity extends Activity implements EventListener {
         mHandler.post(new Runnable() {
             public void run() {
                 String type = event.getType();
-                if(type.equals(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT)) {
+                if(type.equals(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT)
+                        && !isSimpleSlideShow) {
                     finish();
                 }
             }
