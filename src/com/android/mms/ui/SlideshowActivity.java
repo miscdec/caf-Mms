@@ -256,7 +256,7 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private boolean handleVcard(SlideshowModel model) {
         SlideModel slide = model.get(0);
-        if (slide.hasVcard()) {
+        if (null != slide && slide.hasVcard()) {
             final MediaModel mm = slide.getVcard();
             String lookupUri = ((VcardModel) mm).getLookupUri();
             final Intent vCardIntent = new Intent(Intent.ACTION_VIEW);
