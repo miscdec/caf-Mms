@@ -76,7 +76,7 @@ public class SlideshowModel extends Model
     private int mTotalMessageSize;      // This is the computed total message size
     private Context mContext;
 
-    // amount of space to leave in a slideshow for text and overhead.
+    // amount of space to leave in a slideshow for overhead.
     public static final int SLIDESHOW_SLOP = 1024;
     private static final int DEFAULT_MEDIA_NUMBER = 1;
     private static final float MIN_PAT_DURATION = (float)1.0;
@@ -426,6 +426,30 @@ public class SlideshowModel extends Model
     // MMS message.
     public int getTotalMessageSize() {
         return mTotalMessageSize;
+    }
+
+    public int getRemainMessageSize() {
+        int totalMediaSize = 0;
+        for (SlideModel slide : mSlides) {
+            for (MediaModel media : slide) {
+                totalMediaSize += media.getMediaSize();
+            }
+        }
+        return MmsConfig.getMaxMessageSize() - totalMediaSize - SLIDESHOW_SLOP;
+    }
+
+    // getTotalTextMessageSize returns the total text size of the MMS.
+    public int getTotalTextMessageSize() {
+        int textSize = 0;
+        if (mSlides.size() > 0) {
+            for (SlideModel slide : mSlides) {
+                TextModel textMode = slide.getText();
+                if (textMode != null) {
+                    textSize += textMode.getMediaSize();
+                }
+            }
+        }
+        return textSize;
     }
 
     public void increaseMessageSize(int increaseSize) {
