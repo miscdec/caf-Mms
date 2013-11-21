@@ -702,7 +702,7 @@ public class MessageListItem extends LinearLayout implements
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
 
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && subId >= 0) {
             Drawable mSimIndicatorIcon = MessageUtils.getMultiSimIcon(mContext,subId);
             mSimIndicatorView.setImageDrawable(mSimIndicatorIcon);
             mSimIndicatorView.setVisibility(View.VISIBLE);
