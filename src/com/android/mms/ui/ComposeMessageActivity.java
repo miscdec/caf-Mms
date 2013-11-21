@@ -341,6 +341,7 @@ public class ComposeMessageActivity extends Activity
     private ImageButton mSendButtonSmsViewSec;    // The second sms send button without sim indicator
     private ImageView mIndicatorForSimMmsFir, mIndicatorForSimSmsFir;
     private ImageView mIndicatorForSimMmsSec, mIndicatorForSimSmsSec;
+    private ImageButton mAttachButton;
 
     private AttachmentEditor mAttachmentEditor;
     private View mAttachmentEditorScrollView;
@@ -587,7 +588,6 @@ public class ComposeMessageActivity extends Activity
             }
         }
     };
-
 
     private void viewMmsMessageAttachment(final int requestCode) {
         SlideshowModel slideshow = mWorkingMessage.getSlideshow();
@@ -2746,6 +2746,7 @@ public class ComposeMessageActivity extends Activity
         }
 
         updateSendButtonState();
+        updateAttachButtonState();
 
         drawTopPanel(false);
         if (!mShouldLoadDraft) {
@@ -3364,6 +3365,7 @@ public class ComposeMessageActivity extends Activity
                 drawBottomPanel();
                 updateSendButtonState();
                 drawTopPanel(isSubjectEditorVisible());
+                updateAttachButtonState();
             }
         });
     }
@@ -3620,7 +3622,7 @@ public class ComposeMessageActivity extends Activity
                 menu.add(0, MENU_ADD_SUBJECT, 0, R.string.add_subject).setIcon(
                         R.drawable.ic_menu_edit);
             }
-            if (!mWorkingMessage.hasAttachment()) {
+            if (!mWorkingMessage.hasAttachment() && !mShowTwoButtons) {
                 menu.add(0, MENU_ADD_ATTACHMENT, 0, R.string.add_attachment)
                         .setIcon(R.drawable.ic_menu_attachment)
                     .setTitle(R.string.add_attachment)
@@ -4076,6 +4078,7 @@ public class ComposeMessageActivity extends Activity
                         drawTopPanel(false);
                         drawBottomPanel();
                         updateSendButtonState();
+                        updateAttachButtonState();
                     }
                 }
                 break;
@@ -4735,6 +4738,8 @@ public class ComposeMessageActivity extends Activity
             launchMultiplePhonePicker();
         } else if ((v == mRecipientsPickerGroups)) {
             launchContactGroupPicker();
+        } else if (v == mAttachButton) {
+            showAddAttachmentDialog(false);
         }
     }
 
@@ -4842,10 +4847,11 @@ public class ComposeMessageActivity extends Activity
             // Making the counter invisible ensures that it is used to correctly
             // calculate the position of the send button even if we choose not to
             // display the text.
-            mTextCounter.setVisibility(View.INVISIBLE);
+            // Keep it always GONE if line <= 2.
+            /* mTextCounter.setVisibility(View.INVISIBLE);
             if (mShowTwoButtons) {
                 mTextCounterSec.setVisibility(View.INVISIBLE);
-            }
+            } */
         }
     }
 
@@ -4960,6 +4966,8 @@ public class ComposeMessageActivity extends Activity
         mBottomPanel.setVisibility(View.VISIBLE);
         mTextEditor = (EditText) findViewById(R.id.embedded_text_editor_btnstyle);
 
+        mAttachButton = (ImageButton) findViewById(R.id.attach_icon);
+        mAttachButton.setOnClickListener(this);
         mTextCounter = (TextView) findViewById(R.id.first_text_counter);
         mSendButtonMms = (TextView) findViewById(R.id.first_send_button_mms_view);
         mSendButtonSms = (ImageButton) findViewById(R.id.first_send_button_sms_view);
@@ -5106,6 +5114,7 @@ public class ComposeMessageActivity extends Activity
                         drawTopPanel(isSubjectEditorVisible());
                         drawBottomPanel();
                         updateSendButtonState();
+                        updateAttachButtonState();
                     }
                 });
 
@@ -5263,6 +5272,7 @@ public class ComposeMessageActivity extends Activity
 
         // "Or not", in this case.
         updateSendButtonState();
+        updateAttachButtonState();
 
         // Our changes are done. Let the listener respond to text changes once again.
         mTextEditor.addTextChangedListener(mTextEditorWatcher);
@@ -5282,6 +5292,12 @@ public class ComposeMessageActivity extends Activity
         InputMethodManager inputMethodManager =
             (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
         inputMethodManager.hideSoftInputFromWindow(mTextEditor.getWindowToken(), 0);
+    }
+
+    private void updateAttachButtonState() {
+        if (mShowTwoButtons) {
+            mAttachButton.setEnabled(!mWorkingMessage.hasAttachment());
+        }
     }
 
     private void updateSendButtonState() {
@@ -5951,6 +5967,7 @@ public class ComposeMessageActivity extends Activity
                                 drawTopPanel(false);
                                 updateSendButtonState();
                                 invalidateOptionsMenu();
+                                updateAttachButtonState();
                             }
                             break;
                         case WorkingMessage.VCARD:
