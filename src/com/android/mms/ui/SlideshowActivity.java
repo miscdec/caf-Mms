@@ -75,6 +75,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final boolean LOCAL_LOGV = false;
     private static final int MENU_NORMALSHOW = 1;
 
+    private SmilPlayerController mSmilPlayerController;
     private MediaController mMediaController;
     private SmilPlayer mSmilPlayer;
 
@@ -257,7 +258,10 @@ public class SlideshowActivity extends Activity implements EventListener {
                 if (isRotating()) {
                     mSmilPlayer.reload();
                 } else {
-                    mSmilPlayer.play();
+                    // Make the SmilPlayer execute play, and set the field named
+                    // mCachedIsPlaying to true so that the UI can change to
+                    // play too.
+                    mSmilPlayerController.play();
                 }
             }
         });
@@ -310,7 +314,8 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private void initMediaController() {
         mMediaController = new MediaController(SlideshowActivity.this, false);
-        mMediaController.setMediaPlayer(new SmilPlayerController(mSmilPlayer));
+        mSmilPlayerController = new SmilPlayerController(mSmilPlayer);
+        mMediaController.setMediaPlayer(mSmilPlayerController);
         mMediaController.setAnchorView(findViewById(R.id.slide_view));
         mMediaController.setPrevNextListeners(
             new OnClickListener() {
@@ -358,7 +363,9 @@ public class SlideshowActivity extends Activity implements EventListener {
                     SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT, this, false);
         }
         if (mSmilPlayer != null) {
-            mSmilPlayer.pause();
+            // Make the SmilPlayer execute pause, and set the field named
+            // mCachedIsPlaying to false so that the UI can change to pause too.
+            mSmilPlayerController.pause();
         }
     }
 
@@ -429,6 +436,10 @@ public class SlideshowActivity extends Activity implements EventListener {
 
         public SmilPlayerController(SmilPlayer player) {
             mPlayer = player;
+            // When the Controller is created, the mCachedIsPlaying is default as true.
+            // At a case, the player state is paused, the mCachedIsPlaying cannot describe
+            // the actual player state. So make mCachedIsPlaying same as player's state.
+            mCachedIsPlaying = mPlayer.isPlayingState();
         }
 
         public int getBufferPercentage() {
@@ -451,6 +462,15 @@ public class SlideshowActivity extends Activity implements EventListener {
         public void pause() {
             mPlayer.pause();
             mCachedIsPlaying = false;
+        }
+
+        /**
+         * We should make the cache state to true, so that calls to
+         * {@link #isPlaying()} to return the right value.
+         */
+        public void play(){
+            mPlayer.play();
+            mCachedIsPlaying = true;
         }
 
         public void seekTo(int pos) {
