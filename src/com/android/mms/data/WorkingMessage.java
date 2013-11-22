@@ -128,6 +128,7 @@ public class WorkingMessage {
     public static final int AUDIO = 3;
     public static final int SLIDESHOW = 4;
     public static final int VCARD = 5;
+    public static final int UNSUPPORT = 6;
 
     // Current attachment type of the message; one of the above values.
     private int mAttachmentType;
@@ -277,6 +278,8 @@ public class WorkingMessage {
                 mAttachmentType = AUDIO;
             } else if (slide.hasVcard()) {
                 mAttachmentType = VCARD;
+            } else if (slide.hasUnsupport()) {
+                mAttachmentType = UNSUPPORT;
             }
         }
 
@@ -629,9 +632,23 @@ public class WorkingMessage {
         // function is called, we've got to create a new slide and add the picture/video
         // to that new slide.
         boolean addNewSlide = true;
-        if (mSlideshow.size() == 1 && !mSlideshow.isSimple()) {
-            addNewSlide = false;
+        if (mSlideshow.size() == 1) {
+            SlideModel slide = mSlideshow.get(0);
+            // The slide must have either an image or video or vcard or audio, and only one of them.
+            boolean hasImage = slide.hasImage();
+            boolean hasVideo = slide.hasVideo();
+            boolean hasVcard = slide.hasVcard();
+            boolean hasAudio = slide.hasAudio();
+            if ((hasImage && !hasVideo && !hasVcard && !hasAudio)
+                    || (!hasImage && hasVideo && !hasVcard && !hasAudio)
+                    || (!hasImage && !hasVideo && hasVcard && !hasAudio)
+                    || (!hasImage && !hasVideo && !hasVcard && hasAudio)) {
+                addNewSlide = true;
+            } else {
+                addNewSlide = false;
+            }
         }
+
         if (addNewSlide) {
             if (!slideShowEditor.addNewSlide()) {
                 return result;

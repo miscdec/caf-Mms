@@ -273,7 +273,7 @@
         </receiver>
 
         <activity android:name=".ui.ManageSimMessages"
-                  android:theme="@style/MmsHoloTheme"
+                  android:theme="@android:style/Theme.Holo.Light"
                   android:launchMode="singleTop"
                   android:label="@string/sim_manage_messages_title"
                   android:configChanges="orientation|screenSize|keyboardHidden">
@@ -284,9 +284,8 @@
             </intent-filter>
         </activity>
 
-
-
         <activity android:name=".ui.SelectSubscription"
+            android:theme="@android:style/Theme.Holo.Light"
             android:label="@string/select_subscription_title">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -361,6 +360,7 @@
         </activity>
 
         <activity android:name=".ui.MessageTemplate"
+                  android:theme="@android:style/Theme.Holo.Light"
                   android:launchMode="singleTop"
                   android:label="@string/message_template_title"
                   android:configChanges="orientation|screenSize" >

@@ -311,7 +311,8 @@ public class MessageListItem extends LinearLayout implements
                                 return;
                             }
                             // Judge whether mobile data is turned off
-                            else if (MessageUtils.isMobileDataDisabled(mContext)) {
+                            else if (MessageUtils.isMobileDataDisabled(mContext) &&
+                                    MessageUtils.CAN_SETUP_MMS_DATA) {
                                 builder.setMessage(mContext
                                         .getString(R.string.mobile_data_disable));
                                 builder.setPositiveButton(R.string.yes,

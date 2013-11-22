@@ -432,12 +432,8 @@
 
     <!-- SMSC -->
     <string name="pref_smsc_title">短消息中心设置</string>
-    <plurals name="pref_title_smsc">
-        <!-- Case of 1 result. -->
-        <item quantity="one">"设置短消息中心号码"</item>
-        <!-- Case of 0 or 2 or more results. -->
-        <item quantity="other">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</item>
-    </plurals>
+    <string name="pref_one_smcs">"设置短消息中心号码"</string>
+    <string name="pref_more_smcs">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
     <string name="set_smsc_error">设置短消息中心号码失败</string>
     <string name="set_smsc_success">设置短消息中心号码成功</string>
     <string name="set_smsc_confirm_message">修改短消息中心号码可能导致短信发送失败，确认修改吗？</string>

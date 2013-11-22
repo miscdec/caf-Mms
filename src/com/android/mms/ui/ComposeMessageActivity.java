@@ -283,11 +283,10 @@ public class ComposeMessageActivity extends Activity
     // Fourth part symbol in ASCII. 0x7b~0x7e: { | } ~
     private static final int SYMBOLS_START_FOURTH = 0x7b;
     private static final int SYMBOLS_END_FOURTH = 0x7e;
-    // Legal symbols: , : < >
-    private static final int SYMBOL_COMMA = 0x2c;
-    private static final int SYMBOL_SEMICOLON = 0x3b;
-    private static final int SYMBOL_LEFT_BRACKET = 0x3c;
-    private static final int SYMBOL_RIGHT_BRACKET = 0x3e;
+    // Legal symbols: , : < > @ . _ -
+    private static final char[] SYMBOL_LEGAL = {
+            ',', ':', '<', '>', '@', '.', '_', '-', '+', '(', ')'
+    };
     // ASCII difference between Alphanumeric symbols and Full width symbols
     private static final int SYMBOLS_DIFF = 0xfee0;
 
@@ -469,7 +468,12 @@ public class ComposeMessageActivity extends Activity
     // Call directly via press call button
     private final static boolean SHOW_TWO_CALL_BUTTON_ON_ACTION_BAR = SystemProperties
             .getBoolean("persist.env.sys.btnstyle", false);
+    private final static boolean CHECK_ILLEGAL_SYMBOL = SystemProperties
+            .getBoolean("persist.env.mms.checksymbol", false);
     private boolean mShowTwoButtons = false;
+
+    private final static boolean SHOW_SEND_CONFIRM = SystemProperties
+            .getBoolean("persist.env.mms.sendconfirm", false);
 
     /**
      * Whether the audio attachment player activity is launched and running
@@ -556,7 +560,11 @@ public class ComposeMessageActivity extends Activity
                 }
                 case AttachmentEditor.MSG_SEND_SLIDESHOW: {
                     if (isPreparedForSending()) {
-                        ComposeMessageActivity.this.showSendConfirm();
+                        if (SHOW_SEND_CONFIRM) {
+                            ComposeMessageActivity.this.showSendConfirm();
+                        } else {
+                            ComposeMessageActivity.this.confirmSendMessageIfNeeded();
+                        }
                     }
                     break;
                 }
@@ -634,7 +642,9 @@ public class ComposeMessageActivity extends Activity
         // that means user is continuously clicking the play button, we return this
         // thread and cancel this click event; else we put it to true and response this
         // event.
-        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO) {
+        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO
+                || requestCode == AttachmentEditor.MSG_PLAY_SLIDESHOW
+                || requestCode == AttachmentEditor.MSG_PLAY_VIDEO) {
             if (mIsAudioPlayerActivityRunning) {
                 return true;
             } else {
@@ -916,7 +926,8 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
             boolean isMms = mWorkingMessage.requiresMms();
-            if (MessageUtils.isMobileDataDisabled(ComposeMessageActivity.this) && isMms) {
+            if (MessageUtils.isMobileDataDisabled(ComposeMessageActivity.this) &&
+                    MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
                 showMobileDataDisabledDialog();
             } else if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMsimMessage(true);
@@ -1037,12 +1048,7 @@ public class ComposeMessageActivity extends Activity
 
         mWorkingMessage.prepareForSave(true);
         if (mWorkingMessage.getSlideshow() != null) {
-            if (mWorkingMessage.getSlideshow().getTotalMessageSize() >
-                    mWorkingMessage.getSlideshow().getCurrentMessageSize()) {
-                mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
-            } else {
-                mmsCurrentSize += mWorkingMessage.getSlideshow().getCurrentMessageSize();
-            }
+            mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
         } else if (mWorkingMessage.hasText()) {
             mmsCurrentSize += mWorkingMessage.getText().toString().getBytes().length;
         }
@@ -1051,7 +1057,12 @@ public class ComposeMessageActivity extends Activity
         mmsCurrentSize = mmsCurrentSize > 1 ? mmsCurrentSize : ONE_KILOBYTE;
 
         if (mmsCurrentSize > messageSizeLimit) {
-            mmsCurrentSize = messageSizeLimit;
+            // if current message size is larger than message size limit, prompt message size
+            // limit dialog and don't show message size dialog.
+            mIsAttachmentErrorOnSend = true;
+            handleAddAttachmentError(WorkingMessage.MESSAGE_SIZE_EXCEEDED,
+                    R.string.type_picture);
+            return;
         }
 
         builder.setTitle(R.string.title_send_message);
@@ -1073,7 +1084,8 @@ public class ComposeMessageActivity extends Activity
     private void confirmSendMessageIfNeeded(int subscription) {
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+            if (MessageUtils.isMobileDataDisabled(this) &&
+                    MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
                 showMobileDataDisabledDialog();
             } else {
                 sendMsimMessage(true, subscription);
@@ -1083,7 +1095,8 @@ public class ComposeMessageActivity extends Activity
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
-        } else if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+        } else if (MessageUtils.isMobileDataDisabled(this) &&
+                MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
             showMobileDataDisabledDialog();
         } else {
             // The recipients editor is still open. Make sure we use what's showing there
@@ -1097,7 +1110,8 @@ public class ComposeMessageActivity extends Activity
     private void confirmSendMessageIfNeeded() {
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+            if (MessageUtils.isMobileDataDisabled(this) &&
+                    MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
                 showMobileDataDisabledDialog();
             } else if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 sendMsimMessage(true);
@@ -1109,7 +1123,8 @@ public class ComposeMessageActivity extends Activity
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
-        } else if (MessageUtils.isMobileDataDisabled(this) && isMms) {
+        } else if (MessageUtils.isMobileDataDisabled(this) &&
+                MessageUtils.CAN_SETUP_MMS_DATA && isMms) {
             showMobileDataDisabledDialog();
         } else {
             // The recipients editor is still open. Make sure we use what's showing there
@@ -1175,7 +1190,7 @@ public class ComposeMessageActivity extends Activity
             // called when textfields changes.  This should be removed when the bug
             // is fixed.
             onUserInteraction();
-            if (s.length() >= start + count) {
+            if (CHECK_ILLEGAL_SYMBOL && s.length() >= start + count) {
                 promptIllegalSymbol(s.subSequence(start, start + count));
             }
         }
@@ -1218,7 +1233,7 @@ public class ComposeMessageActivity extends Activity
                 mRecipientsPickList = null;
             } else {
                 // If we have gone to zero recipients, we need to update the title.
-                if (0 == s.length()) {
+                if (TextUtils.isEmpty(s.toString().trim())) {
                     ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
                     updateTitle(contacts);
                 }
@@ -1259,14 +1274,19 @@ public class ComposeMessageActivity extends Activity
                     || (c >= SYMBOLS_START_THIRD + SYMBOLS_DIFF
                     && c <= SYMBOLS_END_THIRD + SYMBOLS_DIFF)
                     || (c >= SYMBOLS_START_FOURTH + SYMBOLS_DIFF
-                    && c <= SYMBOLS_END_FOURTH + SYMBOLS_DIFF))
-                    && c != SYMBOL_COMMA && c != SYMBOL_SEMICOLON
-                    && c != SYMBOL_LEFT_BRACKET && c != SYMBOL_RIGHT_BRACKET) {
-                Toast.makeText(this, R.string.illegal_separate_symbol, Toast.LENGTH_SHORT)
-                        .show();
+                    && c <= SYMBOLS_END_FOURTH + SYMBOLS_DIFF)) && isIllegaleSymbol(c)) {
+                Toast.makeText(this, R.string.illegal_separate_symbol, Toast.LENGTH_SHORT).show();
                 return;
             }
         }
+    }
+
+    private boolean isIllegaleSymbol(int c) {
+        for (char symbol : SYMBOL_LEGAL) {
+            if (c == symbol)
+                return false;
+        }
+        return true;
     }
 
     private void checkForTooManyRecipients() {
@@ -2481,9 +2501,10 @@ public class ComposeMessageActivity extends Activity
             case 0: {
                 String recipient = null;
                 if (mRecipientsEditor != null) {
-                    recipient = mRecipientsEditor.getText().toString();
+                    recipient = mRecipientsEditor.getText().toString().trim();
                 }
-                title = TextUtils.isEmpty(recipient) ? getString(R.string.new_message) : recipient;
+                title = (TextUtils.isEmpty(recipient))
+                        ? getString(R.string.new_message) : recipient;
                 break;
             }
             case 1: {
@@ -3521,7 +3542,8 @@ public class ComposeMessageActivity extends Activity
     // recipient and it's a phone number.
     private boolean isRecipientCallable() {
         ContactList recipients = getRecipients();
-        return (recipients.size() == 1 && !recipients.containsEmail());
+        return (recipients.size() == 1 && !recipients.containsEmail()
+                && !recipients.get(0).getNumber().equals(MessageUtils.WAPPUSH));
     }
 
     private void dialRecipient() {
@@ -4057,7 +4079,9 @@ public class ComposeMessageActivity extends Activity
             }
         }
 
-        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO) {
+        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO
+                || requestCode == AttachmentEditor.MSG_PLAY_SLIDESHOW
+                || requestCode == AttachmentEditor.MSG_PLAY_VIDEO) {
             // When the audio has finished to play, we put the
             // mIsAudioPlayerActivityRunning to false.
             mIsAudioPlayerActivityRunning = false;
@@ -4080,6 +4104,14 @@ public class ComposeMessageActivity extends Activity
                         mWorkingMessage = newMessage;
                         mWorkingMessage.setConversation(mConversation);
                         updateThreadIdIfRunning();
+                        if (SHOW_SEND_CONFIRM) {
+                            getAsyncDialog().runAsync(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mWorkingMessage.getSlideshow().resizeBeforeSendMms();
+                                }
+                            }, null, R.string.adding_attachments_title);
+                        }
                         drawTopPanel(false);
                         drawBottomPanel();
                         updateSendButtonState();
@@ -4559,6 +4591,9 @@ public class ComposeMessageActivity extends Activity
                         Parcelable uri = uris.get(i);
                         addAttachment(mimeType, (Uri) uri, true);
                     }
+                    if (SHOW_SEND_CONFIRM) {
+                        mWorkingMessage.getSlideshow().resizeBeforeSendMms();
+                    }
                 }
             }, null, R.string.adding_attachments_title);
             return true;
@@ -4732,14 +4767,15 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     public void onClick(View v) {
-        if (mShowTwoButtons && isPreparedForSending()) {
-            if (v == mSendButtonSms || v == mSendButtonMms) {
-                confirmSendMessageIfNeeded(MSimConstants.SUB1);
-            } else if (v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) {
-                confirmSendMessageIfNeeded(MSimConstants.SUB2);
-            }
+        if (mShowTwoButtons && (v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec)
+                && isPreparedForSending()) {
+            confirmSendMessageIfNeeded(MSimConstants.SUB2);
         } else if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
-            confirmSendMessageIfNeeded();
+            if (mShowTwoButtons) {
+                confirmSendMessageIfNeeded(MSimConstants.SUB1);
+            } else {
+                confirmSendMessageIfNeeded();
+            }
         } else if ((v == mRecipientsPicker)) {
             launchMultiplePhonePicker();
         } else if ((v == mRecipientsPickerGroups)) {
@@ -5308,6 +5344,8 @@ public class ComposeMessageActivity extends Activity
             mAttachmentEditor.setCanSend(false);
         }
 
+        // invalidate the menu whether the message can be send or can't.
+        invalidateOptionsMenu();
         boolean requiresMms = mWorkingMessage.requiresMms();
         if (mShowTwoButtons) {
             View[] sendButtons = showTwoSmsOrMmsSendButton(requiresMms);
