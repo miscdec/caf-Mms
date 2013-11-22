@@ -236,18 +236,29 @@
                     android:imeOptions="actionSend|flagNoEnterAction"
                 />
 
-                <RelativeLayout
+                <LinearLayout
                     android:id="@+id/two_send_button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginLeft="110dp" >
+                    android:orientation="horizontal"
+                     >
+                    <ImageButton
+                        android:id="@+id/attach_icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/ic_action_attach"
+                        android:layout_marginLeft="10dp"
+                        android:layout_gravity="center_vertical" />
 
                     <LinearLayout
                         android:id="@+id/first_button_with_counter"
                         android:orientation="vertical"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
+                        android:layout_weight="1"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="bottom" >
+                        android:layout_gravity="center_vertical"
+                        android:gravity="center_horizontal"
+                        android:layout_marginLeft="10dp" >
 
                         <TextView
                             android:id="@+id/first_text_counter"
@@ -314,17 +325,19 @@
 
                     <!-- Divider -->
                     <View android:background="#858585"
-                        android:layout_width="1dp"
-                        android:layout_height="38dp"
-                        android:layout_centerInParent="true" />
+                        android:layout_width="1dip"
+                        android:layout_height="38dip"
+                        android:layout_gravity="center_vertical" />
 
                     <LinearLayout
                         android:id="@+id/second_button_with_counter"
                         android:orientation="vertical"
-                        android:layout_gravity="bottom"
+                        android:layout_gravity="center_vertical"
                         android:layout_alignParentRight="true"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" >
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal" >
 
                         <TextView
                             android:id="@+id/second_text_counter"
@@ -389,7 +402,7 @@
                                 android:contentDescription="@string/send" />
                         </RelativeLayout>
                     </LinearLayout>
-                </RelativeLayout>
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

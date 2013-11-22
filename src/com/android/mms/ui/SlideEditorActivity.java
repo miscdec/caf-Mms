@@ -56,6 +56,7 @@ import com.android.mms.model.LayoutModel;
 import com.android.mms.model.Model;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
+import com.android.mms.model.TextModel;
 import com.android.mms.ui.BasicSlideEditorView.OnTextChangedListener;
 import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
 import com.google.android.mms.ContentType;
@@ -271,7 +272,20 @@ public class SlideEditorActivity extends Activity {
     private final OnTextChangedListener mOnTextChangedListener = new OnTextChangedListener() {
         public void onTextChanged(String s) {
             if (!isFinishing()) {
-                mSlideshowEditor.changeText(mPosition, s);
+                TextModel textMode = mSlideshowModel.get(mPosition).getText();
+                int currentTextSize = textMode == null ? 0 : textMode.getText().getBytes().length;
+                if (mSlideshowModel.getRemainMessageSize() + currentTextSize
+                        < s.getBytes().length) {
+                    Toast.makeText(SlideEditorActivity.this, R.string.cannot_add_text_anymore,
+                            Toast.LENGTH_SHORT).show();
+                    if (textMode != null) {
+                        mTextEditor.setText(textMode.getText());
+                    } else {
+                        mTextEditor.setText("");
+                    }
+                } else {
+                    mSlideshowEditor.changeText(mPosition, s);
+                }
             }
         }
     };
