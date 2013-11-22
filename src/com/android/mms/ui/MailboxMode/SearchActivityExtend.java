@@ -116,6 +116,7 @@ public class SearchActivityExtend extends Activity {
 
     private void doSearch() {
         String keyStr = mSearchStringEdit.getText().toString();
+        String displayStr = keyStr;
         if (TextUtils.isEmpty(keyStr)) {
             return;
         }
@@ -140,6 +141,7 @@ public class SearchActivityExtend extends Activity {
         i.putExtra("mailboxId", mailboxId);
         i.putExtra("mode_position", modePosition);
         i.putExtra("key_str", keyStr);
+        i.putExtra("display_str", displayStr);
         i.putExtra("match_whole", matchWhole);
         startActivity(i);
 
