@@ -233,4 +233,10 @@ public class AttachmentEditor extends LinearLayout {
 
         return (SlideViewInterface) view;
     }
+
+    public void hideSlideshowSendButton() {
+        if (mSendButton != null) {
+            mSendButton.setVisibility(View.GONE);
+        }
+    }
 }

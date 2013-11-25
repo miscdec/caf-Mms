@@ -246,7 +246,8 @@
                         android:id="@+id/attach_icon"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:src="@drawable/ic_action_attach"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:src="@drawable/btnstyle_add_attach_selector"
                         android:layout_marginLeft="10dp"
                         android:layout_gravity="center_vertical" />
 
