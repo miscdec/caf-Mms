@@ -479,6 +479,9 @@ public class ComposeMessageActivity extends Activity
      * Whether the audio attachment player activity is launched and running
      */
     private boolean mIsAudioPlayerActivityRunning = false;
+    // Avoid the same TextWatcher was added repeatedly.
+    private boolean mIsSubjectTextWatcherAdded = false;
+
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
         @Override
@@ -2584,9 +2587,13 @@ public class ComposeMessageActivity extends Activity
         mSubjectTextEditor.setOnEditorActionListener(show ? mSubjectActionListener : null);
 
         if (show) {
-            mSubjectTextEditor.addTextChangedListener(mSubjectEditorWatcher);
+            if (!mIsSubjectTextWatcherAdded) {
+                mSubjectTextEditor.addTextChangedListener(mSubjectEditorWatcher);
+                mIsSubjectTextWatcherAdded = true;
+            }
         } else {
             mSubjectTextEditor.removeTextChangedListener(mSubjectEditorWatcher);
+            mIsSubjectTextWatcherAdded = false;
         }
 
         mSubjectTextEditor.setText(mWorkingMessage.getSubject());
