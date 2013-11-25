@@ -1424,24 +1424,31 @@ public class MessageUtils {
         if (TextUtils.isEmpty(name)) {
             return resultAddr;
         }
+        // Replace the ' to avoid SQL injection.
+        name = name.replace("'","''");
 
         try {
             c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
                     new String[] {ContactsContract.Data.RAW_CONTACT_ID},
                     ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME
-                    + " =? "  , new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
+                    + " like '%" + name + "%' ", new String[] {StructuredName.CONTENT_ITEM_TYPE},
+                    null);
 
             if (c == null) {
                 return resultAddr;
             }
 
-            if (!c.moveToFirst()) {
-                c.close();
-                return resultAddr;
+            int i = 0;
+            StringBuilder sb = new StringBuilder();
+            while (c.moveToNext()) {
+                long raw_contact_id = c.getLong(0);
+                if (i++ > 0) {
+                    sb.append(",");
+                }
+                sb.append(queryPhoneNumbersWithRaw(context, raw_contact_id));
             }
 
-            long raw_contact_id = c.getLong(0);
-            resultAddr = queryPhoneNumbersWithRaw(context, raw_contact_id);
+            resultAddr = sb.toString();
         } finally {
             if (c != null) {
                 c.close();
