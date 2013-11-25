@@ -1561,6 +1561,9 @@ public class WorkingMessage {
                 // delete the copy which was previously saved in MMS drafts.
                 SqliteWrapper.delete(mActivity, mContentResolver, mmsUri, null, null);
             }
+            // After send mms, this thread should't have draft left.
+            // Be paranoid and clean any draft MMS up.
+            deleteDraftMmsMessage(threadId);
 
             // Make sure this thread isn't over the limits in message count
             Recycler.getMmsRecycler().deleteOldMessagesByThreadId(mActivity, threadId);
