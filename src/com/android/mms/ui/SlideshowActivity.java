@@ -18,6 +18,7 @@
 package com.android.mms.ui;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -30,6 +31,7 @@ import org.w3c.dom.smil.SMILElement;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.DialogInterface;
 import android.graphics.PixelFormat;
@@ -39,6 +41,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -58,8 +62,9 @@ import com.android.mms.model.VcardModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SmilHelper;
-import com.google.android.mms.MmsException;
 import com.google.android.mms.ContentType;
+import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.PduPersister;
 
 /**
  * Plays the given slideshow in full-screen mode with a common controller.
@@ -68,7 +73,9 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final String TAG = "SlideshowActivity";
     private static final boolean DEBUG = false;
     private static final boolean LOCAL_LOGV = false;
+    private static final int MENU_NORMALSHOW = 1;
 
+    private SmilPlayerController mSmilPlayerController;
     private MediaController mMediaController;
     private SmilPlayer mSmilPlayer;
 
@@ -78,6 +85,8 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private SlideView mSlideView;
     private int mSlideCount;
+    //do not auto exit if viewing simple slideshow.
+    private boolean mIsSimpleSlideShow = false;
 
     /**
      * @return whether the Smil has MMS conformance layout.
@@ -183,6 +192,13 @@ public class SlideshowActivity extends Activity implements EventListener {
             return;
         }
 
+        SlideModel slide = model.get(0);
+        if (slide != null) {
+            mIsSimpleSlideShow = model.isSimple()
+                    || (!slide.hasImage() && !slide.hasVideo()
+                            && !slide.hasVcard() && slide.hasText());
+        }
+
         mSlideView = (SlideView) findViewById(R.id.slide_view);
         PresenterFactory.getPresenter("SlideshowPresenter", this, mSlideView, model);
 
@@ -195,13 +211,15 @@ public class SlideshowActivity extends Activity implements EventListener {
 
             public void run() {
                 mSmilPlayer = SmilPlayer.getPlayer();
-                if (mSlideCount > 1) {
-                    // Only show the slideshow controller if we have more than a single slide.
-                    // Otherwise, when we play a sound on a single slide, it appears like
-                    // the slide controller should control the sound (seeking, ff'ing, etc).
-                    initMediaController();
-                    mSlideView.setMediaController(mMediaController);
-                }
+                /**
+                 * The original:
+                 * Only show the slideshow controller if we have more than a single slide.
+                 * Otherwise, when we play a sound on a single slide, it appears like
+                 * the slide controller should control the sound (seeking, ff'ing, etc).
+                 */
+                // Show the slideshow controller all the time.
+                initMediaController();
+                mSlideView.setMediaController(mMediaController);
                 // Use SmilHelper.getDocument() to ensure rebuilding the
                 // entire SMIL document.
                 mSmilDoc = SmilHelper.getDocument(model);
@@ -242,7 +260,10 @@ public class SlideshowActivity extends Activity implements EventListener {
                 if (isRotating()) {
                     mSmilPlayer.reload();
                 } else {
-                    mSmilPlayer.play();
+                    // Make the SmilPlayer execute play, and set the field named
+                    // mCachedIsPlaying to true so that the UI can change to
+                    // play too.
+                    mSmilPlayerController.play();
                 }
             }
         });
@@ -250,7 +271,7 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private boolean handleVcard(SlideshowModel model) {
         SlideModel slide = model.get(0);
-        if (slide.hasVcard()) {
+        if (null != slide && slide.hasVcard()) {
             final MediaModel mm = slide.getVcard();
             String lookupUri = ((VcardModel) mm).getLookupUri();
             final Intent vCardIntent = new Intent(Intent.ACTION_VIEW);
@@ -295,17 +316,24 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private void initMediaController() {
         mMediaController = new MediaController(SlideshowActivity.this, false);
-        mMediaController.setMediaPlayer(new SmilPlayerController(mSmilPlayer));
+        mSmilPlayerController = new SmilPlayerController(mSmilPlayer);
+        mMediaController.setMediaPlayer(mSmilPlayerController);
         mMediaController.setAnchorView(findViewById(R.id.slide_view));
         mMediaController.setPrevNextListeners(
             new OnClickListener() {
               public void onClick(View v) {
                   mSmilPlayer.next();
+                  if (mMediaController != null) {
+                      mMediaController.show();
+                  }
               }
             },
             new OnClickListener() {
               public void onClick(View v) {
                   mSmilPlayer.prev();
+                  if (mMediaController != null) {
+                      mMediaController.show();
+                  }
               }
             });
     }
@@ -337,7 +365,9 @@ public class SlideshowActivity extends Activity implements EventListener {
                     SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT, this, false);
         }
         if (mSmilPlayer != null) {
-            mSmilPlayer.pause();
+            // Make the SmilPlayer execute pause, and set the field named
+            // mCachedIsPlaying to false so that the UI can change to pause too.
+            mSmilPlayerController.pause();
         }
     }
 
@@ -408,6 +438,10 @@ public class SlideshowActivity extends Activity implements EventListener {
 
         public SmilPlayerController(SmilPlayer player) {
             mPlayer = player;
+            // When the Controller is created, the mCachedIsPlaying is default as true.
+            // At a case, the player state is paused, the mCachedIsPlaying cannot describe
+            // the actual player state. So make mCachedIsPlaying same as player's state.
+            mCachedIsPlaying = mPlayer.isPlayingState();
         }
 
         public int getBufferPercentage() {
@@ -430,6 +464,15 @@ public class SlideshowActivity extends Activity implements EventListener {
         public void pause() {
             mPlayer.pause();
             mCachedIsPlaying = false;
+        }
+
+        /**
+         * We should make the cache state to true, so that calls to
+         * {@link #isPlaying()} to return the right value.
+         */
+        public void play(){
+            mPlayer.play();
+            mCachedIsPlaying = true;
         }
 
         public void seekTo(int pos) {
@@ -464,10 +507,50 @@ public class SlideshowActivity extends Activity implements EventListener {
         mHandler.post(new Runnable() {
             public void run() {
                 String type = event.getType();
-                if(type.equals(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT)) {
+                if(type.equals(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT)
+                        && !mIsSimpleSlideShow) {
                     finish();
                 }
             }
         });
+    }
+    public static void viewMmsMessageAttachmentMobilepaper(Context context,
+            Uri msgUri, SlideshowModel slideshow, PduPersister persister,
+            ArrayList<String> allIdList,boolean report) {
+
+        boolean isSimple = (slideshow == null) ? false : slideshow.isSimple();
+        if (isSimple || msgUri == null) {
+            // In attachment-editor mode, we only ever have one slide.
+            MessageUtils.viewSimpleSlideshow(context, slideshow);
+        } else {
+            Intent intent = new Intent(context, MobilePaperShowActivity.class);
+            intent.setData(msgUri);
+            intent.putExtra("mms_report", report);
+            intent.putStringArrayListExtra("sms_id_list", allIdList);
+            context.startActivity(intent);
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        menu.add(0, MENU_NORMALSHOW, 0, R.string.normal_show);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case MENU_NORMALSHOW:
+                Intent intent = getIntent();
+                Uri msg = intent.getData();
+                viewMmsMessageAttachmentMobilepaper(this,msg,null,null,
+                        intent.getStringArrayListExtra("sms_id_list"),
+                        intent.getBooleanExtra("mms_report", false));
+                finish();
+                break;
+            default:
+                break;
+        }
+        return true;
     }
 }

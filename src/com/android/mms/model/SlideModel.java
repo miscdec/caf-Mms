@@ -48,6 +48,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
     private MediaModel mAudio;
     private MediaModel mVideo;
     private MediaModel mVcard;
+    private MediaModel mUnsupport;
 
     private boolean mCanAddImage = true;
     private boolean mCanAddAudio = true;
@@ -157,6 +158,13 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 Log.w(TAG, "[SlideModel] content type " + media.getContentType() +
                         " - can't add vcard in this state");
             }
+        } else if (media instanceof UnsupportModel) {
+            internalAddOrReplace(mUnsupport, media);
+            mUnsupport = media;
+            mCanAddImage = false;
+            mCanAddAudio = false;
+            mCanAddVcard = false;
+            mCanAddVideo = false;
         }
     }
 
@@ -327,6 +335,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
             mImage = null;
             mAudio = null;
             mVideo = null;
+            mUnsupport = null;
 
             mCanAddImage = true;
             mCanAddAudio = true;
@@ -519,6 +528,10 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
 
     public boolean hasVcard() {
         return mVcard != null;
+    }
+
+    public boolean hasUnsupport() {
+        return mUnsupport != null;
     }
 
     public boolean removeText() {

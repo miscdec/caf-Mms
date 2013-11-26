@@ -150,9 +150,9 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
 
         Contact contact = Contact.get(getFirstAddress(mAddress), true);
         if (mMsgType.equals("mms")) {
-            avatarDrawable = sDefaultContactImageMms;
+            avatarDrawable = contact.getAvatar(mContext, sDefaultContactImageMms);
         } else {
-            avatarDrawable = sDefaultContactImage;
+            avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
         }
 
         if (contact.existsInDatabase()) {
@@ -204,7 +204,8 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
 
     public void updateItemBackgroud(int position) {
         Cursor cursor = (Cursor)getItem(position);
-        View view = mListView.getChildAt(position);
+        int firstPosition = mListView.getFirstVisiblePosition();
+        View view = mListView.getChildAt(position - firstPosition);
         if (cursor == null || view == null) {
             return;
         }
@@ -312,6 +313,14 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         mNameView = (TextView) view.findViewById(R.id.TextName);
         mAvatarView = (QuickContactBadge) view.findViewById(R.id.avatar);
         mAddress = addr;
+        if (TextUtils.isEmpty(mAddress) && !TextUtils.isEmpty(recipientIds)) {
+            String[] numbers = ContactList.getByIds(recipientIds, true)
+                    .getNumbers();
+            if (numbers != null && numbers.length > 0) {
+                // use the first address
+                mAddress = numbers[0];
+            }
+        }
         mName = nameContact;
         formatNameView(mAddress, mName);
         updateAvatarView();

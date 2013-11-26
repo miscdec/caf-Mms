@@ -121,6 +121,7 @@
     <string name="illegal_separate_symbol">收件人中包含无效分隔符。</string>
     <string name="converting_to_picture_message" msgid="2980023239017588627">"正在转换为彩信…"</string>
     <string name="converting_to_text_message" >"正在转换为短信…"</string>
+    <string name="cannot_add_text_anymore">"无法再添加文字。"</string>
     <string name="cannot_add_slide_anymore" msgid="4631404749618820994">"无法再添加幻灯片。"</string>
     <string name="cannot_add_picture_and_video" msgid="4954353772391381447">"无法将视频和图片添加到同一张幻灯片。"</string>
     <string name="cannot_save_message" msgid="3375907366965264446">"无法保存短信。"</string>
@@ -385,6 +386,8 @@
     <string name="pref_summary_enable_signature">短信签名已启用</string>
     <string name="pref_summary_disable_signature">短信签名已禁用</string>
     <string name="pref_title_edit_signature">编辑短信签名</string>
+    <string name="normal_show">普通模式查看</string>
+    <string name="cannot_play">无法播放该幻灯片</string>
 
     <!-- Copy message to sim -->
     <string name="menu_copy_to">"复制"</string>
@@ -430,12 +433,8 @@
 
     <!-- SMSC -->
     <string name="pref_smsc_title">短消息中心设置</string>
-    <plurals name="pref_title_smsc">
-        <!-- Case of 1 result. -->
-        <item quantity="one">"设置短消息中心号码"</item>
-        <!-- Case of 0 or 2 or more results. -->
-        <item quantity="other">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</item>
-    </plurals>
+    <string name="pref_one_smcs">"设置短消息中心号码"</string>
+    <string name="pref_more_smcs">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
     <string name="set_smsc_error">设置短消息中心号码失败</string>
     <string name="set_smsc_success">设置短消息中心号码成功</string>
     <string name="set_smsc_confirm_message">修改短消息中心号码可能导致短信发送失败，确认修改吗？</string>

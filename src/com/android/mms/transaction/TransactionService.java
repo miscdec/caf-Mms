@@ -265,7 +265,7 @@ public class TransactionService extends Service implements Observer {
         mConnMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         boolean noNetwork = !isNetworkAvailable();
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) || DEBUG) {
             Log.v(TAG, "onNewIntent: serviceId: " + serviceId + ": " + intent.getExtras() +
                     " intent=" + intent);
             Log.v(TAG, "    networkAvailable=" + !noNetwork);
@@ -658,7 +658,7 @@ public class TransactionService extends Service implements Observer {
             switch (result) {
                 case TransactionState.SUCCESS:
                     updateTxnRequestStatus(serviceId, true);
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) || DEBUG) {
                         Log.v(TAG, "Transaction complete: " + serviceId);
                     }
 
@@ -685,7 +685,7 @@ public class TransactionService extends Service implements Observer {
                 case TransactionState.FAILED:
                 case TransactionState.CANCELED:
                     updateTxnRequestStatus(serviceId, false);
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG)) {
+                    if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) || DEBUG) {
                         Log.v(TAG, "Transaction failed: " + serviceId);
                     }
                     break;
@@ -818,7 +818,7 @@ public class TransactionService extends Service implements Observer {
         int result = mConnMgr.startUsingNetworkFeature(
                 ConnectivityManager.TYPE_MOBILE, Phone.FEATURE_ENABLE_MMS);
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG)) {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) || DEBUG) {
             Log.v(TAG, "beginMmsConnectivity: result=" + result);
         }
 
@@ -1197,7 +1197,7 @@ public class TransactionService extends Service implements Observer {
             sendMessageDelayed(obtainMessage(EVENT_CONTINUE_MMS_CONNECTIVITY),
                                APN_EXTENSION_WAIT);
 
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG)) {
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) || DEBUG) {
                 Log.v(TAG, "processTransaction: starting transaction " + transaction);
             }
 
