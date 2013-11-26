@@ -432,7 +432,9 @@ public class SlideshowModel extends Model
         int totalMediaSize = 0;
         for (SlideModel slide : mSlides) {
             for (MediaModel media : slide) {
-                totalMediaSize += media.getMediaSize();
+                if (!media.getMediaResizable()) {
+                    totalMediaSize += media.getMediaSize();
+                }
             }
         }
         return MmsConfig.getMaxMessageSize() - totalMediaSize - SLIDESHOW_SLOP;

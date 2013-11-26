@@ -28,6 +28,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.text.InputFilter;
 import android.text.InputFilter.LengthFilter;
@@ -125,6 +126,8 @@ public class SlideEditorActivity extends Activity {
 
     private final static String MESSAGE_URI = "message_uri";
     private AsyncDialog mAsyncDialog;   // Used for background tasks.
+    private final static int SLIDE_TEXT_LIMIT_SIZE =
+            SystemProperties.getInt("persist.env.c.mms.maxtextsize", 0);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -153,6 +156,15 @@ public class SlideEditorActivity extends Activity {
         mTextEditor.setFilters(new InputFilter[] {
                 new LengthFilter(MmsConfig.getMaxTextLimit())});
 
+        if (SystemProperties.getInt("persist.env.c.mms.limitcount", 0) == 0) {
+            if (SLIDE_TEXT_LIMIT_SIZE == 0) {
+                mTextEditor.setFilters(new InputFilter[] {
+                        new LengthFilter(MmsConfig.getMaxTextLimit())});
+            } else {
+                mTextEditor.setFilters(new InputFilter[] {
+                        new LengthFilter(SLIDE_TEXT_LIMIT_SIZE)});
+            }
+        }
         mDone = (Button) findViewById(R.id.done_button);
         mDone.setOnClickListener(mDoneClickListener);
 
