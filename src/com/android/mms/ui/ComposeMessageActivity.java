@@ -4044,11 +4044,12 @@ public class ComposeMessageActivity extends Activity
                         mWorkingMessage = newMessage;
                         mWorkingMessage.setConversation(mConversation);
                         updateThreadIdIfRunning();
-                        if (SHOW_SEND_CONFIRM) {
+                        final SlideshowModel slideShow = mWorkingMessage.getSlideshow();
+                        if (SHOW_SEND_CONFIRM && slideShow != null) {
                             getAsyncDialog().runAsync(new Runnable() {
                                 @Override
                                 public void run() {
-                                    mWorkingMessage.getSlideshow().resizeBeforeSendMms();
+                                    slideShow.resizeBeforeSendMms();
                                 }
                             }, null, R.string.adding_attachments_title);
                         }
