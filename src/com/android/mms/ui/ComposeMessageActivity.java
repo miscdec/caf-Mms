@@ -4068,9 +4068,12 @@ public class ComposeMessageActivity extends Activity
                 mAttachFileUri = Uri.fromFile(file);
 
                 // Remove the old captured picture's thumbnail from the cache
-                MmsApp.getApplication().getThumbnailManager().removeThumbnail(mAttachFileUri);
+                if(MmsApp.getApplication().getThumbnailManager() != null) {
+                   MmsApp.getApplication().getThumbnailManager().removeThumbnail(mAttachFileUri);
 
-                addImageAsync(mAttachFileUri, false);
+                   addImageAsync(mAttachFileUri, false);
+                }
+
                 break;
             }
 
