@@ -140,4 +140,14 @@
   <PreferenceCategory android:title="@string/pref_smsc_title"
                       android:key="pref_key_smsc" >
   </PreferenceCategory>
+
+    <!-- ConfigurationClient -->
+    <PreferenceCategory
+        android:key="pref_key_sms_configuration_message"
+        android:title="@string/configuration_message" >
+        <Preference
+            android:key="pref_key_configuration_message"
+            android:summary="@string/configuration_message_key_activity"
+            android:title="@string/configuration_message_key" />
+    </PreferenceCategory>
 </PreferenceScreen>

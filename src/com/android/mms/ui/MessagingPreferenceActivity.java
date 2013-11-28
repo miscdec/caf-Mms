@@ -97,6 +97,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     public static final String AUTO_DELETE              = "pref_key_auto_delete";
     public static final String GROUP_MMS_MODE           = "pref_key_mms_group_mms";
     public static final String SMS_CDMA_PRIORITY        = "pref_key_sms_cdma_priority";
+    // ConfigurationClient
+    public static final String CONFIGURATION_MESSAGE    = "pref_key_configuration_message";
 
     // AirPlane mode flag
     private final static int AIR_PLANE_MODE_CHANGED = 1;
@@ -119,6 +121,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private Preference mMmsReadReportPref;
     private Preference mManageSimPref;
     private Preference mClearHistoryPref;
+    private Preference mConfigurationmessage;
     private CheckBoxPreference mVibratePref;
     private CheckBoxPreference mEnableNotificationsPref;
     private CheckBoxPreference mMmsAutoRetrievialPref;
@@ -147,6 +150,10 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private static final String NOTIFY_SMSC_UPDATE  = "com.android.smsc.notify.update";
     private static final String NOTIFY_SMSC_ERROR   = "com.android.smsc.notify.error";
     private static final String NOTIFY_SMSC_SUCCESS = "com.android.smsc.notify.success";
+
+    // ConfigurationClient
+    private String Configuration_Package_Name="com.wdstechnology.android.kryten";
+    private String Configuration_Package_Name_Activity="com.wdstechnology.android.kryten.ConfigurationMessageActivity";
 
     private BroadcastReceiver mReceiver = null;
 
@@ -206,6 +213,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mSmsStorePref = (ListPreference) findPreference("pref_key_sms_store");
         mSmsStoreCard1Pref = (ListPreference) findPreference("pref_key_sms_store_card1");
         mSmsStoreCard2Pref = (ListPreference) findPreference("pref_key_sms_store_card2");
+        // ConfigurationClient
+        mConfigurationmessage=findPreference(CONFIGURATION_MESSAGE);
 
         if (!SystemProperties.getBoolean("persist.env.mms.smspriority", false)) {
             Preference priorotySettings =  findPreference(SMS_CDMA_PRIORITY);
@@ -559,7 +568,14 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             if (mMmsAutoRetrievialPref.isChecked()) {
                 startMmsDownload();
             }
+        // ConfigurationClient
+        } else if (preference == mConfigurationmessage) {
+            Intent intent = new Intent();
+            intent.setClassName(Configuration_Package_Name,
+                    Configuration_Package_Name_Activity);
+            startActivity(intent);
         }
+
 
         return super.onPreferenceTreeClick(preferenceScreen, preference);
     }

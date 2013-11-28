@@ -984,5 +984,10 @@
     <string name="pref_sms_store_phone">Phone</string>
     <string name="pref_sms_store_card">SIM card</string>
     <string name="pref_sms_store_card_unknown_fail">Failure to receive new messages, the SIM card can\'t be read correctly</string>
+
+    <!-- ConfigurationClient -->
+    <string name="configuration_message">Configuration Message</string>
+    <string name="configuration_message_key">Configuration Message</string>
+    <string name="configuration_message_key_activity">Click to start Configuration Message Activity</string>
 </resources>
 
