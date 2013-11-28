@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.drm.DrmStore;
 import android.net.Uri;
 import android.os.SystemProperties;
 import android.provider.Telephony.Mms;
@@ -35,6 +36,7 @@ import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.WorkingMessage;
+import com.android.mms.drm.DrmUtils;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.TextModel;
@@ -44,11 +46,14 @@ import com.android.mms.util.DownloadManager;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ItemLoadedFuture;
 import com.android.mms.util.PduLoaderManager;
+import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.MultimediaMessagePdu;
 import com.google.android.mms.pdu.NotificationInd;
+import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduHeaders;
+import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
@@ -110,6 +115,9 @@ public class MessageItem {
     private PduLoadedCallback mPduLoadedCallback;
     private ItemLoadedFuture mItemLoadedFuture;
     long mDate;
+    boolean mIsForwardable;
+    boolean mHaveSomethingToCopyToSDCard;
+    boolean mIsDrmRingtoneWithRights;
 
     private static final boolean DISPLAY_SENT_TIME =
             SystemProperties.getBoolean("persist.env.mms.senttime", false);
@@ -419,6 +427,37 @@ public class MessageItem {
                     } catch (NumberFormatException nfe) {
                         Log.e(TAG, "Value for read report was invalid.");
                         mReadReport = false;
+                    }
+                }
+                PduBody body = msg.getBody();
+                if (body != null) {
+                    int partNum = body.getPartsNum();
+                    int forwardCount = 0;
+                    for (int i = 0; i < partNum; i++) {
+                        PduPart part = body.getPart(i);
+                        String type = (new String(part.getContentType())).toLowerCase();
+                        if (DrmUtils.isDrmType(type)) {
+                            if (!DrmUtils.haveRightsForAction(part.getDataUri(),
+                                    DrmStore.Action.TRANSFER)) {
+                                forwardCount++;
+                            }
+                            String mimeType = MmsApp.getApplication().getDrmManagerClient()
+                                    .getOriginalMimeType(part.getDataUri());
+                            if (ContentType.isAudioType(mimeType)
+                                    && DrmUtils.haveRightsForAction(part.getDataUri(),
+                                            DrmStore.Action.RINGTONE)) {
+                                mIsDrmRingtoneWithRights = true;
+                            }
+                        }
+                        if (ContentType.isImageType(type) || ContentType.isVideoType(type)
+                                || ContentType.isAudioType(type) || DrmUtils.isDrmType(type)
+                                || type.equals(ContentType.AUDIO_OGG.toLowerCase())
+                                || type.equals(ContentType.TEXT_VCARD.toLowerCase())) {
+                            mHaveSomethingToCopyToSDCard = true;
+                        }
+                    }
+                    if (forwardCount == 0) {
+                        mIsForwardable = true;
                     }
                 }
             }
