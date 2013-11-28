@@ -4536,7 +4536,7 @@ public class ComposeMessageActivity extends Activity
                         Parcelable uri = uris.get(i);
                         addAttachment(mimeType, (Uri) uri, true);
                     }
-                    if (SHOW_SEND_CONFIRM) {
+                    if (SHOW_SEND_CONFIRM && mWorkingMessage.getSlideshow() != null) {
                         mWorkingMessage.getSlideshow().resizeBeforeSendMms();
                     }
                 }
