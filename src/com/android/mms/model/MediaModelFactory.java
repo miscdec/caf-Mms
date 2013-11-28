@@ -171,7 +171,8 @@ public class MediaModelFactory {
             }
         } else if (tag.equals(SmilHelper.ELEMENT_TAG_REF)) {
             if (ContentType.isTextType(contentType)
-                    && !contentType.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase())) {
+                    && !contentType.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase()) &&
+                    !contentType.toLowerCase().equals(ContentType.TEXT_VCALENDAR.toLowerCase())) {
                 media = new TextModel(context, contentType, src,
                         part.getCharset(), part.getData(), regionModel);
             } else if (ContentType.isImageType(contentType)) {
@@ -189,7 +190,7 @@ public class MediaModelFactory {
             } else {
                 Log.d(TAG, "[MediaModelFactory] getGenericMediaModel Unsupported Content-Type: "
                         + contentType);
-                media = createEmptyTextModel(context, regionModel);
+                media = new UnsupportModel(context, tag, contentType, src, part.getDataUri());
             }
         } else if (tag.toLowerCase().contains("vcard")) {
             /**

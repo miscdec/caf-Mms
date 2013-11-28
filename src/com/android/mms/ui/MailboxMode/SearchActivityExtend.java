@@ -116,12 +116,13 @@ public class SearchActivityExtend extends Activity {
 
     private void doSearch() {
         String keyStr = mSearchStringEdit.getText().toString();
+        String displayStr = keyStr;
         if (TextUtils.isEmpty(keyStr)) {
             return;
         }
 
         int modePosition = mSpinSearchMode.getSelectedItemPosition();
-        int matchWhole = 0;
+        int matchWhole = MessageUtils.MATCH_BY_ADDRESS;
 
         if (modePosition == MessageUtils.SEARCH_MODE_NAME) {
             keyStr = MessageUtils.getAddressByName(this, keyStr);
@@ -131,7 +132,7 @@ public class SearchActivityExtend extends Activity {
                 return;
             }
             modePosition = MessageUtils.SEARCH_MODE_NUMBER;
-            matchWhole = 1;
+            matchWhole = MessageUtils.MATCH_BY_THREAD_ID;
         }
 
         Intent i = new Intent(this, MailBoxMessageList.class);
@@ -140,6 +141,7 @@ public class SearchActivityExtend extends Activity {
         i.putExtra("mailboxId", mailboxId);
         i.putExtra("mode_position", modePosition);
         i.putExtra("key_str", keyStr);
+        i.putExtra("display_str", displayStr);
         i.putExtra("match_whole", matchWhole);
         startActivity(i);
 

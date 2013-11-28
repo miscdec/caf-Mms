@@ -311,7 +311,8 @@ public class MessageListItem extends LinearLayout implements
                                 return;
                             }
                             // Judge whether mobile data is turned off
-                            else if (MessageUtils.isMobileDataDisabled(mContext)) {
+                            else if (MessageUtils.isMobileDataDisabled(mContext) &&
+                                    MessageUtils.CAN_SETUP_MMS_DATA) {
                                 builder.setMessage(mContext
                                         .getString(R.string.mobile_data_disable));
                                 builder.setPositiveButton(R.string.yes,
@@ -389,7 +390,7 @@ public class MessageListItem extends LinearLayout implements
     private void updateAvatarView(String addr, boolean isSelf) {
         Drawable avatarDrawable;
         if (isSelf || !TextUtils.isEmpty(addr)) {
-            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, true);
+            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
             avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
 
             if (isSelf) {
@@ -702,7 +703,7 @@ public class MessageListItem extends LinearLayout implements
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
 
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && subId >= 0) {
             Drawable mSimIndicatorIcon = MessageUtils.getMultiSimIcon(mContext,subId);
             mSimIndicatorView.setImageDrawable(mSimIndicatorIcon);
             mSimIndicatorView.setVisibility(View.VISIBLE);

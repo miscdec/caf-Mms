@@ -141,6 +141,7 @@ public class MessageUtils {
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
 
+    private static final String VIEW_MODE_NAME = "current_view";
     // Ext action define as TelephonyIntents.ACTION_SIM_STATE_CHANGED + subID
     public static final String ACTION_SIM_STATE_CHANGED0 =
            "android.intent.action.SIM_STATE_CHANGED0";
@@ -203,6 +204,9 @@ public class MessageUtils {
     public static final int SEARCH_MODE_CONTENT = 0;
     public static final int SEARCH_MODE_NAME    = 1;
     public static final int SEARCH_MODE_NUMBER  = 2;
+    // add for different match mode in classify search
+    public static final int MATCH_BY_ADDRESS = 0;
+    public static final int MATCH_BY_THREAD_ID = 1;
 
     public static final int STORE_TO_PHONE = 1;
     public static final int STORE_TO_ICC = 2;
@@ -218,6 +222,10 @@ public class MessageUtils {
     // add for obtaining all short message count
     public static final Uri MAILBOX_SMS_MESSAGES_COUNT =
             Uri.parse("content://mms-sms/messagescount");
+
+    // If set the special property, enable mms data even if mobile data is turned off.
+    public static final boolean CAN_SETUP_MMS_DATA =
+            SystemProperties.getBoolean("persist.env.mms.setupmmsdata", false);
 
     private static final String[] WEB_SCHEMA =
                         new String[] { "http://", "https://", "rtsp://" };
@@ -1250,7 +1258,7 @@ public class MessageUtils {
         return builder.toString();
     }
 
-  private static Intent getVTCallIntent(String number) {
+    public static Intent getVTCallIntent(String number) {
         Intent intent = new Intent("com.borqs.videocall.action.LaunchVideoCallScreen");
         intent.addCategory(Intent.CATEGORY_DEFAULT);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
@@ -1260,7 +1268,7 @@ public class MessageUtils {
         return intent;
     }
 
-    private static boolean isVTSupported() {
+    public static boolean isVTSupported() {
         return SystemProperties.getBoolean(
                 "persist.radio.csvt.enabled"
         /*TelephonyProperties.PROPERTY_CSVT_ENABLED*/, false);
@@ -1350,6 +1358,19 @@ public class MessageUtils {
         Log.d(TAG, "[MsgUtils] " + msg);
     }
 
+    public static boolean isMailboxMode() {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp
+                .getApplication());
+        boolean ViewMode = sp.getBoolean(VIEW_MODE_NAME, false);
+        return ViewMode;
+    }
+
+    public static void setMailboxMode(boolean mode) {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp
+                .getApplication());
+        sp.edit().putBoolean(VIEW_MODE_NAME, mode).commit();
+    }
+
     /**
      * Return the sim name of subscription.
      */
@@ -1403,24 +1424,31 @@ public class MessageUtils {
         if (TextUtils.isEmpty(name)) {
             return resultAddr;
         }
+        // Replace the ' to avoid SQL injection.
+        name = name.replace("'","''");
 
         try {
             c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
                     new String[] {ContactsContract.Data.RAW_CONTACT_ID},
                     ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME
-                    + " =? "  , new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
+                    + " like '%" + name + "%' ", new String[] {StructuredName.CONTENT_ITEM_TYPE},
+                    null);
 
             if (c == null) {
                 return resultAddr;
             }
 
-            if (!c.moveToFirst()) {
-                c.close();
-                return resultAddr;
+            int i = 0;
+            StringBuilder sb = new StringBuilder();
+            while (c.moveToNext()) {
+                long raw_contact_id = c.getLong(0);
+                if (i++ > 0) {
+                    sb.append(",");
+                }
+                sb.append(queryPhoneNumbersWithRaw(context, raw_contact_id));
             }
 
-            long raw_contact_id = c.getLong(0);
-            resultAddr = queryPhoneNumbersWithRaw(context, raw_contact_id);
+            resultAddr = sb.toString();
         } finally {
             if (c != null) {
                 c.close();
@@ -1843,12 +1871,8 @@ public class MessageUtils {
     }
 
     public static boolean isMobileDataDisabled(Context context) {
-        // Notice: Only set the special property, this method can actually return the
-        // mobile data state. Otherwise, it will always return false.
-        boolean enableMmsData = SystemProperties
-                .getBoolean("persist.env.mms.setupmmsdata", false);
         ConnectivityManager mConnService = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
-        return !mConnService.getMobileDataEnabled() && enableMmsData;
+        return !mConnService.getMobileDataEnabled();
     }
 }

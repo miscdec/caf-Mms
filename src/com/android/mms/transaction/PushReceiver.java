@@ -226,6 +226,11 @@ public class PushReceiver extends BroadcastReceiver {
                                     null);
 
                             SqliteWrapper.update(mContext, cr, uri, values, null, null);
+                            if (MessageUtils.isMobileDataDisabled(mContext) &&
+                                    !MessageUtils.CAN_SETUP_MMS_DATA) {
+                                MessagingNotification.nonBlockingUpdateNewMessageIndicator(mContext,
+                                        MessagingNotification.THREAD_ALL, false);
+                            }
                             // Start service to finish the notification transaction.
                             Intent svc = new Intent(mContext, TransactionService.class);
                             svc.putExtra(TransactionBundle.URI, uri.toString());
