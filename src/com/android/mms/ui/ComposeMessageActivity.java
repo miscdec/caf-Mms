@@ -4130,17 +4130,6 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
-    /**
-     * Set newWorkingMessage's subject from mWorkingMessage. If we create a new
-     * slideshow. We will drop the old workingMessage and create a new one. And
-     * we should keep the subject of the old workingMessage.
-     */
-    private void setNewMessageSubject(WorkingMessage newWorkingMessage) {
-        if (null != newWorkingMessage && mWorkingMessage.hasSubject()) {
-            newWorkingMessage.setSubject(mWorkingMessage.getSubject(), true);
-        }
-    }
-
     private void processPickResult(final Intent data) {
         // The EXTRA_PHONE_URIS stores the phone's urls that were selected by user in the
         // multiple phone picker.
