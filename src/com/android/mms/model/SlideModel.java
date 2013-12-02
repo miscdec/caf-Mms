@@ -229,8 +229,6 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
             // Just before we send the slideshow, we take the remaining space in the
             // slideshow and equally allocate it to all the resizeable media items and resize them.
             MediaModel mediaMode = ((MediaModel) object);
-            //int decreaseSize = mediaMode.getMediaResizable() ?
-            //        mediaMode.getDefaultResizedMediaSize() : mediaMode.getMediaSize();
             int decreaseSize = mediaMode.getMediaSize();
             decreaseSlideSize(decreaseSize);
             decreaseMessageSize(decreaseSize);
