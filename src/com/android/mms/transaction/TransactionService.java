@@ -170,6 +170,9 @@ public class TransactionService extends Service implements Observer {
     private PowerManager.WakeLock mWakeLock;
     private int mMmsConnecvivityRetryCount;
 
+    private int launchRetryAttempt;
+    private final int maxLaunchRetryAttempts = 5;
+
     public Handler mToastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -620,6 +623,7 @@ public class TransactionService extends Service implements Observer {
     public void update(Observable observable) {
         Transaction transaction = (Transaction) observable;
         int serviceId = transaction.getServiceId();
+        launchRetryAttempt = 0;
 
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
             Log.v(TAG, "update transaction " + serviceId);
@@ -1053,9 +1057,17 @@ public class TransactionService extends Service implements Observer {
                             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                                 Log.v(TAG, "Transaction was null. Stopping self: " + serviceId);
                             }
-                            endMmsConnectivity();
-                            removeNotification(serviceId);
-                            stopSelf(serviceId);
+                            launchRetryAttempt++;
+                            if (launchRetryAttempt <= maxLaunchRetryAttempts) {
+                                Log.d(TAG, "launchTransaction retry attempt - " + launchRetryAttempt);
+                                TransactionBundle args = (TransactionBundle) msg.obj;
+                                launchTransaction(serviceId, args, false);
+                            } else {
+                                Log.e(TAG, "Multiple launchTransaction retries failed");
+                                launchRetryAttempt = 0;
+                                endMmsConnectivity();
+                                stopSelf(serviceId);
+                            }
                         }
                     }
                     return;
