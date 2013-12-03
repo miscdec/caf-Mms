@@ -90,6 +90,8 @@
     <string name="replace" msgid="7587904998114459388">"替换"</string>
     <string name="remove" msgid="4625444913256213175">"删除"</string>
     <string name="send" msgid="4589898724889248486">"发送"</string>
+    <string name="send_by_slot1">通过卡槽1发送</string>
+    <string name="send_by_slot2">通过卡槽2发送</string>
     <string name="mms" msgid="1587631213714914559">"彩信"</string>
     <string name="send_mms" msgid="2933162044872550662">"发送彩信"</string>
     <string name="all_threads" msgid="2663426830306307194">"所有会话"</string>
@@ -106,7 +108,7 @@
     <string name="failed_to_add_media" msgid="7207464170168708485">"您无法将此<xliff:g id="NAME">%1$s</xliff:g>添加到短信中。"</string>
     <string name="failed_to_resize_image" msgid="5608354151631833669">"未调整图片大小。"</string>
     <string name="resize_image_error_information" msgid="3783200130776554475">"重新调整大小后，此照片仍然过大，因此无法发送。"</string>
-    <string name="forward_prefix" msgid="276280492803486464">"Fwd: "</string>
+    <string name="forward_prefix" msgid="276280492803486464">"转发: "</string>
     <string name="discard_message">"舍弃"</string>
     <string name="discard_message_reason" msgid="2667664943003796133">"您的信息没有有效的接收者，将被舍弃。"</string>
     <string name="has_invalid_recipient" msgid="1485388396900997383">"无效接收者：&lt;<xliff:g id="NAME">%1$s</xliff:g>&gt;"</string>
@@ -121,6 +123,7 @@
     <string name="illegal_separate_symbol">收件人中包含无效分隔符。</string>
     <string name="converting_to_picture_message" msgid="2980023239017588627">"正在转换为彩信…"</string>
     <string name="converting_to_text_message" >"正在转换为短信…"</string>
+    <string name="cannot_add_text_anymore">"无法再添加文字。"</string>
     <string name="cannot_add_slide_anymore" msgid="4631404749618820994">"无法再添加幻灯片。"</string>
     <string name="cannot_add_picture_and_video" msgid="4954353772391381447">"无法将视频和图片添加到同一张幻灯片。"</string>
     <string name="cannot_save_message" msgid="3375907366965264446">"无法保存短信。"</string>
@@ -432,12 +435,8 @@
 
     <!-- SMSC -->
     <string name="pref_smsc_title">短消息中心设置</string>
-    <plurals name="pref_title_smsc">
-        <!-- Case of 1 result. -->
-        <item quantity="one">"设置短消息中心号码"</item>
-        <!-- Case of 0 or 2 or more results. -->
-        <item quantity="other">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</item>
-    </plurals>
+    <string name="pref_one_smcs">"设置短消息中心号码"</string>
+    <string name="pref_more_smcs">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
     <string name="set_smsc_error">设置短消息中心号码失败</string>
     <string name="set_smsc_success">设置短消息中心号码成功</string>
     <string name="set_smsc_confirm_message">修改短消息中心号码可能导致短信发送失败，确认修改吗？</string>

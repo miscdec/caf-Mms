@@ -128,6 +128,7 @@ public class WorkingMessage {
     public static final int AUDIO = 3;
     public static final int SLIDESHOW = 4;
     public static final int VCARD = 5;
+    public static final int UNSUPPORT = 6;
 
     // Current attachment type of the message; one of the above values.
     private int mAttachmentType;
@@ -277,6 +278,8 @@ public class WorkingMessage {
                 mAttachmentType = AUDIO;
             } else if (slide.hasVcard()) {
                 mAttachmentType = VCARD;
+            } else if (slide.hasUnsupport()) {
+                mAttachmentType = UNSUPPORT;
             }
         }
 
@@ -1558,6 +1561,9 @@ public class WorkingMessage {
                 // delete the copy which was previously saved in MMS drafts.
                 SqliteWrapper.delete(mActivity, mContentResolver, mmsUri, null, null);
             }
+            // After send mms, this thread should't have draft left.
+            // Be paranoid and clean any draft MMS up.
+            deleteDraftMmsMessage(threadId);
 
             // Make sure this thread isn't over the limits in message count
             Recycler.getMmsRecycler().deleteOldMessagesByThreadId(mActivity, threadId);

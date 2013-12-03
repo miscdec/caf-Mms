@@ -174,6 +174,13 @@ public class AttachmentEditor extends LinearLayout {
                     R.id.replace_vcard_button,
                     R.id.remove_vcard_button,
                     MSG_VIEW_VCARD, MSG_REPLACE_VCARD, MSG_REMOVE_ATTACHMENT);
+        } else if (slide.hasUnsupport()) {
+            return createMediaView(R.id.unsupport_attachment_view_stub,
+                    R.id.unsupport_attachment_view,
+                    R.id.view_unsupport_button,
+                    R.id.replace_unsupport_button,
+                    R.id.remove_unsupport_button,
+                    MSG_VIEW_VCARD, MSG_REPLACE_VCARD, MSG_REMOVE_ATTACHMENT);
         } else {
             throw new IllegalArgumentException();
         }
@@ -225,5 +232,11 @@ public class AttachmentEditor extends LinearLayout {
         removeButton.setOnClickListener(new MessageOnClick(MSG_REMOVE_ATTACHMENT));
 
         return (SlideViewInterface) view;
+    }
+
+    public void hideSlideshowSendButton() {
+        if (mSendButton != null) {
+            mSendButton.setVisibility(View.GONE);
+        }
     }
 }
