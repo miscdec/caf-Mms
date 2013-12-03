@@ -224,6 +224,9 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_CALL_RECIPIENT        = 5;
     private static final int MENU_CONVERSATION_LIST     = 6;
     private static final int MENU_DEBUG_DUMP            = 7;
+    private static final int MENU_VIDEOCALL_RECIPIENT   = 8;
+    private static final int MENU_SEND_BY_SLOT1         = 9;
+    private static final int MENU_SEND_BY_SLOT2         = 10;
 
     // Context menu ID
     private static final int MENU_VIEW_CONTACT          = 12;
@@ -281,9 +284,9 @@ public class ComposeMessageActivity extends Activity
     // Fourth part symbol in ASCII. 0x7b~0x7e: { | } ~
     private static final int SYMBOLS_START_FOURTH = 0x7b;
     private static final int SYMBOLS_END_FOURTH = 0x7e;
-    // Legal symbols: , : < > @ . _ -
+    // Legal symbols: , ; < > @ . _ - + ( )
     private static final char[] SYMBOL_LEGAL = {
-            ',', ':', '<', '>', '@', '.', '_', '-', '+', '(', ')'
+            ',', ';', '<', '>', '@', '.', '_', '-', '+', '(', ')'
     };
     // ASCII difference between Alphanumeric symbols and Full width symbols
     private static final int SYMBOLS_DIFF = 0xfee0;
@@ -341,6 +344,7 @@ public class ComposeMessageActivity extends Activity
     private ImageButton mSendButtonSmsViewSec;    // The second sms send button without sim indicator
     private ImageView mIndicatorForSimMmsFir, mIndicatorForSimSmsFir;
     private ImageView mIndicatorForSimMmsSec, mIndicatorForSimSmsSec;
+    private ImageButton mAttachButton;
 
     private AttachmentEditor mAttachmentEditor;
     private View mAttachmentEditorScrollView;
@@ -470,10 +474,16 @@ public class ComposeMessageActivity extends Activity
             .getBoolean("persist.env.mms.checksymbol", false);
     private boolean mShowTwoButtons = false;
 
+    private final static boolean SHOW_SEND_CONFIRM = SystemProperties
+            .getBoolean("persist.env.mms.sendconfirm", false);
+
     /**
      * Whether the audio attachment player activity is launched and running
      */
     private boolean mIsAudioPlayerActivityRunning = false;
+    // Avoid the same TextWatcher was added repeatedly.
+    private boolean mIsSubjectTextWatcherAdded = false;
+
     // handler for handle copy mms to sim with toast.
     private Handler CopyToSimWithToastHandler = new Handler() {
         @Override
@@ -512,6 +522,17 @@ public class ComposeMessageActivity extends Activity
     //==========================================================
 
     private void editSlideshow() {
+        // The SlideShow is not support Vcard attachment, if we have created a
+        // Vcard already before adding SlideShow, we must remove it first.
+        SlideshowModel slideShow = mWorkingMessage.getSlideshow();
+        if (slideShow != null) {
+            for (SlideModel model : slideShow) {
+                if (model != null && model.hasVcard()) {
+                    model.removeVcard();
+                }
+            }
+        }
+
         // The user wants to edit the slideshow. That requires us to persist the slideshow to
         // disk as a PDU in saveAsMms. This code below does that persisting in a background
         // task. If the task takes longer than a half second, a progress dialog is displayed.
@@ -555,7 +576,12 @@ public class ComposeMessageActivity extends Activity
                 }
                 case AttachmentEditor.MSG_SEND_SLIDESHOW: {
                     if (isPreparedForSending()) {
-                        ComposeMessageActivity.this.showSendConfirm();
+                        if (SHOW_SEND_CONFIRM) {
+                            ComposeMessageActivity.this
+                                    .showSendConfirm(MSimConstants.INVALID_SUBSCRIPTION);
+                        } else {
+                            ComposeMessageActivity.this.confirmSendMessageIfNeeded();
+                        }
                     }
                     break;
                 }
@@ -587,7 +613,6 @@ public class ComposeMessageActivity extends Activity
             }
         }
     };
-
 
     private void viewMmsMessageAttachment(final int requestCode) {
         SlideshowModel slideshow = mWorkingMessage.getSlideshow();
@@ -633,7 +658,9 @@ public class ComposeMessageActivity extends Activity
         // that means user is continuously clicking the play button, we return this
         // thread and cancel this click event; else we put it to true and response this
         // event.
-        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO) {
+        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO
+                || requestCode == AttachmentEditor.MSG_PLAY_SLIDESHOW
+                || requestCode == AttachmentEditor.MSG_PLAY_VIDEO) {
             if (mIsAudioPlayerActivityRunning) {
                 return true;
             } else {
@@ -1030,19 +1057,14 @@ public class ComposeMessageActivity extends Activity
                         Settings.System.MULTI_SIM_NAME[subscription]);
     }
 
-    private void showSendConfirm() {
+    private void showSendConfirm(final int subscription) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         int messageSizeLimit = MmsConfig.getMaxMessageSize();
         int mmsCurrentSize = 0;
 
         mWorkingMessage.prepareForSave(true);
         if (mWorkingMessage.getSlideshow() != null) {
-            if (mWorkingMessage.getSlideshow().getTotalMessageSize() >
-                    mWorkingMessage.getSlideshow().getCurrentMessageSize()) {
-                mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
-            } else {
-                mmsCurrentSize += mWorkingMessage.getSlideshow().getCurrentMessageSize();
-            }
+            mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
         } else if (mWorkingMessage.hasText()) {
             mmsCurrentSize += mWorkingMessage.getText().toString().getBytes().length;
         }
@@ -1051,7 +1073,12 @@ public class ComposeMessageActivity extends Activity
         mmsCurrentSize = mmsCurrentSize > 1 ? mmsCurrentSize : ONE_KILOBYTE;
 
         if (mmsCurrentSize > messageSizeLimit) {
-            mmsCurrentSize = messageSizeLimit;
+            // if current message size is larger than message size limit, prompt message size
+            // limit dialog and don't show message size dialog.
+            mIsAttachmentErrorOnSend = true;
+            handleAddAttachmentError(WorkingMessage.MESSAGE_SIZE_EXCEEDED,
+                    R.string.type_picture);
+            return;
         }
 
         builder.setTitle(R.string.title_send_message);
@@ -1063,7 +1090,11 @@ public class ComposeMessageActivity extends Activity
                 + getString(R.string.kilobyte));
         builder.setPositiveButton(R.string.yes, new OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
-                confirmSendMessageIfNeeded();
+                if (mShowTwoButtons) {
+                    confirmSendMessageIfNeeded(subscription);
+                } else {
+                    confirmSendMessageIfNeeded();
+                }
             }
         });
         builder.setNegativeButton(R.string.no, null);
@@ -2563,9 +2594,13 @@ public class ComposeMessageActivity extends Activity
         mSubjectTextEditor.setOnEditorActionListener(show ? mSubjectActionListener : null);
 
         if (show) {
-            mSubjectTextEditor.addTextChangedListener(mSubjectEditorWatcher);
+            if (!mIsSubjectTextWatcherAdded) {
+                mSubjectTextEditor.addTextChangedListener(mSubjectEditorWatcher);
+                mIsSubjectTextWatcherAdded = true;
+            }
         } else {
             mSubjectTextEditor.removeTextChangedListener(mSubjectEditorWatcher);
+            mIsSubjectTextWatcherAdded = false;
         }
 
         mSubjectTextEditor.setText(mWorkingMessage.getSubject());
@@ -2645,6 +2680,7 @@ public class ComposeMessageActivity extends Activity
         }
 
         updateSendButtonState();
+        updateAttachButtonState();
 
         drawTopPanel(false);
         if (!mShouldLoadDraft) {
@@ -3263,6 +3299,7 @@ public class ComposeMessageActivity extends Activity
                 drawBottomPanel();
                 updateSendButtonState();
                 drawTopPanel(isSubjectEditorVisible());
+                updateAttachButtonState();
             }
         });
     }
@@ -3424,6 +3461,14 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private void videocallRecipient() {
+        if (isRecipientCallable()) {
+            String number = getRecipients().get(0).getNumber();
+            Intent vtIntent = MessageUtils.getVTCallIntent(number);
+            startActivity(vtIntent);
+        }
+    }
+
     private void dialRecipient(int subscription) {
         if (isRecipientCallable()) {
             String number = getRecipients().get(0).getNumber();
@@ -3514,12 +3559,17 @@ public class ComposeMessageActivity extends Activity
 
         }
 
+        if (MessageUtils.isVTSupported() && isRecipientCallable()) {
+            menu.add(0, MENU_VIDEOCALL_RECIPIENT, 0, R.string.menu_videocall)
+                    .setTitle(R.string.menu_videocall);
+        }
+
         if (MmsConfig.getMmsEnabled()) {
             if (!isSubjectEditorVisible()) {
                 menu.add(0, MENU_ADD_SUBJECT, 0, R.string.add_subject).setIcon(
                         R.drawable.ic_menu_edit);
             }
-            if (!mWorkingMessage.hasAttachment()) {
+            if (!mWorkingMessage.hasAttachment() && !mShowTwoButtons) {
                 menu.add(0, MENU_ADD_ATTACHMENT, 0, R.string.add_attachment)
                         .setIcon(R.drawable.ic_menu_attachment)
                     .setTitle(R.string.add_attachment)
@@ -3528,7 +3578,14 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (isPreparedForSending()) {
-            menu.add(0, MENU_SEND, 0, R.string.send).setIcon(android.R.drawable.ic_menu_send);
+           if (mShowTwoButtons) {
+                menu.add(0, MENU_SEND_BY_SLOT1, 0, R.string.send_by_slot1)
+                        .setIcon(android.R.drawable.ic_menu_send);
+                menu.add(0, MENU_SEND_BY_SLOT2, 0, R.string.send_by_slot2)
+                        .setIcon(android.R.drawable.ic_menu_send);
+            } else {
+                menu.add(0, MENU_SEND, 0, R.string.send).setIcon(android.R.drawable.ic_menu_send);
+            }
         }
 
         if ((isSubjectEditorVisible() && mSubjectTextEditor.isFocused())
@@ -3610,6 +3667,16 @@ public class ComposeMessageActivity extends Activity
                     confirmSendMessageIfNeeded();
                 }
                 break;
+            case MENU_SEND_BY_SLOT1:
+                if (isPreparedForSending()) {
+                    confirmSendMessageIfNeeded(MSimConstants.SUB1);
+                }
+                break;
+            case MENU_SEND_BY_SLOT2:
+                if (isPreparedForSending()) {
+                    confirmSendMessageIfNeeded(MSimConstants.SUB2);
+                }
+                break;
             case MENU_SEARCH:
                 onSearchRequested();
                 break;
@@ -3628,6 +3695,9 @@ public class ComposeMessageActivity extends Activity
                 break;
             case MENU_CALL_RECIPIENT:
                 dialRecipient();
+                break;
+           case MENU_VIDEOCALL_RECIPIENT:
+                videocallRecipient();
                 break;
             case MENU_INSERT_SMILEY:
                 showSmileyDialog();
@@ -3875,7 +3945,7 @@ public class ComposeMessageActivity extends Activity
         // Computer attachment size limit. Subtract 1K for some text.
         long sizeLimit = MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP;
         if (slideShow != null) {
-            sizeLimit -= slideShow.getCurrentMessageSize();
+            sizeLimit -= slideShow.getCurrentMessageSize() + slideShow.getTotalTextMessageSize();
 
             // We're about to ask the camera to capture some video (or the sound recorder
             // to record some audio) which will eventually replace the content on the current
@@ -3949,7 +4019,9 @@ public class ComposeMessageActivity extends Activity
             }
         }
 
-        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO) {
+        if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO
+                || requestCode == AttachmentEditor.MSG_PLAY_SLIDESHOW
+                || requestCode == AttachmentEditor.MSG_PLAY_VIDEO) {
             // When the audio has finished to play, we put the
             // mIsAudioPlayerActivityRunning to false.
             mIsAudioPlayerActivityRunning = false;
@@ -3972,9 +4044,19 @@ public class ComposeMessageActivity extends Activity
                         mWorkingMessage = newMessage;
                         mWorkingMessage.setConversation(mConversation);
                         updateThreadIdIfRunning();
+                        final SlideshowModel slideShow = mWorkingMessage.getSlideshow();
+                        if (SHOW_SEND_CONFIRM && slideShow != null) {
+                            getAsyncDialog().runAsync(new Runnable() {
+                                @Override
+                                public void run() {
+                                    slideShow.resizeBeforeSendMms();
+                                }
+                            }, null, R.string.adding_attachments_title);
+                        }
                         drawTopPanel(false);
                         drawBottomPanel();
                         updateSendButtonState();
+                        updateAttachButtonState();
                     }
                 }
                 break;
@@ -3987,9 +4069,12 @@ public class ComposeMessageActivity extends Activity
                 mAttachFileUri = Uri.fromFile(file);
 
                 // Remove the old captured picture's thumbnail from the cache
-                MmsApp.getApplication().getThumbnailManager().removeThumbnail(mAttachFileUri);
+                if(MmsApp.getApplication().getThumbnailManager() != null) {
+                   MmsApp.getApplication().getThumbnailManager().removeThumbnail(mAttachFileUri);
 
-                addImageAsync(mAttachFileUri, false);
+                   addImageAsync(mAttachFileUri, false);
+                }
+
                 break;
             }
 
@@ -4451,6 +4536,9 @@ public class ComposeMessageActivity extends Activity
                         Parcelable uri = uris.get(i);
                         addAttachment(mimeType, (Uri) uri, true);
                     }
+                    if (SHOW_SEND_CONFIRM && mWorkingMessage.getSlideshow() != null) {
+                        mWorkingMessage.getSlideshow().resizeBeforeSendMms();
+                    }
                 }
             }, null, R.string.adding_attachments_title);
             return true;
@@ -4577,15 +4665,25 @@ public class ComposeMessageActivity extends Activity
         resetCounter();
 
         if (mWorkingMessage.hasSlideshow()) {
-            mBottomPanel.setVisibility(View.GONE);
-            mAttachmentEditor.requestFocus();
-            return;
+            if (mShowTwoButtons) {
+                mTextEditor.setVisibility(View.GONE);
+                mAttachmentEditor.requestFocus();
+                return;
+            } else {
+                mBottomPanel.setVisibility(View.GONE);
+                mAttachmentEditor.requestFocus();
+                return;
+            }
         }
 
         if (LOCAL_LOGV) {
             Log.v(TAG, "CMA.drawBottomPanel");
         }
-        mBottomPanel.setVisibility(View.VISIBLE);
+        if (mShowTwoButtons && mTextEditor.getVisibility() == View.GONE) {
+            mTextEditor.setVisibility(View.VISIBLE);
+        } else {
+            mBottomPanel.setVisibility(View.VISIBLE);
+        }
 
         CharSequence text = mWorkingMessage.getText();
 
@@ -4611,6 +4709,9 @@ public class ComposeMessageActivity extends Activity
         boolean showingAttachment = mAttachmentEditor.update(mWorkingMessage);
         mAttachmentEditorScrollView.setVisibility(showingAttachment ? View.VISIBLE : View.GONE);
         showSubjectEditor(showSubjectEditor || mWorkingMessage.hasSubject());
+        if (mShowTwoButtons) {
+            mAttachmentEditor.hideSlideshowSendButton();
+        }
 
         invalidateOptionsMenu();
     }
@@ -4623,10 +4724,18 @@ public class ComposeMessageActivity extends Activity
     public void onClick(View v) {
         if (mShowTwoButtons && (v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec)
                 && isPreparedForSending()) {
-            confirmSendMessageIfNeeded(MSimConstants.SUB2);
+            if (SHOW_SEND_CONFIRM && mWorkingMessage.hasSlideshow()) {
+                showSendConfirm(MSimConstants.SUB2);
+            } else {
+                confirmSendMessageIfNeeded(MSimConstants.SUB2);
+            }
         } else if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
             if (mShowTwoButtons) {
-                confirmSendMessageIfNeeded(MSimConstants.SUB1);
+                if (SHOW_SEND_CONFIRM && mWorkingMessage.hasSlideshow()) {
+                    showSendConfirm(MSimConstants.SUB1);
+                } else {
+                    confirmSendMessageIfNeeded(MSimConstants.SUB1);
+                }
             } else {
                 confirmSendMessageIfNeeded();
             }
@@ -4634,6 +4743,8 @@ public class ComposeMessageActivity extends Activity
             launchMultiplePhonePicker();
         } else if ((v == mRecipientsPickerGroups)) {
             launchContactGroupPicker();
+        } else if (v == mAttachButton) {
+            showAddAttachmentDialog(false);
         }
     }
 
@@ -4741,10 +4852,11 @@ public class ComposeMessageActivity extends Activity
             // Making the counter invisible ensures that it is used to correctly
             // calculate the position of the send button even if we choose not to
             // display the text.
-            mTextCounter.setVisibility(View.INVISIBLE);
+            // Keep it always GONE if line <= 2.
+            /* mTextCounter.setVisibility(View.INVISIBLE);
             if (mShowTwoButtons) {
                 mTextCounterSec.setVisibility(View.INVISIBLE);
-            }
+            } */
         }
     }
 
@@ -4859,6 +4971,8 @@ public class ComposeMessageActivity extends Activity
         mBottomPanel.setVisibility(View.VISIBLE);
         mTextEditor = (EditText) findViewById(R.id.embedded_text_editor_btnstyle);
 
+        mAttachButton = (ImageButton) findViewById(R.id.attach_icon);
+        mAttachButton.setOnClickListener(this);
         mTextCounter = (TextView) findViewById(R.id.first_text_counter);
         mSendButtonMms = (TextView) findViewById(R.id.first_send_button_mms_view);
         mSendButtonSms = (ImageButton) findViewById(R.id.first_send_button_sms_view);
@@ -5005,6 +5119,7 @@ public class ComposeMessageActivity extends Activity
                         drawTopPanel(isSubjectEditorVisible());
                         drawBottomPanel();
                         updateSendButtonState();
+                        updateAttachButtonState();
                     }
                 });
 
@@ -5162,6 +5277,7 @@ public class ComposeMessageActivity extends Activity
 
         // "Or not", in this case.
         updateSendButtonState();
+        updateAttachButtonState();
 
         // Our changes are done. Let the listener respond to text changes once again.
         mTextEditor.addTextChangedListener(mTextEditorWatcher);
@@ -5183,9 +5299,17 @@ public class ComposeMessageActivity extends Activity
         inputMethodManager.hideSoftInputFromWindow(mTextEditor.getWindowToken(), 0);
     }
 
+    private void updateAttachButtonState() {
+        if (mShowTwoButtons) {
+            mAttachButton.setEnabled(!mWorkingMessage.hasAttachment());
+        }
+    }
+
     private void updateSendButtonState() {
         boolean enable = false;
-        if (isPreparedForSending()) {
+        if (mShowTwoButtons && isPreparedForSending()) {
+            enable = true;
+        } else if (isPreparedForSending()) {
             // When the type of attachment is slideshow, we should
             // also hide the 'Send' button since the slideshow view
             // already has a 'Send' button embedded.
@@ -5198,6 +5322,8 @@ public class ComposeMessageActivity extends Activity
             mAttachmentEditor.setCanSend(false);
         }
 
+        // invalidate the menu whether the message can be send or can't.
+        invalidateOptionsMenu();
         boolean requiresMms = mWorkingMessage.requiresMms();
         if (mShowTwoButtons) {
             View[] sendButtons = showTwoSmsOrMmsSendButton(requiresMms);
@@ -5850,6 +5976,7 @@ public class ComposeMessageActivity extends Activity
                                 drawTopPanel(false);
                                 updateSendButtonState();
                                 invalidateOptionsMenu();
+                                updateAttachButtonState();
                             }
                             break;
                         case WorkingMessage.VCARD:
