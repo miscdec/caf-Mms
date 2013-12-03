@@ -75,6 +75,7 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final boolean LOCAL_LOGV = false;
     private static final int MENU_NORMALSHOW = 1;
 
+    private SmilPlayerController mSmilPlayerController;
     private MediaController mMediaController;
     private SmilPlayer mSmilPlayer;
 
@@ -84,6 +85,8 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private SlideView mSlideView;
     private int mSlideCount;
+    //do not auto exit if viewing simple slideshow.
+    private boolean mIsSimpleSlideShow = false;
 
     /**
      * @return whether the Smil has MMS conformance layout.
@@ -189,6 +192,13 @@ public class SlideshowActivity extends Activity implements EventListener {
             return;
         }
 
+        SlideModel slide = model.get(0);
+        if (slide != null) {
+            mIsSimpleSlideShow = model.isSimple()
+                    || (!slide.hasImage() && !slide.hasVideo()
+                            && !slide.hasVcard() && slide.hasText());
+        }
+
         mSlideView = (SlideView) findViewById(R.id.slide_view);
         PresenterFactory.getPresenter("SlideshowPresenter", this, mSlideView, model);
 
@@ -201,13 +211,15 @@ public class SlideshowActivity extends Activity implements EventListener {
 
             public void run() {
                 mSmilPlayer = SmilPlayer.getPlayer();
-                if (mSlideCount > 1) {
-                    // Only show the slideshow controller if we have more than a single slide.
-                    // Otherwise, when we play a sound on a single slide, it appears like
-                    // the slide controller should control the sound (seeking, ff'ing, etc).
-                    initMediaController();
-                    mSlideView.setMediaController(mMediaController);
-                }
+                /**
+                 * The original:
+                 * Only show the slideshow controller if we have more than a single slide.
+                 * Otherwise, when we play a sound on a single slide, it appears like
+                 * the slide controller should control the sound (seeking, ff'ing, etc).
+                 */
+                // Show the slideshow controller all the time.
+                initMediaController();
+                mSlideView.setMediaController(mMediaController);
                 // Use SmilHelper.getDocument() to ensure rebuilding the
                 // entire SMIL document.
                 mSmilDoc = SmilHelper.getDocument(model);
@@ -248,7 +260,10 @@ public class SlideshowActivity extends Activity implements EventListener {
                 if (isRotating()) {
                     mSmilPlayer.reload();
                 } else {
-                    mSmilPlayer.play();
+                    // Make the SmilPlayer execute play, and set the field named
+                    // mCachedIsPlaying to true so that the UI can change to
+                    // play too.
+                    mSmilPlayerController.play();
                 }
             }
         });
@@ -256,7 +271,7 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private boolean handleVcard(SlideshowModel model) {
         SlideModel slide = model.get(0);
-        if (slide.hasVcard()) {
+        if (null != slide && slide.hasVcard()) {
             final MediaModel mm = slide.getVcard();
             String lookupUri = ((VcardModel) mm).getLookupUri();
             final Intent vCardIntent = new Intent(Intent.ACTION_VIEW);
@@ -301,7 +316,8 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     private void initMediaController() {
         mMediaController = new MediaController(SlideshowActivity.this, false);
-        mMediaController.setMediaPlayer(new SmilPlayerController(mSmilPlayer));
+        mSmilPlayerController = new SmilPlayerController(mSmilPlayer);
+        mMediaController.setMediaPlayer(mSmilPlayerController);
         mMediaController.setAnchorView(findViewById(R.id.slide_view));
         mMediaController.setPrevNextListeners(
             new OnClickListener() {
@@ -349,7 +365,9 @@ public class SlideshowActivity extends Activity implements EventListener {
                     SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT, this, false);
         }
         if (mSmilPlayer != null) {
-            mSmilPlayer.pause();
+            // Make the SmilPlayer execute pause, and set the field named
+            // mCachedIsPlaying to false so that the UI can change to pause too.
+            mSmilPlayerController.pause();
         }
     }
 
@@ -420,6 +438,10 @@ public class SlideshowActivity extends Activity implements EventListener {
 
         public SmilPlayerController(SmilPlayer player) {
             mPlayer = player;
+            // When the Controller is created, the mCachedIsPlaying is default as true.
+            // At a case, the player state is paused, the mCachedIsPlaying cannot describe
+            // the actual player state. So make mCachedIsPlaying same as player's state.
+            mCachedIsPlaying = mPlayer.isPlayingState();
         }
 
         public int getBufferPercentage() {
@@ -442,6 +464,15 @@ public class SlideshowActivity extends Activity implements EventListener {
         public void pause() {
             mPlayer.pause();
             mCachedIsPlaying = false;
+        }
+
+        /**
+         * We should make the cache state to true, so that calls to
+         * {@link #isPlaying()} to return the right value.
+         */
+        public void play(){
+            mPlayer.play();
+            mCachedIsPlaying = true;
         }
 
         public void seekTo(int pos) {
@@ -476,7 +507,8 @@ public class SlideshowActivity extends Activity implements EventListener {
         mHandler.post(new Runnable() {
             public void run() {
                 String type = event.getType();
-                if(type.equals(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT)) {
+                if(type.equals(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT)
+                        && !mIsSimpleSlideShow) {
                     finish();
                 }
             }
