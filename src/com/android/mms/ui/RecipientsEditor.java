@@ -175,6 +175,9 @@ public class RecipientsEditor extends RecipientEditTextView {
         List<String> numbers = mTokenizer.getNumbers();
         ContactList list = new ContactList();
         for (String number : numbers) {
+            if (TextUtils.isEmpty(number.trim())) {
+                continue;
+            }
             Contact contact = Contact.get(number, blocking);
             contact.setNumber(number);
             list.add(contact);
@@ -203,7 +206,7 @@ public class RecipientsEditor extends RecipientEditTextView {
      * Return true if the number contains invalid character.
      */
     private boolean hasInvalidCharacter(String number) {
-        char[] charNumber = number.toCharArray();
+        char[] charNumber = number.trim().toCharArray();
         int count = charNumber.length;
         if (!SystemProperties.getBoolean("persist.env.mms.filtchar", true)) {
             for (int i = 0; i < count; i++) {
