@@ -29,6 +29,7 @@ import android.provider.Telephony.Sms.Inbox;
 import android.telephony.SmsMessage;
 import android.util.Log;
 
+import com.android.internal.telephony.SmsConstants;
 import com.android.mms.LogTag;
 
 /**
@@ -89,7 +90,9 @@ public class MessageStatusService extends IntentService {
                     log("updateMessageStatus: msgUrl=" + messageUri + ", status=" + status +
                             ", isStatusReport=" + isStatusReport);
                 }
-
+                if (SmsConstants.FORMAT_3GPP2.equals(format)) {
+                    status = status << 16;
+                }
                 contentValues.put(Sms.STATUS, status);
                 contentValues.put(Inbox.DATE_SENT, System.currentTimeMillis());
                 SqliteWrapper.update(context, context.getContentResolver(),
