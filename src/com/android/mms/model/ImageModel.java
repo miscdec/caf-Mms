@@ -60,7 +60,7 @@ public class ImageModel extends RegionMediaModel {
      */
     protected static final Set<String> SUPPORTED_MMS_IMAGE_CONTENT_TYPES =
         new HashSet<String>(Arrays.asList(new String[] {
-                "image/jpeg",
+                "image/jpeg", "image/gif"
             }));
 
     private int mWidth;
