@@ -53,6 +53,7 @@ public class ImageModel extends RegionMediaModel {
     private static final boolean LOCAL_LOGV = false;
 
     private static final int PICTURE_SIZE_LIMIT = 100 * 1024;
+    private static final int PICTURE_SIZE_DEFAULT = 10 * 1024;
 
     /**
      * These are the image content types that MMS supports. Anything else needs to be transcoded
@@ -185,6 +186,14 @@ public class ImageModel extends RegionMediaModel {
     public boolean getMediaResizable() {
         return true;
     }
+
+    public int getDefaultResizedMediaSize() {
+        if (mSize > PICTURE_SIZE_DEFAULT) {
+            return PICTURE_SIZE_DEFAULT;
+        }
+        return mSize;
+    }
+
 
     @Override
     protected void resizeMedia(int byteLimit, long messageId) throws MmsException {
