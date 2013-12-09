@@ -297,7 +297,9 @@ public class MessageItem {
 
     public boolean isFailedMessage() {
         boolean isFailedMms = isMms()
-                            && (mErrorType >= MmsSms.ERR_TYPE_GENERIC_PERMANENT);
+                            && (mErrorType >= MmsSms.ERR_TYPE_GENERIC_PERMANENT
+                            || (mErrorType == MmsSms.ERR_TYPE_MMS_PROTO_TRANSIENT
+                            && MessageUtils.MANUAL_RESEND_IF_SEND_FAILED));
         boolean isFailedSms = isSms()
                             && (mBoxId == Sms.MESSAGE_TYPE_FAILED);
         return isFailedMms || isFailedSms;

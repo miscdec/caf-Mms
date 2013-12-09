@@ -236,6 +236,12 @@ public class MessageUtils {
     // support batch delete in message list view.
     public static final boolean SUPPORT_BATCH_DELETE = SystemProperties
             .getBoolean("persist.env.mms.batchdelete", true);
+    // Support manual resend mms if network is unavailable
+    public static final boolean MANUAL_RESEND_IF_SEND_FAILED =
+            SystemProperties.getBoolean("persist.env.mms.manualresend", false);
+    // Always retry no matter the network state
+    public static final boolean RETRY_ALWAYS =
+            SystemProperties.getBoolean("persist.env.mms.retryalways", false);
 
     private static final String[] WEB_SCHEMA =
                         new String[] { "http://", "https://", "rtsp://" };
