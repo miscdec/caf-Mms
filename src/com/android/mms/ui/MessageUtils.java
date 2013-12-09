@@ -127,6 +127,7 @@ public class MessageUtils {
     public static final String SUB_KEY  = MSimConstants.SUBSCRIPTION_KEY; // subscription
     // add for getting the read status when copy messages to sim card
     public static final int MESSAGE_READ = 1;
+    public static final int MESSAGE_SEEN = 1;
     // Received and read (TS 51.011 10.5.3)
     static public final int STATUS_ON_SIM_READ = 1;
     // add for obtaining icc uri when copying messages to card
