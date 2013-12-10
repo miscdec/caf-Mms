@@ -38,6 +38,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -66,6 +67,7 @@ import com.android.mms.model.RegionModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.R;
+import com.android.mms.util.AddressUtils;
 
 import com.android.mms.transaction.MessagingNotification;
 import com.google.android.mms.MmsException;
@@ -78,12 +80,17 @@ public class MobilePaperShowActivity extends Activity {
     private static final String TAG = "MobilePaperShowActivity";
     private static final String SMS_FONTSIZE = "smsfontsize";
     private static final int MENU_SLIDESHOW = 1;
+    private static final int MENU_CALL = 2;
+    private static final int MENU_REPLY = 3;
+
     private static final int ZOOMIN = 4;
     private static final int ZOOMOUT = 5;
     private static final int FONTSIZESTEP = 9;
     private static final int FONTSIZEMIN = 18;
     private static final int FONTSIZE_DEFAULT = 27;
     private static final int FONTSIZEMAX = 48;
+
+    private int mMailboxId = -1;
 
     private FrameLayout mSlideView;
     private SlideshowModel mSlideModel;
@@ -166,6 +173,7 @@ public class MobilePaperShowActivity extends Activity {
         Intent intent = getIntent();
         Uri msg = intent.getData();
         setContentView(R.layout.mobile_paper_view);
+        mMailboxId = getMmsMessageBoxID(this, msg);
         mUri = msg;
         MultimediaMessagePdu msgPdu;
         mRootView = (LinearLayout)findViewById(R.id.view_root);
@@ -311,6 +319,10 @@ public class MobilePaperShowActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        if (Mms.MESSAGE_BOX_INBOX == mMailboxId) {
+            menu.add(0, MENU_REPLY, 0, R.string.menu_reply);
+            menu.add(0, MENU_CALL, 0, R.string.menu_call);
+        }
         menu.add(0, MENU_SLIDESHOW, 0, R.string.view_slideshow);
         return true;
     }
@@ -326,6 +338,14 @@ public class MobilePaperShowActivity extends Activity {
                         intent.getBooleanExtra("mms_report", false));
                 finish();
                 break;
+            case MENU_REPLY: {
+                replyMessage(this, AddressUtils.getFrom(this, mUri));
+                finish();
+                break;
+            }
+            case MENU_CALL:
+                call();
+                break;
             case android.R.id.home:
                 finish();
                 break;
@@ -333,6 +353,83 @@ public class MobilePaperShowActivity extends Activity {
                 break;
         }
         return true;
+    }
+
+    private void replyMessage(Context context, String number) {
+        Intent intent = new Intent(context, ComposeMessageActivity.class);
+        intent.putExtra("address", number);
+        intent.putExtra("msg_reply", true);
+        context.startActivity(intent);
+    }
+
+    private void call() {
+        String msgFromTo = null;
+        if (mMailboxId == Mms.MESSAGE_BOX_INBOX) {
+            msgFromTo = AddressUtils.getFrom(this, mUri);
+        }
+        if (msgFromTo == null) {
+            return;
+        }
+
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            if (MessageUtils.getActivatedIccCardCount() > 1) {
+                showCallSelectDialog(msgFromTo);
+            } else {
+                if (MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
+                    MessageUtils.dialRecipient(this, msgFromTo, MessageUtils.SUB1);
+                } else if (MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
+                    MessageUtils.dialRecipient(this, msgFromTo, MessageUtils.SUB2);
+                }
+            }
+        } else {
+            MessageUtils.dialRecipient(this, msgFromTo, MessageUtils.SUB_INVALID);
+        }
+    }
+
+    private void showCallSelectDialog(final String msgFromTo) {
+        String[] items = new String[MessageUtils.getActivatedIccCardCount()];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = MessageUtils.getMultiSimName(this, i);
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.menu_call));
+        builder.setCancelable(true);
+        builder.setItems(items, new DialogInterface.OnClickListener() {
+            public final void onClick(DialogInterface dialog, int which) {
+                if (which == 0) {
+                    new Thread(new Runnable() {
+                        public void run() {
+                            MessageUtils.dialRecipient(MobilePaperShowActivity.this, msgFromTo,
+                                    MessageUtils.SUB1);
+                        }
+                    }).start();
+                } else {
+                    new Thread(new Runnable() {
+                        public void run() {
+                            MessageUtils.dialRecipient(MobilePaperShowActivity.this, msgFromTo,
+                                    MessageUtils.SUB2);
+                        }
+                    }).start();
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    private int getMmsMessageBoxID(Context context, Uri uri) {
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
+                uri, new String[] {Mms.MESSAGE_BOX}, null, null, null);
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    return cursor.getInt(0);
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return -1;
     }
 
     public static void viewMmsMessageAttachmentSliderShow(Context context,
