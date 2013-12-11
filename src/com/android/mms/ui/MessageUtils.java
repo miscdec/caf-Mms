@@ -204,6 +204,9 @@ public class MessageUtils {
     public static final int SEARCH_MODE_CONTENT = 0;
     public static final int SEARCH_MODE_NAME    = 1;
     public static final int SEARCH_MODE_NUMBER  = 2;
+    // add for different match mode in classify search
+    public static final int MATCH_BY_ADDRESS = 0;
+    public static final int MATCH_BY_THREAD_ID = 1;
 
     public static final int STORE_TO_PHONE = 1;
     public static final int STORE_TO_ICC = 2;
@@ -896,28 +899,26 @@ public class MessageUtils {
                 + " AND " + Mms.READ + " = 0"
                 + " AND " + Mms.READ_REPORT + " = " + PduHeaders.VALUE_YES);
 
-        String[] selectionArgs = null;
         if (threadIds != null) {
             String threadIdSelection = null;
             StringBuilder buf = new StringBuilder();
-            selectionArgs = new String[threadIds.size()];
             int i = 0;
 
             for (long threadId : threadIds) {
                 if (i > 0) {
-                    buf.append(" OR ");
+                    buf.append(",");
                 }
-                buf.append(Mms.THREAD_ID).append("=?");
-                selectionArgs[i++] = Long.toString(threadId);
+                buf.append(threadId);
+                i++;
             }
             threadIdSelection = buf.toString();
 
-            selectionBuilder.append(" AND (" + threadIdSelection + ")");
+            selectionBuilder.append(" AND " + Mms.THREAD_ID + " in (" + threadIdSelection + ")");
         }
 
         final Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
                         Mms.Inbox.CONTENT_URI, new String[] {Mms._ID, Mms.MESSAGE_ID},
-                        selectionBuilder.toString(), selectionArgs, null);
+                        selectionBuilder.toString(), null, null);
 
         if (c == null) {
             return;
@@ -1255,7 +1256,7 @@ public class MessageUtils {
         return builder.toString();
     }
 
-  private static Intent getVTCallIntent(String number) {
+    public static Intent getVTCallIntent(String number) {
         Intent intent = new Intent("com.borqs.videocall.action.LaunchVideoCallScreen");
         intent.addCategory(Intent.CATEGORY_DEFAULT);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
@@ -1265,7 +1266,7 @@ public class MessageUtils {
         return intent;
     }
 
-    private static boolean isVTSupported() {
+    public static boolean isVTSupported() {
         return SystemProperties.getBoolean(
                 "persist.radio.csvt.enabled"
         /*TelephonyProperties.PROPERTY_CSVT_ENABLED*/, false);
@@ -1421,24 +1422,31 @@ public class MessageUtils {
         if (TextUtils.isEmpty(name)) {
             return resultAddr;
         }
+        // Replace the ' to avoid SQL injection.
+        name = name.replace("'","''");
 
         try {
             c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
                     new String[] {ContactsContract.Data.RAW_CONTACT_ID},
                     ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME
-                    + " =? "  , new String[] {StructuredName.CONTENT_ITEM_TYPE, name}, null);
+                    + " like '%" + name + "%' ", new String[] {StructuredName.CONTENT_ITEM_TYPE},
+                    null);
 
             if (c == null) {
                 return resultAddr;
             }
 
-            if (!c.moveToFirst()) {
-                c.close();
-                return resultAddr;
+            int i = 0;
+            StringBuilder sb = new StringBuilder();
+            while (c.moveToNext()) {
+                long raw_contact_id = c.getLong(0);
+                if (i++ > 0) {
+                    sb.append(",");
+                }
+                sb.append(queryPhoneNumbersWithRaw(context, raw_contact_id));
             }
 
-            long raw_contact_id = c.getLong(0);
-            resultAddr = queryPhoneNumbersWithRaw(context, raw_contact_id);
+            resultAddr = sb.toString();
         } finally {
             if (c != null) {
                 c.close();

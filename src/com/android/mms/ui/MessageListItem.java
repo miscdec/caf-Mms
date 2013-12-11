@@ -390,7 +390,7 @@ public class MessageListItem extends LinearLayout implements
     private void updateAvatarView(String addr, boolean isSelf) {
         Drawable avatarDrawable;
         if (isSelf || !TextUtils.isEmpty(addr)) {
-            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, true);
+            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
             avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
 
             if (isSelf) {
@@ -703,7 +703,7 @@ public class MessageListItem extends LinearLayout implements
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
 
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && subId >= 0) {
             Drawable mSimIndicatorIcon = MessageUtils.getMultiSimIcon(mContext,subId);
             mSimIndicatorView.setImageDrawable(mSimIndicatorIcon);
             mSimIndicatorView.setVisibility(View.VISIBLE);
@@ -894,14 +894,13 @@ public class MessageListItem extends LinearLayout implements
                             mContext.startActivity(intent);
                         } else {
                             final String telPrefix = "tel:";
-                            final String mailToPrefix = "mailto:";
                             if (url.startsWith(telPrefix)) {
                                 url = url.substring(telPrefix.length());
-                            } else if (url.startsWith(mailToPrefix)) {
-                                url = url.substring(mailToPrefix.length());
-                            }
-                            if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
-                                MessageUtils.showNumberOptions(mContext, url);
+                                if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                                    MessageUtils.showNumberOptions(mContext, url);
+                                } else {
+                                    spans[which].onClick(mBodyTextView);
+                                }
                             } else {
                                 spans[which].onClick(mBodyTextView);
                             }

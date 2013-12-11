@@ -18,6 +18,7 @@
 package com.android.mms.ui;
 
 import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.text.TextUtils;
 
@@ -26,8 +27,10 @@ import com.android.mms.model.ImageModel;
 import com.android.mms.model.Model;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
+import com.android.mms.model.UnsupportModel;
 import com.android.mms.model.VcardModel;
 import com.android.mms.model.VideoModel;
+import com.android.mms.R;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ItemLoadedFuture;
 import com.android.mms.util.ThumbnailManager.ImageLoaded;
@@ -61,6 +64,8 @@ public class MmsThumbnailPresenter extends Presenter {
             presentAudioThumbnail(view, slide.getAudio());
         } else if (slide.hasVcard()) {
             presentVcardThumbnail(view, slide.getVcard());
+        } else if (slide.hasUnsupport()) {
+            presentUnsupportThumbnail(view);
         }
     }
 
@@ -113,6 +118,11 @@ public class MmsThumbnailPresenter extends Presenter {
         view.setVcard(
                 TextUtils.isEmpty(vcard.getLookupUri()) ? null : Uri.parse(vcard.getLookupUri()),
                 vcard.getSrc());
+    }
+
+    protected void presentUnsupportThumbnail(SlideViewInterface view) {
+        view.setImage(null, BitmapFactory.decodeResource(mContext.getResources(),
+                R.drawable.ic_missing_thumbnail_picture));
     }
 
     public void onModelChanged(Model model, boolean dataChanged) {

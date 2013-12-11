@@ -150,9 +150,9 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
 
         Contact contact = Contact.get(getFirstAddress(mAddress), true);
         if (mMsgType.equals("mms")) {
-            avatarDrawable = sDefaultContactImageMms;
+            avatarDrawable = contact.getAvatar(mContext, sDefaultContactImageMms);
         } else {
-            avatarDrawable = sDefaultContactImage;
+            avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
         }
 
         if (contact.existsInDatabase()) {
@@ -204,7 +204,8 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
 
     public void updateItemBackgroud(int position) {
         Cursor cursor = (Cursor)getItem(position);
-        View view = mListView.getChildAt(position);
+        int firstPosition = mListView.getFirstVisiblePosition();
+        View view = mListView.getChildAt(position - firstPosition);
         if (cursor == null || view == null) {
             return;
         }

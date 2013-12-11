@@ -144,7 +144,8 @@ public class MailBoxMessageList extends ListActivity implements
     // add for obtain parameters from SearchActivityExtend
     private int mSearchModePosition = MessageUtils.SEARCH_MODE_CONTENT;
     private String mSearchKeyStr = "";
-    private int mMatchWhole = 0;
+    private String mSearchDisplayStr = "";
+    private int mMatchWhole = MessageUtils.MATCH_BY_ADDRESS;
     private int mMailboxId;
 
     @Override
@@ -302,7 +303,8 @@ public class MailBoxMessageList extends ListActivity implements
             mSearchModePosition = intent.getIntExtra("mode_position",
                     MessageUtils.SEARCH_MODE_CONTENT);
             mSearchKeyStr = intent.getStringExtra("key_str");
-            mMatchWhole = intent.getIntExtra("match_whole", 0);
+            mSearchDisplayStr = intent.getStringExtra("display_str");
+            mMatchWhole = intent.getIntExtra("match_whole", MessageUtils.MATCH_BY_ADDRESS);
         }
 
         if (mMailboxId < 0) {
@@ -441,19 +443,14 @@ public class MailBoxMessageList extends ListActivity implements
                         mListView.setEmptyView(emptyView);
                         if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
                             int count = cursor.getCount();
-                            String searchKeyStr = mSearchKeyStr;
-
-                            if (mMatchWhole == 1) {
-                                searchKeyStr = Contact.get(mSearchKeyStr, true).getName();
-                            }
 
                             if (count > 0) {
                                 mMessageTitle.setText(getResources().getQuantityString(
                                     R.plurals.search_results_title, count, count,
-                                    searchKeyStr));
+                                    mSearchDisplayStr));
                             } else {
                                 mMessageTitle.setText(getResources().getQuantityString(
-                                    R.plurals.search_results_title, 0, 0, searchKeyStr));
+                                    R.plurals.search_results_title, 0, 0, mSearchDisplayStr));
                                 emptyView.setText(getString(R.string.search_empty));
                             }
                         }
@@ -472,6 +469,17 @@ public class MailBoxMessageList extends ListActivity implements
                                 mCountTextView.setText("" + count + "/" + cursor.getCount());
                             } else {
                                 mCountTextView.setText("" + cursor.getCount());
+                            }
+                        } else if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
+                            int count = cursor.getCount();
+
+                            if (count > 0) {
+                                mMessageTitle.setText(getResources().getQuantityString(
+                                    R.plurals.search_results_title, count, count,
+                                    mSearchDisplayStr));
+                            } else {
+                                mMessageTitle.setText(getResources().getQuantityString(
+                                    R.plurals.search_results_title, 0, 0, mSearchDisplayStr));
                             }
                         } else {
                             mCountTextView.setVisibility(View.INVISIBLE);
