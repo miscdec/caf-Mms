@@ -48,6 +48,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
     private MediaModel mAudio;
     private MediaModel mVideo;
     private MediaModel mVcard;
+    private MediaModel mUnsupport;
 
     private boolean mCanAddImage = true;
     private boolean mCanAddAudio = true;
@@ -157,6 +158,13 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 Log.w(TAG, "[SlideModel] content type " + media.getContentType() +
                         " - can't add vcard in this state");
             }
+        } else if (media instanceof UnsupportModel) {
+            internalAddOrReplace(mUnsupport, media);
+            mUnsupport = media;
+            mCanAddImage = false;
+            mCanAddAudio = false;
+            mCanAddVcard = false;
+            mCanAddVideo = false;
         }
     }
 
@@ -164,7 +172,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
         // If the media is resizable, at this point consider it to be zero length.
         // Just before we send the slideshow, we take the remaining space in the
         // slideshow and equally allocate it to all the resizeable media items and resize them.
-        int addSize = media.getMediaResizable() ? 0 : media.getMediaSize();
+        int addSize = media.getMediaSize();
         int removeSize;
         if (old == null) {
             if (null != mParent) {
@@ -174,7 +182,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
             increaseSlideSize(addSize);
             increaseMessageSize(addSize);
         } else {
-            removeSize = old.getMediaResizable() ? 0 : old.getMediaSize();
+            removeSize = old.getMediaSize();
             if (addSize > removeSize) {
                 if (null != mParent) {
                     mParent.checkMessageSize(addSize - removeSize);
@@ -216,8 +224,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
             // If the media is resizable, at this point consider it to be zero length.
             // Just before we send the slideshow, we take the remaining space in the
             // slideshow and equally allocate it to all the resizeable media items and resize them.
-            int decreaseSize = ((MediaModel) object).getMediaResizable() ? 0
-                                        : ((MediaModel) object).getMediaSize();
+            int decreaseSize = ((MediaModel) object).getMediaSize();
             decreaseSlideSize(decreaseSize);
             decreaseMessageSize(decreaseSize);
 
@@ -327,6 +334,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
             mImage = null;
             mAudio = null;
             mVideo = null;
+            mUnsupport = null;
 
             mCanAddImage = true;
             mCanAddAudio = true;
@@ -519,6 +527,10 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
 
     public boolean hasVcard() {
         return mVcard != null;
+    }
+
+    public boolean hasUnsupport() {
+        return mUnsupport != null;
     }
 
     public boolean removeText() {
