@@ -481,6 +481,9 @@ public class SlideEditorActivity extends Activity {
             case MENU_RECORD_SOUND:
                 slide = mSlideshowModel.get(mPosition);
                 int currentSlideSize = slide.getSlideSize();
+                if (slide.hasImage()) {
+                    currentSlideSize -= slide.getImage().getDefaultResizedMediaSize();
+                }
                 long sizeLimit = ComposeMessageActivity.computeAttachmentSizeLimit(mSlideshowModel,
                         currentSlideSize);
                 MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, sizeLimit);
@@ -500,6 +503,9 @@ public class SlideEditorActivity extends Activity {
             case MENU_TAKE_VIDEO:
                 slide = mSlideshowModel.get(mPosition);
                 currentSlideSize = slide.getSlideSize();
+                if (slide.hasImage()) {
+                    currentSlideSize -= slide.getImage().getDefaultResizedMediaSize();
+                }
                 sizeLimit = ComposeMessageActivity.computeAttachmentSizeLimit(mSlideshowModel,
                         currentSlideSize);
                 if (sizeLimit > 0) {
