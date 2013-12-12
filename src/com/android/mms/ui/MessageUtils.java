@@ -125,6 +125,10 @@ public class MessageUtils {
     public static final int SUB1 = 0;  // for DSDS product of slot one
     public static final int SUB2 = 1;  // for DSDS product of slot two
     public static final String SUB_KEY  = MSimConstants.SUBSCRIPTION_KEY; // subscription
+    // add manage mode of multi select action
+    public static final int INVALID_MODE= -1;
+    public static final int FORWARD_MODE = 0;
+    public static final int SIM_MESSAGE_MODE = 1;
     // add for getting the read status when copy messages to sim card
     public static final int MESSAGE_READ = 1;
     public static final int MESSAGE_SEEN = 1;
@@ -227,6 +231,9 @@ public class MessageUtils {
     // If set the special property, enable mms data even if mobile data is turned off.
     public static final boolean CAN_SETUP_MMS_DATA =
             SystemProperties.getBoolean("persist.env.mms.setupmmsdata", false);
+    // support batch delete in message list view.
+    public static final boolean SUPPORT_BATCH_DELETE = SystemProperties
+            .getBoolean("persist.env.mms.batchdelete", true);
 
     private static final String[] WEB_SCHEMA =
                         new String[] { "http://", "https://", "rtsp://" };
