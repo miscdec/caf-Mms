@@ -821,7 +821,7 @@ public class MessageListItem extends LinearLayout implements
             sendMessage(mMessageItem, MSG_LIST_DETAILS);    // show the message details dialog
         } else if (spans.length == 1) {
             if((mMessageItem != null)
-                    && BROWSER_ADDRESS.equals(mMessageItem.mAddress)
+                    && MessageUtils.isWapPushNumber(mMessageItem.mAddress)
                     && SystemProperties.getBoolean("persist.env.mms.wappushdialog", false)) {
                 DialogInterface.OnClickListener click = new DialogInterface.OnClickListener() {
                     @Override

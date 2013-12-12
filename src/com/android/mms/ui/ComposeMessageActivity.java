@@ -2401,14 +2401,27 @@ public class ComposeMessageActivity extends Activity
                 if (mRecipientsEditor != null) {
                     recipient = mRecipientsEditor.getText().toString().trim();
                 }
-                title = (TextUtils.isEmpty(recipient))
-                        ? getString(R.string.new_message) : recipient;
+                if (recipient.contains(MessageUtils.WAPPUSH)) {
+                    String[] mAddresses = recipient.split(":");
+                    title = mAddresses[MessageUtils.WAP_PUSH_ADDRESS_INDEX];
+                } else {
+                    title = TextUtils.isEmpty(recipient)
+                            ? getString(R.string.new_message) : recipient;
+                }
                 break;
             }
             case 1: {
                 title = list.get(0).getName();      // get name returns the number if there's no
                                                     // name available.
                 String number = list.get(0).getNumber();
+                if (number.contains(MessageUtils.WAPPUSH)) {
+                    String[] mTitleNumber = number.split(":");
+                    number = mTitleNumber[MessageUtils.WAP_PUSH_ADDRESS_INDEX];
+                }
+                if (title.contains(MessageUtils.WAPPUSH)) {
+                    String[] mTitle = title.split(":");
+                    title = mTitle[MessageUtils.WAP_PUSH_ADDRESS_INDEX];
+                }
                 if (!title.equals(number)) {
                     subTitle = PhoneNumberUtils.formatNumber(number, number,
                             MmsApp.getApplication().getCurrentCountryIso());
@@ -3418,7 +3431,7 @@ public class ComposeMessageActivity extends Activity
     private boolean isRecipientCallable() {
         ContactList recipients = getRecipients();
         return (recipients.size() == 1 && !recipients.containsEmail()
-                && !recipients.get(0).getNumber().equals(MessageUtils.WAPPUSH));
+                && !recipients.get(0).getNumber().contains(MessageUtils.WAPPUSH));
     }
 
     private void dialRecipient() {
