@@ -197,6 +197,8 @@ public class MessageUtils {
     private static AlertDialog memoryStatusDialog = null;
 
     public static String WAPPUSH = "Browser Information"; // Wap push key
+    public static int WAP_PUSH_ADDRESS_INDEX =
+            SystemProperties.getInt("persist.env.c.mms.addressindex", 1);
 
     public static final int ALL_RECIPIENTS_VALID   = 0;
     public static final int ALL_RECIPIENTS_INVALID = -1;
@@ -468,7 +470,14 @@ public class MessageUtils {
         } else {
             details.append(res.getString(R.string.from_label));
         }
-        details.append(cursor.getString(MessageListAdapter.COLUMN_SMS_ADDRESS));
+
+        if (cursor.getString(MessageListAdapter.COLUMN_SMS_ADDRESS).contains(WAPPUSH)) {
+            String[] mAddresses = cursor.getString(
+                    MessageListAdapter.COLUMN_SMS_ADDRESS).split(":");
+            details.append(mAddresses[MessageUtils.WAP_PUSH_ADDRESS_INDEX]);
+        } else {
+            details.append(cursor.getString(MessageListAdapter.COLUMN_SMS_ADDRESS));
+        }
 
         // Sent: ***
         if (smsType == Sms.MESSAGE_TYPE_INBOX) {
