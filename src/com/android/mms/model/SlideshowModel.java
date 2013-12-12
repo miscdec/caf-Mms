@@ -53,6 +53,7 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.dom.smil.parser.SmilXmlSerializer;
 import com.android.mms.layout.LayoutManager;
+import com.android.mms.ui.UriImage;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.CharacterSets;
@@ -410,6 +411,10 @@ public class SlideshowModel extends Model
         mCurrentMessageSize = size;
     }
 
+    public void setTotalMessageSize(int size) {
+        mTotalMessageSize = size;
+    }
+
     // getCurrentMessageSize returns the size of the message, not including resizable attachments
     // such as photos. mCurrentMessageSize is used when adding/deleting/replacing non-resizable
     // attachments (movies, sounds, etc) in order to compute how much size is left in the message.
@@ -673,14 +678,6 @@ public class SlideshowModel extends Model
         if (dataChanged) {
             mDocumentCache = null;
             mPduBodyCache = null;
-
-            // initialize message size before call createFromPduBody()
-            mTotalMessageSize = 0;
-            for (SlideModel slide : mSlides) {
-                for (MediaModel m : slide) {
-                    mTotalMessageSize += m.getMediaSize();
-                }
-            }
         }
     }
 
@@ -813,6 +810,72 @@ public class SlideshowModel extends Model
             //      /data/data/com.android.providers.telephony/app_parts
             // and at the same time delete the old parts.
             PduPersister.getPduPersister(mContext).updateParts(messageUri, pb, null);
+        }
+    }
+
+    public void resizeBeforeSendMms() {
+        int resizeableSizeTotal = 0;
+        int resizableCnt = 0;
+        int fixedSizeTotal = 0;
+        for (SlideModel slide : mSlides) {
+            for (MediaModel media : slide) {
+                if (media.getMediaResizable()) {
+                    ++resizableCnt;
+                } else {
+                    fixedSizeTotal += media.getMediaSize();
+                }
+            }
+        }
+        if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+            Log.v(TAG, "resizeBeforeSendMms: original message size: " + getCurrentMessageSize() +
+                    " getMaxMessageSize: " + MmsConfig.getMaxMessageSize() +
+                    " fixedSizeTotal: " + fixedSizeTotal);
+        }
+        if (resizableCnt > 0) {
+            int remainingSize = MmsConfig.getMaxMessageSize() - fixedSizeTotal - SLIDESHOW_SLOP;
+            if (remainingSize > 0) {
+                int bytesPerMediaItem = remainingSize / resizableCnt;
+                for (SlideModel slide : mSlides) {
+                    for (MediaModel media : slide) {
+                        if (media.getMediaResizable()) {
+                            UriImage image = new UriImage(mContext, media.getUri());
+
+                            int widthLimit = MmsConfig.getMaxImageWidth();
+                            int heightLimit = MmsConfig.getMaxImageHeight();
+                            int size = media.getMediaSize();
+                            // In mms_config.xml, the max width has always been declared
+                            // larger than the max height.
+                            // Swap the width and height limits if necessary so we scale the
+                            // picture as little as possible.
+                            if (image.getHeight() > image.getWidth()) {
+                                int temp = widthLimit;
+                                widthLimit = heightLimit;
+                                heightLimit = temp;
+                            }
+                            if (size != 0 && size <= bytesPerMediaItem &&
+                                    image.getWidth() <= widthLimit &&
+                                    image.getHeight() <= heightLimit &&
+                                    ImageModel.SUPPORTED_MMS_IMAGE_CONTENT_TYPES
+                                            .contains(image.getContentType())) {
+                                if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                                    Log.v(TAG, "resizeBeforeSendMms - already sized");
+                                }
+                                resizeableSizeTotal += size;
+                                continue;
+                            }
+
+                            PduPart part = image.getResizedImageAsPart(
+                                    widthLimit,
+                                    heightLimit,
+                                    bytesPerMediaItem);
+                            if (part != null) {
+                                resizeableSizeTotal += part.getData().length;
+                            }
+                        }
+                    }
+                }
+            }
+            setTotalMessageSize(resizeableSizeTotal + fixedSizeTotal);
         }
     }
 
