@@ -73,6 +73,7 @@ import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.WorkingMessage;
+import com.android.mms.model.LayoutModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.transaction.Transaction;
@@ -119,6 +120,8 @@ public class MessageListItem extends LinearLayout implements
     private ImageButton mSlideShowButton;
     private TextView mSimMessageAddress;
     private TextView mBodyTextView;
+    private TextView mBodyButtomTextView;
+    private TextView mBodyTopTextView;
     private Button mDownloadButton;
     private View mDownloading;
     private Handler mHandler;
@@ -161,7 +164,10 @@ public class MessageListItem extends LinearLayout implements
     protected void onFinishInflate() {
         super.onFinishInflate();
 
-        mBodyTextView = (TextView) findViewById(R.id.text_view);
+        mBodyTopTextView = (TextView) findViewById(R.id.text_view_top);
+        mBodyTopTextView.setVisibility(View.GONE);
+        mBodyButtomTextView = (TextView) findViewById(R.id.text_view_buttom);
+        mBodyButtomTextView.setVisibility(View.GONE);
         mDateView = (TextView) findViewById(R.id.date_view);
         mLockedIndicator = (ImageView) findViewById(R.id.locked_indicator);
         mDeliveredIndicator = (ImageView) findViewById(R.id.delivered_indicator);
@@ -180,7 +186,12 @@ public class MessageListItem extends LinearLayout implements
         }
         boolean sameItem = mMessageItem != null && mMessageItem.mMsgId == msgItem.mMsgId;
         mMessageItem = msgItem;
-
+        if (mMessageItem.isMms() && mMessageItem.mLayoutType == LayoutModel.LAYOUT_TOP_TEXT) {
+            mBodyTextView = mBodyTopTextView;
+        } else {
+            mBodyTextView = mBodyButtomTextView;
+        }
+        mBodyTextView.setVisibility(View.VISIBLE);
         mPosition = position;
         mMultiRecipients = convHasMultiRecipients;
 
@@ -418,6 +429,10 @@ public class MessageListItem extends LinearLayout implements
             }
         }
         mAvatar.setImageDrawable(avatarDrawable);
+    }
+
+    public TextView getBodyTextView() {
+        return mBodyTextView;
     }
 
     private void bindCommonMessage(final boolean sameItem) {

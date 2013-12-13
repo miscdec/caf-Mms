@@ -37,6 +37,7 @@ import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.WorkingMessage;
 import com.android.mms.drm.DrmUtils;
+import com.android.mms.model.LayoutModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.TextModel;
@@ -118,6 +119,7 @@ public class MessageItem {
     boolean mIsForwardable;
     boolean mHaveSomethingToCopyToSDCard;
     boolean mIsDrmRingtoneWithRights;
+    int mLayoutType = LayoutModel.DEFAULT_LAYOUT_TYPE;
 
     private static final boolean DISPLAY_SENT_TIME =
             SystemProperties.getBoolean("persist.env.mms.senttime", false);
@@ -371,6 +373,9 @@ public class MessageItem {
                 MultimediaMessagePdu msg = (MultimediaMessagePdu)pduLoaded.mPdu;
                 mSlideshow = pduLoaded.mSlideshow;
                 mAttachmentType = MessageUtils.getAttachmentType(mSlideshow);
+                if (mSlideshow != null && mSlideshow.getLayout() != null) {
+                    mLayoutType = mSlideshow.getLayout().getLayoutType();
+                }
 
                 if (mMessageType == PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF) {
                     if (msg == null) {
