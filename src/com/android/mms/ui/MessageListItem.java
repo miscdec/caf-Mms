@@ -252,6 +252,8 @@ public class MessageListItem extends LinearLayout implements
 
         mDateView.setText(buildTimestampLine(msgSizeText + " " + mMessageItem.mTimestamp));
 
+        updateSimIndicatorView(mMessageItem.mSubscription);
+
         switch (mMessageItem.getMmsDownloadStatus()) {
             case DownloadManager.STATE_PRE_DOWNLOADING:
             case DownloadManager.STATE_DOWNLOADING:
@@ -351,6 +353,16 @@ public class MessageListItem extends LinearLayout implements
         mDeliveredIndicator.setVisibility(View.GONE);
         mDetailsIndicator.setVisibility(View.GONE);
         updateAvatarView(mMessageItem.mAddress, false);
+    }
+
+    private void updateSimIndicatorView(int subscription) {
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                && subscription >= 0) {
+            Drawable mSimIndicatorIcon = MessageUtils.getMultiSimIcon(mContext,
+                    subscription);
+            mSimIndicatorView.setImageDrawable(mSimIndicatorIcon);
+            mSimIndicatorView.setVisibility(View.VISIBLE);
+        }
     }
 
     private void startDownloadAttachment() {
@@ -490,7 +502,7 @@ public class MessageListItem extends LinearLayout implements
         if (!sameItem || haveLoadedPdu) {
             mBodyTextView.setText(formattedMessage);
         }
-
+        updateSimIndicatorView(mMessageItem.mSubscription);
         // Debugging code to put the URI of the image attachment in the body of the list item.
         if (DEBUG) {
             String debugText = null;
@@ -717,12 +729,6 @@ public class MessageListItem extends LinearLayout implements
                                        int subId, String subject, Pattern highlight,
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
-
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && subId >= 0) {
-            Drawable mSimIndicatorIcon = MessageUtils.getMultiSimIcon(mContext,subId);
-            mSimIndicatorView.setImageDrawable(mSimIndicatorIcon);
-            mSimIndicatorView.setVisibility(View.VISIBLE);
-        }
 
         boolean hasSubject = !TextUtils.isEmpty(subject);
         SmileyParser parser = SmileyParser.getInstance();
