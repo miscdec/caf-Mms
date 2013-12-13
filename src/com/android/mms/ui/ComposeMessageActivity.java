@@ -1424,7 +1424,7 @@ public class ComposeMessageActivity extends Activity
         int selEnd = -1;
 
         //check if message sender is selected
-        textView = (TextView) msglistItem.findViewById(R.id.text_view);
+        textView = (TextView) msglistItem.getBodyTextView();
         if (textView != null) {
             text = textView.getText();
             selStart = textView.getSelectionStart();
