@@ -818,7 +818,7 @@ public class SlideshowModel extends Model
         }
     }
 
-    public void resizeBeforeSendMms() {
+    public void compress() {
         int resizeableSizeTotal = 0;
         int resizableCnt = 0;
         int fixedSizeTotal = 0;
@@ -865,6 +865,7 @@ public class SlideshowModel extends Model
                                 if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                                     Log.v(TAG, "resizeBeforeSendMms - already sized");
                                 }
+                                resizeableSizeTotal += size;
                                 continue;
                             }
 

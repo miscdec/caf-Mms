@@ -977,6 +977,8 @@
 
     <string name="unsupported_content_type">Can\'t display MMS: Unsupported attachment type.</string>
 
+    <string name="mms_size_indicator"><xliff:g id="mms_size">%1$s</xliff:g>K/<xliff:g id="all_size">%2$s</xliff:g>K</string>
+
     <!-- Settings item description for Preferred storage -->
     <string name="pref_title_sms_store">Preferred storage</string>
     <string name="pref_title_sms_store_card1">Card1 preferred storage</string>
