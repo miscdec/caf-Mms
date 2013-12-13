@@ -1644,7 +1644,6 @@ public class MessageUtils {
         long mmsMaxSize = dbSize;
         long mmsMinSize = mmsCount * 3 * 1024;
         long smsSize = smsCount * 1024;
-        mmsfileSize = mmsMaxSize - smsSize;
         return (mmsfileSize < mmsMinSize ? mmsMinSize : mmsfileSize);
     }
 
