@@ -227,6 +227,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_VIDEOCALL_RECIPIENT   = 8;
     private static final int MENU_SEND_BY_SLOT1         = 9;
     private static final int MENU_SEND_BY_SLOT2         = 10;
+    private static final int MENU_FOWARD_CONVERSATION    = 11;
 
     // Context menu ID
     private static final int MENU_VIEW_CONTACT          = 12;
@@ -267,8 +268,8 @@ public class ComposeMessageActivity extends Activity
 
     private static final long NO_DATE_FOR_DIALOG = -1L;
 
-    private static final String KEY_EXIT_ON_SENT = "exit_on_sent";
-    private static final String KEY_FORWARDED_MESSAGE = "forwarded_message";
+    protected static final String KEY_EXIT_ON_SENT = "exit_on_sent";
+    protected static final String KEY_FORWARDED_MESSAGE = "forwarded_message";
 
     private static final String EXIT_ECM_RESULT = "exit_ecm_result";
     private static final String ACTION_SEND_MULTIPLE="action_send_multiple";
@@ -452,6 +453,7 @@ public class ComposeMessageActivity extends Activity
     // keys for extras and icicles
     public final static String THREAD_ID = "thread_id";
     private final static String RECIPIENTS = "recipients";
+    public final static String MANAGE_MODE = "manage_mode";
 
     private boolean isLocked = false;
 
@@ -479,6 +481,10 @@ public class ComposeMessageActivity extends Activity
 
     private final static boolean CHECK_ENTER_KEY = SystemProperties.getBoolean(
             "persist.env.mms.enterkey", false);
+
+    // support forward conversation
+    private final static boolean FORWARD_CONVERSATION = SystemProperties
+            .getBoolean("persist.env.mms.forwardconv", false);
 
     /**
      * Whether the audio attachment player activity is launched and running
@@ -3565,6 +3571,9 @@ public class ComposeMessageActivity extends Activity
             if ((null != cursor) && (cursor.getCount() > 0)) {
                 menu.add(0, MENU_DELETE_THREAD, 0, R.string.delete_thread).setIcon(
                     android.R.drawable.ic_menu_delete);
+                if (FORWARD_CONVERSATION && mMsgListAdapter.hasSmsInConversation(cursor)) {
+                    menu.add(0, MENU_FOWARD_CONVERSATION, 0, R.string.menu_forward_conversation);
+                }
             }
         } else {
             menu.add(0, MENU_DISCARD, 0, R.string.discard).setIcon(android.R.drawable.ic_menu_delete);
@@ -3659,6 +3668,13 @@ public class ComposeMessageActivity extends Activity
             case MENU_INSERT_SMILEY:
                 showSmileyDialog();
                 break;
+            case MENU_FOWARD_CONVERSATION: {
+                Intent intent = new Intent(this, ManageMultiSelectAction.class);
+                intent.putExtra(MANAGE_MODE, MessageUtils.FORWARD_MODE);
+                intent.putExtra(THREAD_ID, mConversation.getThreadId());
+                startActivity(intent);
+                break;
+            }
             case MENU_IMPORT_TEMPLATE:
                 showDialog(DIALOG_IMPORT_TEMPLATE);
                 break;
