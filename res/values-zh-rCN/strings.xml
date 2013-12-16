@@ -436,7 +436,7 @@
     <!-- SMSC -->
     <string name="pref_smsc_title">短消息中心设置</string>
     <string name="pref_one_smcs">"设置短消息中心号码"</string>
-    <string name="pref_more_smcs">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
+    <string name="pref_more_smcs">"设置SIM卡"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
     <string name="set_smsc_error">设置短消息中心号码失败</string>
     <string name="set_smsc_success">设置短消息中心号码成功</string>
     <string name="set_smsc_confirm_message">修改短消息中心号码可能导致短信发送失败，确认修改吗？</string>
@@ -528,4 +528,8 @@
     <string name="pref_sms_store_phone">话机</string>
     <string name="pref_sms_store_card">SIM卡</string>
     <string name="pref_sms_store_card_unknown_fail">新短信接收失败，无法正确读取SIM卡</string>
+    <!-- batch delete message in ConversationList and MailBoxMessageList -->
+    <string name="selected_all">全选</string>
+    <string name="deselected_all">取消全选</string>
+    <string name="selected_count"><xliff:g id="COUNT">%d</xliff:g> 项选中了</string>
 </resources>

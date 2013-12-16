@@ -889,7 +889,7 @@
     <!-- SMSC -->
     <string name="pref_smsc_title">SMSC Setings</string>
     <string name="pref_one_smcs">"Set the smsc number"</string>
-    <string name="pref_more_smcs">"Set the slot"<xliff:g id="slot_number">%d</xliff:g>"'s smsc number"</string>
+    <string name="pref_more_smcs">"Set the SIM"<xliff:g id="slot_number">%d</xliff:g>"'s smsc number"</string>
     <string name="set_smsc_error">Set the smsc number error</string>
     <string name="set_smsc_success">Set the smsc number success</string>
     <string name="set_smsc_confirm_message">Change the smsc may lead to the SMS sending failure, to confirm the change?</string>
@@ -989,5 +989,9 @@
     <string name="configuration_message">Configuration Message</string>
     <string name="configuration_message_key">Configuration Message</string>
     <string name="configuration_message_key_activity">Click to start Configuration Message Activity</string>
+    <!-- batch delete message in ConversationList and MailBoxMessageList -->
+    <string name="selected_all">Select all</string>
+    <string name="deselected_all">Deselect all</string>
+    <string name="selected_count"><xliff:g id="COUNT">%d</xliff:g> selected</string>
 </resources>
 
