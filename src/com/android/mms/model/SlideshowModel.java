@@ -442,6 +442,8 @@ public class SlideshowModel extends Model
             for (MediaModel media : slide) {
                 if (!media.getMediaResizable()) {
                     totalMediaSize += media.getMediaSize();
+                } else {
+                    totalMediaSize += media.getDefaultResizedMediaSize();
                 }
             }
         }
@@ -817,6 +819,7 @@ public class SlideshowModel extends Model
     }
 
     public void resizeBeforeSendMms() {
+        int resizeableSizeTotal = 0;
         int resizableCnt = 0;
         int fixedSizeTotal = 0;
         for (SlideModel slide : mSlides) {
@@ -862,7 +865,7 @@ public class SlideshowModel extends Model
                                 if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                                     Log.v(TAG, "resizeBeforeSendMms - already sized");
                                 }
-                                return;
+                                continue;
                             }
 
                             PduPart part = image.getResizedImageAsPart(
@@ -870,13 +873,13 @@ public class SlideshowModel extends Model
                                     heightLimit,
                                     bytesPerMediaItem);
                             if (part != null) {
-                                media.mSize = part.getData().length;
+                                resizeableSizeTotal += part.getData().length;
                             }
                         }
                     }
                 }
             }
-            updateTotalMessageSize();
+            setTotalMessageSize(resizeableSizeTotal + fixedSizeTotal);
         }
     }
 
