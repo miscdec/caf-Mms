@@ -154,6 +154,7 @@ public class SlideshowAttachmentView extends LinearLayout implements
     }
 
     public void setVideoThumbnail(String name, Bitmap bitmap) {
+        mImageView.setImageBitmap(bitmap);
     }
 
     @Override
