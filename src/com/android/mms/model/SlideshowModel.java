@@ -730,9 +730,10 @@ public class SlideshowModel extends Model
         boolean hasImage = slide.hasImage();
         boolean hasVideo = slide.hasVideo();
         boolean hasVcard = slide.hasVcard();
-        if ((hasImage && !hasVideo && !hasVcard)
+        boolean hasText = slide.hasText();
+        if (!hasText && ((hasImage && !hasVideo && !hasVcard)
                 || (!hasImage && hasVideo && !hasVcard)
-                || (!hasImage && !hasVideo && hasVcard)) {
+                || (!hasImage && !hasVideo && hasVcard))) {
             return true;
         } else {
             return false;
@@ -818,7 +819,7 @@ public class SlideshowModel extends Model
         }
     }
 
-    public void resizeBeforeSendMms() {
+    public void compress() {
         int resizeableSizeTotal = 0;
         int resizableCnt = 0;
         int fixedSizeTotal = 0;
@@ -865,6 +866,7 @@ public class SlideshowModel extends Model
                                 if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                                     Log.v(TAG, "resizeBeforeSendMms - already sized");
                                 }
+                                resizeableSizeTotal += size;
                                 continue;
                             }
 
