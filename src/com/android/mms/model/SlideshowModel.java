@@ -442,6 +442,8 @@ public class SlideshowModel extends Model
             for (MediaModel media : slide) {
                 if (!media.getMediaResizable()) {
                     totalMediaSize += media.getMediaSize();
+                } else {
+                    totalMediaSize += media.getDefaultResizedMediaSize();
                 }
             }
         }
@@ -862,7 +864,7 @@ public class SlideshowModel extends Model
                                 if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                                     Log.v(TAG, "resizeBeforeSendMms - already sized");
                                 }
-                                return;
+                                continue;
                             }
 
                             PduPart part = image.getResizedImageAsPart(

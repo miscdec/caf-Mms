@@ -220,26 +220,32 @@ public class SlideshowPresenter extends Presenter {
         }
 
         if (dataChanged) {
-            final Handler bitmapHandler = new Handler() {
-                @Override
-                public void handleMessage(Message message) {
-                    view.setImage(image.getSrc(), (Bitmap)message.obj);
-                }
-            };
-            Thread BitmapLoaderThread = new Thread() {
-                @Override
-                public void run() {
-                    Bitmap drawable;
-                    if (view instanceof SlideListItemView) {
-                        drawable = image.getBitmap(normalSlideW, normalSlideH);
-                    } else {
-                        drawable = image.getBitmap(transformedWidth, transformedHeight);
+            if (mContext instanceof SlideshowActivity) {
+                // If use async thread to update image in SlideshowActivity
+                // When playing slide show, the image will appear in the next slide.
+                view.setImage(image.getSrc(), image.getBitmap(r.getWidth(), r.getHeight()));
+            } else {
+                final Handler bitmapHandler = new Handler() {
+                    @Override
+                    public void handleMessage(Message message) {
+                        view.setImage(image.getSrc(), (Bitmap) message.obj);
                     }
-                    Message message = bitmapHandler.obtainMessage(1, drawable);
-                    bitmapHandler.sendMessage(message);
-                }
-            };
-            BitmapLoaderThread.start();
+                };
+                Thread BitmapLoaderThread = new Thread() {
+                    @Override
+                    public void run() {
+                        Bitmap drawable;
+                        if (view instanceof SlideListItemView) {
+                            drawable = image.getBitmap(normalSlideW, normalSlideH);
+                        } else {
+                            drawable = image.getBitmap(transformedWidth, transformedHeight);
+                        }
+                        Message message = bitmapHandler.obtainMessage(1, drawable);
+                        bitmapHandler.sendMessage(message);
+                    }
+                };
+                BitmapLoaderThread.start();
+            }
         }
 
         if (view instanceof AdaptableSlideViewInterface) {
