@@ -63,6 +63,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -73,6 +74,7 @@ import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.WorkingMessage;
+import com.android.mms.model.LayoutModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.transaction.Transaction;
@@ -105,6 +107,8 @@ public class MessageListItem extends LinearLayout implements
     // The message is from Browser
     private static final String BROWSER_ADDRESS = "Browser Information";
     private static final String CANCEL_URI = "canceluri";
+    // transparent background
+    private static final int ALPHA_TRANSPARENT = 0;
 
     static final int MSG_LIST_EDIT    = 1;
     static final int MSG_LIST_PLAY    = 2;
@@ -119,8 +123,12 @@ public class MessageListItem extends LinearLayout implements
     private ImageButton mSlideShowButton;
     private TextView mSimMessageAddress;
     private TextView mBodyTextView;
+    private TextView mBodyButtomTextView;
+    private TextView mBodyTopTextView;
     private Button mDownloadButton;
     private View mDownloading;
+    private LinearLayout mMmsLayout;
+    private CheckBox mChecked;
     private Handler mHandler;
     private MessageItem mMessageItem;
     private String mDefaultCountryIso;
@@ -132,6 +140,7 @@ public class MessageListItem extends LinearLayout implements
     private int mPosition;      // for debugging
     private ImageLoadedCallback mImageLoadedCallback;
     private boolean mMultiRecipients;
+    private int mManageMode;
     // Cancle download MMS during downloading for CT
     private boolean isMmsCancelable = SystemProperties
             .getBoolean("persist.env.mms.mmscancelable", false);
@@ -161,7 +170,10 @@ public class MessageListItem extends LinearLayout implements
     protected void onFinishInflate() {
         super.onFinishInflate();
 
-        mBodyTextView = (TextView) findViewById(R.id.text_view);
+        mBodyTopTextView = (TextView) findViewById(R.id.text_view_top);
+        mBodyTopTextView.setVisibility(View.GONE);
+        mBodyButtomTextView = (TextView) findViewById(R.id.text_view_buttom);
+        mBodyButtomTextView.setVisibility(View.GONE);
         mDateView = (TextView) findViewById(R.id.date_view);
         mLockedIndicator = (ImageView) findViewById(R.id.locked_indicator);
         mDeliveredIndicator = (ImageView) findViewById(R.id.delivered_indicator);
@@ -170,6 +182,27 @@ public class MessageListItem extends LinearLayout implements
         mSimIndicatorView = (ImageView) findViewById(R.id.sim_indicator_icon);
         mMessageBlock = findViewById(R.id.message_block);
         mSimMessageAddress = (TextView) findViewById(R.id.sim_message_address);
+        mMmsLayout = (LinearLayout) findViewById(R.id.mms_layout_view_parent);
+        mChecked = (CheckBox) findViewById(R.id.selected_check);
+    }
+
+    // add for setting the background according to whether the item is selected
+    public void markAsSelected(boolean selected) {
+        if (MessageUtils.SUPPORT_BATCH_DELETE) {
+            if (selected) {
+                if (mChecked != null) {
+                    mChecked.setChecked(selected);
+                }
+                mMessageBlock.getBackground().setAlpha(ALPHA_TRANSPARENT);
+                mMmsLayout.setBackgroundResource(R.drawable.list_selected_holo_light);
+            } else {
+                if (mChecked != null) {
+                    mChecked.setChecked(selected);
+                }
+                mMessageBlock.setBackgroundResource(R.drawable.listitem_background);
+                mMmsLayout.setBackgroundResource(R.drawable.listitem_background);
+            }
+        }
     }
 
     public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position) {
@@ -180,7 +213,12 @@ public class MessageListItem extends LinearLayout implements
         }
         boolean sameItem = mMessageItem != null && mMessageItem.mMsgId == msgItem.mMsgId;
         mMessageItem = msgItem;
-
+        if (mMessageItem.isMms() && mMessageItem.mLayoutType == LayoutModel.LAYOUT_TOP_TEXT) {
+            mBodyTextView = mBodyTopTextView;
+        } else {
+            mBodyTextView = mBodyButtomTextView;
+        }
+        mBodyTextView.setVisibility(View.VISIBLE);
         mPosition = position;
         mMultiRecipients = convHasMultiRecipients;
 
@@ -240,6 +278,8 @@ public class MessageListItem extends LinearLayout implements
                                             mMessageItem.mTextContentType));
 
         mDateView.setText(buildTimestampLine(msgSizeText + " " + mMessageItem.mTimestamp));
+
+        updateSimIndicatorView(mMessageItem.mSubscription);
 
         switch (mMessageItem.getMmsDownloadStatus()) {
             case DownloadManager.STATE_PRE_DOWNLOADING:
@@ -342,6 +382,16 @@ public class MessageListItem extends LinearLayout implements
         updateAvatarView(mMessageItem.mAddress, false);
     }
 
+    private void updateSimIndicatorView(int subscription) {
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                && subscription >= 0) {
+            Drawable mSimIndicatorIcon = MessageUtils.getMultiSimIcon(mContext,
+                    subscription);
+            mSimIndicatorView.setImageDrawable(mSimIndicatorIcon);
+            mSimIndicatorView.setVisibility(View.VISIBLE);
+        }
+    }
+
     private void startDownloadAttachment() {
         mDownloading.setVisibility(View.VISIBLE);
         mDownloadButton.setVisibility(View.GONE);
@@ -420,6 +470,10 @@ public class MessageListItem extends LinearLayout implements
         mAvatar.setImageDrawable(avatarDrawable);
     }
 
+    public TextView getBodyTextView() {
+        return mBodyTextView;
+    }
+
     private void bindCommonMessage(final boolean sameItem) {
         if (mDownloadButton != null) {
             mDownloadButton.setVisibility(View.GONE);
@@ -475,7 +529,7 @@ public class MessageListItem extends LinearLayout implements
         if (!sameItem || haveLoadedPdu) {
             mBodyTextView.setText(formattedMessage);
         }
-
+        updateSimIndicatorView(mMessageItem.mSubscription);
         // Debugging code to put the URI of the image attachment in the body of the list item.
         if (DEBUG) {
             String debugText = null;
@@ -695,19 +749,19 @@ public class MessageListItem extends LinearLayout implements
     ForegroundColorSpan mColorSpan = null;  // set in ctor
 
     private boolean isSimCardMessage() {
-        return mContext instanceof ManageSimMessages;
+        return mContext instanceof ManageSimMessages
+                || (mContext instanceof ManageMultiSelectAction &&
+                mManageMode == MessageUtils.SIM_MESSAGE_MODE);
+    }
+
+    public void setManageSelectMode(int manageMode) {
+        mManageMode = manageMode;
     }
 
     private CharSequence formatMessage(MessageItem msgItem, String body,
                                        int subId, String subject, Pattern highlight,
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
-
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && subId >= 0) {
-            Drawable mSimIndicatorIcon = MessageUtils.getMultiSimIcon(mContext,subId);
-            mSimIndicatorView.setImageDrawable(mSimIndicatorIcon);
-            mSimIndicatorView.setVisibility(View.VISIBLE);
-        }
 
         boolean hasSubject = !TextUtils.isEmpty(subject);
         SmileyParser parser = SmileyParser.getInstance();
@@ -806,7 +860,7 @@ public class MessageListItem extends LinearLayout implements
             sendMessage(mMessageItem, MSG_LIST_DETAILS);    // show the message details dialog
         } else if (spans.length == 1) {
             if((mMessageItem != null)
-                    && BROWSER_ADDRESS.equals(mMessageItem.mAddress)
+                    && MessageUtils.isWapPushNumber(mMessageItem.mAddress)
                     && SystemProperties.getBoolean("persist.env.mms.wappushdialog", false)) {
                 DialogInterface.OnClickListener click = new DialogInterface.OnClickListener() {
                     @Override

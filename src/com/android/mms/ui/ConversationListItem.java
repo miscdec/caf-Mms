@@ -110,6 +110,7 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
     private CharSequence formatMessage() {
         final int color = android.R.styleable.Theme_textColorSecondary;
+        SpannableStringBuilder buf = null;
         String from = mConversation.getRecipients().formatNames(", ");
 
         /**
@@ -132,7 +133,12 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
             }
         }
 
-        SpannableStringBuilder buf = new SpannableStringBuilder(from);
+        if (from.contains(MessageUtils.WAPPUSH)) {
+            String[] mAddresses = from.split(":");
+            buf = new SpannableStringBuilder(mAddresses[MessageUtils.WAP_PUSH_ADDRESS_INDEX]);
+        } else {
+            buf = new SpannableStringBuilder(from);
+        }
 
         if (mConversation.getMessageCount() > 1) {
             int before = buf.length();
