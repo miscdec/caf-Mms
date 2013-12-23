@@ -97,6 +97,7 @@
     <string name="delete_thread">Delete thread</string>
     <!-- Context menu item on an individual message for forwarding it to another recipient -->
     <string name="menu_forward">Forward</string>
+    <string name="menu_forward_conversation">Forward conversation</string>
     <!-- Context menu item on an failed message for resending -->
     <string name="menu_resend">Resend</string>
     <!-- Text of a button appearing for MMS messages that have not yet been downloaded, causing the message
@@ -122,7 +123,7 @@
     <string name="slideshow_options">Slideshow options</string>
 
     <!-- Button text on edit slide screen indicating the user wants to finish editing that slide -->
-    <string name="done">Done</string>
+    <string name="slide_done">Done</string>
 
     <!-- Menu item in slideshow edit screen for moving the selected slide up in the order -->
     <string name="move_up">Move up</string>
@@ -889,7 +890,7 @@
     <!-- SMSC -->
     <string name="pref_smsc_title">SMSC Setings</string>
     <string name="pref_one_smcs">"Set the smsc number"</string>
-    <string name="pref_more_smcs">"Set the slot"<xliff:g id="slot_number">%d</xliff:g>"'s smsc number"</string>
+    <string name="pref_more_smcs">"Set the SIM"<xliff:g id="slot_number">%d</xliff:g>"'s smsc number"</string>
     <string name="set_smsc_error">Set the smsc number error</string>
     <string name="set_smsc_success">Set the smsc number success</string>
     <string name="set_smsc_confirm_message">Change the smsc may lead to the SMS sending failure, to confirm the change?</string>
@@ -977,6 +978,8 @@
 
     <string name="unsupported_content_type">Can\'t display MMS: Unsupported attachment type.</string>
 
+    <string name="mms_size_indicator"><xliff:g id="mms_size">%1$s</xliff:g>K/<xliff:g id="all_size">%2$s</xliff:g>K</string>
+
     <!-- Settings item description for Preferred storage -->
     <string name="pref_title_sms_store">Preferred storage</string>
     <string name="pref_title_sms_store_card1">Card1 preferred storage</string>
@@ -988,5 +991,11 @@
     <string name="selected_all">Select all</string>
     <string name="deselected_all">Deselect all</string>
     <string name="selected_count"><xliff:g id="COUNT">%d</xliff:g> selected</string>
+    <!--add for toast when deleting -->
+    <string name="deleting_title">Deleting</string>
+    <string name="please_wait">Please waiting...</string>
+    <string name="done_delete">DONE</string>
+    <!--add for toast when merging sms -->
+    <string name="merging_sms_title">Merging sms</string>
 </resources>
 
