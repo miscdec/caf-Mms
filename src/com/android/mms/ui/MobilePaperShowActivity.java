@@ -39,14 +39,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.graphics.drawable.Drawable;
 import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
-import android.telephony.PhoneNumberUtils;
-import android.text.style.URLSpan;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;;
@@ -55,9 +52,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
-import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -98,7 +93,6 @@ public class MobilePaperShowActivity extends Activity {
     private SlideshowModel mSlideModel;
     private SlideshowPresenter mPresenter;
     private LinearLayout mRootView;
-    private TextView contentText;
     private Uri mUri;
     private ScaleGestureDetector mScaleDetector;
     private ScrollView mScrollViewPort;
@@ -237,15 +231,14 @@ public class MobilePaperShowActivity extends Activity {
             mPresenter = (SlideshowPresenter)PresenterFactory
                     .getPresenter("SlideshowPresenter",
                      this, (SlideViewInterface)view, mSlideModel);
-            contentText = (TextView) view.findViewById(R.id.text_preview);
+            TextView contentText = (TextView) view.findViewById(R.id.text_preview);
             contentText.setTextIsSelectable(true);
-            contentText.setClickable(false);
             mPresenter.presentSlide((SlideViewInterface)view, mSlideModel.get(index));
             contentText.setTextSize(TypedValue.COMPLEX_UNIT_PX, getCurrentTextSize(this));
             contentText.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    onMailBoxMessageClick(MobilePaperShowActivity.this);
+                    MessageUtils.onMessageContentClick(MobilePaperShowActivity.this, (TextView)v);
                 }
             });
             TextView text = (TextView) view.findViewById(R.id.slide_number_text);
@@ -338,7 +331,6 @@ public class MobilePaperShowActivity extends Activity {
                 viewMmsMessageAttachmentSliderShow(this,msg,null,null,
                         intent.getStringArrayListExtra("sms_id_list"),
                         intent.getBooleanExtra("mms_report", false));
-                finish();
                 break;
             case MENU_REPLY: {
                 replyMessage(this, AddressUtils.getFrom(this, mUri));
@@ -447,113 +439,6 @@ public class MobilePaperShowActivity extends Activity {
             intent.putExtra("mms_report", report);
             intent.putStringArrayListExtra("sms_id_list", allIdList);
             context.startActivity(intent);
-        }
-    }
-
-    public void onMailBoxMessageClick(final Context context) {
-        // Check for links. If none, do nothing; if 1, open it; if >1, ask user
-        // to pick one
-        final URLSpan[] spans = contentText.getUrls();
-        if (spans.length == 1) {
-            String url = spans[0].getURL();
-            if (MessageUtils.isWebUrl(url)) {
-                Uri uri = Uri.parse(url);
-                Intent intent = new Intent(context, WwwContextMenuActivity.class);
-                intent.setData(uri);
-                context.startActivity(intent);
-            } else {
-                final String telPrefix = "tel:";
-                if (url.startsWith(telPrefix)) {
-                    url = url.substring(telPrefix.length());
-                }
-                if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
-                    MessageUtils.showNumberOptions(this, url);
-                } else {
-                    spans[0].onClick(contentText);
-                }
-            }
-        } else if (spans.length > 1) {
-            ArrayAdapter<URLSpan> adapter = new ArrayAdapter<URLSpan>(context,
-                    android.R.layout.select_dialog_item, spans) {
-
-                @Override
-                public View getView(int position, View convertView, ViewGroup parent) {
-                    View v = super.getView(position, convertView, parent);
-                    try {
-                        URLSpan span = getItem(position);
-                        String url = span.getURL();
-                        Uri uri = Uri.parse(url);
-                        TextView tv = (TextView) v;
-                        Drawable d = context.getPackageManager().getActivityIcon(
-                                new Intent(Intent.ACTION_VIEW, uri));
-                        if (d != null) {
-                            d.setBounds(0, 0, d.getIntrinsicHeight(),
-                                    d.getIntrinsicHeight());
-                            tv.setCompoundDrawablePadding(10);
-                            tv.setCompoundDrawables(d, null, null, null);
-                        }
-                        // If prefix string is "mailto" then translate
-                        // it.
-                        final String mailPrefix = "mailto:";
-                        String tmpUrl = null;
-                        if (url != null) {
-                            if (url.startsWith(mailPrefix)) {
-                                url = context.getResources().getString(R.string.mail_to) +
-                                        url.substring(mailPrefix.length());
-                            }
-                            tmpUrl = url.replaceAll("tel:", "");
-                        }
-                        tv.setText(tmpUrl);
-                    } catch (android.content.pm.PackageManager.NameNotFoundException ex) {
-                        // it's ok if we're unable to set the drawable
-                        // for this view - the user
-                        // can still use it
-                    }
-                    return v;
-                }
-            };
-
-            AlertDialog.Builder b = new AlertDialog.Builder(context);
-
-            DialogInterface.OnClickListener click = new DialogInterface.OnClickListener() {
-                @Override
-                public final void onClick(DialogInterface dialog, int which) {
-                    if (which >= 0) {
-                        String url = spans[which].getURL();
-                        if (MessageUtils.isWebUrl(url)) {
-                            Uri uri = Uri.parse(url);
-                            Intent intent = new Intent(MobilePaperShowActivity.this,
-                                    WwwContextMenuActivity.class);
-                            intent.setData(uri);
-                            context.startActivity(intent);
-                        } else {
-                            final String telPrefix = "tel:";
-                            if (url.startsWith(telPrefix)) {
-                                url = url.substring(telPrefix.length());
-                            }
-                            if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
-                                MessageUtils.showNumberOptions(context, url);
-                            } else {
-                                spans[which].onClick(contentText);
-                            }
-                        }
-                    }
-                    dialog.dismiss();
-                }
-            };
-
-            b.setTitle(R.string.select_link_title);
-            b.setCancelable(true);
-            b.setAdapter(adapter, click);
-
-            b.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-                @Override
-                public final void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                }
-            });
-
-            b.show();
         }
     }
 }
