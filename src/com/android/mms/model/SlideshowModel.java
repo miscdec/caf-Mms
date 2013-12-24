@@ -813,7 +813,7 @@ public class SlideshowModel extends Model
         }
     }
 
-    public void resizeBeforeSendMms() {
+    public void compress() {
         int resizeableSizeTotal = 0;
         int resizableCnt = 0;
         int fixedSizeTotal = 0;
