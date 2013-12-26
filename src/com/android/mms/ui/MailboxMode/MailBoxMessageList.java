@@ -91,6 +91,7 @@ import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_READ;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_MESSAGE_BOX;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_DELIVERY_REPORT;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_SMS_LOCKED;
+import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_MESSAGE_TYPE;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_LOCKED;
 
 /**
@@ -221,17 +222,22 @@ public class MailBoxMessageList extends ListActivity implements
             } else if ("sms".equals(c.getString(COLUMN_MSG_TYPE))) {
                 showSmsMessageContent(c);
             } else {
-                Uri msgUri = ContentUris.withAppendedId(Mms.CONTENT_URI,
-                        c.getInt(COLUMN_ID));
-                MessageUtils.viewMmsMessageAttachment(MailBoxMessageList.this, msgUri, null,
-                        new AsyncDialog(MailBoxMessageList.this));
-                int hasRead = c.getInt(COLUMN_MMS_READ);
-                if (hasRead == 0) {
-                    markAsRead(msgUri);
+                if (PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND == c.getInt(COLUMN_MMS_MESSAGE_TYPE)) {
+                    MessageUtils.showErrorDialog(this, getString(R.string.downloading),
+                            getString(R.string.mms_downloading));
+                } else {
+                    Uri msgUri = ContentUris.withAppendedId(Mms.CONTENT_URI,
+                            c.getInt(COLUMN_ID));
+                    MessageUtils.viewMmsMessageAttachment(MailBoxMessageList.this, msgUri, null,
+                            new AsyncDialog(MailBoxMessageList.this));
+                    int hasRead = c.getInt(COLUMN_MMS_READ);
+                    if (hasRead == 0) {
+                        markAsRead(msgUri);
+                    }
                 }
             }
-        } finally {
-            c.close();
+        } catch (Exception e) {
+            Log.e(TAG, "Open message error", e);
         }
     }
 
