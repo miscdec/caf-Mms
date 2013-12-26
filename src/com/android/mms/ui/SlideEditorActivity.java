@@ -126,7 +126,7 @@ public class SlideEditorActivity extends Activity {
 
     private final static String MESSAGE_URI = "message_uri";
     private AsyncDialog mAsyncDialog;   // Used for background tasks.
-    private final static int SLIDE_TEXT_LIMIT_SIZE =
+    public final static int SLIDE_TEXT_LIMIT_SIZE =
             SystemProperties.getInt("persist.env.c.mms.maxtextsize", 0);
 
     @Override
@@ -154,13 +154,11 @@ public class SlideEditorActivity extends Activity {
 
         mTextEditor = (EditText) findViewById(R.id.text_message);
         if (SystemProperties.getInt("persist.env.c.mms.limitcount", 0) == 0) {
-            if (SLIDE_TEXT_LIMIT_SIZE == 0) {
-                mTextEditor.setFilters(new InputFilter[] {
-                        new LengthFilter(MmsConfig.getMaxTextLimit())});
-            } else {
-                mTextEditor.setFilters(new InputFilter[] {
-                        new LengthFilter(SLIDE_TEXT_LIMIT_SIZE)});
-            }
+            mTextEditor.setFilters(new InputFilter[] {
+                    new LengthFilter(MmsConfig.getMaxTextLimit())});
+        } else if (SLIDE_TEXT_LIMIT_SIZE != 0) {
+            mTextEditor.setFilters(new InputFilter[] {
+                    new LengthFilter(SLIDE_TEXT_LIMIT_SIZE)});
         }
         mDone = (Button) findViewById(R.id.done_button);
         mDone.setOnClickListener(mDoneClickListener);
