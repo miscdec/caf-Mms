@@ -22,6 +22,8 @@ import android.os.SystemProperties;
 import android.util.Config;
 import android.util.Log;
 
+import com.android.mms.ui.MessageUtils;
+
 /**
  * Default retry scheme, based on specs.
  */
@@ -36,6 +38,9 @@ public class DefaultRetryScheme extends AbstractRetryScheme {
     private static final int[] sCmccRetryScheme = {
         0, 0, 5 * 60 * 1000, 10 * 60 * 1000, 30 * 60 * 1000};
 
+    private static final int[] sCtRetryScheme = {
+        0, 5 * 60 * 1000, 5 * 60 * 1000, 5 * 60 * 1000};
+
     private static int[] sDefaultRetryScheme;
 
     public DefaultRetryScheme(Context context, int retriedTimes) {
@@ -43,6 +48,8 @@ public class DefaultRetryScheme extends AbstractRetryScheme {
 
         if (SystemProperties.getBoolean("persist.env.mms.retryatonce", false)) {
             sDefaultRetryScheme = sCmccRetryScheme;
+        } else if (MessageUtils.RETRY_ALWAYS) {
+            sDefaultRetryScheme = sCtRetryScheme;
         } else {
             sDefaultRetryScheme = sRetryScheme;
         }
