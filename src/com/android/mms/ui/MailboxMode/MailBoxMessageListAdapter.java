@@ -323,8 +323,8 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         }
         mName = nameContact;
 
-        if ((addr.contains(MessageUtils.WAPPUSH)) &&
-                (nameContact.contains(MessageUtils.WAPPUSH))) {
+        if ((null != addr && addr.contains(MessageUtils.WAPPUSH)) &&
+                (null != nameContact && nameContact.contains(MessageUtils.WAPPUSH))) {
             String[] mMailBoxAddresses = addr.split(":");
             String[] mMailBoxName = nameContact.split(":");
             formatNameView(mMailBoxAddresses[MessageUtils.WAP_PUSH_ADDRESS_INDEX],
