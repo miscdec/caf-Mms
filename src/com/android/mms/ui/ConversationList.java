@@ -129,6 +129,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             SystemProperties.getBoolean("persist.env.mms.classifysearch", false);
 
     private static boolean isCheckBox = false;
+    private static long mLastDeletedThread = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -794,6 +795,12 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         Conversation.startDeleteAll(mHandler, token, mDeleteLockedMessages);
                         DraftCache.getInstance().refresh();
                     } else {
+                        int size = mThreadIds.size();
+                        if(size > 0 && mCallBack != null) {
+                            // Save the last thread id.
+                            // And cancel deleting dialog after this thread been deleted.
+                            mLastDeletedThread = (mThreadIds.toArray(new Long[size]))[size - 1];
+                        }
                         Conversation.startDelete(mHandler, token, mDeleteLockedMessages,
                                 mThreadIds);
                     }
@@ -910,11 +917,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             super.onDeleteComplete(token, cookie, result);
             switch (token) {
             case DELETE_CONVERSATION_TOKEN:
-                mHandler.removeCallbacks(mShowProgressDialogRunnable);
-                if (mProgressDialog != null && mProgressDialog.isShowing()) {
-                    mProgressDialog.dismiss();
-                }
                 long threadId = cookie != null ? (Long)cookie : -1;     // default to all threads
+                if (threadId < 0 || threadId == mLastDeletedThread) {
+                    mHandler.removeCallbacks(mShowProgressDialogRunnable);
+                    if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                        mProgressDialog.dismiss();
+                    }
+                    mLastDeletedThread = -1;
+                }
 
                 if (threadId == -1) {
                     // Rebuild the contacts cache now that all threads and their associated unique
