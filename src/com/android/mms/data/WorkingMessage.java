@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -1424,8 +1425,14 @@ public class WorkingMessage {
         ContactList contactList = conv.getRecipients();
         if (contactList != null) {
             String[] numbers = contactList.getNumbers();
-            if (numbers != null && numbers.length == 1) {
-                if (numbers[0].equals(conv.getForwardRecipientNumber())) {
+            String[] forward = conv.getForwardRecipientNumber();
+            if (numbers != null && forward != null
+                    && (numbers.length == forward.length)) {
+                List<String> currentNumberList = Arrays.asList(numbers);
+                List<String> forwardNumberList = Arrays.asList(forward);
+                Collections.sort(currentNumberList);
+                Collections.sort(forwardNumberList);
+                if (currentNumberList.equals(forwardNumberList)) {
                     sameRecipient = true;
                 }
             }
@@ -1863,10 +1870,11 @@ public class WorkingMessage {
             return;
         }
 
-        ContentValues values = new ContentValues(3);
+        ContentValues values = new ContentValues(4);
         values.put(Sms.THREAD_ID, threadId);
         values.put(Sms.BODY, contents);
         values.put(Sms.TYPE, Sms.MESSAGE_TYPE_DRAFT);
+        values.put(Sms.ADDRESS, conv.getRecipients().serialize());
         SqliteWrapper.insert(mActivity, mContentResolver, Sms.CONTENT_URI, values);
         asyncDeleteDraftMmsMessage(conv);
         mMessageUri = null;
