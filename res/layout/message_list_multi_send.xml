@@ -84,7 +84,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     android:visibility="gone" />
 
                 <TextView
-                    android:id="@+id/text_view"
+                    android:id="@+id/text_view_top"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:autoLink="all"
@@ -95,7 +95,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     android:paddingTop="@dimen/message_item_text_padding_top"
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:textColor="#ff000000"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -143,6 +144,19 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         android:textAppearance="?android:attr/textAppearanceSmall"
                         android:textColor="@color/message_count_color" />
                 </LinearLayout>
+                <TextView android:id="@+id/text_view_buttom"
+                    android:autoLink="all"
+                    android:paddingLeft="@dimen/message_item_text_padding_left_right"
+                    android:paddingRight="@dimen/message_item_text_padding_left_right"
+                    android:paddingTop="@dimen/message_item_text_padding_top"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:linksClickable="false"
+                    android:gravity="right"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="#ff000000"
+                    android:textSize="16sp"
+                    android:visibility="gone"/>
             </LinearLayout>
         </RelativeLayout>
     </LinearLayout>
