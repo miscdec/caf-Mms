@@ -442,7 +442,9 @@ public class SlideshowModel extends Model
                 }
             }
         }
-        return MmsConfig.getMaxMessageSize() - totalMediaSize - SLIDESHOW_SLOP;
+        int remainSize = MmsConfig.getMaxMessageSize() - totalMediaSize
+                - getTotalTextMessageSize();
+        return remainSize < SLIDESHOW_SLOP ? 0 : remainSize - SLIDESHOW_SLOP;
     }
 
     // getTotalTextMessageSize returns the total text size of the MMS.
@@ -813,70 +815,20 @@ public class SlideshowModel extends Model
         }
     }
 
-    public void compress() {
-        int resizeableSizeTotal = 0;
-        int resizableCnt = 0;
-        int fixedSizeTotal = 0;
+    public void updateTotalMessageSize() {
+        int totalSize = 0;
         for (SlideModel slide : mSlides) {
             for (MediaModel media : slide) {
-                if (media.getMediaResizable()) {
-                    ++resizableCnt;
-                } else {
-                    fixedSizeTotal += media.getMediaSize();
-                }
+                totalSize += media.getMediaSize();
             }
         }
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-            Log.v(TAG, "resizeBeforeSendMms: original message size: " + getCurrentMessageSize() +
-                    " getMaxMessageSize: " + MmsConfig.getMaxMessageSize() +
-                    " fixedSizeTotal: " + fixedSizeTotal);
+            Log.v(TAG, "updateTotalMessageSize: message size: " + totalSize);
         }
-        if (resizableCnt > 0) {
-            int remainingSize = MmsConfig.getMaxMessageSize() - fixedSizeTotal - SLIDESHOW_SLOP;
-            if (remainingSize > 0) {
-                int bytesPerMediaItem = remainingSize / resizableCnt;
-                for (SlideModel slide : mSlides) {
-                    for (MediaModel media : slide) {
-                        if (media.getMediaResizable()) {
-                            UriImage image = new UriImage(mContext, media.getUri());
-
-                            int widthLimit = MmsConfig.getMaxImageWidth();
-                            int heightLimit = MmsConfig.getMaxImageHeight();
-                            int size = media.getMediaSize();
-                            // In mms_config.xml, the max width has always been declared
-                            // larger than the max height.
-                            // Swap the width and height limits if necessary so we scale the
-                            // picture as little as possible.
-                            if (image.getHeight() > image.getWidth()) {
-                                int temp = widthLimit;
-                                widthLimit = heightLimit;
-                                heightLimit = temp;
-                            }
-                            if (size != 0 && size <= bytesPerMediaItem &&
-                                    image.getWidth() <= widthLimit &&
-                                    image.getHeight() <= heightLimit &&
-                                    ImageModel.SUPPORTED_MMS_IMAGE_CONTENT_TYPES
-                                            .contains(image.getContentType())) {
-                                if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-                                    Log.v(TAG, "resizeBeforeSendMms - already sized");
-                                }
-                                resizeableSizeTotal += size;
-                                continue;
-                            }
-
-                            PduPart part = image.getResizedImageAsPart(
-                                    widthLimit,
-                                    heightLimit,
-                                    bytesPerMediaItem);
-                            if (part != null) {
-                                resizeableSizeTotal += part.getData().length;
-                            }
-                        }
-                    }
-                }
-            }
-            setTotalMessageSize(resizeableSizeTotal + fixedSizeTotal);
-        }
+        // mTotalMessageSize include resizable attachments, getTotalMessageSize
+        // is called by UI for displaying the size of the MMS message, so set
+        // mTotalMessageSize here rather than mCurrentMessageSize.
+        setTotalMessageSize(totalSize+getTotalTextMessageSize());
     }
 
 }

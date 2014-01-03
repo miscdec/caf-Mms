@@ -3963,17 +3963,8 @@ public class ComposeMessageActivity extends Activity
                         setNewMessageSubject(newMessage);
                         mWorkingMessage = newMessage;
                         mWorkingMessage.setConversation(mConversation);
-                        final SlideshowModel slideShow = mWorkingMessage.getSlideshow();
-                        if (slideShow != null) {
-                            getAsyncDialog().runAsync(new Runnable() {
-                                @Override
-                                public void run() {
-                                    slideShow.compress();
-                                    updateMmsSizeIndicator();
-                                }
-                            }, null, R.string.adding_attachments_title);
-                        }
                         updateThreadIdIfRunning();
+                        updateMmsSizeIndicator();
                         drawTopPanel(false);
                         drawBottomPanel();
                         updateSendButtonState();
@@ -4096,6 +4087,9 @@ public class ComposeMessageActivity extends Activity
     private Runnable mUpdateMmsSizeIndRunnable = new Runnable() {
         @Override
         public void run() {
+            if (mWorkingMessage.getSlideshow() != null) {
+                mWorkingMessage.getSlideshow().updateTotalMessageSize();
+            }
             mAttachmentEditor.update(mWorkingMessage);
         }
     };
@@ -4260,6 +4254,7 @@ public class ComposeMessageActivity extends Activity
                 }
             }
 
+            updateMmsSizeIndicator();
             handleAddAttachmentError(result, R.string.type_picture);
         }
     };
@@ -4326,15 +4321,6 @@ public class ComposeMessageActivity extends Activity
         }
 
         int result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, uri, append);
-        if (mWorkingMessage.getAttachmentType() == mWorkingMessage.IMAGE) {
-            getAsyncDialog().runAsync(new Runnable() {
-                @Override
-                public void run() {
-                    mWorkingMessage.getSlideshow().compress();
-                    updateMmsSizeIndicator();
-                }
-            }, null, R.string.adding_attachments_title);
-        }
 
         if (result == WorkingMessage.IMAGE_TOO_LARGE ||
             result == WorkingMessage.MESSAGE_SIZE_EXCEEDED) {
@@ -4345,6 +4331,8 @@ public class ComposeMessageActivity extends Activity
                     uri, mAttachmentEditorHandler, mResizeImageCallback, append);
             return;
         }
+
+        updateMmsSizeIndicator();
         handleAddAttachmentError(result, R.string.type_picture);
     }
 
@@ -4473,10 +4461,7 @@ public class ComposeMessageActivity extends Activity
                         Parcelable uri = uris.get(i);
                         addAttachment(mimeType, (Uri) uri, true);
                     }
-                    if (mWorkingMessage.getSlideshow() != null) {
-                        mWorkingMessage.getSlideshow().compress();
-                        updateMmsSizeIndicator();
-                    }
+                    updateMmsSizeIndicator();
                 }
             }, null, R.string.adding_attachments_title);
             return true;
@@ -5035,10 +5020,7 @@ public class ComposeMessageActivity extends Activity
                 new Runnable() {
                     @Override
                     public void run() {
-                        if (mWorkingMessage.getSlideshow() != null) {
-                            mWorkingMessage.getSlideshow().compress();
-                            updateMmsSizeIndicator();
-                        }
+                        updateMmsSizeIndicator();
                         // It decides whether or not to display the subject editText view,
                         // according to the situation whether there's subject
                         // or the editText view is visible before leaving it.
@@ -5109,7 +5091,30 @@ public class ComposeMessageActivity extends Activity
         return recipientCount;
     }
 
+    private boolean checkMessageSizeExceeded(){
+        int messageSizeLimit = MmsConfig.getMaxMessageSize();
+        int mmsCurrentSize = 0;
+        if (mWorkingMessage.getSlideshow() != null) {
+            mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
+        } else if (mWorkingMessage.hasText()) {
+            mmsCurrentSize += mWorkingMessage.getText().toString().getBytes().length;
+        }
+        Log.v(TAG, "compose mmsCurrentSize = " + mmsCurrentSize);
+        if (mmsCurrentSize >= messageSizeLimit) {
+            mIsAttachmentErrorOnSend = true;
+            handleAddAttachmentError(WorkingMessage.MESSAGE_SIZE_EXCEEDED,
+                    R.string.type_picture);
+            return true;
+        }
+        return false;
+    }
+
     private void sendMessage(boolean bCheckEcmMode) {
+        // Check message size, if >= max message size, do not send message.
+        if(checkMessageSizeExceeded()){
+            return;
+        }
+
         // If message is sent make the mIsMessageChanged is true
         // when activity is from SearchActivity.
         mIsMessageChanged = mIsFromSearchActivity;

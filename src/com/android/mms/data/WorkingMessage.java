@@ -1535,7 +1535,7 @@ public class WorkingMessage {
 
         // Resize all the resizeable attachments (e.g. pictures) to fit
         // in the remaining space in the slideshow.
-        int error = 0;
+        /*int error = 0;
         try {
             slideshow.finalResize(mmsUri);
         } catch (ExceedMessageSizeException e1) {
@@ -1547,7 +1547,7 @@ public class WorkingMessage {
             markMmsMessageWithError(mmsUri);
             mStatusListener.onAttachmentError(error);
             return;
-        }
+        }*/
 
         ContentValues values = new ContentValues(1);
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
