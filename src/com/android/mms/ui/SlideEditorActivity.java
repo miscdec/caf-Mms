@@ -281,7 +281,8 @@ public class SlideEditorActivity extends Activity {
             if (!isFinishing()) {
                 TextModel textMode = mSlideshowModel.get(mPosition).getText();
                 int currentTextSize = textMode == null ? 0 : textMode.getText().getBytes().length;
-                if (mSlideshowModel.getRemainMessageSize() + currentTextSize
+                if (mSlideshowModel.getRemainMessageSize() == 0
+                        || (mSlideshowModel.getRemainMessageSize() + currentTextSize)
                         < s.getBytes().length) {
                     Toast.makeText(SlideEditorActivity.this, R.string.cannot_add_text_anymore,
                             Toast.LENGTH_SHORT).show();
