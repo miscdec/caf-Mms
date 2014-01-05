@@ -828,7 +828,7 @@ public class SlideshowModel extends Model
         // mTotalMessageSize include resizable attachments, getTotalMessageSize
         // is called by UI for displaying the size of the MMS message, so set
         // mTotalMessageSize here rather than mCurrentMessageSize.
-        setTotalMessageSize(totalSize+getTotalTextMessageSize());
+        setTotalMessageSize(totalSize + getTotalTextMessageSize());
     }
 
 }
