@@ -330,7 +330,23 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             }
         }
         mName = nameContact;
-        formatNameView(mAddress, mName);
+
+        if ((addr.contains(MessageUtils.WAPPUSH)) &&
+                (nameContact.contains(MessageUtils.WAPPUSH))) {
+            String[] mMailBoxAddresses = addr.split(":");
+            String[] mMailBoxName = nameContact.split(":");
+            formatNameView(mMailBoxAddresses[MessageUtils.WAP_PUSH_ADDRESS_INDEX],
+                    mMailBoxName[MessageUtils.WAP_PUSH_ADDRESS_INDEX]);
+        } else if (addr.contains(MessageUtils.WAPPUSH)) {
+            String[] mMailBoxAddresses = addr.split(":");
+            formatNameView(mMailBoxAddresses[MessageUtils.WAP_PUSH_ADDRESS_INDEX], mName);
+        } else if (nameContact.contains(MessageUtils.WAPPUSH)) {
+            String[] mMailBoxName = nameContact.split(":");
+            formatNameView(mAddress, mMailBoxName[MessageUtils.WAP_PUSH_ADDRESS_INDEX]);
+        } else {
+            formatNameView(mAddress, mName);
+        }
+
         updateAvatarView();
 
         if (isLocked) {
