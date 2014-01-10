@@ -105,9 +105,15 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
     private CharSequence formatMessage() {
         final int color = android.R.styleable.Theme_textColorSecondary;
-        String from = mConversation.getRecipients().formatNames(", ");
+        SpannableStringBuilder buf = null;
 
-        SpannableStringBuilder buf = new SpannableStringBuilder(from);
+        String from = mConversation.getRecipients().formatNames(", ");
+        if (from.contains(MessageUtils.WAPPUSH)) {
+            String[] mAddresses = from.split(":");
+            buf = new SpannableStringBuilder(mAddresses[MessageUtils.WAP_PUSH_ADDRESS_INDEX]);
+        } else {
+            buf = new SpannableStringBuilder(from);
+        }
 
         if (mConversation.getMessageCount() > 1) {
             int before = buf.length();
