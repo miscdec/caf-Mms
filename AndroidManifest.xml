@@ -287,6 +287,12 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.ManageMultiSelectAction"
+              android:theme="@style/MmsHoloTheme"
+              android:uiOptions="splitActionBarWhenNarrow"
+              android:configChanges="orientation|screenSize|keyboardHidden">
+        </activity>
+
         <activity android:name=".ui.SelectSubscription"
             android:theme="@android:style/Theme.Holo.Light"
             android:label="@string/select_subscription_title">
