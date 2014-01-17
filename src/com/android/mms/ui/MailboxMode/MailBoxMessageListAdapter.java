@@ -51,6 +51,7 @@ import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 import com.google.android.mms.pdu.EncodedStringValue;
+import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
 
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MSG_TYPE;
@@ -66,6 +67,7 @@ import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_SUBJECT_CHARSET;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_SUB_ID;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_RECIPIENT_IDS;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_SMS_READ;
+import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_MESSAGE_TYPE;
 
 public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.UpdateListener {
     private LayoutInflater mInflater;
@@ -229,6 +231,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         }
         Contact.addListener(this);
         cleanItemCache();
+        view.findViewById(R.id.label_downloading).setVisibility(View.GONE);
 
         final String type = cursor.getString(COLUMN_MSG_TYPE);
         mMsgType = type;
@@ -271,6 +274,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             msgBox = cursor.getInt(COLUMN_MMS_MESSAGE_BOX);
             isLocked = cursor.getInt(COLUMN_MMS_LOCKED) != 0;
             recipientIds = cursor.getString(COLUMN_RECIPIENT_IDS);
+            messageType = cursor.getInt(COLUMN_MMS_MESSAGE_TYPE);
 
             if (0 == mmsRead && msgBox == Mms.MESSAGE_BOX_INBOX) {
                 isUnread = true;
@@ -296,6 +300,10 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             } else {
                 addr = "";
                 nameContact = "";
+            }
+            // Show downloading mms
+            if (messageType == PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND) {
+                view.findViewById(R.id.label_downloading).setVisibility(View.VISIBLE);
             }
         }
 
@@ -323,8 +331,8 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         }
         mName = nameContact;
 
-        if ((addr.contains(MessageUtils.WAPPUSH)) &&
-                (nameContact.contains(MessageUtils.WAPPUSH))) {
+        if ((null != addr && addr.contains(MessageUtils.WAPPUSH)) &&
+                (null != nameContact && nameContact.contains(MessageUtils.WAPPUSH))) {
             String[] mMailBoxAddresses = addr.split(":");
             String[] mMailBoxName = nameContact.split(":");
             formatNameView(mMailBoxAddresses[MessageUtils.WAP_PUSH_ADDRESS_INDEX],
