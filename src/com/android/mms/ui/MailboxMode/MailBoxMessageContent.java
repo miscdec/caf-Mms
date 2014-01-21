@@ -442,7 +442,12 @@ public class MailBoxMessageContent extends Activity {
                 new GestureDetector.SimpleOnGestureListener(){ });
         mGestureDetector.setOnDoubleTapListener(null);
         mNumberView = (TextView) findViewById(R.id.TextViewNumber);
-        mNumberView.setText(mMsgFrom);
+        if (mMsgFrom.contains(MessageUtils.WAPPUSH)) {
+            String[] mAddresses = mMsgFrom.split(":");
+            mNumberView.setText(mAddresses[MessageUtils.WAP_PUSH_ADDRESS_INDEX]);
+        } else {
+            mNumberView.setText(mMsgFrom);
+        }
         mTimeTextView = (TextView) findViewById(R.id.TextViewTime);
         mTimeTextView.setText(mSendLabel);
         mTimeDetailTextView = (TextView) findViewById(R.id.TextViewTimeDetail);
@@ -456,8 +461,13 @@ public class MailBoxMessageContent extends Activity {
         }
 
         if (!TextUtils.isEmpty(mDisplayName) && !mDisplayName.equals(mMsgFrom)) {
-            String numberStr = mDisplayName + " <" + mMsgFrom + ">";
-            mNumberView.setText(numberStr);
+            if (mDisplayName.contains(MessageUtils.WAPPUSH)) {
+                String[] mName = mDisplayName.split(":");
+                mNumberView.setText(mName[MessageUtils.WAP_PUSH_ADDRESS_INDEX]);
+            } else {
+                String numberStr = mDisplayName + " <" + mMsgFrom + ">";
+                mNumberView.setText(numberStr);
+            }
         }
 
         if (mRead == 0) {
@@ -768,8 +778,9 @@ public class MailBoxMessageContent extends Activity {
 
         public void run() {
             try {
-                ContentValues values = new ContentValues(1);
-                values.put(Sms.READ, 1);
+                ContentValues values = new ContentValues(2);
+                values.put(Sms.READ, MessageUtils.MESSAGE_READ);
+                values.put(Sms.SEEN, MessageUtils.MESSAGE_SEEN);
                 SqliteWrapper.update(MailBoxMessageContent.this, getContentResolver(),
                         mMessageUri, values, null, null);
                 MessagingNotification.nonBlockingUpdateNewMessageIndicator(

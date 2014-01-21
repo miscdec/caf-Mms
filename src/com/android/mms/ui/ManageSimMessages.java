@@ -600,18 +600,26 @@ public class ManageSimMessages extends Activity
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case OPTION_MENU_DELETE_ALL:
-                confirmDeleteDialog(new OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        updateState(SHOW_BUSY);
-                        new Thread() {
-                            @Override
-                            public void run() {
-                                deleteAllFromSim();
-                            }
-                        }.start();
-                        dialog.dismiss();
-                    }
-                }, R.string.confirm_delete_all_SIM_messages);
+                if (MessageUtils.SUPPORT_BATCH_DELETE) {
+                    Intent intent = new Intent(this, ManageMultiSelectAction.class);
+                    intent.putExtra(MessageUtils.SUB_KEY, mSubscription);
+                    intent.putExtra(ComposeMessageActivity.MANAGE_MODE,
+                            MessageUtils.SIM_MESSAGE_MODE);
+                    startActivity(intent);
+                } else {
+                    confirmDeleteDialog(new OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            updateState(SHOW_BUSY);
+                            new Thread() {
+                                @Override
+                                public void run() {
+                                    deleteAllFromSim();
+                                }
+                            }.start();
+                            dialog.dismiss();
+                        }
+                    }, R.string.confirm_delete_all_SIM_messages);
+                };
                 break;
 
             case OPTION_MENU_SIM_CAPACITY:

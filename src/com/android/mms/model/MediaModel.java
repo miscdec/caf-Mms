@@ -184,6 +184,10 @@ public abstract class MediaModel extends Model implements EventListener {
         return mMediaResizeable;
     }
 
+    public int getDefaultResizedMediaSize() {
+        return 0;
+    }
+
     /**
      * @return the size of the attached media
      */

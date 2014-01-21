@@ -442,6 +442,8 @@ public class SlideshowModel extends Model
             for (MediaModel media : slide) {
                 if (!media.getMediaResizable()) {
                     totalMediaSize += media.getMediaSize();
+                } else {
+                    totalMediaSize += media.getDefaultResizedMediaSize();
                 }
             }
         }
@@ -728,9 +730,10 @@ public class SlideshowModel extends Model
         boolean hasImage = slide.hasImage();
         boolean hasVideo = slide.hasVideo();
         boolean hasVcard = slide.hasVcard();
-        if ((hasImage && !hasVideo && !hasVcard)
+        boolean hasText = slide.hasText();
+        if (!hasText && ((hasImage && !hasVideo && !hasVcard)
                 || (!hasImage && hasVideo && !hasVcard)
-                || (!hasImage && !hasVideo && hasVcard)) {
+                || (!hasImage && !hasVideo && hasVcard))) {
             return true;
         } else {
             return false;
@@ -816,7 +819,8 @@ public class SlideshowModel extends Model
         }
     }
 
-    public void resizeBeforeSendMms() {
+    public void compress() {
+        int resizeableSizeTotal = 0;
         int resizableCnt = 0;
         int fixedSizeTotal = 0;
         for (SlideModel slide : mSlides) {
@@ -862,7 +866,8 @@ public class SlideshowModel extends Model
                                 if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                                     Log.v(TAG, "resizeBeforeSendMms - already sized");
                                 }
-                                return;
+                                resizeableSizeTotal += size;
+                                continue;
                             }
 
                             PduPart part = image.getResizedImageAsPart(
@@ -870,13 +875,13 @@ public class SlideshowModel extends Model
                                     heightLimit,
                                     bytesPerMediaItem);
                             if (part != null) {
-                                media.mSize = part.getData().length;
+                                resizeableSizeTotal += part.getData().length;
                             }
                         }
                     }
                 }
             }
-            updateTotalMessageSize();
+            setTotalMessageSize(resizeableSizeTotal + fixedSizeTotal);
         }
     }
 
