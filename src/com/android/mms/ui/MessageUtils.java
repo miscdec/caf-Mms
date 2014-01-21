@@ -299,7 +299,8 @@ public class MessageUtils {
                     return getNotificationIndDetails(context, cursor);
                 case PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF:
                 case PduHeaders.MESSAGE_TYPE_SEND_REQ:
-                    return getMultimediaMessageDetails(context, cursor, size);
+                    return getMultimediaMessageDetails(context, cursor,
+                        size + SlideshowModel.SLIDESHOW_SLOP);
                 default:
                     Log.w(TAG, "No details could be retrieved.");
                     return "";
