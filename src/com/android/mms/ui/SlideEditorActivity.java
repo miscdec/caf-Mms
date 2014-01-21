@@ -277,7 +277,13 @@ public class SlideEditorActivity extends Activity {
     };
 
     private final OnTextChangedListener mOnTextChangedListener = new OnTextChangedListener() {
+        // Add this flag to prevent "StackOverflowError" exception.
+        private boolean mIsChanged = false;
+
         public void onTextChanged(String s) {
+            if (mIsChanged) {
+                return;
+            }
             if (!isFinishing()) {
                 TextModel textMode = mSlideshowModel.get(mPosition).getText();
                 int currentTextSize = textMode == null ? 0 : textMode.getText().getBytes().length;
@@ -286,11 +292,18 @@ public class SlideEditorActivity extends Activity {
                         < s.getBytes().length) {
                     Toast.makeText(SlideEditorActivity.this, R.string.cannot_add_text_anymore,
                             Toast.LENGTH_SHORT).show();
+
+                    // Set mIsChanged is true before mTextEditor.setText(...),
+                    // because "setText" will invoke "onTextChanged" again and again.
+                    // And finally throw "StackOverflowError". So add this flag.
+                    mIsChanged = true;
                     if (textMode != null) {
                         mTextEditor.setText(textMode.getText());
                     } else {
                         mTextEditor.setText("");
                     }
+                    // Set mIsChanged is false, do not affect next nomal invoke "onTextChanged".
+                    mIsChanged = false;
                 } else {
                     mSlideshowEditor.changeText(mPosition, s);
                 }
@@ -478,13 +491,10 @@ public class SlideEditorActivity extends Activity {
                 break;
 
             case MENU_RECORD_SOUND:
-                slide = mSlideshowModel.get(mPosition);
-                int currentSlideSize = slide.getSlideSize();
-                if (slide.hasImage()) {
-                    currentSlideSize -= slide.getImage().getDefaultResizedMediaSize();
-                }
+                // Current size used to replace function, it will recount the current size
+                // into remaining size, but should be 0 in slide show.
                 long sizeLimit = ComposeMessageActivity.computeAttachmentSizeLimit(mSlideshowModel,
-                        currentSlideSize);
+                        0);
                 MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, sizeLimit);
                 break;
 
@@ -500,13 +510,10 @@ public class SlideEditorActivity extends Activity {
                 break;
 
             case MENU_TAKE_VIDEO:
-                slide = mSlideshowModel.get(mPosition);
-                currentSlideSize = slide.getSlideSize();
-                if (slide.hasImage()) {
-                    currentSlideSize -= slide.getImage().getDefaultResizedMediaSize();
-                }
+                // Current size used to replace function, it will recount the current size
+                // into remaining size, but should be 0 in slide show.
                 sizeLimit = ComposeMessageActivity.computeAttachmentSizeLimit(mSlideshowModel,
-                        currentSlideSize);
+                        0);
                 if (sizeLimit > 0) {
                     MessageUtils.recordVideo(this, REQUEST_CODE_TAKE_VIDEO, sizeLimit);
                 } else {
