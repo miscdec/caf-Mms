@@ -4664,6 +4664,7 @@ public class ComposeMessageActivity extends Activity
         if (!TextUtils.isEmpty(exsitNumbers)) {
             intent.putExtra(Intents.EXTRA_PHONE_URIS, exsitNumbers);
         }
+        intent.putExtra("selectphoneandemail", true);
         // We have to wait for the constructing complete.
         /*ContactList contacts = mRecipientsEditor.constructContactsFromInput(true);
         int recipientsCount = 0;
