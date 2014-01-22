@@ -1058,50 +1058,6 @@ public class ComposeMessageActivity extends Activity
                         Settings.System.MULTI_SIM_NAME[subscription]);
     }
 
-    private void showSendConfirm(final int subscription) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        int messageSizeLimit = MmsConfig.getMaxMessageSize();
-        int mmsCurrentSize = 0;
-
-        mWorkingMessage.prepareForSave(true);
-        if (mWorkingMessage.getSlideshow() != null) {
-            mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
-        } else if (mWorkingMessage.hasText()) {
-            mmsCurrentSize += mWorkingMessage.getText().toString().getBytes().length;
-        }
-        Log.v(TAG, "compose mmsCurrentSize = " + mmsCurrentSize);
-        // if the current size is less than 1 byte, set the value to 1kb
-        mmsCurrentSize = mmsCurrentSize > 1 ? mmsCurrentSize : ONE_KILOBYTE;
-
-        if (mmsCurrentSize > messageSizeLimit) {
-            // if current message size is larger than message size limit, prompt message size
-            // limit dialog and don't show message size dialog.
-            mIsAttachmentErrorOnSend = true;
-            handleAddAttachmentError(WorkingMessage.MESSAGE_SIZE_EXCEEDED,
-                    R.string.type_picture);
-            return;
-        }
-
-        builder.setTitle(R.string.title_send_message);
-        builder.setIcon(R.drawable.ic_dialog_alert_holo_light);
-        builder.setCancelable(false);
-        builder.setMessage(getString(R.string.message_size_label)
-                // rounding size
-                + String.valueOf((mmsCurrentSize - 1) / ONE_KILOBYTE + 1)
-                + getString(R.string.kilobyte));
-        builder.setPositiveButton(R.string.yes, new OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                if (mShowTwoButtons) {
-                    confirmSendMessageIfNeeded(subscription);
-                } else {
-                    confirmSendMessageIfNeeded();
-                }
-            }
-        });
-        builder.setNegativeButton(R.string.no, null);
-        builder.show();
-    }
-
     private void confirmSendMessageIfNeeded(int subscription) {
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
@@ -4763,18 +4719,10 @@ public class ComposeMessageActivity extends Activity
     public void onClick(View v) {
         if (mShowTwoButtons && (v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec)
                 && isPreparedForSending()) {
-            if (SHOW_SEND_CONFIRM && mWorkingMessage.hasSlideshow()) {
-                showSendConfirm(MSimConstants.SUB2);
-            } else {
-                confirmSendMessageIfNeeded(MSimConstants.SUB2);
-            }
+            confirmSendMessageIfNeeded(MSimConstants.SUB2);
         } else if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
             if (mShowTwoButtons) {
-                if (SHOW_SEND_CONFIRM && mWorkingMessage.hasSlideshow()) {
-                    showSendConfirm(MSimConstants.SUB1);
-                } else {
-                    confirmSendMessageIfNeeded(MSimConstants.SUB1);
-                }
+                confirmSendMessageIfNeeded(MSimConstants.SUB1);
             } else {
                 confirmSendMessageIfNeeded();
             }
