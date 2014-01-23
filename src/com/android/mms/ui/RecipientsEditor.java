@@ -164,7 +164,7 @@ public class RecipientsEditor extends RecipientEditTextView {
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
         InputConnection connection = super.onCreateInputConnection(outAttrs);
-        outAttrs.actionLabel = getContext().getString(R.string.done);
+        outAttrs.actionLabel = getContext().getString(R.string.slide_done);
         return connection;
     }
 
