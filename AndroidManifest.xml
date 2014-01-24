@@ -47,7 +47,6 @@
     <uses-permission android:name="android.permission.GET_TASKS"/>
 
     <application android:name="MmsApp"
-            android:persistent="true"
             android:label="@string/app_label"
             android:icon="@mipmap/ic_launcher_smsmms"
             android:taskAffinity="android.task.mms"
