@@ -513,7 +513,15 @@ public class TransactionService extends Service implements Observer {
             return false;
         } else {
             NetworkInfo ni = mConnMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
-            return (ni == null ? false : ni.isAvailable());
+            if (ni == null) {
+                return false;
+            } else {
+                if (MessageUtils.CAN_SETUP_MMS_DATA) {
+                    return ni.isAvailable();
+                } else {
+                    return ni.isAvailable() && !MessageUtils.isMobileDataDisabled(this);
+                }
+            }
         }
     }
 
