@@ -863,6 +863,7 @@
     <string name="pref_summary_enable_signature">SMS signature enabled</string>
     <string name="pref_summary_disable_signature">SMS signature disabled</string>
     <string name="pref_title_edit_signature">Edit SMS signature</string>
+    <string name="signature_full_toast">Signature has reached to maximum length.</string>
     <!-- Copy message to sim -->
     <string name="menu_copy_to">Copy</string>
     <string name="operation_to_card_memory">Copy message to SIM card</string>
