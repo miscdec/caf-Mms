@@ -65,6 +65,8 @@ public class AttachmentEditor extends LinearLayout {
     private Presenter mPresenter;
     private boolean mCanSend;
     private Button mSendButton;
+    private TextView mSizeIndicator;
+    private int mMediaSize = 0;
 
     public AttachmentEditor(Context context, AttributeSet attr) {
         super(context, attr);
@@ -204,16 +206,16 @@ public class AttachmentEditor extends LinearLayout {
             int view_message, int replace_message, int remove_message) {
         LinearLayout view = (LinearLayout)getStubView(stub_view_id, real_view_id);
         view.setVisibility(View.VISIBLE);
-        TextView indicator = (TextView) view.findViewById(R.id.mms_size_indicator);
-        if (indicator != null) {
-            int size;
+        mSizeIndicator = (TextView) view.findViewById(R.id.mms_size_indicator);
+        if (mSizeIndicator != null) {
             if (view_message == MSG_VIEW_IMAGE) {
-                size = mSlideshow.getTotalMessageSize() / KILOBYTE;
+                mMediaSize = mSlideshow.getTotalMessageSize();
             } else {
-                size = mSlideshow.getCurrentMessageSize() / KILOBYTE;
+                mMediaSize = mSlideshow.getTotalMessageSize();
             }
-            indicator.setText(mContext.getString(R.string.mms_size_indicator,
-                    size, MmsConfig.getMaxMessageSize() / KILOBYTE));
+            mSizeIndicator.setText(mContext.getString(R.string.mms_size_indicator,
+                    (mMediaSize + KILOBYTE - 1)
+                            / KILOBYTE + 1, MmsConfig.getMaxMessageSize() / KILOBYTE));
         }
 
         Button viewButton = (Button) view.findViewById(view_button_id);
@@ -232,11 +234,12 @@ public class AttachmentEditor extends LinearLayout {
                 R.id.slideshow_attachment_view_stub,
                 R.id.slideshow_attachment_view);
         view.setVisibility(View.VISIBLE);
-        TextView indicator = (TextView) view.findViewById(R.id.mms_size_indicator);
-        if (indicator != null) {
-            indicator.setText(mContext.getString(R.string.mms_size_indicator,
-                    mSlideshow.getTotalMessageSize() / KILOBYTE,
-                    MmsConfig.getMaxMessageSize() / KILOBYTE));
+        mSizeIndicator = (TextView) view.findViewById(R.id.mms_size_indicator);
+        mMediaSize = mSlideshow.getTotalMessageSize();
+        if (mSizeIndicator != null) {
+            mSizeIndicator.setText(mContext.getString(R.string.mms_size_indicator,
+                    (mMediaSize + KILOBYTE - 1)
+                            / KILOBYTE + 1, MmsConfig.getMaxMessageSize() / KILOBYTE));
         }
 
         Button editBtn = (Button) view.findViewById(R.id.edit_slideshow_button);
@@ -253,5 +256,24 @@ public class AttachmentEditor extends LinearLayout {
         removeButton.setOnClickListener(new MessageOnClick(MSG_REMOVE_ATTACHMENT));
 
         return (SlideViewInterface) view;
+    }
+
+    public void onTextChangeForMms(CharSequence s) {
+        int totalSize = 0;
+        int textSize = s.toString().getBytes().length;
+        if (mMediaSize != 0) {
+            totalSize = mMediaSize + textSize;
+        }
+        if (mSizeIndicator != null) {
+            mSizeIndicator.setText(mContext.getString(R.string.mms_size_indicator,
+                    (totalSize + KILOBYTE -1)
+                            / KILOBYTE + 1, MmsConfig.getMaxMessageSize() / KILOBYTE));
+        }
+    }
+
+    public void hideSlideshowSendButton() {
+        if (mSendButton != null) {
+            mSendButton.setVisibility(View.GONE);
+        }
     }
 }
