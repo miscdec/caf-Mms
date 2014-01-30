@@ -153,6 +153,9 @@ public class SlideEditorActivity extends Activity {
         mRemoveSlide.setOnClickListener(mOnRemoveSlide);
 
         mTextEditor = (EditText) findViewById(R.id.text_message);
+        mTextEditor.setFilters(new InputFilter[] {
+                new LengthFilter(MmsConfig.getMaxTextLimit())});
+
         if (SystemProperties.getInt("persist.env.c.mms.limitcount", 0) == 0) {
             if (SLIDE_TEXT_LIMIT_SIZE == 0) {
                 mTextEditor.setFilters(new InputFilter[] {
@@ -280,7 +283,8 @@ public class SlideEditorActivity extends Activity {
             if (!isFinishing()) {
                 TextModel textMode = mSlideshowModel.get(mPosition).getText();
                 int currentTextSize = textMode == null ? 0 : textMode.getText().getBytes().length;
-                if (mSlideshowModel.getRemainMessageSize() + currentTextSize
+                if (mSlideshowModel.getRemainMessageSize() == 0 ||
+                        (mSlideshowModel.getRemainMessageSize() + currentTextSize)
                         < s.getBytes().length) {
                     Toast.makeText(SlideEditorActivity.this, R.string.cannot_add_text_anymore,
                             Toast.LENGTH_SHORT).show();
