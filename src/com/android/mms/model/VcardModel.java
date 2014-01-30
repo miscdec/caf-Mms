@@ -69,7 +69,7 @@ public class VcardModel extends MediaModel {
         }
 
         if (scheme.equals("file")) {
-            String path = uri.toString();
+            String path = uri.getPath();
             mSrc = path.substring(path.lastIndexOf('/') + 1);
         } else if (scheme.equals("content")){
             ContentResolver cr = mContext.getContentResolver();
