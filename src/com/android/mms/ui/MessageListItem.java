@@ -406,6 +406,7 @@ public class MessageListItem extends LinearLayout implements
                 showMmsView(false);
             }
             if (mMessageItem.mSlideshow == null) {
+                final int mCurrentAttachmentType = mMessageItem.mAttachmentType;
                 mMessageItem.setOnPduLoaded(new MessageItem.PduLoadedCallback() {
                     public void onPduLoaded(MessageItem messageItem) {
                         if (DEBUG) {
@@ -417,7 +418,9 @@ public class MessageListItem extends LinearLayout implements
                         if (messageItem != null && mMessageItem != null &&
                                 messageItem.getMessageId() == mMessageItem.getMessageId()) {
                             mMessageItem.setCachedFormattedMessage(null);
-                            bindCommonMessage(true);
+                            boolean isStillSame =
+                                    mCurrentAttachmentType == messageItem.mAttachmentType;
+                            bindCommonMessage(isStillSame);
                         }
                     }
                 });
@@ -552,7 +555,8 @@ public class MessageListItem extends LinearLayout implements
                                        String contentType) {
         SpannableStringBuilder buf = new SpannableStringBuilder();
 
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                && !isSimCardMessage()) {
             int subscription = subId + 1;
             buf.append("SUB" + subscription + ":");
             buf.append("\n");
@@ -583,6 +587,10 @@ public class MessageListItem extends LinearLayout implements
             }
         }
         return buf;
+    }
+
+    private boolean isSimCardMessage() {
+        return (mContext instanceof ManageSimMessages);
     }
 
     private void drawPlaybackButton(MessageItem msgItem) {
