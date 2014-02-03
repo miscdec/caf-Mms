@@ -244,6 +244,8 @@
     <!-- Brief message that appears when converting a message from SMS to MMS. -->
     <string name="converting_to_picture_message">Converting to multimedia message\u2026</string>
     <string name="converting_to_text_message">Converting to text message\u2026</string>
+    <!-- Brief message that appears when the maximum size of slides has been reached -->
+    <string name="cannot_add_text_anymore">Can\'t add more text.</string>
     <!-- Brief message that appears when the maximum number of slides has been reached -->
     <string name="cannot_add_slide_anymore">Can\'t add more slides.</string>
     <!-- Brief message that appears when user tries to add picture to a slide which already has a video. -->
@@ -288,6 +290,8 @@
     <string name="duration_not_a_number">Duration must be a number.</string>
     <!-- Toast when the user enters a zero value for the duration of a slide -->
     <string name="duration_zero">Duration must be greater than zero seconds.</string>
+    <!-- Dialog box title for display the current mms size  -->
+    <string name="title_send_message">Send message</string>
 
     <!-- In duration selection dialog box, short version of "seconds" -->
     <string name="secs">secs</string>
@@ -838,6 +842,12 @@
     <string name="progress_mms_title">MMS transaction on other sub in progress</string>
     <string name="progress_mms">Messaging: MMS in progress...</string>
     <string name="progress_mms_text ">Touch to retry again</string>
+    <string name="mail_to">mailto:</string>
+    <!-- Menu item to connect the extract url in WwwContextMenuActivity  -->
+    <string name="menu_connect_url">Connect</string>
+    <!-- Menu item to add the extract url to boomark in WwwContextMenuActivity  -->
+    <string name="menu_add_to_label">Save to bookmark</string>
+    <string name="loadurlinfo_str">Load the URL?</string>
     <!-- Message Template -->
     <string name="pref_summary_message_template">Edit message template</string>
     <string name="pref_title_message_template">Message template</string>
@@ -857,7 +867,7 @@
     <string name="pref_title_edit_signature">Edit SMS signature</string>
     <!-- SMSC -->
     <string name="pref_smsc_title">SMSC Setings</string>
-    <string name="pref_one_smcs">"Set the smsc number"</string>
+    <string name="pref_one_smcs">"Set the SIM's smsc number"</string>
     <string name="pref_more_smcs">"Set the SIM"<xliff:g id="slot_number">%d</xliff:g>"'s smsc number"</string>
     <string name="set_smsc_error">Set the smsc number error</string>
     <string name="set_smsc_success">Set the smsc number success</string>
@@ -927,4 +937,5 @@
     <string name="save_description">The time of message storing in server</string>
     <string name="status_expired">Mms expired</string>
 
+    <string name="mms_size_indicator"><xliff:g id="mms_size">%1$s</xliff:g>K/<xliff:g id="all_size">%2$s</xliff:g>K</string>
 </resources>

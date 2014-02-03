@@ -118,6 +118,7 @@ import android.text.util.Linkify;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -309,6 +310,9 @@ public class ComposeMessageActivity extends Activity
     private RecipientsEditor mRecipientsEditor;  // UI control for editing recipients
     private ImageButton mRecipientsPicker;       // UI control for recipients picker
     private ImageButton mRecipientsPickerGroups; // UI control for group recipients picker
+
+    private ImageView mIndicatorForSim1, mIndicatorForSim2;
+    private View mIndicatorContainer1, mIndicatorContainer2;
 
     // For HW keyboard, 'mIsKeyboardOpen' indicates if the HW keyboard is open.
     // For SW keyboard, 'mIsKeyboardOpen' should always be true.
@@ -3069,6 +3073,56 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private void dialRecipient(int subscription) {
+        if (isRecipientCallable()) {
+            String number = getRecipients().get(0).getNumber();
+            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+            if (subscription != MessageUtils.SUB_INVALID) {
+                dialIntent.putExtra("dial_widget_switched", subscription);
+            }
+            startActivity(dialIntent);
+        }
+    }
+
+    private void initTwoCallButtonOnActionBar() {
+        ActionBar mActionBar = getActionBar();
+        if (mActionBar == null) {
+            return;
+        }
+        // Configure action bar.
+        mActionBar.setDisplayOptions(ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME
+               | ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_SHOW_CUSTOM);
+
+        // Prepare the custom view
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View view = inflater.inflate(R.layout.action_bar_call_button, null);
+        mActionBar.setCustomView(view, new ActionBar.LayoutParams(
+                ActionBar.LayoutParams.WRAP_CONTENT,
+                ActionBar.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER_VERTICAL | Gravity.RIGHT));
+
+        mIndicatorContainer1 = (View)view.findViewById(R.id.indicatorContainer1);
+        mIndicatorContainer2 = (View)view.findViewById(R.id.indicatorContainer2);
+        mIndicatorForSim1 = (ImageView)view.findViewById(R.id.sim_card_indicator1);
+        mIndicatorForSim2 = (ImageView)view.findViewById(R.id.sim_card_indicator2);
+
+        View mCallSim1 = view.findViewById(R.id.indicatorContainer1);
+        mCallSim1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                dialRecipient(MessageUtils.SUB1);
+            }
+        });
+
+        View mCallSim2 = view.findViewById(R.id.indicatorContainer2);
+        mCallSim2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                dialRecipient(MessageUtils.SUB2);
+            }
+        });
+    }
+
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu) ;
@@ -3082,12 +3136,31 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (isRecipientCallable()) {
-            MenuItem item = menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
-                .setIcon(R.drawable.ic_menu_call)
-                .setTitle(R.string.menu_call);
-            if (!isRecipientsEditorVisible()) {
-                // If we're not composing a new message, show the call icon in the actionbar
-                item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            boolean showTwoCallButton = getResources().getBoolean(R.bool.config_two_call_button);
+            int phoneCount = MSimTelephonyManager.getDefault().getPhoneCount();
+            if (showTwoCallButton && MessageUtils.isMultiSimEnabledMms()
+                    && MessageUtils.getActivatedIccCardCount() >= phoneCount) {
+                if (mIndicatorContainer1 != null && mIndicatorContainer2 != null
+                        && mIndicatorForSim1 != null && mIndicatorForSim2 != null) {
+                    mIndicatorForSim1.setImageDrawable(MessageUtils
+                            .getMultiSimIcon(this, MessageUtils.SUB1));
+                    mIndicatorForSim2.setImageDrawable(MessageUtils
+                            .getMultiSimIcon(this, MessageUtils.SUB2));
+                    mIndicatorContainer1.setVisibility(View.VISIBLE);
+                    mIndicatorContainer2.setVisibility(View.VISIBLE);
+                }
+            } else {
+                if (mIndicatorContainer1 != null && mIndicatorContainer2 != null) {
+                    mIndicatorContainer1.setVisibility(View.GONE);
+                    mIndicatorContainer2.setVisibility(View.GONE);
+                }
+                MenuItem item = menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
+                        .setIcon(R.drawable.ic_menu_call)
+                        .setTitle(R.string.menu_call);
+                if (!isRecipientsEditorVisible()) {
+                    // If we're not composing a new message, show the call icon in the actionbar
+                    item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+                }
             }
         }
 
@@ -3434,7 +3507,8 @@ public class ComposeMessageActivity extends Activity
 
     public static long computeAttachmentSizeLimit(SlideshowModel slideShow, int currentSlideSize) {
         // Computer attachment size limit. Subtract 1K for some text.
-        long sizeLimit = MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP;
+        long sizeLimit = MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP -
+                slideShow.getTotalTextMessageSize();
         if (slideShow != null) {
             sizeLimit -= slideShow.getCurrentMessageSize();
 
@@ -3531,6 +3605,7 @@ public class ComposeMessageActivity extends Activity
                         mWorkingMessage = newMessage;
                         mWorkingMessage.setConversation(mConversation);
                         updateThreadIdIfRunning();
+                        updateMmsSizeIndicator();
                         drawTopPanel(false);
                         drawBottomPanel();
                         updateSendButtonState();
@@ -3609,6 +3684,20 @@ public class ComposeMessageActivity extends Activity
                 break;
         }
     }
+
+    private void updateMmsSizeIndicator() {
+        mAttachmentEditorHandler.post(mUpdateMmsSizeIndRunnable);
+    }
+
+    private Runnable mUpdateMmsSizeIndRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mWorkingMessage.getSlideshow() != null) {
+                mWorkingMessage.getSlideshow().updateTotalMessageSize();
+            }
+            mAttachmentEditor.update(mWorkingMessage);
+        }
+    };
 
     /**
      * Set newWorkingMessage's subject from mWorkingMessage. If we create a new
@@ -3769,6 +3858,7 @@ public class ComposeMessageActivity extends Activity
                 }
             }
 
+            updateMmsSizeIndicator();
             handleAddAttachmentError(result, R.string.type_picture);
         }
     };
@@ -3845,6 +3935,8 @@ public class ComposeMessageActivity extends Activity
                     uri, mAttachmentEditorHandler, mResizeImageCallback, append);
             return;
         }
+
+        updateMmsSizeIndicator();
         handleAddAttachmentError(result, R.string.type_picture);
     }
 
@@ -3964,6 +4056,7 @@ public class ComposeMessageActivity extends Activity
                         Parcelable uri = uris.get(i);
                         addAttachment(mimeType, (Uri) uri, true);
                     }
+                    updateMmsSizeIndicator();
                 }
             }, null, R.string.adding_attachments_title);
             return true;
@@ -3976,6 +4069,20 @@ public class ComposeMessageActivity extends Activity
         String mimeType = MediaFile.getMimeTypeForFile(path);
         int fileType = MediaFile.getFileTypeForMimeType(mimeType);
         return MediaFile.isAudioFileType(fileType);
+    }
+
+    private boolean isImageFile(Uri uri) {
+        String path = uri.getPath();
+        String mimeType = MediaFile.getMimeTypeForFile(path);
+        int fileType = MediaFile.getFileTypeForMimeType(mimeType);
+        return MediaFile.isImageFileType(fileType);
+    }
+
+    private boolean isVideoFile(Uri uri) {
+        String path = uri.getPath();
+        String mimeType = MediaFile.getMimeTypeForFile(path);
+        int fileType = MediaFile.getFileTypeForMimeType(mimeType);
+        return MediaFile.isVideoFileType(fileType);
     }
 
     // mVideoUri will look like this: content://media/external/video/media
@@ -3993,10 +4100,12 @@ public class ComposeMessageActivity extends Activity
             // there are multiple types, the type passed in is "*/*". In that case, we've got
             // to look at the uri to figure out if it is an image or video.
             boolean wildcard = "*/*".equals(type);
-            if (type.startsWith("image/") || (wildcard && uri.toString().startsWith(mImageUri))) {
+            if (type.startsWith("image/") || (wildcard && uri.toString().startsWith(mImageUri))
+                    || (wildcard && isImageFile(uri))) {
                 addImage(uri, append);
             } else if (type.startsWith("video/") ||
-                    (wildcard && uri.toString().startsWith(mVideoUri))) {
+                    (wildcard && uri.toString().startsWith(mVideoUri))
+                    || (wildcard && isVideoFile(uri))) {
                 addVideo(uri, append);
             } else if (type.startsWith("audio/")
                     || (wildcard && uri.toString().startsWith(mAudioUri))
@@ -4175,6 +4284,9 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
+            if (mWorkingMessage.requiresMms()) {
+                mAttachmentEditor.onTextChangeForMms(s);
+            }
             // This is a workaround for bug 1609057.  Since onUserInteraction() is
             // not called when the user touches the soft keyboard, we pretend it was
             // called when textfields changes.  This should be removed when the bug
@@ -4266,20 +4378,28 @@ public class ComposeMessageActivity extends Activity
 
         mBottomPanel = findViewById(R.id.bottom_panel);
         mTextEditor = (EditText) findViewById(R.id.embedded_text_editor);
-        mTextEditor.setOnEditorActionListener(this);
-        mTextEditor.addTextChangedListener(mTextEditorWatcher);
-        mTextEditor.setFilters(new InputFilter[] {
-                new LengthFilter(MmsConfig.getMaxTextLimit())});
         mTextCounter = (TextView) findViewById(R.id.text_counter);
         mSendButtonMms = (TextView) findViewById(R.id.send_button_mms);
         mSendButtonSms = (ImageButton) findViewById(R.id.send_button_sms);
         mSendButtonMms.setOnClickListener(this);
         mSendButtonSms.setOnClickListener(this);
+        mTextEditor.setOnEditorActionListener(this);
+        mTextEditor.addTextChangedListener(mTextEditorWatcher);
+        if (getResources().getInteger(R.integer.limit_count) == 0) {
+            mTextEditor.setFilters(new InputFilter[] {
+                    new LengthFilter(MmsConfig.getMaxTextLimit())});
+        } else if (getResources().getInteger(R.integer.slide_text_limit_size) != 0) {
+            mTextEditor.setFilters(new InputFilter[] {
+                    new LengthFilter(getResources().getInteger(R.integer.slide_text_limit_size))});
+        }
         mTopPanel = findViewById(R.id.recipients_subject_linear);
         mTopPanel.setFocusable(false);
         mAttachmentEditor = (AttachmentEditor) findViewById(R.id.attachment_editor);
         mAttachmentEditor.setHandler(mAttachmentEditorHandler);
         mAttachmentEditorScrollView = findViewById(R.id.attachment_editor_scroll_view);
+        if (getResources().getBoolean(R.bool.config_two_call_button)) {
+            initTwoCallButtonOnActionBar();
+        }
     }
 
     private void confirmDeleteDialog(OnClickListener listener, boolean locked) {
@@ -4392,6 +4512,7 @@ public class ComposeMessageActivity extends Activity
                 new Runnable() {
                     @Override
                     public void run() {
+                        updateMmsSizeIndicator();
                         // It decides whether or not to display the subject editText view,
                         // according to the situation whether there's subject
                         // or the editText view is visible before leaving it.
@@ -4462,7 +4583,30 @@ public class ComposeMessageActivity extends Activity
         return recipientCount;
     }
 
+    private boolean checkMessageSizeExceeded(){
+        int messageSizeLimit = MmsConfig.getMaxMessageSize();
+        int mmsCurrentSize = 0;
+        if (mWorkingMessage.getSlideshow() != null) {
+            mmsCurrentSize += mWorkingMessage.getSlideshow().getTotalMessageSize();
+        } else if (mWorkingMessage.hasText()) {
+            mmsCurrentSize += mWorkingMessage.getText().toString().getBytes().length;
+        }
+        Log.v(TAG, "compose mmsCurrentSize = " + mmsCurrentSize);
+        if (mmsCurrentSize >= messageSizeLimit) {
+            mIsAttachmentErrorOnSend = true;
+            handleAddAttachmentError(WorkingMessage.MESSAGE_SIZE_EXCEEDED,
+                    R.string.type_picture);
+            return true;
+        }
+        return false;
+    }
+
     private void sendMessage(boolean bCheckEcmMode) {
+        // Check message size, if >= max message size, do not send message.
+        if(checkMessageSizeExceeded()){
+            return;
+        }
+
         // If message is sent make the mIsMessageChanged is true
         // when activity is from SearchActivity.
         mIsMessageChanged = mIsFromSearchActivity;

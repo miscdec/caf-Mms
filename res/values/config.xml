@@ -42,6 +42,16 @@
     <!-- configuration for prompt dialog for wap push link -->
     <bool name="config_wap_push">false</bool>
 
+    <!-- configuration for show two call button in conversation -->
+    <bool name="config_two_call_button">true</bool>
+
     <!-- configuration for max slide num -->
     <integer name="max_slide_num">10</integer>
+    <!-- configuration for limit count -->
+    <integer name="limit_count">0</integer>
+    <!-- configuration for slide text limit size -->
+    <integer name="slide_text_limit_size">0</integer>
+
+    <!-- configuration for max sms message count -->
+    <integer name="max_sms_message_count">-1</integer>
 </resources>
