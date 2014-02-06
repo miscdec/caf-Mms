@@ -63,6 +63,9 @@
     <!-- Subject to display in the conversation list if there is no subject -->
     <string name="no_subject_view">(No subject)</string>
 
+    <!-- Address to display when message is a cell broadcast on channel 50 or 60  -->
+    <string name="cell_broadcast_sender">Cell Broadcast Channel</string>
+
     <!-- Name of the local user when displaying sender of an outgoing message (personal pronoun) -->
     <string name="messagelist_sender_self">Me</string>
     <!-- Context menu item on an individual message for viewing an attached slideshow -->
@@ -92,6 +95,7 @@
     <string name="delete_thread">Delete thread</string>
     <!-- Context menu item on an individual message for forwarding it to another recipient -->
     <string name="menu_forward">Forward</string>
+    <string name="menu_forward_conversation">Forward conversation</string>
     <!-- Context menu item on an failed message for resending -->
     <string name="menu_resend">Resend</string>
     <!-- Text of a button appearing for MMS messages that have not yet been downloaded, causing the message
@@ -169,6 +173,8 @@
 
     <!-- Button in conversation screen for sending the SMS message currently being composed (imperative verb) -->
     <string name="send">Send</string>
+    <string name="send_by_slot1">Send by slot1</string>
+    <string name="send_by_slot2">Send by slot2</string>
     <!-- Text to appear directly below the "Send" text on the SMS/MMS send button. The "MMS" text is on a second line in a smaller font. This is similar to saying "Send (mms)". -->
     <string name="mms">MMS</string>
     <!-- Content description for the send button when sending an mms (imperative verb) -->
@@ -865,6 +871,7 @@
     <string name="pref_summary_enable_signature">SMS signature enabled</string>
     <string name="pref_summary_disable_signature">SMS signature disabled</string>
     <string name="pref_title_edit_signature">Edit SMS signature</string>
+    <string name="operate_success">Operate successfully!</string>
     <!-- SMSC -->
     <string name="pref_smsc_title">SMSC Setings</string>
     <string name="pref_one_smcs">"Set the SIM's smsc number"</string>
@@ -880,12 +887,21 @@
     <!-- Gray hint displayed in the search field in Contacts when empty -->
     <string name="search_bar_hint">Search contacts</string>
     <string name="select_all">All</string>
-    <string name="operate_success">Operate successfully!</string>
+
     <string name="operate_failure">Operate unsuccessfully!</string>
     <string name="menu_reply">Reply</string>
 
     <string name="slot1">Slot1</string>
     <string name="slot2">Slot2</string>
+    <!-- Add for share contact feature -->
+    <string name="type_vcard">vCard</string>
+    <string name="import_vcard">Import</string>
+    <string name="attach_add_contact_as_text">Insert contact info</string>
+    <string name="attach_add_contact_as_vcard">Contact vCard</string>
+
+    <string name="contact_info_text_as_name">Name:</string>
+    <string name="contact_info_text_as_phone">Tel:</string>
+    <string name="contact_info_text_as_email">Email:</string>
     <!--  Strings used forh MMS push of messages in outbox -->
     <string name="label_mms_send_outbox_msg">MMS Wakeup</string>
     <string name="desc_mms_send_outbox_msg">Sends out all MMSs from the outbox to the network</string>
@@ -938,4 +954,14 @@
     <string name="status_expired">Mms expired</string>
 
     <string name="mms_size_indicator"><xliff:g id="mms_size">%1$s</xliff:g>K/<xliff:g id="all_size">%2$s</xliff:g>K</string>
+    <!-- batch delete message in ConversationList and MailBoxMessageList -->
+    <string name="selected_all">Select all</string>
+    <string name="deselected_all">Deselect all</string>
+    <string name="selected_count"><xliff:g id="COUNT">%d</xliff:g> selected</string>
+    <!--add for toast when deleting -->
+    <string name="deleting_title">Deleting</string>
+    <string name="please_wait">Please waiting...</string>
+    <string name="done_delete">DONE</string>
+    <!--add for toast when merging sms -->
+    <string name="merging_sms_title">Merging sms</string>
 </resources>

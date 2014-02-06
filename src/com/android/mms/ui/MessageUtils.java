@@ -74,6 +74,7 @@ import com.android.mms.data.WorkingMessage;
 import com.android.mms.model.MediaModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
+import com.android.mms.model.VcardModel;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
@@ -98,6 +99,7 @@ public class MessageUtils {
         void onResizeResult(PduPart part, boolean append);
     }
 
+
     private static final boolean DEBUG = false;
     // add the defination of subscription
     public static final int SUB_INVALID = -1;  //  for single card product
@@ -106,6 +108,14 @@ public class MessageUtils {
     public static final String SUB_KEY  = MSimConstants.SUBSCRIPTION_KEY; // subscription
     private static final int SELECT_SYSTEM = 0;
     private static final int SELECT_EXTERNAL = 1;
+    // add manage mode of multi select action
+    public static final int INVALID_MODE= -1;
+    public static final int FORWARD_MODE = 0;
+    public static final int SIM_MESSAGE_MODE = 1;
+    // add for obtaining icc uri when copying messages to card
+    public static final Uri ICC_URI = Uri.parse("content://sms/icc");
+    public static final Uri ICC1_URI = Uri.parse("content://sms/icc1");
+    public static final Uri ICC2_URI = Uri.parse("content://sms/icc2");
     private static final String TAG = LogTag.TAG;
     private static final String PREFERRED_SIM_ICON_INDEX = "preferred_sim_icon_index";
     private static String sLocalNumber;
@@ -116,6 +126,8 @@ public class MessageUtils {
     private static final String MMS_DATA_DATA_DIR = "/data/data";
     // the remaining space , format as MB
     public static final long MIN_AVAILABLE_SPACE_MMS = 2 * 1024 * 1024;
+    // distinguish view vcard from mms but not from contacts.
+    public static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
 
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
@@ -472,6 +484,10 @@ public class MessageUtils {
                 return WorkingMessage.IMAGE;
             }
 
+            if (slide.hasVcard()) {
+                return WorkingMessage.VCARD;
+            }
+
             if (slide.hasText()) {
                 return WorkingMessage.TEXT;
             }
@@ -655,6 +671,23 @@ public class MessageUtils {
             mm = slide.getImage();
         } else if (slide.hasVideo()) {
             mm = slide.getVideo();
+        } else if (slide.hasVcard()) {
+            mm = slide.getVcard();
+            String lookupUri = ((VcardModel) mm).getLookupUri();
+
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            if (!TextUtils.isEmpty(lookupUri) && lookupUri.contains("contacts")) {
+                // if the uri is from the contact, we suggest to view the contact.
+                intent.setData(Uri.parse(lookupUri));
+            } else {
+                // we need open the saved part.
+                intent.setDataAndType(mm.getUri(), ContentType.TEXT_VCARD.toLowerCase());
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
+            // distinguish view vcard from mms or contacts.
+            intent.putExtra(VIEW_VCARD, true);
+            context.startActivity(intent);
+            return;
         }
 
         Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -1413,5 +1446,19 @@ public class MessageUtils {
 
         Log.d(TAG, "getSmsMessageCount : msgCount = " + msgCount);
         return msgCount;
+    }
+
+    /**
+     * Return the icc uri according to subscription
+     */
+    public static Uri getIccUriBySubscription(int subscription) {
+        switch (subscription) {
+            case MSimConstants.SUB1:
+                return ICC1_URI;
+            case MSimConstants.SUB2:
+                return ICC2_URI;
+            default:
+                return ICC_URI;
+        }
     }
 }

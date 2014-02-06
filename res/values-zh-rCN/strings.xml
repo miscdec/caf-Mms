@@ -52,6 +52,7 @@
     <string name="undelivered_sms_dialog_body" msgid="4203703285563450868">"无法发送此短信。"</string>
     <string name="delete_thread" msgid="757258847736632791">"删除会话"</string>
     <string name="menu_forward" msgid="9026858380050046756">"转发"</string>
+    <string name="menu_forward_conversation">"转发短信会话"</string>
     <string name="menu_resend">"重新发送"</string>
     <string name="download" msgid="4488877642230207631">"下载"</string>
     <string name="downloading" msgid="1779557575565350637">"正在下载"</string>
@@ -86,6 +87,8 @@
     <string name="replace" msgid="7587904998114459388">"替换"</string>
     <string name="remove" msgid="4625444913256213175">"删除"</string>
     <string name="send" msgid="4589898724889248486">"发送"</string>
+    <string name="send_by_slot1">通过卡槽1发送</string>
+    <string name="send_by_slot2">通过卡槽2发送</string>
     <string name="mms" msgid="1587631213714914559">"彩信"</string>
     <string name="send_mms" msgid="2933162044872550662">"发送彩信"</string>
     <string name="all_threads" msgid="2663426830306307194">"所有会话"</string>
@@ -400,6 +403,7 @@
     <string name="operate_success">"操作成功！"</string>
     <string name="operate_failure">"操作失败！"</string>
     <string name="menu_reply">"回复"</string>
+    <string name="pref_wap_push_title">"自动推送服务开关"</string>
     <string name="pref_title_wap_push_enabled">"数据服务开关"</string>
     <string name="slot1">"卡1"</string>
     <string name="slot2">"卡2"</string>
@@ -414,7 +418,6 @@
     <string name="set_smsc_error">设置短消息中心号码失败</string>
     <string name="set_smsc_success">设置短消息中心号码成功</string>
     <string name="set_smsc_confirm_message">修改短消息中心号码可能导致短信发送失败，确认修改吗？</string>
-
 
     <string name="open_wap_push_title">"浏览器信息"</string>
     <string name="open_wap_push_body">"是否要访问网站？"</string>
@@ -454,4 +457,20 @@
     <string name="status_expired">已过期</string>
     <!-- select contact group -->
     <string name="no_contact_group">没有任何群组</string>
+    <!-- Add for share contact feature -->
+    <string name="type_vcard">电子名片</string>
+    <string name="import_vcard">导入</string>
+    <string name="attach_add_contact_as_text">联系人信息</string>
+    <string name="attach_add_contact_as_vcard">电子名片</string>
+    <string name="contact_info_text_as_name">姓名：</string>
+    <string name="contact_info_text_as_phone">电话：</string>
+    <string name="contact_info_text_as_email">电子邮件：</string>
+    <!-- batch delete message in ConversationList and MailBoxMessageList -->
+    <string name="selected_all">全选</string>
+    <string name="deselected_all">取消全选</string>
+    <string name="selected_count"><xliff:g id="COUNT">%d</xliff:g> 项选中了</string>
+    <string name="deleting_title">删除</string>
+    <string name="please_wait">请稍等...</string>
+    <string name="done_delete">完成</string>
+    <string name="merging_sms_title">合并短信</string>
 </resources>
