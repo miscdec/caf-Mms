@@ -387,17 +387,21 @@ public class MessageListAdapter extends CursorAdapter {
     }
 
     public boolean hasSmsInConversation(Cursor cursor) {
+        boolean hasSms = false;
         if (isCursorValid(cursor)) {
             if (cursor.moveToFirst()) {
                 do {
                     String type = cursor.getString(mColumnsMap.mColumnMsgType);
                     if ("sms".equals(type)) {
-                        return true;
+                        hasSms = true;
+                        break;
                     }
                 } while (cursor.moveToNext());
+                // Reset the position to 0
+                cursor.moveToFirst();
             }
         }
-        return false;
+        return hasSms;
     }
 
     public Cursor getCursorForItem(MessageItem item) {
