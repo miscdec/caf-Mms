@@ -4840,6 +4840,9 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
+            if (mWorkingMessage.requiresMms()) {
+                mAttachmentEditor.onTextChangeForMms(s);
+            }
             // This is a workaround for bug 1609057.  Since onUserInteraction() is
             // not called when the user touches the soft keyboard, we pretend it was
             // called when textfields changes.  This should be removed when the bug
@@ -4971,6 +4974,9 @@ public class ComposeMessageActivity extends Activity
         if (SystemProperties.getInt("persist.env.c.mms.limitcount", 0) == 0) {
             mTextEditor.setFilters(new InputFilter[] {
                     new LengthFilter(MmsConfig.getMaxTextLimit())});
+        } else if (SlideEditorActivity.SLIDE_TEXT_LIMIT_SIZE != 0) {
+            mTextEditor.setFilters(new InputFilter[] {
+                    new LengthFilter(SlideEditorActivity.SLIDE_TEXT_LIMIT_SIZE)});
         }
         mTopPanel = findViewById(R.id.recipients_subject_linear);
         mTopPanel.setFocusable(false);

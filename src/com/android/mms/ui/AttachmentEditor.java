@@ -211,11 +211,11 @@ public class AttachmentEditor extends LinearLayout {
             if (view_message == MSG_VIEW_IMAGE) {
                 mMediaSize = mSlideshow.getTotalMessageSize();
             } else {
-                mMediaSize = mSlideshow.getTotalMessageSize();
+                mMediaSize = mSlideshow.getCurrentMessageSize();
             }
             mSizeIndicator.setText(mContext.getString(R.string.mms_size_indicator,
                     (mMediaSize + KILOBYTE - 1)
-                            / KILOBYTE + 1, MmsConfig.getMaxMessageSize() / KILOBYTE));
+                            / KILOBYTE, MmsConfig.getMaxMessageSize() / KILOBYTE));
         }
 
         Button viewButton = (Button) view.findViewById(view_button_id);
@@ -239,7 +239,7 @@ public class AttachmentEditor extends LinearLayout {
         if (mSizeIndicator != null) {
             mSizeIndicator.setText(mContext.getString(R.string.mms_size_indicator,
                     (mMediaSize + KILOBYTE - 1)
-                            / KILOBYTE + 1, MmsConfig.getMaxMessageSize() / KILOBYTE));
+                            / KILOBYTE, MmsConfig.getMaxMessageSize() / KILOBYTE));
         }
 
         Button editBtn = (Button) view.findViewById(R.id.edit_slideshow_button);
@@ -266,8 +266,8 @@ public class AttachmentEditor extends LinearLayout {
         }
         if (mSizeIndicator != null) {
             mSizeIndicator.setText(mContext.getString(R.string.mms_size_indicator,
-                    (totalSize + KILOBYTE -1)
-                            / KILOBYTE + 1, MmsConfig.getMaxMessageSize() / KILOBYTE));
+                    (totalSize + KILOBYTE - 1)
+                            / KILOBYTE, MmsConfig.getMaxMessageSize() / KILOBYTE));
         }
     }
 
