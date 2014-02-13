@@ -72,6 +72,7 @@ import com.android.mms.R;
 import com.android.mms.ui.MessageListAdapter;
 import com.android.mms.ui.PopupList;
 import com.android.mms.ui.SelectionMenu;
+import com.android.mms.ui.MessageUtils;
 import com.google.android.mms.pdu.PduHeaders;
 
 import static com.android.mms.ui.MessageListAdapter.MAILBOX_PROJECTION;
@@ -362,27 +363,26 @@ public class MailBoxMessageList extends ListActivity implements
                                 MailBoxMessageList.this, cursor);
                         invalidateOptionsMenu();
                         MailBoxMessageList.this.setListAdapter(mListAdapter);
-                        View emptyView = (View) findViewById(R.id.emptyview);
-                        mListView.setEmptyView(emptyView);
-                    } else {
-                        mListAdapter.changeCursor(mCursor);
-                        if (cursor.getCount() > 0) {
-                            mCountTextView.setVisibility(View.VISIBLE);
-                            if (mQueryBoxType == TYPE_INBOX) {
-                                int count = 0;
-                                while (cursor.moveToNext()) {
-                                    if (cursor.getInt(COLUMN_SMS_READ) == 0
-                                            || cursor.getInt(COLUMN_MMS_READ) == 0) {
-                                        count++;
-                                    }
+                    }
+                    View emptyView = (View) findViewById(R.id.emptyview);
+                    mListAdapter.changeCursor(mCursor);
+                    if (cursor.getCount() > 0) {
+                        mCountTextView.setVisibility(View.VISIBLE);
+                        if (mQueryBoxType == TYPE_INBOX) {
+                            int count = 0;
+                            while (cursor.moveToNext()) {
+                                if (cursor.getInt(COLUMN_SMS_READ) == 0
+                                        || cursor.getInt(COLUMN_MMS_READ) == 0) {
+                                    count++;
                                 }
-                                mCountTextView.setText("" + count + "/" + cursor.getCount());
-                            } else {
-                                mCountTextView.setText("" + cursor.getCount());
                             }
+                            mCountTextView.setText("" + count + "/" + cursor.getCount());
                         } else {
-                            mCountTextView.setVisibility(View.INVISIBLE);
+                            mCountTextView.setText("" + cursor.getCount());
                         }
+                    } else {
+                        mListView.setEmptyView(emptyView);
+                        mCountTextView.setVisibility(View.INVISIBLE);
                     }
                 } else {
                     if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
@@ -462,6 +462,9 @@ public class MailBoxMessageList extends ListActivity implements
                 startActivityIfNeeded(modeIntent, -1);
                 finish();
                 break;
+            case R.id.action_memory_status:
+                MessageUtils.showMemoryStatusDialog(this);
+                break;
             default:
                 return true;
         }
@@ -480,6 +483,7 @@ public class MailBoxMessageList extends ListActivity implements
         if (mListAdapter != null) {
             mListAdapter.changeCursor(null);
         }
+        MessageUtils.removeDialogs();
     }
 
     private void confirmDeleteMessages() {
