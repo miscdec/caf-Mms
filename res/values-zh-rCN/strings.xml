@@ -543,4 +543,5 @@
     <string name="please_wait">请稍等...</string>
     <string name="done_delete">完成</string>
     <string name="merging_sms_title">合并短信</string>
+    <string name="forward_size_over">禁止转发，新彩信内容超过300k。</string>
 </resources>

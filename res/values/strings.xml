@@ -1002,5 +1002,6 @@
     <string name="done_delete">DONE</string>
     <!--add for toast when merging sms -->
     <string name="merging_sms_title">Merging sms</string>
+    <string name="forward_size_over">Forbid forwarding, new message size over 300K.</string>
 </resources>
 
