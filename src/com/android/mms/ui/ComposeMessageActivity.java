@@ -379,6 +379,7 @@ public class ComposeMessageActivity extends Activity
 
     private AlertDialog mSmileyDialog;
     private AlertDialog mInvalidRecipientDialog;
+    private ProgressDialog mProgressDialog;
 
     private boolean mWaitingForSubActivity;
     private int mLastRecipientCount;            // Used for warning the user on too many recipients.
@@ -914,6 +915,7 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
             dialog.dismiss();
+            mDeletingRunnable.run();
 
             new AsyncTask<Void, Void, Void>() {
                 protected Void doInBackground(Void... none) {
@@ -2565,6 +2567,8 @@ public class ComposeMessageActivity extends Activity
 
         mContentResolver = getContentResolver();
         mBackgroundQueryHandler = new BackgroundQueryHandler(mContentResolver);
+        mProgressDialog = ConversationList.createProgressDialog(this,
+                getString(R.string.deleting_message));
 
         initialize(savedInstanceState, 0);
 
@@ -5712,8 +5716,8 @@ public class ComposeMessageActivity extends Activity
                     ArrayList<Long> threadIds = (ArrayList<Long>)cookie;
                     ConversationList.confirmDeleteThreadDialog(
                             new ConversationList.DeleteThreadListener(threadIds,
-                                mBackgroundQueryHandler, null, ComposeMessageActivity.this),
-                            threadIds,
+                                mBackgroundQueryHandler, mDeletingRunnable,
+                                ComposeMessageActivity.this), threadIds,
                             cursor != null && cursor.getCount() > 0,
                             ComposeMessageActivity.this);
                     if (cursor != null) {
@@ -5781,6 +5785,10 @@ public class ComposeMessageActivity extends Activity
                     updateSendFailedNotification();
                     break;
             }
+            mHandler.removeCallbacks(mShowProgressDialogRunnable);
+            if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                mProgressDialog.dismiss();
+            }
             // If we're deleting the whole conversation, throw away
             // our current working message and bail.
             if (token == ConversationList.DELETE_CONVERSATION_TOKEN) {
@@ -5814,6 +5822,23 @@ public class ComposeMessageActivity extends Activity
             MmsWidgetProvider.notifyDatasetChanged(getApplicationContext());
         }
     }
+
+    private Runnable mDeletingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mHandler.postDelayed(mShowProgressDialogRunnable,
+                    LOADING_MESSAGES_AND_DRAFT_MAX_DELAY_MS);
+        }
+    };
+
+    private Runnable mShowProgressDialogRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mProgressDialog != null) {
+                mProgressDialog.show();
+            }
+        }
+    };
 
     private void showSmileyDialog() {
         if (mSmileyDialog == null) {
