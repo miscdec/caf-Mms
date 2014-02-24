@@ -399,8 +399,7 @@ public class MessageItem {
                     mTextContentType = tm.getContentType();
                 }
 
-                mMessageSize = mSlideshow == null ? 0 : mSlideshow.getTotalMessageSize()
-                         + mSlideshow.getTotalTextMessageSize();
+                mMessageSize = mSlideshow == null ? 0 : mSlideshow.getTotalMessageSize();
 
                 String report = mCursor.getString(mColumnsMap.mColumnMmsDeliveryReport);
                 if ((report == null) || !mAddress.equals(mContext.getString(
