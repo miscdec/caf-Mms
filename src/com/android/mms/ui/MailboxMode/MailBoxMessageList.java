@@ -473,51 +473,37 @@ public class MailBoxMessageList extends ListActivity implements
                                 MailBoxMessageList.this, cursor);
                         invalidateOptionsMenu();
                         MailBoxMessageList.this.setListAdapter(mListAdapter);
-                        TextView emptyView = (TextView) findViewById(R.id.emptyview);
-                        mListView.setEmptyView(emptyView);
-                        if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
-                            int count = cursor.getCount();
-
-                            if (count > 0) {
-                                mMessageTitle.setText(getResources().getQuantityString(
-                                    R.plurals.search_results_title, count, count,
-                                    mSearchDisplayStr));
-                            } else {
-                                mMessageTitle.setText(getResources().getQuantityString(
-                                    R.plurals.search_results_title, 0, 0, mSearchDisplayStr));
-                                emptyView.setText(getString(R.string.search_empty));
+                    }
+                    mListAdapter.changeCursor(mCursor);
+                    TextView emptyView = (TextView) findViewById(R.id.emptyview);
+                    if(cursor.getCount() > 0 && mMailboxId != Sms.MESSAGE_TYPE_SEARCH) {
+                        mCountTextView.setVisibility(View.VISIBLE);
+                        if (mQueryBoxType == TYPE_INBOX) {
+                            int count = 0;
+                            while (cursor.moveToNext()) {
+                                if (cursor.getInt(COLUMN_SMS_READ) == 0
+                                        || cursor.getInt(COLUMN_MMS_READ) == 0) {
+                                    count++;
+                                }
                             }
+                            mCountTextView.setText("" + count + "/" + cursor.getCount());
+                        } else {
+                            mCountTextView.setText("" + cursor.getCount());
+                        }
+                    } else if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
+                        int count = cursor.getCount();
+                        if (count > 0) {
+                            mMessageTitle.setText(getResources().getQuantityString(
+                                R.plurals.search_results_title, count, count,
+                                mSearchDisplayStr));
+                        } else {
+                            mMessageTitle.setText(getResources().getQuantityString(
+                                R.plurals.search_results_title, 0, 0, mSearchDisplayStr));
+                            emptyView.setText(getString(R.string.search_empty));
                         }
                     } else {
-                        mListAdapter.changeCursor(mCursor);
-                        if(cursor.getCount() > 0 && mMailboxId != Sms.MESSAGE_TYPE_SEARCH) {
-                            mCountTextView.setVisibility(View.VISIBLE);
-                            if (mQueryBoxType == TYPE_INBOX) {
-                                int count = 0;
-                                while (cursor.moveToNext()) {
-                                    if (cursor.getInt(COLUMN_SMS_READ) == 0
-                                            || cursor.getInt(COLUMN_MMS_READ) == 0) {
-                                        count++;
-                                    }
-                                }
-                                mCountTextView.setText("" + count + "/" + cursor.getCount());
-                            } else {
-                                mCountTextView.setText("" + cursor.getCount());
-                            }
-                        } else if (mMailboxId == Sms.MESSAGE_TYPE_SEARCH) {
-                            int count = cursor.getCount();
-
-                            if (count > 0) {
-                                mMessageTitle.setText(getResources().getQuantityString(
-                                    R.plurals.search_results_title, count, count,
-                                    mSearchDisplayStr));
-                            } else {
-                                mMessageTitle.setText(getResources().getQuantityString(
-                                    R.plurals.search_results_title, 0, 0, mSearchDisplayStr));
-                            }
-                        } else {
-                            mCountTextView.setVisibility(View.INVISIBLE);
-                        }
+                        mListView.setEmptyView(emptyView);
+                        mCountTextView.setVisibility(View.INVISIBLE);
                     }
                 } else {
                     if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
