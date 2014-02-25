@@ -151,7 +151,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         setupActionBar();
 
-        mProgressDialog = createProgressDialog();
+        mProgressDialog = createProgressDialog(this, getString(R.string.deleting_threads));
 
         setTitle(R.string.app_label);
 
@@ -796,7 +796,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         DraftCache.getInstance().refresh();
                     } else {
                         int size = mThreadIds.size();
-                        if(size > 0 && mCallBack != null) {
+                        if(size > 0 && mCallBack != null && mContext instanceof ConversationList) {
                             // Save the last thread id.
                             // And cancel deleting dialog after this thread been deleted.
                             mLastDeletedThread = (mThreadIds.toArray(new Long[size]))[size - 1];
@@ -1137,13 +1137,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         Log.d(TAG, "[" + Thread.currentThread().getId() + "] " + s);
     }
 
-    private ProgressDialog createProgressDialog() {
-        ProgressDialog dialog = new ProgressDialog(this);
+    public static ProgressDialog createProgressDialog(Context context, String message) {
+        ProgressDialog dialog = new ProgressDialog(context);
         dialog.setIndeterminate(true);
         dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         dialog.setCanceledOnTouchOutside(false);
         dialog.setCancelable(false);
-        dialog.setMessage(getText(R.string.deleting_threads));
+        dialog.setMessage(message);
         return dialog;
     }
 
