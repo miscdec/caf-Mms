@@ -55,6 +55,7 @@
     <!-- Message that appears on screen while SIM card messages are retrieved -->
     <string name="refreshing">Refreshing\u2026</string>
     <string name="deleting_threads">Deleting threads\u2026</string>
+    <string name="deleting_message">Deleting message\u2026</string>
 
     <!-- Menu item to show received cell broadcasts. [CHAR LIMIT=30] -->
     <string name="menu_cell_broadcasts">Cell broadcasts</string>
@@ -998,5 +999,6 @@
     <string name="done_delete">DONE</string>
     <!--add for toast when merging sms -->
     <string name="merging_sms_title">Merging sms</string>
+    <string name="forward_size_over">Forbid forwarding, new message size over 300K.</string>
 </resources>
 
