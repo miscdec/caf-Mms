@@ -548,6 +548,11 @@ public class SmilPlayer implements Runnable {
         }
     }
 
+    private synchronized TimelineEntry getCurrentEntry() {
+        return mAllEntries.get(mCurrentElement < mAllEntries.size() ?
+                mCurrentElement : mAllEntries.size() - 1);
+    }
+
     private void stopCurrentSlide() {
         HashSet<TimelineEntry> skippedEntries = new HashSet<TimelineEntry>();
         int totalEntries = mAllEntries.size();
@@ -654,7 +659,7 @@ public class SmilPlayer implements Runnable {
         // Play the Element by following the timeline
         int size = mAllEntries.size();
         for (mCurrentElement = 0; mCurrentElement < size; mCurrentElement++) {
-            TimelineEntry entry = mAllEntries.get(mCurrentElement);
+            TimelineEntry entry = getCurrentEntry();
             if (isBeginOfSlide(entry)) {
                 mCurrentSlide = mCurrentElement;
             }
