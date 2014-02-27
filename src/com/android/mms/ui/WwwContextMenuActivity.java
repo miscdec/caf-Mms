@@ -94,13 +94,16 @@ public class WwwContextMenuActivity extends Activity {
 
     private void loadUrl(String url) {
         if (!url.regionMatches(true, 0, "http://", 0, 7)
-                && !url.regionMatches(true, 0, "https://", 0, 8)) {
+                && !url.regionMatches(true, 0, "https://", 0, 8)
+                && !url.regionMatches(true, 0, "rtsp://", 0, 7)) {
             url = "http://" + url;
         }
         url = url.replace("Http://","http://");
         url = url.replace("Https://","https://");
         url = url.replace("HTTP://","http://");
         url = url.replace("HTTPS://","https://");
+        url = url.replace("Rtsp://","rtsp://");
+        url = url.replace("RTSP://","rtsp://");
         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         intent.addCategory(Intent.CATEGORY_BROWSABLE);
 
