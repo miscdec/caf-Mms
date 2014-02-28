@@ -384,6 +384,9 @@ public class ComposeMessageActivity extends Activity
     private static final int MSG_COPY_TO_SIM_FAILED = 1;
     private static final int MSG_COPY_TO_SIM_SUCCESS = 2;
     private static final int DIALOG_IMPORT_TEMPLATE = 1;
+
+    private static final int MSG_ONLY_ONE_FAIL_LIST_ITEM = 1;
+
     /**
      * Whether this activity is currently running (i.e. not paused)
      */
@@ -1576,10 +1579,19 @@ public class ComposeMessageActivity extends Activity
         }
         // Delete the old undelivered SMS and load its content.
         Uri uri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgId);
-        SqliteWrapper.delete(ComposeMessageActivity.this,
+        int count = SqliteWrapper.delete(ComposeMessageActivity.this,
                 mContentResolver, uri, null, null);
 
         mWorkingMessage.setText(msgBody);
+
+        // if the ListView only has one message and delete the message success
+        // the uri of conversation will be null, so it can't qurey info from DB,
+        // so the mMsgListAdapter should change Cursor to null
+        if (count > 0) {
+            if (mMsgListAdapter.getCount() == MSG_ONLY_ONE_FAIL_LIST_ITEM) {
+                mMsgListAdapter.changeCursor(null);
+            }
+        }
     }
 
 
@@ -3747,10 +3759,9 @@ public class ComposeMessageActivity extends Activity
 
     public static long computeAttachmentSizeLimit(SlideshowModel slideShow, int currentSlideSize) {
         // Computer attachment size limit. Subtract 1K for some text.
-        long sizeLimit = MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP -
-                slideShow.getTotalTextMessageSize();
+        long sizeLimit = MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP;
         if (slideShow != null) {
-            sizeLimit -= slideShow.getCurrentMessageSize();
+            sizeLimit -= slideShow.getCurrentMessageSize() + slideShow.getTotalTextMessageSize();
 
             // We're about to ask the camera to capture some video (or the sound recorder
             // to record some audio) which will eventually replace the content on the current
