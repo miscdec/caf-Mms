@@ -395,7 +395,8 @@ public class TransactionService extends Service implements Observer {
 
     private void decRefCount() {
         synchronized (mRef) {
-            Log.d(TAG, "decRefCount() mRef=" + --mRef);
+            mRef--;
+            Log.d(TAG, "decRefCount() mRef=" + mRef);
             if (mRef < 0) {
                 Log.d(TAG, "BUG, mRef IS NEGATIVE !!!");
                 mRef =0;
@@ -412,7 +413,8 @@ public class TransactionService extends Service implements Observer {
 
     private void incRefCount() {
         synchronized (mRef) {
-            Log.d(TAG, "incRefCount() mRef=" + ++mRef);
+            mRef++;
+            Log.d(TAG, "incRefCount() mRef=" + mRef);
         }
     }
 
