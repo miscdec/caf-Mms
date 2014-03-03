@@ -68,7 +68,7 @@
     <string name="select_copy_message_text">"选择性复制"</string>
     <string name="message_options" msgid="6838806653341967550">"信息选项"</string>
     <string name="slideshow_options" msgid="3501759384739796431">"幻灯片选项"</string>
-    <string name="done" msgid="7479926268660505871">"完成"</string>
+    <string name="slide_done" msgid="7479926268660505871">"完成"</string>
     <string name="move_up" msgid="7307578107431739359">"上移"</string>
     <string name="move_down" msgid="6356509518429479053">"下移"</string>
     <string name="remove_slide" msgid="2225604354024914900">"删除幻灯片"</string>
@@ -435,8 +435,15 @@
 
     <!-- SMSC -->
     <string name="pref_smsc_title">短消息中心设置</string>
-    <string name="pref_one_smcs">"设置短消息中心号码"</string>
-    <string name="pref_more_smcs">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
+    <plurals name="pref_title_smsc">
+        <!-- Case of 1 result. -->
+        <item quantity="one">"设置短消息中心号码"</item>
+        <!-- Case of 0 or 2 or more results. -->
+        <item quantity="other">"设置卡槽"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</item>
+    </plurals>
+    <string name="pref_one_smcs">"设置SIM卡的短消息中心号码"</string>
+    <string name="pref_more_smcs">"设置SIM"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
+
     <string name="set_smsc_error">设置短消息中心号码失败</string>
     <string name="set_smsc_success">设置短消息中心号码成功</string>
     <string name="set_smsc_confirm_message">修改短消息中心号码可能导致短信发送失败，确认修改吗？</string>
