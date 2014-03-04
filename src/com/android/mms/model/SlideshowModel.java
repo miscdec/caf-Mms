@@ -449,11 +449,7 @@ public class SlideshowModel extends Model
         int totalMediaSize = 0;
         for (SlideModel slide : mSlides) {
             for (MediaModel media : slide) {
-                if (!media.getMediaResizable()) {
-                    totalMediaSize += media.getMediaSize();
-                } else {
-                    totalMediaSize += media.getDefaultResizedMediaSize();
-                }
+                totalMediaSize += media.getMediaSize();
             }
         }
         setTotalMessageSize(totalMediaSize);
