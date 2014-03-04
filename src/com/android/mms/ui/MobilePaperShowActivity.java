@@ -231,9 +231,14 @@ public class MobilePaperShowActivity extends Activity {
                      this, (SlideViewInterface)view, mSlideModel);
             TextView contentText = (TextView) view.findViewById(R.id.text_preview);
             contentText.setTextIsSelectable(true);
-            contentText.setClickable(false);
             mPresenter.presentSlide((SlideViewInterface)view, mSlideModel.get(index));
             contentText.setTextSize(TypedValue.COMPLEX_UNIT_PX, getCurrentTextSize(this));
+            contentText.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    MessageUtils.onMessageContentClick(MobilePaperShowActivity.this, (TextView)v);
+                }
+            });
             TextView text = (TextView) view.findViewById(R.id.slide_number_text);
             text.setFocusable(false);
             text.setFocusableInTouchMode(false);
@@ -287,7 +292,7 @@ public class MobilePaperShowActivity extends Activity {
                             break;
                         }
                     }
-                    return true;
+                    return false;
                 }
             };
 

@@ -55,6 +55,7 @@
     <!-- Message that appears on screen while SIM card messages are retrieved -->
     <string name="refreshing">Refreshing\u2026</string>
     <string name="deleting_threads">Deleting threads\u2026</string>
+    <string name="deleting_message">Deleting message\u2026</string>
 
     <!-- Menu item to show received cell broadcasts. [CHAR LIMIT=30] -->
     <string name="menu_cell_broadcasts">Cell broadcasts</string>
@@ -890,7 +891,7 @@
 
     <!-- SMSC -->
     <string name="pref_smsc_title">SMSC Setings</string>
-    <string name="pref_one_smcs">"Set the smsc number"</string>
+    <string name="pref_one_smcs">"Set the SIM's smsc number"</string>
     <string name="pref_more_smcs">"Set the SIM"<xliff:g id="slot_number">%d</xliff:g>"'s smsc number"</string>
     <string name="set_smsc_error">Set the smsc number error</string>
     <string name="set_smsc_success">Set the smsc number success</string>
@@ -1003,5 +1004,6 @@
     <string name="done_delete">DONE</string>
     <!--add for toast when merging sms -->
     <string name="merging_sms_title">Merging sms</string>
+    <string name="forward_size_over">Forbid forwarding, new message size over 300K.</string>
 </resources>
 
