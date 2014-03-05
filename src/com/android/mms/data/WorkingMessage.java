@@ -627,8 +627,21 @@ public class WorkingMessage {
         // function is called, we've got to create a new slide and add the picture/video
         // to that new slide.
         boolean addNewSlide = true;
-        if (mSlideshow.size() == 1 && !mSlideshow.isSimple()) {
-            addNewSlide = false;
+        if (mSlideshow.size() == 1) {
+            SlideModel slide = mSlideshow.get(0);
+            // The slide must have either an image or video or vcard or audio, and only one of them.
+            boolean hasImage = slide.hasImage();
+            boolean hasVideo = slide.hasVideo();
+            boolean hasVcard = slide.hasVcard();
+            boolean hasAudio = slide.hasAudio();
+            if ((hasImage && !hasVideo && !hasVcard && !hasAudio)
+                    || (!hasImage && hasVideo && !hasVcard && !hasAudio)
+                    || (!hasImage && !hasVideo && hasVcard && !hasAudio)
+                    || (!hasImage && !hasVideo && !hasVcard && hasAudio)) {
+                addNewSlide = true;
+            } else {
+                addNewSlide = false;
+            }
         }
         if (addNewSlide) {
             if (!slideShowEditor.addNewSlide()) {
@@ -711,6 +724,9 @@ public class WorkingMessage {
     public void setSubject(CharSequence s, boolean notify) {
         mSubject = s;
         updateState(HAS_SUBJECT, (s != null), notify);
+        if (mSlideshow != null) {
+            mSlideshow.setSubjectSize((s == null) ? 0 : s.toString().getBytes().length);
+        }
     }
 
     /**
