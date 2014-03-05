@@ -229,7 +229,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_VIDEOCALL_RECIPIENT   = 8;
     private static final int MENU_SEND_BY_SLOT1         = 9;
     private static final int MENU_SEND_BY_SLOT2         = 10;
-    private static final int MENU_FOWARD_CONVERSATION    = 11;
+    private static final int MENU_FORWARD_CONVERSATION    = 11;
 
     // Context menu ID
     private static final int MENU_VIEW_CONTACT          = 12;
@@ -381,6 +381,7 @@ public class ComposeMessageActivity extends Activity
 
     private AlertDialog mSmileyDialog;
     private AlertDialog mInvalidRecipientDialog;
+    private ProgressDialog mProgressDialog;
 
     private boolean mWaitingForSubActivity;
     private int mLastRecipientCount;            // Used for warning the user on too many recipients.
@@ -456,6 +457,7 @@ public class ComposeMessageActivity extends Activity
     public final static String THREAD_ID = "thread_id";
     private final static String RECIPIENTS = "recipients";
     public final static String MANAGE_MODE = "manage_mode";
+    private final static String MSG_SUBJECT_SIZE = "subject_size";
 
     private boolean isLocked = false;
 
@@ -533,7 +535,10 @@ public class ComposeMessageActivity extends Activity
         // The SlideShow is not support Vcard attachment, if we have created a
         // Vcard already before adding SlideShow, we must remove it first.
         SlideshowModel slideShow = mWorkingMessage.getSlideshow();
+        final int subjectSize = mWorkingMessage.hasSubject()
+                    ? mWorkingMessage.getSubject().toString().getBytes().length : 0;
         if (slideShow != null) {
+            slideShow.setSubjectSize(subjectSize);
             for (SlideModel model : slideShow) {
                 if (model != null && model.hasVcard()) {
                     model.removeVcard();
@@ -563,6 +568,7 @@ public class ComposeMessageActivity extends Activity
                 Intent intent = new Intent(ComposeMessageActivity.this,
                         SlideshowEditActivity.class);
                 intent.setData(mTempMmsUri);
+                intent.putExtra(MSG_SUBJECT_SIZE, subjectSize);
                 startActivityForResult(intent, REQUEST_CODE_CREATE_SLIDESHOW);
             }
         }, R.string.building_slideshow_title);
@@ -718,8 +724,14 @@ public class ComposeMessageActivity extends Activity
         if (cursor == null) {
             return false;
         }
+        int subjectSize = (msgItem.mSubject == null) ? 0 : msgItem.mSubject.getBytes().length;
+        int messageSize =  msgItem.mMessageSize + subjectSize;
+        if (DEBUG) {
+            Log.v(TAG,"showMessageDetails subjectSize = " + subjectSize);
+            Log.v(TAG,"showMessageDetails messageSize = " + messageSize);
+        }
         String messageDetails = MessageUtils.getMessageDetails(
-                ComposeMessageActivity.this, cursor, msgItem.mMessageSize);
+                ComposeMessageActivity.this, cursor, messageSize);
         new AlertDialog.Builder(ComposeMessageActivity.this)
                 .setTitle(R.string.message_details_title)
                 .setMessage(messageDetails)
@@ -905,6 +917,7 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
             dialog.dismiss();
+            mDeletingRunnable.run();
 
             new AsyncTask<Void, Void, Void>() {
                 protected Void doInBackground(Void... none) {
@@ -1883,6 +1896,11 @@ public class ComposeMessageActivity extends Activity
                     return true;
 
                 case MENU_FORWARD_MESSAGE:
+                    if (!isAllowForwardMessage(mMsgItem)) {
+                        Toast.makeText(ComposeMessageActivity.this,
+                                R.string.forward_size_over, Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
                     forwardMessage(mMsgItem);
                     return true;
 
@@ -1971,6 +1989,19 @@ public class ComposeMessageActivity extends Activity
                     return false;
             }
         }
+    }
+
+    private boolean isAllowForwardMessage(MessageItem msgItem) {
+        int messageSize = msgItem.getSlideshow().getTotalMessageSize();
+        int forwardStrSize = getString(R.string.forward_prefix).getBytes().length;
+        int subjectSize =  (msgItem.mSubject == null) ? 0 : msgItem.mSubject.getBytes().length;
+        int totalSize = messageSize + forwardStrSize + subjectSize;
+        if (DEBUG) {
+            Log.e(TAG,"isAllowForwardMessage messageSize = "+ messageSize
+                    + ", forwardStrSize = "+forwardStrSize+ ", subjectSize = "+subjectSize
+                    + ", totalSize = " + totalSize);
+        }
+        return totalSize <= (MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP);
     }
 
     private void showCopySelectDialog(final MessageItem msgItem) {
@@ -2556,6 +2587,8 @@ public class ComposeMessageActivity extends Activity
 
         mContentResolver = getContentResolver();
         mBackgroundQueryHandler = new BackgroundQueryHandler(mContentResolver);
+        mProgressDialog = ConversationList.createProgressDialog(this,
+                getString(R.string.deleting_message));
 
         initialize(savedInstanceState, 0);
 
@@ -3592,7 +3625,7 @@ public class ComposeMessageActivity extends Activity
                 menu.add(0, MENU_DELETE_THREAD, 0, R.string.delete_thread).setIcon(
                     android.R.drawable.ic_menu_delete);
                 if (FORWARD_CONVERSATION && mMsgListAdapter.hasSmsInConversation(cursor)) {
-                    menu.add(0, MENU_FOWARD_CONVERSATION, 0, R.string.menu_forward_conversation);
+                    menu.add(0, MENU_FORWARD_CONVERSATION, 0, R.string.menu_forward_conversation);
                 }
             }
         } else {
@@ -3688,7 +3721,7 @@ public class ComposeMessageActivity extends Activity
             case MENU_INSERT_SMILEY:
                 showSmileyDialog();
                 break;
-            case MENU_FOWARD_CONVERSATION: {
+            case MENU_FORWARD_CONVERSATION: {
                 Intent intent = new Intent(this, ManageMultiSelectAction.class);
                 intent.putExtra(MANAGE_MODE, MessageUtils.FORWARD_MODE);
                 intent.putExtra(THREAD_ID, mConversation.getThreadId());
@@ -4712,6 +4745,11 @@ public class ComposeMessageActivity extends Activity
         boolean showingAttachment = mAttachmentEditor.update(mWorkingMessage);
         mAttachmentEditorScrollView.setVisibility(showingAttachment ? View.VISIBLE : View.GONE);
         showSubjectEditor(showSubjectEditor || mWorkingMessage.hasSubject());
+        int subjectSize = mWorkingMessage.hasSubject()
+                ? mWorkingMessage.getSubject().toString().getBytes().length : 0;
+        if (mWorkingMessage.getSlideshow()!= null) {
+            mWorkingMessage.getSlideshow().setSubjectSize(subjectSize);
+        }
         if (mShowTwoButtons) {
             mAttachmentEditor.hideSlideshowSendButton();
         }
@@ -5701,8 +5739,8 @@ public class ComposeMessageActivity extends Activity
                     ArrayList<Long> threadIds = (ArrayList<Long>)cookie;
                     ConversationList.confirmDeleteThreadDialog(
                             new ConversationList.DeleteThreadListener(threadIds,
-                                mBackgroundQueryHandler, null, ComposeMessageActivity.this),
-                            threadIds,
+                                mBackgroundQueryHandler, mDeletingRunnable,
+                                ComposeMessageActivity.this), threadIds,
                             cursor != null && cursor.getCount() > 0,
                             ComposeMessageActivity.this);
                     if (cursor != null) {
@@ -5770,6 +5808,10 @@ public class ComposeMessageActivity extends Activity
                     updateSendFailedNotification();
                     break;
             }
+            mHandler.removeCallbacks(mShowProgressDialogRunnable);
+            if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                mProgressDialog.dismiss();
+            }
             // If we're deleting the whole conversation, throw away
             // our current working message and bail.
             if (token == ConversationList.DELETE_CONVERSATION_TOKEN) {
@@ -5803,6 +5845,23 @@ public class ComposeMessageActivity extends Activity
             MmsWidgetProvider.notifyDatasetChanged(getApplicationContext());
         }
     }
+
+    private Runnable mDeletingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mHandler.postDelayed(mShowProgressDialogRunnable,
+                    LOADING_MESSAGES_AND_DRAFT_MAX_DELAY_MS);
+        }
+    };
+
+    private Runnable mShowProgressDialogRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mProgressDialog != null) {
+                mProgressDialog.show();
+            }
+        }
+    };
 
     private void showSmileyDialog() {
         if (mSmileyDialog == null) {

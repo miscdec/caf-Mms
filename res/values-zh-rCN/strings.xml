@@ -36,6 +36,7 @@
     <string name="menu_debug_dump" msgid="6855869130206549643">"DEBUG DUMP"</string>
     <string name="refreshing" msgid="987335057871404222">"正在刷新..."</string>
     <string name="deleting_threads">"正在删除会话..."</string>
+    <string name="deleting_message">"正在删除信息..."</string>
     <string name="menu_cell_broadcasts" msgid="5646161375983084660">"小区广播"</string>
     <string name="has_draft" msgid="2487465595514636160">"草稿"</string>
     <string name="no_subject_view" msgid="7795086723069563537">"（无主题）"</string>
@@ -437,8 +438,8 @@
 
     <!-- SMSC -->
     <string name="pref_smsc_title">短消息中心设置</string>
-    <string name="pref_one_smcs">"设置短消息中心号码"</string>
-    <string name="pref_more_smcs">"设置SIM卡"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
+    <string name="pref_one_smcs">"设置SIM卡的短消息中心号码"</string>
+    <string name="pref_more_smcs">"设置SIM"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
     <string name="set_smsc_error">设置短消息中心号码失败</string>
     <string name="set_smsc_success">设置短消息中心号码成功</string>
     <string name="set_smsc_confirm_message">修改短消息中心号码可能导致短信发送失败，确认修改吗？</string>
@@ -538,4 +539,5 @@
     <string name="please_wait">请稍等...</string>
     <string name="done_delete">完成</string>
     <string name="merging_sms_title">合并短信</string>
+    <string name="forward_size_over">禁止转发，新彩信内容超过300k。</string>
 </resources>

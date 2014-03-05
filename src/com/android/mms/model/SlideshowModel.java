@@ -75,6 +75,7 @@ public class SlideshowModel extends Model
     private int mCurrentMessageSize;    // This is the current message size, not including
                                         // attachments that can be resized (such as photos)
     private int mTotalMessageSize;      // This is the computed total message size
+    private int mSubjectSize;           // This is subject size
     private Context mContext;
 
     // amount of space to leave in a slideshow for overhead.
@@ -436,19 +437,27 @@ public class SlideshowModel extends Model
         return mTotalMessageSize;
     }
 
+
+    public void setSubjectSize(int size) {
+        mSubjectSize = size;
+    }
+
+    public int getSubjectSize() {
+        return mSubjectSize;
+    }
+
     public int getRemainMessageSize() {
         int totalMediaSize = 0;
         for (SlideModel slide : mSlides) {
             for (MediaModel media : slide) {
-                if (!media.getMediaResizable()) {
-                    totalMediaSize += media.getMediaSize();
-                } else {
-                    totalMediaSize += media.getDefaultResizedMediaSize();
-                }
+                totalMediaSize += media.getMediaSize();
             }
         }
-        int remainSize = MmsConfig.getMaxMessageSize() - totalMediaSize
-                - getTotalTextMessageSize();
+
+        setTotalMessageSize(totalMediaSize);
+        // The totalMediaSize include text size which inputting before.
+        // So we don't calculate text size again.
+        int remainSize = MmsConfig.getMaxMessageSize() - totalMediaSize - mSubjectSize;
         return remainSize < SLIDESHOW_SLOP ? 0 : remainSize - SLIDESHOW_SLOP;
     }
 
@@ -834,7 +843,7 @@ public class SlideshowModel extends Model
         // mTotalMessageSize include resizable attachments, getTotalMessageSize
         // is called by UI for displaying the size of the MMS message, so set
         // mTotalMessageSize here rather than mCurrentMessageSize.
-        setTotalMessageSize(totalSize + getTotalTextMessageSize());
+        setTotalMessageSize(totalSize);
     }
 
 }
