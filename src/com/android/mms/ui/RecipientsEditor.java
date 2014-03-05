@@ -39,6 +39,7 @@ import android.view.ContextMenu.ContextMenuInfo;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.widget.AdapterView;
 import android.widget.MultiAutoCompleteTextView;
 
@@ -46,6 +47,7 @@ import com.android.ex.chips.RecipientEditTextView;
 import com.android.mms.MmsConfig;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
+import com.android.mms.R;
 
 /**
  * Provide UI for editing the recipients of multi-media messages.
@@ -157,6 +159,13 @@ public class RecipientsEditor extends RecipientEditTextView {
 
         return end == len;
 
+    }
+
+    @Override
+    public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+        InputConnection connection = super.onCreateInputConnection(outAttrs);
+        outAttrs.actionLabel = getContext().getString(R.string.done);
+        return connection;
     }
 
     public int getRecipientCount() {
