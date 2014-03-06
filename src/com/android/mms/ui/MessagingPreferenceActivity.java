@@ -87,6 +87,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     public static final String RETRIEVAL_DURING_ROAMING = "pref_key_mms_retrieval_during_roaming";
     public static final String AUTO_DELETE              = "pref_key_auto_delete";
     public static final String GROUP_MMS_MODE           = "pref_key_mms_group_mms";
+    public static final String SMS_CDMA_PRIORITY        = "pref_key_sms_cdma_priority";
 
     // Expiry of MMS
     private final static String EXPIRY_ONE_WEEK = "604800"; // 7 * 24 * 60 * 60
@@ -143,8 +144,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private static final String NOTIFY_SMSC_UPDATE  = "com.android.smsc.notify.update";
     private static final String NOTIFY_SMSC_ERROR   = "com.android.smsc.notify.error";
     private static final String NOTIFY_SMSC_SUCCESS = "com.android.smsc.notify.success";
-    private static final String SMSC_PACKAGE_NAME = "com.android.phonefeature";
-    private static final String SMSC_SERVICE_NAME = "com.android.phonefeature.smsc.SmscService";
 
     private BroadcastReceiver mReceiver = null;
 
@@ -234,6 +233,11 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mSmsStoreCard1Pref = (ListPreference) findPreference("pref_key_sms_store_card1");
         mSmsStoreCard2Pref = (ListPreference) findPreference("pref_key_sms_store_card2");
 
+        if (!getResources().getBoolean(R.bool.support_sms_priority)) {
+            Preference priorotySettings = findPreference(SMS_CDMA_PRIORITY);
+            PreferenceScreen prefSet = getPreferenceScreen();
+            prefSet.removePreference(priorotySettings);
+        }
         setMessagePreferences();
     }
 
@@ -750,7 +754,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // We need update the preference summary.
         if (prefEnabled) {
             Intent get = new Intent();
-            get.setComponent(new ComponentName(SMSC_PACKAGE_NAME, SMSC_SERVICE_NAME));
             get.setAction(COMMAND_GET_SMSC);
             get.putExtra(SMSC_DIALOG_SUB, id);
             startService(get);
@@ -847,8 +850,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                     .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int whichButton) {
                             Intent intent = new Intent();
-                            intent.setComponent(new ComponentName(SMSC_PACKAGE_NAME,
-                                    SMSC_SERVICE_NAME));
                             intent.setAction(COMMAND_SET_SMSC);
                             intent.putExtra(SMSC_DIALOG_SUB, sub);
                             intent.putExtra(SMSC_DIALOG_NUMBER, displayedSMSC);
