@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2013, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2010-2014, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -82,6 +82,7 @@ import com.google.android.mms.MmsException;
 public class SmsReceiverService extends Service {
     private static final String TAG = "SmsReceiverService";
     private final String SUBSCRIPTION_KEY = "subscription";
+    private final static String SMS_PRIORITY = "pri";
 
     private ServiceHandler mServiceHandler;
     private Looper mServiceLooper;
@@ -106,6 +107,7 @@ public class SmsReceiverService extends Service {
         Sms.BODY,       //3
         Sms.STATUS,     //4
         Sms.SUB_ID,     //5
+        SMS_PRIORITY,   //6
 
     };
 
@@ -127,6 +129,7 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_BODY       = 3;
     private static final int SEND_COLUMN_STATUS     = 4;
     private static final int SEND_COLUMN_SUB_ID     = 5;
+    private static final int SEND_COLUMN_PRIORITY   = 6;
 
 
     @Override
@@ -299,6 +302,7 @@ public class SmsReceiverService extends Service {
 
                     int msgId = c.getInt(SEND_COLUMN_ID);
                     int subId = c.getInt(SEND_COLUMN_SUB_ID);
+                    int priority = c.getInt(SEND_COLUMN_PRIORITY);
                     Uri msgUri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgId);
                     // Get the information of is there any messages are pending to process.
                     // If yes, send this inforamtion to framework to control the link and send all
@@ -306,9 +310,13 @@ public class SmsReceiverService extends Service {
                     if (c.moveToNext()) {
                         isExpectMore = true;
                     }
-                    SmsMessageSender sender = new SmsSingleRecipientSender(this,
+                    SmsMessageSender sender = new StandaloneMessagingSingleRecipientSender(this,
                             address, msgText, threadId, status == Sms.STATUS_PENDING,
                             msgUri, subId, isExpectMore);
+
+                    if(priority != -1){
+                        ((SmsSingleRecipientSender)sender).setPriority(priority);
+                    }
 
                     if (LogTag.DEBUG_SEND ||
                             LogTag.VERBOSE ||

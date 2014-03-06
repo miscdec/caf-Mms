@@ -403,8 +403,6 @@ public class MessageUtils {
         EncodedStringValue subject = msg.getSubject();
         if (subject != null) {
             String subStr = subject.getString();
-            // Message size should include size of subject.
-            size += subStr.length();
             details.append(subStr);
         }
 
@@ -416,7 +414,8 @@ public class MessageUtils {
         // Message size: *** KB
         details.append('\n');
         details.append(res.getString(R.string.message_size_label));
-        details.append((size - 1)/1000 + 1);
+        details.append((size + SlideshowModel.SLIDESHOW_SLOP -1)
+                / SlideshowModel.SLIDESHOW_SLOP + 1);
         details.append(" KB");
 
         return details.toString();
@@ -866,9 +865,13 @@ public class MessageUtils {
     }
 
     public static String getLocalNumber() {
-        if (null == sLocalNumber) {
-            sLocalNumber = MmsApp.getApplication().getTelephonyManager().getLine1Number();
-        }
+        sLocalNumber = MmsApp.getApplication().getTelephonyManager().getLine1Number();
+        return sLocalNumber;
+    }
+
+    public static String getLocalNumber(int subscription) {
+        sLocalNumber = MmsApp.getApplication().getMSimTelephonyManager().
+                getLine1Number(subscription);
         return sLocalNumber;
     }
 
@@ -2042,5 +2045,39 @@ public class MessageUtils {
         }
 
         return preferStore;
+    }
+
+    public static void showNumberOptions(Context context, String number) {
+        final Context localContext = context;
+        final String extractNumber = number;
+        AlertDialog.Builder builder = new AlertDialog.Builder(localContext);
+        builder.setTitle(number);
+        builder.setCancelable(true);
+        builder.setItems(R.array.number_options,
+                new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DIALOG_ITEM_CALL:
+                        Intent dialIntent = new Intent(Intent.ACTION_CALL,
+                                Uri.parse("tel:" + extractNumber));
+                        localContext.startActivity(dialIntent);
+                        break;
+                    case DIALOG_ITEM_SMS:
+                        Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
+                                Uri.parse("smsto:" + extractNumber));
+                        localContext.startActivity(smsIntent);
+                        break;
+                    case DIALOG_ITEM_ADD_CONTACTS:
+                        Intent intent = ConversationList
+                                .createAddContactIntent(extractNumber);
+                        localContext.startActivity(intent);
+                        break;
+                    default:
+                        break;
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();
     }
 }
