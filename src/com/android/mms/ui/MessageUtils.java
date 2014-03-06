@@ -40,6 +40,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.database.Cursor;
@@ -53,6 +54,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.StatFs;
 import android.os.storage.StorageManager;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
@@ -161,6 +163,9 @@ public class MessageUtils {
 
     // add for query message count from iccsms table
     public static final Uri ICC_SMS_URI = Uri.parse("content://sms/iccsms");
+
+    public static final int PREFER_SMS_STORE_PHONE = 0;
+    public static final int PREFER_SMS_STORE_CARD = 1;
 
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
@@ -398,8 +403,6 @@ public class MessageUtils {
         EncodedStringValue subject = msg.getSubject();
         if (subject != null) {
             String subStr = subject.getString();
-            // Message size should include size of subject.
-            size += subStr.length();
             details.append(subStr);
         }
 
@@ -411,7 +414,8 @@ public class MessageUtils {
         // Message size: *** KB
         details.append('\n');
         details.append(res.getString(R.string.message_size_label));
-        details.append((size - 1)/1000 + 1);
+        details.append((size + SlideshowModel.SLIDESHOW_SLOP -1)
+                / SlideshowModel.SLIDESHOW_SLOP + 1);
         details.append(" KB");
 
         return details.toString();
@@ -861,9 +865,13 @@ public class MessageUtils {
     }
 
     public static String getLocalNumber() {
-        if (null == sLocalNumber) {
-            sLocalNumber = MmsApp.getApplication().getTelephonyManager().getLine1Number();
-        }
+        sLocalNumber = MmsApp.getApplication().getTelephonyManager().getLine1Number();
+        return sLocalNumber;
+    }
+
+    public static String getLocalNumber(int subscription) {
+        sLocalNumber = MmsApp.getApplication().getMSimTelephonyManager().
+                getLine1Number(subscription);
         return sLocalNumber;
     }
 
@@ -1409,7 +1417,7 @@ public class MessageUtils {
             if (subscription >= indexs.length) {
                 return null;
             }
-            return icons.getDrawable(Integer.parseInt(indexs[subscription]));
+            return null;// icons.getDrawable(Integer.parseInt(indexs[subscription]));
         }
     }
 
@@ -2022,4 +2030,54 @@ public class MessageUtils {
         return "";
     }
 
+    public static int getSmsPreferStoreLocation(Context context, int subscription) {
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
+        int preferStore = PREFER_SMS_STORE_PHONE;
+
+        if (isMultiSimEnabledMms()) {
+            if (subscription == MSimConstants.SUB1) {
+                preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store_card1", "0"));
+            } else {
+                preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store_card2", "0"));
+            }
+        } else {
+            preferStore = Integer.parseInt(prefsms.getString("pref_key_sms_store", "0"));
+        }
+
+        return preferStore;
+    }
+
+    public static void showNumberOptions(Context context, String number) {
+        final Context localContext = context;
+        final String extractNumber = number;
+        AlertDialog.Builder builder = new AlertDialog.Builder(localContext);
+        builder.setTitle(number);
+        builder.setCancelable(true);
+        builder.setItems(R.array.number_options,
+                new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DIALOG_ITEM_CALL:
+                        Intent dialIntent = new Intent(Intent.ACTION_CALL,
+                                Uri.parse("tel:" + extractNumber));
+                        localContext.startActivity(dialIntent);
+                        break;
+                    case DIALOG_ITEM_SMS:
+                        Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
+                                Uri.parse("smsto:" + extractNumber));
+                        localContext.startActivity(smsIntent);
+                        break;
+                    case DIALOG_ITEM_ADD_CONTACTS:
+                        Intent intent = ConversationList
+                                .createAddContactIntent(extractNumber);
+                        localContext.startActivity(intent);
+                        break;
+                    default:
+                        break;
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
 }

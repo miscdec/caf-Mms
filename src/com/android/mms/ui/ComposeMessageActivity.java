@@ -223,7 +223,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_DEBUG_DUMP            = 7;
     private static final int MENU_SEND_BY_SLOT1         = 9;
     private static final int MENU_SEND_BY_SLOT2         = 10;
-    private static final int MENU_FOWARD_CONVERSATION    = 11;
+    private static final int MENU_FORWARD_CONVERSATION    = 11;
 
     // Context menu ID
     private static final int MENU_VIEW_CONTACT          = 12;
@@ -384,6 +384,9 @@ public class ComposeMessageActivity extends Activity
     private static final int MSG_COPY_TO_SIM_FAILED = 1;
     private static final int MSG_COPY_TO_SIM_SUCCESS = 2;
     private static final int DIALOG_IMPORT_TEMPLATE = 1;
+
+    private static final int MSG_ONLY_ONE_FAIL_LIST_ITEM = 1;
+
     /**
      * Whether this activity is currently running (i.e. not paused)
      */
@@ -428,6 +431,7 @@ public class ComposeMessageActivity extends Activity
     private final static String MESSAGE_SUBJECT = "message_subject";
     private final static String MESSAGE_SUBJECT_CHARSET = "message_subject_charset";
     private final static String NEED_RESEND = "needResend";
+    private final static String MSG_SUBJECT_SIZE = "subject_size";
 
     private boolean isLocked = false;
 
@@ -466,6 +470,8 @@ public class ComposeMessageActivity extends Activity
     //==========================================================
 
     private void editSlideshow() {
+        final int subjectSize = mWorkingMessage.hasSubject()
+                    ? mWorkingMessage.getSubject().toString().getBytes().length : 0;
         // The user wants to edit the slideshow. That requires us to persist the slideshow to
         // disk as a PDU in saveAsMms. This code below does that persisting in a background
         // task. If the task takes longer than a half second, a progress dialog is displayed.
@@ -488,6 +494,7 @@ public class ComposeMessageActivity extends Activity
                 Intent intent = new Intent(ComposeMessageActivity.this,
                         SlideshowEditActivity.class);
                 intent.setData(mTempMmsUri);
+                intent.putExtra(MSG_SUBJECT_SIZE, subjectSize);
                 startActivityForResult(intent, REQUEST_CODE_CREATE_SLIDESHOW);
             }
         }, R.string.building_slideshow_title);
@@ -640,8 +647,14 @@ public class ComposeMessageActivity extends Activity
         if (cursor == null) {
             return false;
         }
+        int subjectSize = (msgItem.mSubject == null) ? 0 : msgItem.mSubject.getBytes().length;
+        int messageSize =  msgItem.mMessageSize + subjectSize;
+        if (DEBUG) {
+            Log.v(TAG,"showMessageDetails subjectSize = " + subjectSize);
+            Log.v(TAG,"showMessageDetails messageSize = " + messageSize);
+        }
         String messageDetails = MessageUtils.getMessageDetails(
-                ComposeMessageActivity.this, cursor, msgItem.mMessageSize);
+                ComposeMessageActivity.this, cursor, messageSize);
         new AlertDialog.Builder(ComposeMessageActivity.this)
                 .setTitle(R.string.message_details_title)
                 .setMessage(messageDetails)
@@ -1576,10 +1589,19 @@ public class ComposeMessageActivity extends Activity
         }
         // Delete the old undelivered SMS and load its content.
         Uri uri = ContentUris.withAppendedId(Sms.CONTENT_URI, msgId);
-        SqliteWrapper.delete(ComposeMessageActivity.this,
+        int count = SqliteWrapper.delete(ComposeMessageActivity.this,
                 mContentResolver, uri, null, null);
 
         mWorkingMessage.setText(msgBody);
+
+        // if the ListView only has one message and delete the message success
+        // the uri of conversation will be null, so it can't qurey info from DB,
+        // so the mMsgListAdapter should change Cursor to null
+        if (count > 0) {
+            if (mMsgListAdapter.getCount() == MSG_ONLY_ONE_FAIL_LIST_ITEM) {
+                mMsgListAdapter.changeCursor(null);
+            }
+        }
     }
 
 
@@ -1752,6 +1774,11 @@ public class ComposeMessageActivity extends Activity
                     return true;
 
                 case MENU_FORWARD_MESSAGE:
+                    if (!isAllowForwardMessage(mMsgItem)) {
+                        Toast.makeText(ComposeMessageActivity.this,
+                                R.string.forward_size_over, Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
                     forwardMessage(mMsgItem);
                     return true;
 
@@ -1848,6 +1875,19 @@ public class ComposeMessageActivity extends Activity
                     return false;
             }
         }
+    }
+
+    private boolean isAllowForwardMessage(MessageItem msgItem) {
+        int messageSize = msgItem.getSlideshow().getTotalMessageSize();
+        int forwardStrSize = getString(R.string.forward_prefix).getBytes().length;
+        int subjectSize =  (msgItem.mSubject == null) ? 0 : msgItem.mSubject.getBytes().length;
+        int totalSize = messageSize + forwardStrSize + subjectSize;
+        if (DEBUG) {
+            Log.e(TAG,"isAllowForwardMessage messageSize = "+ messageSize
+                    + ", forwardStrSize = "+forwardStrSize+ ", subjectSize = "+subjectSize
+                    + ", totalSize = " + totalSize);
+        }
+        return totalSize <= (MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP);
     }
 
     private void lockMessage(MessageItem msgItem, boolean locked) {
@@ -2280,6 +2320,7 @@ public class ComposeMessageActivity extends Activity
             mRecipientsEditor = (RecipientsEditor)findViewById(R.id.recipients_editor);
             mRecipientsEditor.setVisibility(View.VISIBLE);
             mRecipientsPicker = (ImageButton)findViewById(R.id.recipients_picker);
+            mRecipientsPicker.setVisibility(View.VISIBLE);
             mRecipientsPickerGroups= (ImageButton)findViewById(R.id.recipients_picker_group);
             mRecipientsPickerGroups.setVisibility(View.VISIBLE);
         }
@@ -3092,6 +3133,9 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor != null) {
             mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
             mRecipientsEditor.setVisibility(View.GONE);
+            if (mRecipientsPicker != null) {
+                mRecipientsPicker.setVisibility(View.GONE);
+            }
             if (mRecipientsPickerGroups != null) {
                 mRecipientsPickerGroups.setVisibility(View.GONE);
             }
@@ -3409,7 +3453,7 @@ public class ComposeMessageActivity extends Activity
                     android.R.drawable.ic_menu_delete);
                 if (getResources().getBoolean(R.bool.config_forwardconv)
                         && mMsgListAdapter.hasSmsInConversation(cursor)) {
-                    menu.add(0, MENU_FOWARD_CONVERSATION, 0, R.string.menu_forward_conversation);
+                    menu.add(0, MENU_FORWARD_CONVERSATION, 0, R.string.menu_forward_conversation);
                 }
             }
         } else if (mIsSmsEnabled) {
@@ -3499,7 +3543,7 @@ public class ComposeMessageActivity extends Activity
             case MENU_CALL_RECIPIENT:
                 dialRecipient();
                 break;
-            case MENU_FOWARD_CONVERSATION: {
+            case MENU_FORWARD_CONVERSATION: {
                 Intent intent = new Intent(this, ManageMultiSelectAction.class);
                 intent.putExtra(MANAGE_MODE, MessageUtils.FORWARD_MODE);
                 intent.putExtra(THREAD_ID, mConversation.getThreadId());
@@ -3747,10 +3791,9 @@ public class ComposeMessageActivity extends Activity
 
     public static long computeAttachmentSizeLimit(SlideshowModel slideShow, int currentSlideSize) {
         // Computer attachment size limit. Subtract 1K for some text.
-        long sizeLimit = MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP -
-                slideShow.getTotalTextMessageSize();
+        long sizeLimit = MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP;
         if (slideShow != null) {
-            sizeLimit -= slideShow.getCurrentMessageSize();
+            sizeLimit -= slideShow.getCurrentMessageSize() + slideShow.getTotalTextMessageSize();
 
             // We're about to ask the camera to capture some video (or the sound recorder
             // to record some audio) which will eventually replace the content on the current
@@ -4504,6 +4547,11 @@ public class ComposeMessageActivity extends Activity
         showSubjectEditor(showSubjectEditor || mWorkingMessage.hasSubject());
         if (mShowTwoButtons) {
             mAttachmentEditor.hideSlideshowSendButton();
+        }
+        int subjectSize = mWorkingMessage.hasSubject()
+                ? mWorkingMessage.getSubject().toString().getBytes().length : 0;
+        if (mWorkingMessage.getSlideshow()!= null) {
+            mWorkingMessage.getSlideshow().setSubjectSize(subjectSize);
         }
 
         invalidateOptionsMenu();
