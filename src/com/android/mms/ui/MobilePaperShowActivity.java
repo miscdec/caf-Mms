@@ -41,13 +41,13 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.graphics.PixelFormat;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.telephony.PhoneNumberUtils;
 import android.text.style.URLSpan;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;;
@@ -77,6 +77,7 @@ import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.MultimediaMessagePdu;
 import com.google.android.mms.pdu.PduPersister;
+import com.google.android.mms.pdu.SendReq;
 import com.google.android.mms.util.SqliteWrapper;
 
 public class MobilePaperShowActivity extends Activity {
@@ -85,6 +86,7 @@ public class MobilePaperShowActivity extends Activity {
     private static final int MENU_SLIDESHOW = 1;
     private static final int MENU_CALL = 2;
     private static final int MENU_REPLY = 3;
+    private static final int MENU_FORWARD = 4;
 
     private static final int ZOOMIN = 4;
     private static final int ZOOMOUT = 5;
@@ -101,8 +103,11 @@ public class MobilePaperShowActivity extends Activity {
     private LinearLayout mRootView;
     private TextView contentText;
     private Uri mUri;
+    private Uri mTempMmsUri;
+    private long mTempThreadId;
     private ScaleGestureDetector mScaleDetector;
     private ScrollView mScrollViewPort;
+    private String mSubject;
 
     private void setCurrentTextSet(Context context, int value) {
         SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
@@ -193,10 +198,12 @@ public class MobilePaperShowActivity extends Activity {
             }
 
             msgPdu = (MultimediaMessagePdu) PduPersister.getPduPersister(this).load(msg);
+            mSubject = "";
             if (msgPdu != null) {
                 EncodedStringValue subject = msgPdu.getSubject();
                 if (subject != null) {
                     String subStr = subject.getString();
+                    mSubject = subStr;
                     setTitle(subStr);
                 } else {
                     setTitle("");
@@ -323,6 +330,7 @@ public class MobilePaperShowActivity extends Activity {
             menu.add(0, MENU_REPLY, 0, R.string.menu_reply);
             menu.add(0, MENU_CALL, 0, R.string.menu_call);
         }
+        menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
         menu.add(0, MENU_SLIDESHOW, 0, R.string.view_slideshow);
         return true;
     }
@@ -336,7 +344,6 @@ public class MobilePaperShowActivity extends Activity {
                 viewMmsMessageAttachmentSliderShow(this,msg,null,null,
                         intent.getStringArrayListExtra("sms_id_list"),
                         intent.getBooleanExtra("mms_report", false));
-                finish();
                 break;
             case MENU_REPLY: {
                 replyMessage(this, AddressUtils.getFrom(this, mUri));
@@ -345,6 +352,54 @@ public class MobilePaperShowActivity extends Activity {
             }
             case MENU_CALL:
                 call();
+                break;
+            case MENU_FORWARD:
+                new AsyncDialog(this).runAsync(new Runnable() {
+                    @Override
+                    public void run() {
+                        SendReq sendReq = new SendReq();
+                        String subject = getString(R.string.forward_prefix);
+                        if (!TextUtils.isEmpty(mSubject)) {
+                            subject += mSubject;
+                        }
+                        sendReq.setSubject(new EncodedStringValue(subject));
+                        sendReq.setBody(mSlideModel.makeCopy());
+                        mTempMmsUri = null;
+                        try {
+                            PduPersister persister =
+                                    PduPersister.getPduPersister(MobilePaperShowActivity.this);
+                            mTempMmsUri = persister.persist(sendReq, Mms.Draft.CONTENT_URI, true,
+                                    MessagingPreferenceActivity
+                                            .getIsGroupMmsEnabled(MobilePaperShowActivity.this),
+                                    null);
+                            mTempThreadId = MessagingNotification.getThreadId(
+                                    MobilePaperShowActivity.this, mTempMmsUri);
+                        } catch (MmsException e) {
+                            Log.e(TAG, "Failed to forward message: " + mTempMmsUri);
+                            Toast.makeText(MobilePaperShowActivity.this,
+                                    R.string.cannot_save_message, Toast.LENGTH_SHORT).show();
+                        }
+
+                    }
+                }, new Runnable() {
+                    @Override
+                    public void run() {
+                        Intent intentForward = new Intent(MobilePaperShowActivity.this,
+                                ComposeMessageActivity.class);
+                        intentForward.putExtra("exit_on_sent", true);
+                        intentForward.putExtra("forwarded_message", true);
+                        String subject = getString(R.string.forward_prefix);
+                        if (!TextUtils.isEmpty(mSubject)) {
+                            subject += mSubject;
+                        }
+                        intentForward.putExtra("subject", subject);
+                        intentForward.putExtra("msg_uri", mTempMmsUri);
+                        if (mTempThreadId > 0) {
+                            intentForward.putExtra(Mms.THREAD_ID, mTempThreadId);
+                        }
+                        MobilePaperShowActivity.this.startActivity(intentForward);
+                    }
+                }, R.string.building_slideshow_title);
                 break;
             case android.R.id.home:
                 finish();
