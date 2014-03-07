@@ -1988,7 +1988,8 @@ public class ComposeMessageActivity extends Activity
     }
 
     private boolean isAllowForwardMessage(MessageItem msgItem) {
-        int messageSize = msgItem.getSlideshow().getTotalMessageSize();
+        int messageSize = (msgItem.getSlideshow() == null) ? 0
+                : msgItem.getSlideshow().getTotalMessageSize();
         int forwardStrSize = getString(R.string.forward_prefix).getBytes().length;
         int subjectSize =  (msgItem.mSubject == null) ? 0 : msgItem.mSubject.getBytes().length;
         int totalSize = messageSize + forwardStrSize + subjectSize;
