@@ -67,6 +67,10 @@ import com.google.android.mms.pdu.PduPersister;
 public class SlideshowModel extends Model
         implements List<SlideModel>, IModelChangedObserver {
     private static final String TAG = "Mms/slideshow";
+    // CMCC will change the vCard and vCalendar's content type to oct-stream
+    private static final String OCT_STREAM = "application/oct-stream";
+    private static final String VCARD = "vcf";
+    private static final String VCALENDAR = "vcs";
 
     private final LayoutModel mLayout;
     private final ArrayList<SlideModel> mSlides;
@@ -237,21 +241,36 @@ public class SlideshowModel extends Model
                 int partsNum = pb.getPartsNum();
                 for (int k = 0; k < partsNum; k++) {
                     PduPart part = pb.getPart(k);
-                    if ((new String(part.getContentType())).toLowerCase().equals(
-                            ContentType.TEXT_VCARD.toLowerCase())) {
-                        MediaModel vMedia = new VcardModel(context, new String(
-                                part.getContentType()), new String(part.getContentLocation()),
-                                part.getDataUri());
+                    String contentType = (new String(part.getContentType())).toLowerCase();
+                    if (contentType.equals(OCT_STREAM)) {
+                        byte[] name = part.getName();
+                        if (name == null) {
+                            name = part.getContentLocation();
+                        }
+                        if (name != null) {
+                            String src = new String(name);
+                            int index = src.lastIndexOf('.');
+                            if (index > 0) {
+                                String extension = src.substring(index + 1, src.length());
+                                if (extension.toLowerCase().equals(VCARD)) {
+                                    contentType = ContentType.TEXT_VCARD.toLowerCase();
+                                } else if (extension.toLowerCase().equals(VCALENDAR)) {
+                                    contentType = ContentType.TEXT_VCALENDAR.toLowerCase();
+                                }
+                            }
+                        }
+                    }
+                    if (contentType.equals(ContentType.TEXT_VCARD.toLowerCase())) {
+                        MediaModel vMedia = new VcardModel(context, ContentType.TEXT_VCARD,
+                                new String(part.getContentLocation()), part.getDataUri());
                         mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
                         mediaSet.add(vMedia);
                         totalMessageSize += vMedia.getMediaSize();
                         break;
                     }
-                    if ((new String(part.getContentType())).toLowerCase().equals(
-                            ContentType.TEXT_VCALENDAR.toLowerCase())) {
-                        MediaModel tMedia = new UnsupportModel(context, new String(
-                                part.getContentType()), new String(part.getContentLocation()),
-                                part.getDataUri());
+                    if (contentType.equals(ContentType.TEXT_VCALENDAR.toLowerCase())) {
+                        MediaModel tMedia = new UnsupportModel(context, ContentType.TEXT_VCALENDAR,
+                                new String(part.getContentLocation()), part.getDataUri());
                         mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
                         mediaSet.add(tMedia);
                         totalMessageSize += tMedia.getMediaSize();
