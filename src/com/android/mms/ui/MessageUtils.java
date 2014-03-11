@@ -135,6 +135,8 @@ public class MessageUtils {
     public static final int SUB1 = 0;  // for DSDS product of slot one
     public static final int SUB2 = 1;  // for DSDS product of slot two
     public static final String SUB_KEY  = MSimConstants.SUBSCRIPTION_KEY; // subscription
+    public static final int MESSAGE_READ = 1;
+    public static final int MESSAGE_SEEN = 1;
     private static final int SELECT_SYSTEM = 0;
     private static final int SELECT_EXTERNAL = 1;
     // add manage mode of multi select action
@@ -1341,7 +1343,7 @@ public class MessageUtils {
             return null;
         }
         String multiSimName = Settings.System.getString(context.getContentResolver(),
-                MULTI_SIM_NAME + subscription);
+                MULTI_SIM_NAME + (subscription + 1));
         if (multiSimName == null) {
             if (subscription == MSimConstants.SUB1) {
                 return context.getString(R.string.slot1);
@@ -1974,7 +1976,7 @@ public class MessageUtils {
                             tv.setCompoundDrawablePadding(10);
                             tv.setCompoundDrawables(d, null, null, null);
                         }
-                        tv.setText(getUrlWithMailPrefix(context, url).replaceAll("tel:", ""));
+                        tv.setText(getDisplayUrl(context, url));
                     } catch (android.content.pm.PackageManager.NameNotFoundException ex) {
                         // it's ok if we're unable to set the drawable
                         // for this view - the user
@@ -2017,17 +2019,20 @@ public class MessageUtils {
         }
     }
 
-    private static String getUrlWithMailPrefix(Context context, String url) {
+    private static String getDisplayUrl(Context context, String url) {
         // If prefix string is "mailto" then translate it.
         final String mailPrefix = "mailto:";
+        final String telPrefix = "tel:";
         if (!TextUtils.isEmpty(url)) {
             if (url.startsWith(mailPrefix)) {
                 url = context.getResources().getString(R.string.mail_to) +
                         url.substring(mailPrefix.length());
                 return url;
+            } else if (url.startsWith(telPrefix)) {
+                url = url.replaceAll(telPrefix, "");
             }
         }
-        return "";
+        return url;
     }
 
     public static int getSmsPreferStoreLocation(Context context, int subscription) {

@@ -748,7 +748,7 @@ public class ComposeMessageActivity extends Activity
             // an sms longer than one segment, we have to turn the message into an mms.
             mWorkingMessage.setLengthRequiresMms(msgCount > 1, true);
         } else {
-            int threshold = MmsConfig.getSmsToMmsTextThreshold();
+            int threshold = MmsConfig.getSmsToMmsTextThreshold(ComposeMessageActivity.this);
             mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold, true);
         }
 
@@ -1774,7 +1774,7 @@ public class ComposeMessageActivity extends Activity
                     return true;
 
                 case MENU_FORWARD_MESSAGE:
-                    if (!isAllowForwardMessage(mMsgItem)) {
+                    if (mMsgItem.isMms() && !isAllowForwardMessage(mMsgItem)) {
                         Toast.makeText(ComposeMessageActivity.this,
                                 R.string.forward_size_over, Toast.LENGTH_SHORT).show();
                         return false;
