@@ -64,8 +64,7 @@
     <string name="select_copy_message_text">"选择性复制"</string>
     <string name="message_options" msgid="6838806653341967550">"信息选项"</string>
     <string name="slideshow_options" msgid="3501759384739796431">"幻灯片选项"</string>
-    <string name="done" msgid="7479926268660505871">"完成"</string>
-    <string name="slide_done">"完成"</string>
+    <string name="slide_done" msgid="7479926268660505871">"完成"</string>
     <string name="move_up" msgid="7307578107431739359">"上移"</string>
     <string name="move_down" msgid="6356509518429479053">"下移"</string>
     <string name="remove_slide" msgid="2225604354024914900">"删除幻灯片"</string>
@@ -278,6 +277,8 @@
     <string name="sim_full_body" msgid="6241664980790322925">"删除部分信息以腾出更多空间。"</string>
     <string name="sms_full_title" msgid="6041287140125011854">"短信内存已满"</string>
     <string name="sms_full_body" msgid="4885861852397651868">"存储空间已满，无法接收短信，请删除部分旧短信。"</string>
+    <string name="memory_low_title">"存储空间低"</string>
+    <string name="memory_low_body">"存储空间快要满了，请删除一些旧数据以确保能接收到新信息。"</string>
     <string name="mobile_data_disable">"移动数据已关闭，是否坚持<xliff:g>%1$s</xliff:g>彩信？若继续将会产生数据流量。"</string>
     <string name="mobile_data_send">发送</string>
     <string name="mobile_data_download">下载</string>
