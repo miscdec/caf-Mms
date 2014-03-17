@@ -108,10 +108,9 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
                         R.drawable.ic_missing_thumbnail_picture);
             }
             mImagePreview.setImageBitmap(bitmap);
-            if (mContext instanceof MobilePaperShowActivity && mImageUri != null) {
+            if (mContext instanceof MobilePaperShowActivity) {
                 mImagePreview.setVisibility(View.VISIBLE);
-                ViewAttachmentListener l = new ViewAttachmentListener(mImageUri, name);
-                mImagePreview.setOnClickListener(l);
+                mImagePreview.setTag(name);
             }
         } catch (java.lang.OutOfMemoryError e) {
             Log.e(TAG, "setImage: out of memory: ", e);
@@ -233,6 +232,9 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
 
     public void setUri(Uri uri) {
         mImageUri = uri;
+        ViewAttachmentListener l = new ViewAttachmentListener(mImageUri,
+                (String)mImagePreview.getTag());
+        mImagePreview.setOnClickListener(l);
     }
 
     public void setImageRegionFit(String fit) {
