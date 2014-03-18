@@ -37,6 +37,7 @@ import android.text.TextUtils;
 import android.text.method.HideReturnsTransformationMethod;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
@@ -75,6 +76,14 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
         mImagePreview = (ImageView) findViewById(R.id.image_preview);
         mAttachmentName = (TextView) findViewById(R.id.attachment_name);
         mAttachmentIcon = (ImageView) findViewById(R.id.attachment_icon);
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if (!mTextPreview.isFocused()) {
+            mTextPreview.requestFocus();
+        }
+        return false;
     }
 
     public void startAudio() {
