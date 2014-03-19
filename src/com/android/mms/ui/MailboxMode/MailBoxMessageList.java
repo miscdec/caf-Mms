@@ -78,6 +78,7 @@ import com.android.mms.ui.MessageListAdapter;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.PopupList;
 import com.android.mms.ui.SelectionMenu;
+import com.android.mms.util.DraftCache;
 import com.google.android.mms.pdu.PduHeaders;
 
 import static com.android.mms.ui.MessageListAdapter.COLUMN_ID;
@@ -736,6 +737,9 @@ public class MailBoxMessageList extends ListActivity implements
                 if (delSmsCount > 0) {
                     Toast.makeText(MailBoxMessageList.this, getString(R.string.operate_success),
                             Toast.LENGTH_LONG).show();
+                    if (mQueryBoxType == TYPE_DRAFTBOX) {
+                        DraftCache.getInstance().refresh();
+                    }
                 }
             }
         }
@@ -756,6 +760,9 @@ public class MailBoxMessageList extends ListActivity implements
                 if (delMmsCount > 0) {
                     Toast.makeText(MailBoxMessageList.this, getString(R.string.operate_success),
                             Toast.LENGTH_LONG).show();
+                    if (mQueryBoxType == TYPE_DRAFTBOX) {
+                        DraftCache.getInstance().refresh();
+                    }
                 }
             }
         }
