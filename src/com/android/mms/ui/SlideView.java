@@ -367,12 +367,6 @@ public class SlideView extends AbsoluteLayout implements
         mTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, getCurrentTextSize(mContext));
         // Let the text in Mms can be selected.
         mTextView.setTextIsSelectable(true);
-        mTextView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onMessageContentClick(mContext, (TextView)v);
-            }
-        });
     }
 
     private void onMessageContentClick(final Context context, TextView contentText) {
