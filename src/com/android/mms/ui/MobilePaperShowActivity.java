@@ -41,12 +41,13 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.graphics.PixelFormat;
-import android.database.Cursor;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
+import android.telephony.PhoneNumberUtils;
+import android.text.style.URLSpan;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;;
@@ -57,7 +58,6 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -77,6 +77,7 @@ import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.MultimediaMessagePdu;
 import com.google.android.mms.pdu.PduPersister;
+import com.google.android.mms.pdu.SendReq;
 import com.google.android.mms.util.SqliteWrapper;
 
 public class MobilePaperShowActivity extends Activity {
@@ -85,6 +86,7 @@ public class MobilePaperShowActivity extends Activity {
     private static final int MENU_SLIDESHOW = 1;
     private static final int MENU_CALL = 2;
     private static final int MENU_REPLY = 3;
+    private static final int MENU_FORWARD = 4;
 
     private static final int ZOOMIN = 4;
     private static final int ZOOMOUT = 5;
@@ -92,6 +94,8 @@ public class MobilePaperShowActivity extends Activity {
     private static final int FONTSIZEMIN = 18;
     private static final int FONTSIZE_DEFAULT = 27;
     private static final int FONTSIZEMAX = 48;
+    // If the finger move over 100px, we don't think it's for click.
+    private static final int CLICK_LIMIT = 100;
 
     private int mMailboxId = -1;
 
@@ -99,9 +103,13 @@ public class MobilePaperShowActivity extends Activity {
     private SlideshowModel mSlideModel;
     private SlideshowPresenter mPresenter;
     private LinearLayout mRootView;
+    private TextView contentText;
     private Uri mUri;
+    private Uri mTempMmsUri;
+    private long mTempThreadId;
     private ScaleGestureDetector mScaleDetector;
     private ScrollView mScrollViewPort;
+    private String mSubject;
 
     private void setCurrentTextSet(Context context, int value) {
         SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
@@ -192,10 +200,12 @@ public class MobilePaperShowActivity extends Activity {
             }
 
             msgPdu = (MultimediaMessagePdu) PduPersister.getPduPersister(this).load(msg);
+            mSubject = "";
             if (msgPdu != null) {
                 EncodedStringValue subject = msgPdu.getSubject();
                 if (subject != null) {
                     String subStr = subject.getString();
+                    mSubject = subStr;
                     setTitle(subStr);
                 } else {
                     setTitle("");
@@ -235,7 +245,7 @@ public class MobilePaperShowActivity extends Activity {
             mPresenter = (SlideshowPresenter)PresenterFactory
                     .getPresenter("SlideshowPresenter",
                      this, (SlideViewInterface)view, mSlideModel);
-            TextView contentText = (TextView) view.findViewById(R.id.text_preview);
+            contentText = (TextView) view.findViewById(R.id.text_preview);
             contentText.setTextIsSelectable(true);
             mPresenter.presentSlide((SlideViewInterface)view, mSlideModel.get(index));
             contentText.setTextSize(TypedValue.COMPLEX_UNIT_PX, getCurrentTextSize(this));
@@ -256,6 +266,7 @@ public class MobilePaperShowActivity extends Activity {
             mScrollViewPort = new ScrollView(this) {
                 private int currentX;
                 private int currentY;
+                private int move;
 
                 @Override
                 public boolean onTouchEvent(MotionEvent ev) {
@@ -287,18 +298,20 @@ public class MobilePaperShowActivity extends Activity {
                         case MotionEvent.ACTION_DOWN: {
                             currentX = (int) ev.getRawX();
                             currentY = (int) ev.getRawY();
+                            move = 0;
                             break;
                         }
                         case MotionEvent.ACTION_MOVE: {
                             int x2 = (int) ev.getRawX();
                             int y2 = (int) ev.getRawY();
                             mScrollViewPort.scrollBy(currentX - x2 , currentY - y2);
+                            move += Math.abs(currentY - y2);
                             currentX = x2;
                             currentY = y2;
                             break;
                         }
                     }
-                    return false;
+                    return move > CLICK_LIMIT;
                 }
             };
 
@@ -322,6 +335,7 @@ public class MobilePaperShowActivity extends Activity {
             menu.add(0, MENU_REPLY, 0, R.string.menu_reply);
             menu.add(0, MENU_CALL, 0, R.string.menu_call);
         }
+        menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
         menu.add(0, MENU_SLIDESHOW, 0, R.string.view_slideshow);
         return true;
     }
@@ -335,7 +349,6 @@ public class MobilePaperShowActivity extends Activity {
                 viewMmsMessageAttachmentSliderShow(this,msg,null,null,
                         intent.getStringArrayListExtra("sms_id_list"),
                         intent.getBooleanExtra("mms_report", false));
-                finish();
                 break;
             case MENU_REPLY: {
                 replyMessage(this, AddressUtils.getFrom(this, mUri));
@@ -344,6 +357,54 @@ public class MobilePaperShowActivity extends Activity {
             }
             case MENU_CALL:
                 call();
+                break;
+            case MENU_FORWARD:
+                new AsyncDialog(this).runAsync(new Runnable() {
+                    @Override
+                    public void run() {
+                        SendReq sendReq = new SendReq();
+                        String subject = getString(R.string.forward_prefix);
+                        if (!TextUtils.isEmpty(mSubject)) {
+                            subject += mSubject;
+                        }
+                        sendReq.setSubject(new EncodedStringValue(subject));
+                        sendReq.setBody(mSlideModel.makeCopy());
+                        mTempMmsUri = null;
+                        try {
+                            PduPersister persister =
+                                    PduPersister.getPduPersister(MobilePaperShowActivity.this);
+                            mTempMmsUri = persister.persist(sendReq, Mms.Draft.CONTENT_URI, true,
+                                    MessagingPreferenceActivity
+                                            .getIsGroupMmsEnabled(MobilePaperShowActivity.this),
+                                    null);
+                            mTempThreadId = MessagingNotification.getThreadId(
+                                    MobilePaperShowActivity.this, mTempMmsUri);
+                        } catch (MmsException e) {
+                            Log.e(TAG, "Failed to forward message: " + mTempMmsUri);
+                            Toast.makeText(MobilePaperShowActivity.this,
+                                    R.string.cannot_save_message, Toast.LENGTH_SHORT).show();
+                        }
+
+                    }
+                }, new Runnable() {
+                    @Override
+                    public void run() {
+                        Intent intentForward = new Intent(MobilePaperShowActivity.this,
+                                ComposeMessageActivity.class);
+                        intentForward.putExtra("exit_on_sent", true);
+                        intentForward.putExtra("forwarded_message", true);
+                        String subject = getString(R.string.forward_prefix);
+                        if (!TextUtils.isEmpty(mSubject)) {
+                            subject += mSubject;
+                        }
+                        intentForward.putExtra("subject", subject);
+                        intentForward.putExtra("msg_uri", mTempMmsUri);
+                        if (mTempThreadId > 0) {
+                            intentForward.putExtra(Mms.THREAD_ID, mTempThreadId);
+                        }
+                        MobilePaperShowActivity.this.startActivity(intentForward);
+                    }
+                }, R.string.building_slideshow_title);
                 break;
             case android.R.id.home:
                 finish();

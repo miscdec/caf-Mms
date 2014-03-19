@@ -40,6 +40,10 @@ import com.google.android.mms.pdu.PduPart;
 
 public class MediaModelFactory {
     private static final String TAG = "Mms:media";
+    // CMCC will change the vCard and vCalendar's content type to oct-stream
+    private static final String OCT_STREAM = "application/oct-stream";
+    private static final String VCARD = "vcf";
+    private static final String VCALENDAR = "vcs";
 
     public static MediaModel getMediaModel(Context context,
             SMILMediaElement sme, LayoutModel layouts, PduBody pb)
@@ -170,6 +174,17 @@ public class MediaModelFactory {
                 ((AudioModel) media).getExtras().put("album", unescapeXML(album));
             }
         } else if (tag.equals(SmilHelper.ELEMENT_TAG_REF)) {
+            if (contentType.toLowerCase().equals(OCT_STREAM)) {
+                int index = src.lastIndexOf('.');
+                if (index > 0) {
+                    String extension = src.substring(index + 1, src.length());
+                    if (extension.toLowerCase().equals(VCARD)) {
+                        contentType = ContentType.TEXT_VCARD;
+                    } else if (extension.toLowerCase().equals(VCALENDAR)) {
+                        contentType = ContentType.TEXT_VCALENDAR;
+                    }
+                }
+            }
             if (ContentType.isTextType(contentType)
                     && !contentType.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase()) &&
                     !contentType.toLowerCase().equals(ContentType.TEXT_VCALENDAR.toLowerCase())) {
