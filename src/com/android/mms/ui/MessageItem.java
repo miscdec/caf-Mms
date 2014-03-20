@@ -66,6 +66,8 @@ public class MessageItem {
 
     public static int ATTACHMENT_TYPE_NOT_LOADED = -1;
 
+    private final static int CDMA_STATUS_SHIFT = 16;
+
     final Context mContext;
     final String mType;
     final long mMsgId;
@@ -125,6 +127,10 @@ public class MessageItem {
             mReadReport = false; // No read reports in sms
 
             long status = cursor.getLong(columnsMap.mColumnSmsStatus);
+            // If the 31-16 bits is not 0, means this is a CDMA sms.
+            if ((status >> CDMA_STATUS_SHIFT) > 0) {
+                status = status >> CDMA_STATUS_SHIFT;
+            }
             if (status == Sms.STATUS_NONE) {
                 // No delivery report requested
                 mDeliveryStatus = DeliveryStatus.NONE;
@@ -283,7 +289,9 @@ public class MessageItem {
 
     public boolean isFailedMessage() {
         boolean isFailedMms = isMms()
-                            && (mErrorType >= MmsSms.ERR_TYPE_GENERIC_PERMANENT);
+                            && (mErrorType >= MmsSms.ERR_TYPE_GENERIC_PERMANENT
+                            || (mErrorType == MmsSms.ERR_TYPE_MMS_PROTO_TRANSIENT
+                && mContext.getResources().getBoolean(R.bool.config_manual_resend)));
         boolean isFailedSms = isSms()
                             && (mBoxId == Sms.MESSAGE_TYPE_FAILED);
         return isFailedMms || isFailedSms;

@@ -57,6 +57,8 @@
     <string name="menu_resend">"重新发送"</string>
     <string name="download" msgid="4488877642230207631">"下载"</string>
     <string name="downloading" msgid="1779557575565350637">"正在下载"</string>
+    <string name="cancel_downloading">"取消下载"</string>
+    <string name="confirm_cancel_downloading">"确定取消彩信下载？"</string>
     <string name="inline_subject" msgid="4057621785274119260">"&lt;主题：<xliff:g id="SUBJECT">%s</xliff:g>&gt;"</string>
     <string name="drm_protected_text" msgid="1396394157870730742">"* 受 DRM 保护的文本 *"</string>
     <string name="insufficient_drm_rights" msgid="6989074725969164383">"检测到 DRM 权限不足。"</string>
@@ -64,8 +66,7 @@
     <string name="select_copy_message_text">"选择性复制"</string>
     <string name="message_options" msgid="6838806653341967550">"信息选项"</string>
     <string name="slideshow_options" msgid="3501759384739796431">"幻灯片选项"</string>
-    <string name="done" msgid="7479926268660505871">"完成"</string>
-    <string name="slide_done">"完成"</string>
+    <string name="slide_done" msgid="7479926268660505871">"完成"</string>
     <string name="move_up" msgid="7307578107431739359">"上移"</string>
     <string name="move_down" msgid="6356509518429479053">"下移"</string>
     <string name="remove_slide" msgid="2225604354024914900">"删除幻灯片"</string>
@@ -278,6 +279,8 @@
     <string name="sim_full_body" msgid="6241664980790322925">"删除部分信息以腾出更多空间。"</string>
     <string name="sms_full_title" msgid="6041287140125011854">"短信内存已满"</string>
     <string name="sms_full_body" msgid="4885861852397651868">"存储空间已满，无法接收短信，请删除部分旧短信。"</string>
+    <string name="memory_low_title">"存储空间低"</string>
+    <string name="memory_low_body">"存储空间快要满了，请删除一些旧数据以确保能接收到新信息。"</string>
     <string name="mobile_data_disable">"移动数据已关闭，是否坚持<xliff:g>%1$s</xliff:g>彩信？若继续将会产生数据流量。"</string>
     <string name="mobile_data_send">发送</string>
     <string name="mobile_data_download">下载</string>
@@ -300,6 +303,8 @@
     <string name="message_send_failed_title" msgid="3469894907399046372">"短信未发送"</string>
     <string name="message_failed_body" msgid="3421296112073915245">"触摸可查看短信并重试。"</string>
     <string name="download_later" msgid="5531365714424360903">"目前无法下载。请稍后再试。"</string>
+    <string name="send_failed_retry">"发送失败，自动重新发送。"</string>
+    <string name="download_failed_retry">"下载失败，自动重新下载。"</string>
     <string name="no_apn" msgid="505932916503312015">"设备上未指定任何 APN。"</string>
     <string name="select_audio" msgid="3528161449756771832">"选择音频"</string>
     <string name="system_audio_item">"系统音频"</string>
