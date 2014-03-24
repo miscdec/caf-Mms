@@ -104,6 +104,8 @@
     <!-- Message displayed in place of the "download message" button once it has been pressed,
          indicating that the download is in progress -->
     <string name="downloading">Downloading</string>
+    <string name="cancel_downloading">Cancel</string>
+    <string name="confirm_cancel_downloading">Do you want to cancel downloading mms?</string>
     <!-- Formatting for subject displayed inline, prepended to MMS message text -->
     <string name="inline_subject">"&lt;Subject: <xliff:g id="subject">%s</xliff:g>&gt;"</string>
     <!-- Text to display when the actual text is inaccessible due to DRM protection -->
@@ -119,7 +121,7 @@
     <string name="slideshow_options">Slideshow options</string>
 
     <!-- Button text on edit slide screen indicating the user wants to finish editing that slide -->
-    <string name="done">Done</string>
+    <string name="slide_done">Done</string>
 
     <!-- Menu item in slideshow edit screen for moving the selected slide up in the order -->
     <string name="move_up">Move up</string>
@@ -298,6 +300,8 @@
     <string name="duration_zero">Duration must be greater than zero seconds.</string>
     <!-- Dialog box title for display the current mms size  -->
     <string name="title_send_message">Send message</string>
+    <!-- Toast when the subject is full -->
+    <string name="subject_full">"subject is full"</string>
 
     <!-- In duration selection dialog box, short version of "seconds" -->
     <string name="secs">secs</string>
@@ -588,6 +592,10 @@
     <string name="sms_full_title">Text message memory full</string>
     <!-- Device Full Notification dialog text. -->
     <string name="sms_full_body">An incoming message was rejected due to full memory. Delete some old messages.</string>
+    <!-- Device Low Notification dialog title. -->
+    <string name="memory_low_title">Phone memory low</string>
+    <!-- Device Low Notification dialog text. -->
+    <string name="memory_low_body">Phone memory is going to full, please delete some old data to make sure get new message well.</string>
     <!-- Disk Storage Full Error Notification dialog text. -->
     <string name="disk_storage_full_error">Error: Storage is full.</string>
     <!-- Mobile data disable dialog text. -->
@@ -649,6 +657,8 @@
     <string name="message_failed_body">Touch to review the message and try again.</string>
     <!-- Dialog box message when there's a problem retrieving messages. -->
     <string name="download_later">Can\'t download right now. Try again later.</string>
+    <string name="send_failed_retry">Sending failed, auto retry.</string>
+    <string name="download_failed_retry">Downloading failed, auto retry.</string>
     <!-- Dialog box message when there's no APN specified on the device. -->
     <string name="no_apn">No APN specified on the device.</string>
 
