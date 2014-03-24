@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.drm.DrmStore;
 import android.net.Uri;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
@@ -34,6 +35,7 @@ import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.WorkingMessage;
+import com.android.mms.drm.DrmUtils;
 import com.android.mms.model.LayoutModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
@@ -44,11 +46,14 @@ import com.android.mms.util.DownloadManager;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ItemLoadedFuture;
 import com.android.mms.util.PduLoaderManager;
+import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.MultimediaMessagePdu;
 import com.google.android.mms.pdu.NotificationInd;
+import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduHeaders;
+import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
@@ -65,6 +70,8 @@ public class MessageItem {
     public enum DeliveryStatus  { NONE, INFO, FAILED, PENDING, RECEIVED }
 
     public static int ATTACHMENT_TYPE_NOT_LOADED = -1;
+
+    private final static int CDMA_STATUS_SHIFT = 16;
 
     final Context mContext;
     final String mType;
@@ -111,6 +118,9 @@ public class MessageItem {
     private ItemLoadedFuture mItemLoadedFuture;
     int mLayoutType = LayoutModel.DEFAULT_LAYOUT_TYPE;
     long mDate;
+    boolean mIsForwardable;
+    boolean mHaveSomethingToCopyToSDCard;
+    boolean mIsDrmRingtoneWithRights;
 
     MessageItem(Context context, String type, final Cursor cursor,
             final ColumnsMap columnsMap, Pattern highlight) throws MmsException {
@@ -125,6 +135,10 @@ public class MessageItem {
             mReadReport = false; // No read reports in sms
 
             long status = cursor.getLong(columnsMap.mColumnSmsStatus);
+            // If the 31-16 bits is not 0, means this is a CDMA sms.
+            if ((status >> CDMA_STATUS_SHIFT) > 0) {
+                status = status >> CDMA_STATUS_SHIFT;
+            }
             if (status == Sms.STATUS_NONE) {
                 // No delivery report requested
                 mDeliveryStatus = DeliveryStatus.NONE;
@@ -283,7 +297,9 @@ public class MessageItem {
 
     public boolean isFailedMessage() {
         boolean isFailedMms = isMms()
-                            && (mErrorType >= MmsSms.ERR_TYPE_GENERIC_PERMANENT);
+                            && (mErrorType >= MmsSms.ERR_TYPE_GENERIC_PERMANENT
+                            || (mErrorType == MmsSms.ERR_TYPE_MMS_PROTO_TRANSIENT
+                && mContext.getResources().getBoolean(R.bool.config_manual_resend)));
         boolean isFailedSms = isSms()
                             && (mBoxId == Sms.MESSAGE_TYPE_FAILED);
         return isFailedMms || isFailedSms;
@@ -418,6 +434,37 @@ public class MessageItem {
                     } catch (NumberFormatException nfe) {
                         Log.e(TAG, "Value for read report was invalid.");
                         mReadReport = false;
+                    }
+                }
+                PduBody body = msg.getBody();
+                if (body != null) {
+                    int partNum = body.getPartsNum();
+                    int forwardCount = 0;
+                    for (int i = 0; i < partNum; i++) {
+                        PduPart part = body.getPart(i);
+                        String type = (new String(part.getContentType())).toLowerCase();
+                        if (DrmUtils.isDrmType(type)) {
+                            if (!DrmUtils.haveRightsForAction(part.getDataUri(),
+                                    DrmStore.Action.TRANSFER)) {
+                                forwardCount++;
+                            }
+                            String mimeType = MmsApp.getApplication().getDrmManagerClient()
+                                    .getOriginalMimeType(part.getDataUri());
+                            if (ContentType.isAudioType(mimeType)
+                                    && DrmUtils.haveRightsForAction(part.getDataUri(),
+                                            DrmStore.Action.RINGTONE)) {
+                                mIsDrmRingtoneWithRights = true;
+                            }
+                        }
+                        if (ContentType.isImageType(type) || ContentType.isVideoType(type)
+                                || ContentType.isAudioType(type) || DrmUtils.isDrmType(type)
+                                || type.equals(ContentType.AUDIO_OGG.toLowerCase())
+                                || type.equals(ContentType.TEXT_VCARD.toLowerCase())) {
+                            mHaveSomethingToCopyToSDCard = true;
+                        }
+                    }
+                    if (forwardCount == 0) {
+                        mIsForwardable = true;
                     }
                 }
             }

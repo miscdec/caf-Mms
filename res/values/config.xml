@@ -45,6 +45,9 @@
     <!-- configuration for show two call button in conversation -->
     <bool name="config_two_call_button">true</bool>
 
+    <!-- configuration for cancel mms -->
+    <bool name="config_mms_cancelable">false</bool>
+
     <!-- configuration for max slide num -->
     <integer name="max_slide_num">10</integer>
     <!-- configuration for limit count -->
@@ -65,6 +68,8 @@
     <bool name="config_mailbox_enable">false</bool>
     <!-- configuration for display two send buttons -->
     <bool name="config_btnstyle">false</bool>
+    <!-- configuration for enter key as send -->
+    <bool name="config_enter_key_as_send">true</bool>
 
     <!-- configuration for max sms to mms text size -->
     <integer name="config_max_smstomms">0</integer>
@@ -72,4 +77,10 @@
     <bool name="config_savelocation">false</bool>
     <!-- configuration for sms priority -->
     <bool name="support_sms_priority">false</bool>
+
+    <!-- configuration for low memory notification -->
+    <bool name="config_detect_low_memory">false</bool>
+
+    <bool name="config_manual_resend">false</bool>
+    <bool name="config_retry_always">false</bool>
 </resources>
