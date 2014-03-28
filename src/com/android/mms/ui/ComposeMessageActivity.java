@@ -64,6 +64,7 @@ import android.database.sqlite.SqliteWrapper;
 import android.drm.DrmStore;
 import android.graphics.drawable.Drawable;
 import android.media.RingtoneManager;
+import android.media.MediaFile;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -79,6 +80,7 @@ import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Intents;
+import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.provider.Settings;
@@ -3115,13 +3117,13 @@ public class ComposeMessageActivity extends Activity
                 } else if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
                     break;
                 }
-                addAudio(uri);
+                addAudio(uri, false);
                 break;
             }
 
             case REQUEST_CODE_RECORD_SOUND:
                 if (data != null) {
-                    addAudio(data.getData());
+                    addAudio(data.getData(), false);
                 }
                 break;
 
@@ -3329,9 +3331,11 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
-    private void addAudio(Uri uri) {
-        int result = mWorkingMessage.setAttachment(WorkingMessage.AUDIO, uri, false);
-        handleAddAttachmentError(result, R.string.type_audio);
+    private void addAudio(Uri uri, boolean append) {
+        if (uri != null) {
+            int result = mWorkingMessage.setAttachment(WorkingMessage.AUDIO, uri, append);
+            handleAddAttachmentError(result, R.string.type_audio);
+        }
     }
 
     AsyncDialog getAsyncDialog() {
@@ -3434,10 +3438,19 @@ public class ComposeMessageActivity extends Activity
         return false;
     }
 
+    private boolean isAudioFile(Uri uri) {
+        String path = uri.getPath();
+        String mimeType = MediaFile.getMimeTypeForFile(path);
+        int fileType = MediaFile.getFileTypeForMimeType(mimeType);
+        return MediaFile.isAudioFileType(fileType);
+    }
+
     // mVideoUri will look like this: content://media/external/video/media
     private static final String mVideoUri = Video.Media.getContentUri("external").toString();
     // mImageUri will look like this: content://media/external/images/media
     private static final String mImageUri = Images.Media.getContentUri("external").toString();
+    // mAudioUri will look like this: content://media/external/audio/media
+    private static final String mAudioUri = Audio.Media.getContentUri("external").toString();
 
     private void addAttachment(String type, Uri uri, boolean append) {
         if (uri != null) {
@@ -3452,6 +3465,10 @@ public class ComposeMessageActivity extends Activity
             } else if (type.startsWith("video/") ||
                     (wildcard && uri.toString().startsWith(mVideoUri))) {
                 addVideo(uri, append);
+            } else if (type.startsWith("audio/")
+                    || (wildcard && uri.toString().startsWith(mAudioUri))
+                    || (wildcard && isAudioFile(uri))) {
+                addAudio(uri, append);
             }
         }
     }
