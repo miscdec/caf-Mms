@@ -235,8 +235,7 @@
         <activity android:name=".ui.ClassZeroActivity"
             android:label="@string/class_0_message_activity"
             android:theme="@android:style/Theme.Translucent"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:launchMode="singleTask"
+            android:launchMode="singleTop"
             android:excludeFromRecents="true">
         </activity>
 
