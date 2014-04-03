@@ -122,10 +122,10 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
             if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                 MSimSmsManager smsManagerMSim = MSimSmsManager.getDefault();
                 smsManagerMSim.sendMultipartTextMessage(mDest, mServiceCenter, messages,
-                           sentIntents, deliveryIntents, -1, isExpectMore, mSubscription);
+                           sentIntents, deliveryIntents, -1, isExpectMore, -1, mSubscription);
             } else {
                 smsManager.sendMultipartTextMessage(mDest, mServiceCenter, messages, sentIntents,
-                           deliveryIntents, -1, isExpectMore);
+                           deliveryIntents, -1, isExpectMore, -1);
             }
         } catch (Exception ex) {
             Log.e(TAG, "SmsMessageSender.sendMessage: caught", ex);
