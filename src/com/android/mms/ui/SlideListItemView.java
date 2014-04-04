@@ -62,7 +62,6 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
     private TextView mAttachmentName;
     private ImageView mAttachmentIcon;
     private Uri mImageUri;
-    private Uri mLookupUri;
 
     public SlideListItemView(Context context) {
         super(context);
@@ -74,6 +73,8 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
 
     @Override
     protected void onFinishInflate() {
+        mTextPreview = (TextView) findViewById(R.id.text_preview_bottom);
+        mTextPreview.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
         mImagePreview = (ImageView) findViewById(R.id.image_preview);
         mAttachmentName = (TextView) findViewById(R.id.attachment_name);
         mAttachmentIcon = (ImageView) findViewById(R.id.attachment_icon);
@@ -151,7 +152,7 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
                                             ContentType.TEXT_VCARD.toLowerCase());
                                     intent.putExtra(MessageUtils.VIEW_VCARD, true);
                                 } else {
-                                    intent.setData(mLookupUri);
+                                    intent.setData(attachmentUri);
                                 }
                                 mContext.startActivity(intent);
                             } catch (Exception e) {
@@ -333,12 +334,13 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
             mAttachmentName.setText(name);
             if (mContext instanceof MobilePaperShowActivity) {
                 mAttachmentIcon.setImageResource(R.drawable.ic_attach_vcard);
+                Uri attUri = uri;
                 // If vCard uri is not from contacts, we need improt this vCard
                 boolean needImport = !(lookupUri != null && lookupUri.contains(CONTACTS));
                 if (!needImport) {
-                    mLookupUri = Uri.parse(lookupUri);
+                    attUri = Uri.parse(lookupUri);
                 }
-                ViewAttachmentListener l = new ViewAttachmentListener(uri, name, needImport);
+                ViewAttachmentListener l = new ViewAttachmentListener(attUri, name, needImport);
                 setOnClickListener(l);
             }
         }
