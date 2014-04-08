@@ -3324,6 +3324,11 @@ public class ComposeMessageActivity extends Activity
                     item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
                 }
             }
+        } else {
+            if (mIndicatorContainer1 != null && mIndicatorContainer2 != null) {
+                mIndicatorContainer1.setVisibility(View.GONE);
+                mIndicatorContainer2.setVisibility(View.GONE);
+            }
         }
 
         if (MmsConfig.getMmsEnabled() && mIsSmsEnabled) {
@@ -4481,18 +4486,15 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     public void onClick(View v) {
-        if (mShowTwoButtons && isPreparedForSending()) {
-            if (v == mSendButtonSms || v == mSendButtonMms) {
-                confirmSendMessageIfNeeded(MSimConstants.SUB1);
-            } else if (v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) {
-                confirmSendMessageIfNeeded(MSimConstants.SUB2);
-            }
-        } else if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
+        if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
             if (mShowTwoButtons) {
                 confirmSendMessageIfNeeded(MSimConstants.SUB1);
             } else {
                 confirmSendMessageIfNeeded();
             }
+        } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
+                mShowTwoButtons && isPreparedForSending()) {
+            confirmSendMessageIfNeeded(MSimConstants.SUB2);
         } else if ((v == mRecipientsPicker)) {
             launchMultiplePhonePicker();
         } else if ((v == mRecipientsPickerGroups)) {
@@ -5019,9 +5021,6 @@ public class ComposeMessageActivity extends Activity
         mAttachmentEditor.hideView();
         mAttachmentEditorScrollView.setVisibility(View.GONE);
 
-        // Hide the subject editor.
-        showSubjectEditor(false);
-
         // Focus to the text editor.
         mTextEditor.requestFocus();
 
@@ -5037,6 +5036,9 @@ public class ComposeMessageActivity extends Activity
         mWorkingMessage.clearConversation(mConversation, false);
         mWorkingMessage = WorkingMessage.createEmpty(this);
         mWorkingMessage.setConversation(mConversation);
+
+        // Hide the subject editor
+        showSubjectEditor(false);
 
         hideRecipientEditor();
         drawBottomPanel();

@@ -229,6 +229,8 @@ public class MessageListItem extends LinearLayout implements
                 bindCommonMessage(sameItem);
                 break;
         }
+
+        customSIMSmsView();
     }
 
     public void unbind() {
@@ -285,13 +287,21 @@ public class MessageListItem extends LinearLayout implements
                 boolean autoDownload = downloadManager.isAuto();
                 boolean dataSuspended = (MmsApp.getApplication().getTelephonyManager()
                         .getDataState() == TelephonyManager.DATA_SUSPENDED);
+                // We must check if the target data subscription is user prefer
+                // data subscription, if we don't check this, here will be
+                // a problem, when user want to download a MMS is not in default
+                // data subscription, the other MMS will mark as downloading status.
+                // But they can't be download, this will make user confuse.
+                boolean isTargetDefaultDataSubscription = mMessageItem.mSubscription ==
+                        MultiSimUtility.getCurrentDataSubscription(mContext);
 
                 boolean isMobileDataDisabled = MessageUtils.isMobileDataDisabled(mContext);
 
                 // If we're going to automatically start downloading the mms attachment, then
                 // don't bother showing the download button for an instant before the actual
                 // download begins. Instead, show downloading as taking place.
-                if (autoDownload && !dataSuspended && !isMobileDataDisabled) {
+                if (autoDownload && !dataSuspended && !isMobileDataDisabled
+                        && isTargetDefaultDataSubscription) {
                     showDownloadingAttachment();
                     break;
                 }
@@ -1123,6 +1133,17 @@ public class MessageListItem extends LinearLayout implements
         } catch (java.lang.OutOfMemoryError e) {
             // shouldn't be here.
             Log.e(TAG, "setVcard: out of memory: ", e);
+        }
+    }
+
+    protected void customSIMSmsView() {
+        if (isSimCardMessage()) {
+            // hide delivered indicator in SIM message
+            mDeliveredIndicator.setVisibility(GONE);
+            // SIM message have no send date, hide date view
+            if (mMessageItem.isOutgoingMessage() || mMessageItem.mBoxId == Sms.MESSAGE_TYPE_SENT) {
+                mDateView.setVisibility(View.GONE);
+            }
         }
     }
 }
