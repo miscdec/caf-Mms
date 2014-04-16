@@ -1460,6 +1460,35 @@ public class TransactionService extends Service implements Observer {
             transaction.process();
             return true;
         }
+
+        public void removePendingTransactionsOnNoConnectivity(boolean retry) {
+            Log.d(TAG, "removePendingTransactionsOnNoConnectivity entry isRetry:" + retry);
+            // Check if transaction already processing
+            synchronized (mProcessing) {
+                while (mPending.size() != 0) {
+                    Uri uri = null;
+                    Transaction transaction = mPending.remove(0);
+                    transaction.mTransactionState.setState(TransactionState.FAILED);
+                    // Get uri from transaction
+                    if (transaction instanceof SendTransaction) {
+                        uri = ((SendTransaction)transaction).mSendReqURI;
+                    } else if (transaction instanceof NotificationTransaction) {
+                        uri = ((NotificationTransaction)transaction).getUri();
+                    } else if (transaction instanceof RetrieveTransaction) {
+                        uri = ((RetrieveTransaction)transaction).getUri();
+                    } else {
+                        continue;
+                    }
+                    // Set Error Type to MMS_PROTO_TRANSIENT
+                    transaction.mTransactionState.setContentUri(uri);
+                    if (retry) {
+                        transaction.notifyObservers();
+                    } else if (getResources().getBoolean(R.bool.config_manual_resend)) {
+                        updateMsgErrorType(uri, MmsSms.ERR_TYPE_MMS_PROTO_TRANSIENT);
+                    }
+                }
+            }
+        }
     }
 
     private void renewMmsConnectivity() {
@@ -1508,6 +1537,19 @@ public class TransactionService extends Service implements Observer {
                 if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                     Log.v(TAG, "mms type is null or mobile data is turned off, bail");
                 }
+                if (mProcessing.isEmpty() && !mPending.isEmpty()) {
+                    Transaction transaction = mPending.get(0);
+
+                    int type = transaction.getType();
+                    if (type == Transaction.SEND_TRANSACTION) {
+                        mToastHandler.sendEmptyMessage(TOAST_MSG_QUEUED);
+                    } else if ((type == Transaction.RETRIEVE_TRANSACTION) ||
+                        (type == Transaction.NOTIFICATION_TRANSACTION)) {
+                        mToastHandler.sendEmptyMessage(TOAST_DOWNLOAD_LATER);
+                    }
+                    mServiceHandler.removePendingTransactionsOnNoConnectivity(false);
+                    endMmsConnectivity();
+                }
             } else {
                 // This is a very specific fix to handle the case where the phone receives an
                 // incoming call during the time we're trying to setup the mms connection.
@@ -1548,6 +1590,20 @@ public class TransactionService extends Service implements Observer {
                             Log.v(TAG, "   retrying mms connectivity for it's available");
                         }
                         renewMmsConnectivity();
+                    } else {
+                        if (!mPending.isEmpty()) {
+                            Transaction transaction = mPending.get(0);
+
+                            int type = transaction.getType();
+                            if (type == Transaction.SEND_TRANSACTION) {
+                                mToastHandler.sendEmptyMessage(TOAST_SEND_FAILED_RETRY);
+                            } else if ((type == Transaction.RETRIEVE_TRANSACTION) ||
+                                (type == Transaction.NOTIFICATION_TRANSACTION)) {
+                                mToastHandler.sendEmptyMessage(TOAST_DOWNLOAD_FAILED_RETRY);
+                            }
+                            mServiceHandler.removePendingTransactionsOnNoConnectivity(true);
+                            endMmsConnectivity();
+                        }
                     }
                 }
             }
