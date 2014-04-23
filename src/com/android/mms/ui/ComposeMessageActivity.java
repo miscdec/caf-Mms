@@ -265,6 +265,8 @@ public class ComposeMessageActivity extends Activity
 
     protected static final String KEY_EXIT_ON_SENT = "exit_on_sent";
     protected static final String KEY_FORWARDED_MESSAGE = "forwarded_message";
+    protected static final String KEY_REPLY_MESSAGE = "reply_message";
+
 
     private static final String EXIT_ECM_RESULT = "exit_ecm_result";
 
@@ -304,6 +306,7 @@ public class ComposeMessageActivity extends Activity
     // a single sms, send the message, and then exits. The message history and menus are hidden.
     private boolean mSendDiscreetMode;
     private boolean mForwardMessageMode;
+    private boolean mReplyMessageMode;
 
     private View mTopPanel;                 // View containing the recipient and subject editors
     private View mBottomPanel;              // View containing the text editor, send button, ec.
@@ -312,7 +315,6 @@ public class ComposeMessageActivity extends Activity
     private TextView mSendButtonMms;        // Press to send mms
     private ImageButton mSendButtonSms;     // Press to send sms
     private EditText mSubjectTextEditor;    // Text editor for MMS subject
-    private TextView mTextCounterSec;   // The second send button text counter
     private View mSendLayoutMmsFir;        // The first mms send layout with sim indicator
     private View mSendLayoutSmsFir;     // The first sms send layout with sim indicator
     private View mSendLayoutMmsSec;    // The second mms send layout with sim indicator
@@ -711,10 +713,6 @@ public class ComposeMessageActivity extends Activity
     private void resetCounter() {
         mTextCounter.setText("");
         mTextCounter.setVisibility(View.GONE);
-        if (mShowTwoButtons) {
-            mTextCounterSec.setText("");
-            mTextCounterSec.setVisibility(View.GONE);
-        }
     }
 
     private void updateCounter(CharSequence text, int start, int before, int count) {
@@ -776,15 +774,8 @@ public class ComposeMessageActivity extends Activity
                     : String.valueOf(remainingInCurrentMessage);
             mTextCounter.setText(counterText);
             mTextCounter.setVisibility(View.VISIBLE);
-            if (mShowTwoButtons) {
-                mTextCounterSec.setText(counterText);
-                mTextCounterSec.setVisibility(View.VISIBLE);
-            }
         } else {
             mTextCounter.setVisibility(View.GONE);
-            if (mShowTwoButtons) {
-                mTextCounterSec.setVisibility(View.GONE);
-            }
         }
     }
 
@@ -3101,10 +3092,6 @@ public class ComposeMessageActivity extends Activity
                     // the user added an attachment or a subject, hide the counter --
                     // it doesn't apply to mms.
                     mTextCounter.setVisibility(View.GONE);
-
-                    if (mShowTwoButtons) {
-                        mTextCounterSec.setVisibility(View.GONE);
-                    }
                     showConvertToMmsToast();
                 } else {
                     mTextCounter.setVisibility(View.VISIBLE);
@@ -3234,7 +3221,7 @@ public class ComposeMessageActivity extends Activity
     private void dialRecipient() {
         if (isRecipientCallable()) {
             String number = getRecipients().get(0).getNumber();
-            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+            Intent dialIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tel:" + number));
             startActivity(dialIntent);
         }
     }
@@ -3291,7 +3278,7 @@ public class ComposeMessageActivity extends Activity
 
         menu.clear();
 
-        if (mSendDiscreetMode && !mForwardMessageMode) {
+        if (mSendDiscreetMode && !mForwardMessageMode && !mReplyMessageMode) {
             // When we're in send-a-single-message mode from the lock screen, don't show
             // any menus.
             return true;
@@ -4591,16 +4578,6 @@ public class ComposeMessageActivity extends Activity
         int currentTextLines = mTextEditor.getLineCount();
         if (currentTextLines <= 2) {
             mTextCounter.setVisibility(View.GONE);
-            if (mShowTwoButtons) {
-                mTextCounterSec.setVisibility(View.GONE);
-            }
-
-        }
-        else if (currentTextLines > 2 && mTextCounter.getVisibility() == View.GONE) {
-            // Making the counter invisible ensures that it is used to correctly
-            // calculate the position of the send button even if we choose not to
-            // display the text.
-            mTextCounter.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -4719,7 +4696,7 @@ public class ComposeMessageActivity extends Activity
         mBottomPanel.setVisibility(View.VISIBLE);
         mTextEditor = (EditText) findViewById(R.id.embedded_text_editor_btnstyle);
 
-        mTextCounter = (TextView) findViewById(R.id.first_text_counter);
+        mTextCounter = (TextView) findViewById(R.id.text_counter_two_buttons);
         mSendButtonMms = (TextView) findViewById(R.id.first_send_button_mms_view);
         mSendButtonSms = (ImageButton) findViewById(R.id.first_send_button_sms_view);
         mSendLayoutMmsFir = findViewById(R.id.first_send_button_mms);
@@ -4733,7 +4710,6 @@ public class ComposeMessageActivity extends Activity
         mSendButtonMms.setOnClickListener(this);
         mSendButtonSms.setOnClickListener(this);
 
-        mTextCounterSec = (TextView) findViewById(R.id.second_text_counter);
         mSendButtonMmsViewSec = (TextView) findViewById(R.id.second_send_button_mms_view);
         mSendButtonSmsViewSec = (ImageButton) findViewById(R.id.second_send_button_sms_view);
         mSendLayoutMmsSec = findViewById(R.id.second_send_button_mms);
@@ -5176,6 +5152,7 @@ public class ComposeMessageActivity extends Activity
 
         mSendDiscreetMode = intent.getBooleanExtra(KEY_EXIT_ON_SENT, false);
         mForwardMessageMode = intent.getBooleanExtra(KEY_FORWARDED_MESSAGE, false);
+        mReplyMessageMode = intent.getBooleanExtra(KEY_REPLY_MESSAGE, false);
         if (mSendDiscreetMode) {
             mMsgListView.setVisibility(View.INVISIBLE);
         }
