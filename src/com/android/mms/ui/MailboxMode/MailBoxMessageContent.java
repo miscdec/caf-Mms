@@ -245,6 +245,7 @@ public class MailBoxMessageContent extends Activity {
                 break;
             case MENU_REPLY:
                 Intent intentReplay = new Intent(this, ComposeMessageActivity.class);
+                intentReplay.putExtra("reply_message", true);
                 intentReplay.putExtra("address", mMsgFrom);
                 intentReplay.putExtra("exit_on_sent", true);
                 this.startActivity(intentReplay);
@@ -407,6 +408,11 @@ public class MailBoxMessageContent extends Activity {
 
     private void initUi() {
         setProgressBarIndeterminateVisibility(true);
+        findViewById(R.id.message_detail).setOnTouchListener(new OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                return doZoomInOutAction(event);
+            }
+        });
 
         mScaleDetector = new ScaleGestureDetector(this, new MyScaleListener());
 
