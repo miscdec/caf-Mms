@@ -21,10 +21,13 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.AsyncQueryHandler;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
@@ -51,6 +54,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.android.internal.telephony.MSimConstants;
+import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.data.Contact;
 import com.android.mms.R;
 import com.android.mms.transaction.MessagingNotification;
@@ -101,6 +105,16 @@ public class ManageSimMessages extends Activity
         }
     };
 
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
+                refreshMessageList();
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -118,6 +132,10 @@ public class ManageSimMessages extends Activity
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+        registerReceiver(mReceiver, filter);
 
         init();
     }
@@ -397,7 +415,6 @@ public class ManageSimMessages extends Activity
     @Override
     public void onPause() {
         super.onPause();
-        mContentResolver.unregisterContentObserver(simChangeObserver);
     }
 
     @Override
@@ -407,6 +424,12 @@ public class ManageSimMessages extends Activity
         } else {
             super.onBackPressed();
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        mContentResolver.unregisterContentObserver(simChangeObserver);
+        super.onDestroy();
     }
 
     private void registerSimChangeObserver() {
@@ -419,12 +442,13 @@ public class ManageSimMessages extends Activity
                 cursor.getColumnIndexOrThrow("address"));
         String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
         Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
-
+        int subscription = cursor.getInt(cursor.getColumnIndexOrThrow("sub_id"));
         try {
             if (isIncomingMessage(cursor)) {
-                Sms.Inbox.addMessage(mContentResolver, address, body, null, date, true /* read */);
+                Sms.Inbox.addMessage(mContentResolver, address, body, null,
+                        date, true /* read */, subscription);
             } else {
-                Sms.Sent.addMessage(mContentResolver, address, body, null, date);
+                Sms.Sent.addMessage(mContentResolver, address, body, null, date, subscription);
             }
         } catch (SQLiteException e) {
             SqliteWrapper.checkSQLiteException(this, e);
