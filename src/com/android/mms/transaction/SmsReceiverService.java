@@ -445,6 +445,8 @@ public class SmsReceiverService extends Service {
                     MessagingNotification.blockingUpdateNewIccMessageIndicator(this,
                             sms.getDisplayOriginatingAddress(), sms.getDisplayMessageBody(),
                             subId, sms.getTimestampMillis());
+                    getContentResolver().notifyChange(MessageUtils.getIccUriBySubscription(subId),
+                            null);
                 } else {
                     mToastHandler.post(new Runnable() {
                         public void run() {
@@ -455,6 +457,7 @@ public class SmsReceiverService extends Service {
                     });
                     // save message to phone if failed save to icc.
                     saveMessageToPhone(msgs, error, format);
+                    break;
                 }
             }
 
@@ -478,8 +481,6 @@ public class SmsReceiverService extends Service {
                 && MessageUtils.isMemoryLow()) {
             MessagingNotification.notifyMemoryLow(this);
         }
-
-        MessageUtils.checkIsPhoneMessageFull(this);
 
         if (messageUri != null) {
             long threadId = MessagingNotification.getSmsThreadId(this, messageUri);
@@ -686,6 +687,11 @@ public class SmsReceiverService extends Service {
 //    private static int count = 0;
 
     private Uri storeMessage(Context context, SmsMessage[] msgs, int error) {
+        // Check to see whether short message count is up to 2000 for cmcc
+        if (MessageUtils.checkIsPhoneMessageFull(this)) {
+            return null;
+        }
+
         SmsMessage sms = msgs[0];
 
         // Store the message in the content provider.
@@ -755,6 +761,11 @@ public class SmsReceiverService extends Service {
     }
 
     private Uri storeCbMessage(Context context, CellBroadcastMessage sms, int error) {
+        // Check to see whether short message count is up to 2000 for cmcc
+        if (MessageUtils.checkIsPhoneMessageFull(this)) {
+            return null;
+        }
+
         // Store the broadcast message in the content provider.
         ContentValues values = new ContentValues();
         values.put(Sms.ERROR_CODE, error);

@@ -80,6 +80,7 @@ import com.android.mms.ui.PopupList;
 import com.android.mms.ui.SearchActivityExtend;
 import com.android.mms.ui.SelectionMenu;
 import com.android.mms.ui.MessageUtils;
+import com.android.mms.util.DownloadManager;
 import com.google.android.mms.pdu.PduHeaders;
 
 import static com.android.mms.ui.MessageListAdapter.COLUMN_ID;
@@ -248,7 +249,10 @@ public class MailBoxMessageList extends ListActivity implements
                     && (c.getInt(MessageListAdapter.COLUMN_MMS_MESSAGE_BOX)
                             == Mms.MESSAGE_BOX_DRAFTS);
 
-            if (isDraft) {
+            boolean isDownloaded = c.getInt(MessageListAdapter.COLUMN_MMS_STATUS)
+                    != DownloadManager.STATE_UNKNOWN;
+            // If the mms has not been downloaded, launch ComposeMessageActivity.
+            if (isDraft || isDownloaded) {
                 Intent intent = new Intent(this, ComposeMessageActivity.class);
                 intent.putExtra(THREAD_ID, threadId);
                 startActivity(intent);
@@ -526,20 +530,21 @@ public class MailBoxMessageList extends ListActivity implements
                         mCursor.close();
                     }
                     mCursor = cursor;
+                    TextView emptyView = (TextView) findViewById(R.id.emptyview);
                     if (mListAdapter == null) {
                         mListAdapter = new MailBoxMessageListAdapter(MailBoxMessageList.this,
                                 MailBoxMessageList.this, cursor);
                         invalidateOptionsMenu();
                          MailBoxMessageList.this.setListAdapter(mListAdapter);
 
-                        TextView emptyView = (TextView) findViewById(R.id.emptyview);
-                        mListView.setEmptyView(emptyView);
                         if (isSearchMode()) {
                             int count = cursor.getCount();
                             setMessageTitle(count);
                             if (count == 0) {
                                 emptyView.setText(getString(R.string.search_empty));
                              }
+                         } else if (cursor.getCount() == 0) {
+                             mListView.setEmptyView(emptyView);
                          }
                      } else {
                         mListAdapter.changeCursor(mCursor);
@@ -560,6 +565,7 @@ public class MailBoxMessageList extends ListActivity implements
                         } else if (isSearchMode()) {
                             setMessageTitle(cursor.getCount());
                         } else {
+                            mListView.setEmptyView(emptyView);
                             mCountTextView.setVisibility(View.INVISIBLE);
                         }
                     }
