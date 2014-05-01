@@ -38,6 +38,8 @@ import android.os.Handler;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.Telephony.Sms;
+import android.telephony.MSimSmsManager;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.SmsManager;
 import android.text.TextUtils;
 import android.text.SpannableString;
@@ -78,6 +80,9 @@ public class ManageSimMessages extends Activity
     private static final int MENU_ADD_ADDRESS_TO_CONTACTS = 6;
     private static final int MENU_SEND_EMAIL = 7;
     private static final int OPTION_MENU_DELETE_ALL = 0;
+    private static final int OPTION_MENU_SIM_CAPACITY = 1;
+
+    private static final int SUB_INVALID = -1;
 
     private static final int SHOW_LIST = 0;
     private static final int SHOW_EMPTY = 1;
@@ -96,6 +101,8 @@ public class ManageSimMessages extends Activity
     private boolean mIsQuery = false;
 
     public static final int SIM_FULL_NOTIFICATION_ID = 234;
+
+    public static final int BATCH_DELETE = 100;
 
     private final ContentObserver simChangeObserver =
             new ContentObserver(new Handler()) {
@@ -121,7 +128,7 @@ public class ManageSimMessages extends Activity
 
         mSubscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY,
                 MSimConstants.INVALID_SUBSCRIPTION);
-        mIccUri = getIccUriBySubscription(mSubscription);
+        mIccUri = MessageUtils.getIccUriBySubscription(mSubscription);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
         mContentResolver = getContentResolver();
@@ -153,17 +160,6 @@ public class ManageSimMessages extends Activity
 
         updateState(SHOW_BUSY);
         startQuery();
-    }
-
-    private Uri getIccUriBySubscription(int subscription) {
-        switch (subscription) {
-            case MSimConstants.SUB1:
-                return ICC1_URI;
-            case MSimConstants.SUB2:
-                return ICC2_URI;
-            default:
-                return ICC_URI;
-        }
     }
 
     private class QueryHandler extends AsyncQueryHandler {
@@ -506,6 +502,7 @@ public class ManageSimMessages extends Activity
         if (mState == SHOW_LIST && (null != mCursor) && (mCursor.getCount() > 0)) {
             menu.add(0, OPTION_MENU_DELETE_ALL, 0, R.string.menu_delete_messages).setIcon(
                     android.R.drawable.ic_menu_delete);
+            menu.add(0, OPTION_MENU_SIM_CAPACITY, 0, R.string.sim_capacity_title);
         }
 
         return true;
@@ -520,7 +517,7 @@ public class ManageSimMessages extends Activity
                     intent.putExtra(MessageUtils.SUB_KEY, mSubscription);
                     intent.putExtra(ComposeMessageActivity.MANAGE_MODE,
                             MessageUtils.SIM_MESSAGE_MODE);
-                    startActivity(intent);
+                    startActivityForResult(intent, BATCH_DELETE);
                 } else {
                     confirmDeleteDialog(new OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
@@ -535,6 +532,10 @@ public class ManageSimMessages extends Activity
                         }
                     }, R.string.confirm_delete_all_SIM_messages);
                 };
+                break;
+
+            case OPTION_MENU_SIM_CAPACITY:
+                showSimCapacityDialog();
                 break;
 
             case android.R.id.home:
@@ -555,6 +556,28 @@ public class ManageSimMessages extends Activity
         builder.setPositiveButton(R.string.yes, listener);
         builder.setNegativeButton(R.string.no, null);
         builder.setMessage(messageId);
+
+        builder.show();
+    }
+
+    private void showSimCapacityDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.sim_capacity_title);
+        builder.setCancelable(true);
+        builder.setPositiveButton(R.string.yes, null);
+        StringBuilder capacityMessage = new StringBuilder();
+        capacityMessage.append(getString(R.string.sim_capacity_used));
+        capacityMessage.append(" " + mCursor.getCount() + "\n");
+        capacityMessage.append(getString(R.string.sim_capacity_all));
+        int iccCapacityAll = -1;
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            iccCapacityAll = MSimSmsManager.getDefault().getSmsCapacityOnIcc(mSubscription);
+        } else {
+            iccCapacityAll = SmsManager.getDefault().getSmsCapacityOnIcc();
+        }
+
+        capacityMessage.append(" " + iccCapacityAll);
+        builder.setMessage(capacityMessage);
 
         builder.show();
     }
@@ -594,6 +617,15 @@ public class ManageSimMessages extends Activity
 
     private void viewMessage(Cursor cursor) {
         // TODO: Add this.
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == BATCH_DELETE) {
+            if (resultCode == RESULT_OK) {
+                refreshMessageList();
+            }
+        }
     }
 }
 

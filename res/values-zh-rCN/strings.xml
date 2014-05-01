@@ -281,7 +281,7 @@
     <string name="sim_full_title" msgid="1809829051697702810">"SIM 卡已满"</string>
     <string name="sim_full_body" msgid="6241664980790322925">"删除部分信息以腾出更多空间。"</string>
     <string name="sms_full_title" msgid="6041287140125011854">"短信内存已满"</string>
-    <string name="sms_full_body" msgid="4885861852397651868">"存储空间已满，无法接收短信，请删除部分旧短信。"</string>
+    <string name="sms_full_body" msgid="4885861852397651868">"存储空间已满，无法发送和接收短信，请删除部分旧短信。"</string>
     <string name="memory_low_title">"存储空间低"</string>
     <string name="memory_low_body">"存储空间快要满了，请删除一些旧数据以确保能接收到新信息。"</string>
     <string name="mobile_data_disable">"移动数据已关闭，是否坚持<xliff:g>%1$s</xliff:g>彩信？若继续将会产生数据流量。"</string>
@@ -508,6 +508,11 @@
     <string name="status_expired">已过期</string>
     <!-- select contact group -->
     <string name="no_contact_group">没有任何群组</string>
+
+    <string name="sim_capacity_title">"Sim卡容量"</string>
+    <string name="sim_capacity_used">"已使用:"</string>
+    <string name="sim_capacity_all">"总容量:"</string>
+
     <!-- Add for share contact feature -->
     <string name="type_vcard">电子名片</string>
     <string name="import_vcard">导入</string>
@@ -553,4 +558,5 @@
     <string name="pref_summary_cdma_priority">CDMA短信优先级设置</string>
     <string name="prefDialogTitle_cdma_priority">优先级</string>
     <string name="forward_size_over">禁止转发，新彩信内容超过300k。</string>
+    <string name="sub">卡</string>
 </resources>

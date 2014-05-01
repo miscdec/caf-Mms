@@ -517,6 +517,17 @@ public class MailBoxMessageList extends ListActivity implements
         }
     };
 
+    private void showMessageCount(Cursor cursor) {
+        mCountTextView.setVisibility(View.VISIBLE);
+        if (mQueryBoxType == TYPE_INBOX) {
+            mCountTextView.setText(COUNT_TEXT_DECOLLATOR_1
+                    + getUnReadMessageCount(cursor)
+                    + COUNT_TEXT_DECOLLATOR_2 + cursor.getCount());
+        } else {
+            mCountTextView.setText("" + cursor.getCount());
+        }
+    }
+
     private final class BoxMsgListQueryHandler extends AsyncQueryHandler {
         public BoxMsgListQueryHandler(ContentResolver contentResolver) {
             super(contentResolver);
@@ -530,20 +541,23 @@ public class MailBoxMessageList extends ListActivity implements
                         mCursor.close();
                     }
                     mCursor = cursor;
+                    TextView emptyView = (TextView) findViewById(R.id.emptyview);
                     if (mListAdapter == null) {
                         mListAdapter = new MailBoxMessageListAdapter(MailBoxMessageList.this,
                                 MailBoxMessageList.this, cursor);
                         invalidateOptionsMenu();
                          MailBoxMessageList.this.setListAdapter(mListAdapter);
 
-                        TextView emptyView = (TextView) findViewById(R.id.emptyview);
-                        mListView.setEmptyView(emptyView);
                         if (isSearchMode()) {
                             int count = cursor.getCount();
                             setMessageTitle(count);
                             if (count == 0) {
                                 emptyView.setText(getString(R.string.search_empty));
                              }
+                         } else if (cursor.getCount() == 0) {
+                             mListView.setEmptyView(emptyView);
+                         } else if (needShowCountNum(cursor)) {
+                            showMessageCount(cursor);
                          }
                      } else {
                         mListAdapter.changeCursor(mCursor);
@@ -553,17 +567,11 @@ public class MailBoxMessageList extends ListActivity implements
                             }
                         }
                         if (needShowCountNum(cursor)) {
-                            mCountTextView.setVisibility(View.VISIBLE);
-                            if (mQueryBoxType == TYPE_INBOX) {
-                                mCountTextView.setText(COUNT_TEXT_DECOLLATOR_1
-                                        + getUnReadMessageCount(cursor)
-                                        + COUNT_TEXT_DECOLLATOR_2 + cursor.getCount());
-                            } else {
-                                mCountTextView.setText("" + cursor.getCount());
-                            }
+                            showMessageCount(cursor);
                         } else if (isSearchMode()) {
                             setMessageTitle(cursor.getCount());
                         } else {
+                            mListView.setEmptyView(emptyView);
                             mCountTextView.setVisibility(View.INVISIBLE);
                         }
                     }
