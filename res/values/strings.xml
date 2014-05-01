@@ -595,7 +595,7 @@
     <!-- Device Full Notification dialog title. -->
     <string name="sms_full_title">Text message memory full</string>
     <!-- Device Full Notification dialog text. -->
-    <string name="sms_full_body">An incoming message was rejected due to full memory. Delete some old messages.</string>
+    <string name="sms_full_body">Phone memory is full, can\'t send and receive new messages, please delete some old messages.</string>
     <!-- Device Low Notification dialog title. -->
     <string name="memory_low_title">Phone memory low</string>
     <!-- Device Low Notification dialog text. -->
@@ -1004,6 +1004,10 @@
     <!-- add for showing slot type in MailBoxMessageContent -->
     <string name="slot_type">Slot : %s</string>
 
+    <string name="sim_capacity_title">Sim capacity</string>
+    <string name="sim_capacity_used">Used:  </string>
+    <string name="sim_capacity_all">Capacity:  </string>
+
     <!-- Settings item description for Mms Validity period -->
     <string name="pref_title_mms_save_time">MMS Validity period</string>
     <string name="pref_title_mms_save_time_slot1">Sub1\'s MMS validity period</string>
@@ -1044,4 +1048,5 @@
     <string name="pref_summary_cdma_priority">Priority of CDMA message</string>
     <string name="prefDialogTitle_cdma_priority">Priority</string>
     <string name="forward_size_over">Forbid forwarding, new message size over 300K.</string>
+    <string name="sub">SUB</string>
 </resources>
