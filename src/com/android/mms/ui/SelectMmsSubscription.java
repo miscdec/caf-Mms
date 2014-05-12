@@ -221,6 +221,16 @@ public class SelectMmsSubscription extends Service {
                         Log.d(TAG, "isNetworkAvailable = false, sleep..");
                         sleep(1000);
                     }
+                } else {
+                    synchronized (mQueue) {
+                        enqueueTxnReq(req);
+                        dumpQ();
+                        if (mQueue.size() == 1) {
+                            //set alarm only when the very first record is added in Q.
+                            setAlarm();
+                        }
+                    }
+                    Log.d(TAG, "DDS switch failed, enqueue the request again for later processing");
                 }
                 return result;
             }
@@ -477,6 +487,10 @@ public class SelectMmsSubscription extends Service {
             }
         } else {
             if (req.triggerSwitchOnly == true) {
+                int defaultDataSub = MultiSimUtility.getDefaultDataSubscription(mContext);
+                Log.d(TAG, "Updating default data sub to handle Hot swap/Deactivate cases"
+                        + "dest Sub: " + req.destSub + "default data sub: " + defaultDataSub);
+                req.destSub = defaultDataSub;
                 Log.d(TAG, "This txn is just for dds switch. txn=" + req);
             } else {
                 Log.d(TAG, "This txn is for diff sub and txnServ is idle, init dds switch, txn="
