@@ -833,4 +833,17 @@
     <string name="banner_sms_promo_title_application"><xliff:g id="appName">%s</xliff:g> is your SMS app</string>
     <string name="banner_sms_promo_message">You can change this in Settings</string>
 
+    <!-- Menu title to copy a selected message from the phone to the  SIM card -->
+    <string name="copy_to_sim">Copy message to SIM card</string>
+    <!-- Toast message on successful copy to SIM card -->
+    <string name="copy_to_sim_success">Message copied to SIM card</string>
+    <!-- Toast message on failed copy to SIM card -->
+    <string name="copy_to_sim_fail">Unable to copy message to SIM card</string>
+    <!-- Time and date a message was sent -->
+    <string name="sent_on">"Sent: <xliff:g id="date">%s</xliff:g>"</string>
+    <!-- Time and date a message was received -->
+    <string name="received_on">"Received: <xliff:g id="date">%s</xliff:g>"</string>
+    <string name="menu_reply">Reply</string>
+    <string name="slot">Slot</string>
+
 </resources>
