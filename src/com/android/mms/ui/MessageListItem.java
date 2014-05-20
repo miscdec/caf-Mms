@@ -225,11 +225,18 @@ public class MessageListItem extends LinearLayout implements
                 boolean autoDownload = downloadManager.isAuto();
                 boolean dataSuspended = (MmsApp.getApplication().getTelephonyManager()
                         .getDataState() == TelephonyManager.DATA_SUSPENDED);
+                // We must check if the target data subscription is user prefer
+                // data subscription, if we don't check this, here will be
+                // a problem, when user want to download a MMS is not in default
+                // data subscription, the other MMS will mark as downloading status.
+                // But they can't be download, this will make user confuse.
+                boolean isTargetDefaultDataSubscription = mMessageItem.mSubscription ==
+                        MultiSimUtility.getCurrentDataSubscription(mContext);
 
                 // If we're going to automatically start downloading the mms attachment, then
                 // don't bother showing the download button for an instant before the actual
                 // download begins. Instead, show downloading as taking place.
-                if (autoDownload && !dataSuspended) {
+                if (autoDownload && !dataSuspended && isTargetDefaultDataSubscription) {
                     showDownloadingAttachment();
                     break;
                 }
@@ -251,7 +258,7 @@ public class MessageListItem extends LinearLayout implements
                                 Transaction.RETRIEVE_TRANSACTION);
                         intent.putExtra(Mms.SUB_ID, mMessageItem.mSubscription); //destination subId
                         intent.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
-                                MultiSimUtility.getCurrentDataSubscription(mContext));
+                                MultiSimUtility.getDefaultDataSubscription(mContext));
 
                         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                             Log.d(TAG, "Download button pressed for sub=" +
