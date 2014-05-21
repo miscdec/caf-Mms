@@ -369,6 +369,7 @@
 
     <!-- Settings item description for entering SIM card message screen -->
     <string name="pref_summary_manage_sim_messages">Manage messages stored on your SIM card</string>
+    <string name="pref_summary_manage_sim_messages_slot">Manage messages stored on your SIM card <xliff:g id="NUMBER">%s</xliff:g></string>
     <!-- Settings item description for boolean MMS delivery report setting -->
     <string name="pref_summary_mms_delivery_reports">Request a delivery report for each message you send</string>
     <!-- Settings item description for boolean MMS read report setting -->
@@ -1049,4 +1050,5 @@
     <string name="prefDialogTitle_cdma_priority">Priority</string>
     <string name="forward_size_over">Forbid forwarding, new message size over 300K.</string>
     <string name="sub">SUB</string>
+    <string name="menu_batch_delete">Batch delete conversation</string>
 </resources>
