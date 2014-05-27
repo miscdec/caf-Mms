@@ -121,8 +121,8 @@ public class MessageItem {
     boolean mIsDrmRingtoneWithRights;
     int mLayoutType = LayoutModel.DEFAULT_LAYOUT_TYPE;
 
-    private static final boolean DISPLAY_SENT_TIME =
-            SystemProperties.getBoolean("persist.env.mms.senttime", false);
+    private static final boolean HIDE_TIME_LABLE =
+            SystemProperties.getBoolean("persist.env.mms.hidetimelable", false);
 
     MessageItem(Context context, String type, final Cursor cursor,
             final ColumnsMap columnsMap, Pattern highlight) throws MmsException {
@@ -176,19 +176,26 @@ public class MessageItem {
                     if (0 == mDate) {
                         mDate = System.currentTimeMillis();
                     }
-                    mTimestamp = String.format(context.getString(R.string.sent_on),
-                            MessageUtils.formatTimeStampString(context, mDate));
+                    if (HIDE_TIME_LABLE) {
+                        mTimestamp = MessageUtils.formatTimeStampString(context, mDate);
+                    } else {
+                        mTimestamp = String.format(context.getString(R.string.sent_on),
+                                MessageUtils.formatTimeStampString(context, mDate));
+                    }
                 } else {
                     // Set "received" time stamp
-                    mDate = cursor.getLong(DISPLAY_SENT_TIME ?
+                    mDate = cursor.getLong(HIDE_TIME_LABLE ?
                             columnsMap.mColumnSmsDateSent : columnsMap.mColumnSmsDate);
                     //cdma sms stored in UIM card don not have timestamp
                     if (0 == mDate) {
                         mDate = System.currentTimeMillis();
                     }
-                    mTimestamp = String.format(context.getString(
-                            DISPLAY_SENT_TIME ? R.string.sent_on : R.string.received_on),
-                            MessageUtils.formatTimeStampString(context, mDate));
+                    if (HIDE_TIME_LABLE) {
+                        mTimestamp = MessageUtils.formatTimeStampString(context, mDate);
+                    } else {
+                        mTimestamp = String.format(context.getString(R.string.received_on),
+                                MessageUtils.formatTimeStampString(context, mDate));
+                    }
                 }
             }
 
@@ -474,12 +481,19 @@ public class MessageItem {
                 } else {
                     // add judgement the Mms is sent or received and format mTimestamp
                     if (mBoxId == Sms.MESSAGE_TYPE_SENT) {
-                        mTimestamp = String.format(mContext.getString(R.string.sent_on),
-                                MessageUtils.formatTimeStampString(mContext, timestamp));
+                        if (HIDE_TIME_LABLE) {
+                            mTimestamp = MessageUtils.formatTimeStampString(mContext, timestamp);
+                        } else {
+                            mTimestamp = String.format(mContext.getString(R.string.sent_on),
+                                    MessageUtils.formatTimeStampString(mContext, timestamp));
+                        }
                     } else {
-                        mTimestamp = String.format(mContext.getString(
-                                DISPLAY_SENT_TIME ? R.string.sent_on : R.string.received_on),
-                                MessageUtils.formatTimeStampString(mContext, timestamp));
+                        if (HIDE_TIME_LABLE) {
+                            mTimestamp = MessageUtils.formatTimeStampString(mContext, timestamp);
+                        } else {
+                            mTimestamp = String.format(mContext.getString(R.string.received_on),
+                                    MessageUtils.formatTimeStampString(mContext, timestamp));
+                        }
                     }
                 }
             }
