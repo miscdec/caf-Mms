@@ -357,4 +357,12 @@
     <string name="banner_sms_promo_title_initial" msgid="510014388581481569">"“短信”不是您的短信应用"</string>
     <string name="banner_sms_promo_title_application" msgid="8123569785369713254">"“<xliff:g id="APPNAME">%s</xliff:g>”是您的短信应用"</string>
     <string name="banner_sms_promo_message" msgid="3536714414252763826">"您可以在“设置”中更改此设置。"</string>
+    <string name="copy_to_sim">"复制到SIM卡"</string>
+    <string name="copy_to_sim_success">"信息已保存"</string>
+    <string name="copy_to_sim_fail">"信息保存失败"</string>
+    <string name="sent_on">"发送时间：<xliff:g id="DATE">%s</xliff:g>"</string>
+    <string name="received_on">"接收时间：<xliff:g id="DATE">%s</xliff:g>"</string>
+    <string name="menu_reply">"回复"</string>
+    <string name="slot">"卡"</string>
+
 </resources>
