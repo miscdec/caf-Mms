@@ -83,6 +83,8 @@ public class SmsReceiverService extends Service {
     private Looper mServiceLooper;
     private boolean mSending;
 
+    private static final String PRL_NUMBER = "10659165";
+
     public static final String MESSAGE_SENT_ACTION =
         "com.android.mms.transaction.MESSAGE_SENT";
 
@@ -493,6 +495,7 @@ public class SmsReceiverService extends Service {
     private void handleSmsReceived(Intent intent, int error) {
         SmsMessage[] msgs = Intents.getMessagesFromIntent(intent);
         String format = intent.getStringExtra("format");
+        boolean isPRLsms = PRL_NUMBER.equals(msgs[0].getDisplayOriginatingAddress());
         Uri messageUri = null;
         // If user setting prefer store is ICC card, we need to copy received SMS to ICC card.
         boolean isNeedStoreToICC = false;
@@ -527,6 +530,16 @@ public class SmsReceiverService extends Service {
             }
         } else {
             messageUri = insertMessage(this, msgs, error, format);
+
+            if (isPRLsms) {
+                int sub = MessageUtils.isMultiSimEnabledMms() ? msgs[0].getSubId()
+                        : MessageUtils.SUB_INVALID;
+                ContentValues values = new ContentValues(1);
+                values.put(Sms.SUB_ID, sub);
+                ContentResolver resolver = getContentResolver();
+                SqliteWrapper.update(SmsReceiverService.this, resolver, MessageUtils.ICC_SMS_URI,
+                        values, null, null);
+            }
 
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
                 SmsMessage sms = msgs[0];
