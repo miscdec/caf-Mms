@@ -1404,9 +1404,6 @@ public class MessageUtils {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp
                 .getApplication());
         sp.edit().putBoolean(VIEW_MODE_NAME, mode).commit();
-        if (!mode) {
-            updateThreadCount(MmsApp.getApplication());
-        }
     }
 
     /**
@@ -2354,5 +2351,80 @@ public class MessageUtils {
         //it will delete nothing and just update the message_count in theads table.
         SqliteWrapper.delete(context, context.getContentResolver(),
                 Threads.CONTENT_URI, "thread_id = -1", null);
+    }
+
+    private static boolean isNetworkRoaming(int subscription) {
+        return isMultiSimEnabledMms()
+                ? MSimTelephonyManager.getDefault().isNetworkRoaming(subscription)
+                : TelephonyManager.getDefault().isNetworkRoaming();
+    }
+
+    public static boolean isCDMAInternationalRoaming(int subscription) {
+        return isCDMAPhone(subscription) && isNetworkRoaming(subscription);
+    }
+
+    public static boolean isMsimIccCardActive() {
+        if (isMultiSimEnabledMms()) {
+            if (isIccCardActivated(MessageUtils.SUB1) && isIccCardActivated(MessageUtils.SUB2)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void dialNumber(Context context, String number) {
+        Intent dialIntent;
+        if (isMsimIccCardActive())
+            dialIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tel:" + number));
+        else
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        context.startActivity(dialIntent);
+     }
+
+    public static float onFontSizeScale(ArrayList<TextView> list, float scale,
+            float mFontSizeForSave) {
+        float mCurrentSize = 0;
+        if (list.size() > 0) {
+            mCurrentSize = list.get(0).getTextSize();
+        }
+        if (scale < 0.999999 || scale > 1.00001) {
+            float zoomInSize = mCurrentSize + FONT_SIZE_STEP;
+            float zoomOutSize = mCurrentSize - FONT_SIZE_STEP;
+            if (scale > 1.0 && zoomInSize <= MAX_FONT_SIZE) {
+                for (TextView view : list) {
+                    view.setTextSize(TypedValue.COMPLEX_UNIT_PX, zoomInSize);
+                    if (mFontSizeForSave != zoomInSize) {
+                        mFontSizeForSave = zoomInSize;
+                    }
+                }
+            } else if (scale < 1.0 && zoomOutSize >= MIN_FONT_SIZE) {
+                for (TextView view : list) {
+                    view.setTextSize(TypedValue.COMPLEX_UNIT_PX, zoomOutSize);
+                    if (mFontSizeForSave != zoomOutSize) {
+                        mFontSizeForSave = zoomOutSize;
+                    }
+                }
+            }
+        }
+        return mFontSizeForSave;
+    }
+
+    public static void saveTextFontSize(Context context, float value) {
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
+        prefsms.edit().putString(KEY_SMS_FONTSIZE, String.valueOf(value)).commit();
+    }
+
+    public static float getTextFontSize(Context context) {
+        SharedPreferences prefsms = PreferenceManager.
+                getDefaultSharedPreferences(context);
+        String textSize = prefsms.getString(KEY_SMS_FONTSIZE, String.valueOf(FONT_SIZE_DEFAULT));
+        float size = Float.parseFloat(textSize);
+        /* this function is a common function add this to make sure if did not save the size */
+        if (size < MIN_FONT_SIZE) {
+            return MIN_FONT_SIZE;
+        } else if (size > MAX_FONT_SIZE) {
+            return MAX_FONT_SIZE;
+        }
+        return size;
     }
 }
