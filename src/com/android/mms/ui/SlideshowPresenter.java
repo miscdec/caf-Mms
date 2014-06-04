@@ -228,11 +228,11 @@ public class SlideshowPresenter extends Presenter {
                 final Handler bitmapHandler = new Handler() {
                     @Override
                     public void handleMessage(Message message) {
-                        view.setImage(image.getSrc(), (Bitmap) message.obj);
                         if (view instanceof SlideListItemView) {
                             SlideListItemView item = (SlideListItemView) view;
                             item.setUri(image.getUri());
                         }
+                        view.setImage(image.getSrc(), (Bitmap) message.obj);
                     }
                 };
                 Thread BitmapLoaderThread = new Thread() {
