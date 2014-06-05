@@ -2328,9 +2328,7 @@ public class MessageUtils {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
                     case DIALOG_ITEM_CALL:
-                        Intent dialIntent = new Intent(Intent.ACTION_CALL,
-                                Uri.parse("tel:" + extractNumber));
-                        localContext.startActivity(dialIntent);
+                        dialNumber(localContext,extractNumber);
                         break;
                     case DIALOG_ITEM_SMS:
                         Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
@@ -2363,5 +2361,23 @@ public class MessageUtils {
         //it will delete nothing and just update the message_count in theads table.
         SqliteWrapper.delete(context, context.getContentResolver(),
                 Threads.CONTENT_URI, "thread_id = -1", null);
+    }
+
+    public static boolean isMsimIccCardActive() {
+        if (isMultiSimEnabledMms()) {
+            if (isIccCardActivated(MessageUtils.SUB1) && isIccCardActivated(MessageUtils.SUB2)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void dialNumber(Context context, String number) {
+        Intent dialIntent;
+        if (isMsimIccCardActive())
+            dialIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tel:" + number));
+        else
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        context.startActivity(dialIntent);
     }
 }
