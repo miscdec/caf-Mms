@@ -79,6 +79,7 @@ import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.text.style.URLSpan;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -108,6 +109,7 @@ import com.android.mms.model.VcardModel;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
+import com.android.mms.util.DownloadManager;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.CharacterSets;
@@ -251,6 +253,13 @@ public class MessageUtils {
     private static final String REPLACE_QUOTES_2 = "''";
 
     public static final String EXTRA_KEY_NEW_MESSAGE_NEED_RELOAD = "reload";
+
+    public static final String KEY_SMS_FONTSIZE = "smsfontsize";
+    public static final int DELAY_TIME = 200;
+    public static final float FONT_SIZE_DEFAULT = 30f;
+    public static final float MAX_FONT_SIZE = 80f;
+    public static final float MIN_FONT_SIZE = 20f;
+    public static final float FONT_SIZE_STEP = 5f;
 
     static {
         for (int i = 0; i < NUMERIC_CHARS_SUGAR.length; i++) {
@@ -1409,14 +1418,6 @@ public class MessageUtils {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp
                 .getApplication());
         sp.edit().putBoolean(VIEW_MODE_NAME, mode).commit();
-        if (!mode) {
-            new Thread() {
-                @Override
-                public void run() {
-                    updateThreadCount(MmsApp.getApplication());
-                }
-            }.start();
-        }
     }
 
     /**
@@ -2331,9 +2332,7 @@ public class MessageUtils {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
                     case DIALOG_ITEM_CALL:
-                        Intent dialIntent = new Intent(Intent.ACTION_CALL,
-                                Uri.parse("tel:" + extractNumber));
-                        localContext.startActivity(dialIntent);
+                        dialNumber(localContext,extractNumber);
                         break;
                     case DIALOG_ITEM_SMS:
                         Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
@@ -2362,12 +2361,6 @@ public class MessageUtils {
         return lowBytes > path.getFreeSpace();
     }
 
-    private static void updateThreadCount(Context context) {
-        //it will delete nothing and just update the message_count in theads table.
-        SqliteWrapper.delete(context, context.getContentResolver(),
-                Threads.CONTENT_URI, "thread_id = -1", null);
-    }
-
     private static boolean isNetworkRoaming(int subscription) {
         return isMultiSimEnabledMms()
                 ? MSimTelephonyManager.getDefault().isNetworkRoaming(subscription)
@@ -2376,5 +2369,80 @@ public class MessageUtils {
 
     public static boolean isCDMAInternationalRoaming(int subscription) {
         return isCDMAPhone(subscription) && isNetworkRoaming(subscription);
+    }
+
+    public static boolean isMsimIccCardActive() {
+        if (isMultiSimEnabledMms()) {
+            if (isIccCardActivated(MessageUtils.SUB1) && isIccCardActivated(MessageUtils.SUB2)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void dialNumber(Context context, String number) {
+        Intent dialIntent;
+        if (isMsimIccCardActive())
+            dialIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tel:" + number));
+        else
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        context.startActivity(dialIntent);
+     }
+
+    public static float onFontSizeScale(ArrayList<TextView> list, float scale,
+            float mFontSizeForSave) {
+        float mCurrentSize = 0;
+        if (list.size() > 0) {
+            mCurrentSize = list.get(0).getTextSize();
+        }
+        if (scale < 0.999999 || scale > 1.00001) {
+            float zoomInSize = mCurrentSize + FONT_SIZE_STEP;
+            float zoomOutSize = mCurrentSize - FONT_SIZE_STEP;
+            if (scale > 1.0 && zoomInSize <= MAX_FONT_SIZE) {
+                for (TextView view : list) {
+                    view.setTextSize(TypedValue.COMPLEX_UNIT_PX, zoomInSize);
+                    if (mFontSizeForSave != zoomInSize) {
+                        mFontSizeForSave = zoomInSize;
+                    }
+                }
+            } else if (scale < 1.0 && zoomOutSize >= MIN_FONT_SIZE) {
+                for (TextView view : list) {
+                    view.setTextSize(TypedValue.COMPLEX_UNIT_PX, zoomOutSize);
+                    if (mFontSizeForSave != zoomOutSize) {
+                        mFontSizeForSave = zoomOutSize;
+                    }
+                }
+            }
+        }
+        return mFontSizeForSave;
+    }
+
+    public static void saveTextFontSize(Context context, float value) {
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
+        prefsms.edit().putString(KEY_SMS_FONTSIZE, String.valueOf(value)).commit();
+    }
+
+    public static float getTextFontSize(Context context) {
+        SharedPreferences prefsms = PreferenceManager.
+                getDefaultSharedPreferences(context);
+        String textSize = prefsms.getString(KEY_SMS_FONTSIZE, String.valueOf(FONT_SIZE_DEFAULT));
+        float size = Float.parseFloat(textSize);
+        /* this function is a common function add this to make sure if did not save the size */
+        if (size < MIN_FONT_SIZE) {
+            return MIN_FONT_SIZE;
+        } else if (size > MAX_FONT_SIZE) {
+            return MAX_FONT_SIZE;
+        }
+        return size;
+    }
+
+    public static int getMmsDownloadStatus(int mmsStatus) {
+        if(DownloadManager.STATE_PERMANENT_FAILURE == mmsStatus) {
+            return mmsStatus;
+        } else if (!DownloadManager.getInstance().isAuto()
+                && DownloadManager.STATE_PRE_DOWNLOADING != mmsStatus) {
+            return mmsStatus & ~DownloadManager.DEFERRED_MASK;
+        }
+        return mmsStatus;
     }
 }

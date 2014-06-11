@@ -456,6 +456,8 @@ public class ComposeMessageActivity extends Activity
     private boolean mIsMessageChanged = false;
     private boolean mShowTwoButtons = false;
 
+    private Object mAddAttachmentLock = new Object();
+
     /**
      * Whether the audio attachment player activity is launched and running
      */
@@ -841,7 +843,7 @@ public class ComposeMessageActivity extends Activity
                             mMessageItem.mLocked ? null : "locked=0", null);
                     return null;
                 }
-            }.execute();
+            }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
     }
 
@@ -2319,7 +2321,7 @@ public class ComposeMessageActivity extends Activity
         setProgressBarVisibility(false);
 
         boolean isBtnStyle = getResources().getBoolean(R.bool.config_btnstyle);
-        mShowTwoButtons = isBtnStyle && isMsimIccCardActive();
+        mShowTwoButtons = isBtnStyle && MessageUtils.isMsimIccCardActive();
         // Initialize members for UI elements.
         initResourceRefs();
 
@@ -3232,12 +3234,7 @@ public class ComposeMessageActivity extends Activity
     private void dialRecipient() {
         if (isRecipientCallable()) {
             String number = getRecipients().get(0).getNumber();
-            Intent dialIntent;
-            if (isMsimIccCardActive())
-                dialIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tel:" + number));
-            else
-                dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
-            startActivity(dialIntent);
+            MessageUtils.dialNumber(this,number);
         }
     }
 
@@ -4079,20 +4076,22 @@ public class ComposeMessageActivity extends Activity
             Context context = ComposeMessageActivity.this;
             PduPersister persister = PduPersister.getPduPersister(context);
             int result;
-
-            Uri messageUri = mWorkingMessage.saveAsMms(true);
-            if (messageUri == null) {
-                result = WorkingMessage.UNKNOWN_ERROR;
-            } else {
-                try {
-                    Uri dataUri = persister.persistPart(part,
-                            ContentUris.parseId(messageUri), null);
-                    result = mWorkingMessage.setAttachment(WorkingMessage.IMAGE, dataUri, append);
-                    if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-                        log("ResizeImageResultCallback: dataUri=" + dataUri);
-                    }
-                } catch (MmsException e) {
+            synchronized(mAddAttachmentLock) {
+                Uri messageUri = mWorkingMessage.saveAsMms(true);
+                if (messageUri == null) {
                     result = WorkingMessage.UNKNOWN_ERROR;
+                } else {
+                    try {
+                        Uri dataUri = persister.persistPart(part,
+                                ContentUris.parseId(messageUri), null);
+                        result = mWorkingMessage.setAttachment(
+                                WorkingMessage.IMAGE, dataUri, append);
+                        if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                            log("ResizeImageResultCallback: dataUri=" + dataUri);
+                        }
+                    } catch (MmsException e) {
+                        result = WorkingMessage.UNKNOWN_ERROR;
+                    }
                 }
             }
 
@@ -4301,7 +4300,9 @@ public class ComposeMessageActivity extends Activity
                         if (uri != null && "*/*".equals(mimeType)) {
                             type = getAttachmentMimeType((Uri) uri);
                         }
-                        addAttachment(type, (Uri) uri, true);
+                        synchronized(mAddAttachmentLock) {
+                            addAttachment(type, (Uri) uri, true);
+                        }
                     }
                     updateMmsSizeIndicator();
                 }
@@ -4732,16 +4733,6 @@ public class ComposeMessageActivity extends Activity
         if (getResources().getBoolean(R.bool.config_two_call_button)) {
             initTwoCallButtonOnActionBar();
         }
-    }
-
-    private boolean isMsimIccCardActive() {
-        if (MessageUtils.isMultiSimEnabledMms()) {
-            if (MessageUtils.isIccCardActivated(MessageUtils.SUB1)
-                    && MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void initTwoSendButton() {
