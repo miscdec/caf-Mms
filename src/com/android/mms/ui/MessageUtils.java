@@ -139,6 +139,7 @@ public class MessageUtils {
 
 
     private static final boolean DEBUG = false;
+    private static boolean mCanShowDialog;
     // add the defination of subscription
     public static final int SUB_INVALID = -1;  //  for single card product
     public static final int SUB1 = 0;  // for DSDS product of slot one
@@ -1406,7 +1407,12 @@ public class MessageUtils {
                 .getApplication());
         sp.edit().putBoolean(VIEW_MODE_NAME, mode).commit();
         if (!mode) {
-            updateThreadCount(MmsApp.getApplication());
+            new Thread() {
+                @Override
+                public void run() {
+                    updateThreadCount(MmsApp.getApplication());
+                }
+            }.start();
         }
     }
 
@@ -2050,6 +2056,7 @@ public class MessageUtils {
     }
 
     public static void removeDialogs() {
+        mCanShowDialog = false;
         if(memoryStatusDialog != null && memoryStatusDialog.isShowing()) {
             memoryStatusDialog.dismiss();
             memoryStatusDialog = null;
@@ -2057,6 +2064,7 @@ public class MessageUtils {
     }
 
     public static void showMemoryStatusDialog(Context context) {
+       mCanShowDialog = true;
        new ShowDialog(context).execute();
     }
 
@@ -2264,7 +2272,7 @@ public class MessageUtils {
         }
         @Override
         protected void onPostExecute(StringBuilder memoryStatus) {
-            if(memoryStatus != null && !memoryStatus.toString().isEmpty()) {
+            if(memoryStatus != null && !memoryStatus.toString().isEmpty() && mCanShowDialog) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
                 builder.setTitle(R.string.memory_status_title);
                 builder.setCancelable(true);
@@ -2320,9 +2328,7 @@ public class MessageUtils {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
                     case DIALOG_ITEM_CALL:
-                        Intent dialIntent = new Intent(Intent.ACTION_CALL,
-                                Uri.parse("tel:" + extractNumber));
-                        localContext.startActivity(dialIntent);
+                        dialNumber(localContext,extractNumber);
                         break;
                     case DIALOG_ITEM_SMS:
                         Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
@@ -2355,5 +2361,23 @@ public class MessageUtils {
         //it will delete nothing and just update the message_count in theads table.
         SqliteWrapper.delete(context, context.getContentResolver(),
                 Threads.CONTENT_URI, "thread_id = -1", null);
+    }
+
+    public static boolean isMsimIccCardActive() {
+        if (isMultiSimEnabledMms()) {
+            if (isIccCardActivated(MessageUtils.SUB1) && isIccCardActivated(MessageUtils.SUB2)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void dialNumber(Context context, String number) {
+        Intent dialIntent;
+        if (isMsimIccCardActive())
+            dialIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tel:" + number));
+        else
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        context.startActivity(dialIntent);
     }
 }
