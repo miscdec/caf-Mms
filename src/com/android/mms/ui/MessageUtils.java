@@ -1414,9 +1414,6 @@ public class MessageUtils {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(MmsApp
                 .getApplication());
         sp.edit().putBoolean(VIEW_MODE_NAME, mode).commit();
-        if (!mode) {
-            updateThreadCount(MmsApp.getApplication());
-        }
     }
 
     /**
