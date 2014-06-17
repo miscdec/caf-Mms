@@ -206,6 +206,7 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_INFO     = 110;
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD    = 111;
     public static final int REQUEST_CODE_ATTACH_REPLACE_CONTACT_INFO = 112;
+    public static final int REQUEST_CODE_BATCH_DELETE     = 113;
 
     private static final String TAG = "Mms/compose";
 
@@ -2359,9 +2360,7 @@ public class ComposeMessageActivity extends Activity
             mSubjectTextEditor.removeTextChangedListener(mSubjectEditorWatcher);
         }
 
-        if (!TextUtils.isEmpty(mWorkingMessage.getSubject())) {
-            mSubjectTextEditor.setText(mWorkingMessage.getSubject());
-        }
+        mSubjectTextEditor.setText(mWorkingMessage.getSubject());
         mSubjectTextEditor.setVisibility(show ? View.VISIBLE : View.GONE);
         hideOrShowTopPanel();
     }
@@ -3456,7 +3455,7 @@ public class ComposeMessageActivity extends Activity
                 Intent intent = new Intent(this, ManageMultiSelectAction.class);
                 intent.putExtra(MANAGE_MODE, MessageUtils.BATCH_DELETE_MODE);
                 intent.putExtra(THREAD_ID, mConversation.getThreadId());
-                startActivity(intent);
+                startActivityForResult(intent, REQUEST_CODE_BATCH_DELETE);
                 break;
             }
             case android.R.id.home:
@@ -3912,6 +3911,10 @@ public class ComposeMessageActivity extends Activity
                         addVcard(vcard);
                     }
                 }
+                break;
+
+            case REQUEST_CODE_BATCH_DELETE:
+                startMsgListQuery(MESSAGE_LIST_QUERY_AFTER_DELETE_TOKEN);
                 break;
 
             default:
@@ -5065,6 +5068,9 @@ public class ComposeMessageActivity extends Activity
         mAttachmentEditor.hideView();
         mAttachmentEditorScrollView.setVisibility(View.GONE);
 
+        // Hide the subject editor
+        showSubjectEditor(false);
+
         // Focus to the text editor.
         mTextEditor.requestFocus();
 
@@ -5080,9 +5086,6 @@ public class ComposeMessageActivity extends Activity
         mWorkingMessage.clearConversation(mConversation, false);
         mWorkingMessage = WorkingMessage.createEmpty(this);
         mWorkingMessage.setConversation(mConversation);
-
-        // Hide the subject editor
-        showSubjectEditor(false);
 
         hideRecipientEditor();
         drawBottomPanel();
