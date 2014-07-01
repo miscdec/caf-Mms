@@ -24,7 +24,7 @@
   <string name="toast_sending_message">Siunčiamas pranešimas</string>
   <string name="qm_quick_reply">Atsakyti</string>
   <string name="qm_mark_read">Skaityti</string>
-  <string name="message_counter_separator">iš</string>
+  <string name="message_counter">%1$d iš %2$d</string>
   <string name="pref_title_notification_privacy_mode_enabled">Privatumo režimas</string>
   <string name="pref_summary_notification_privacy_mode_enabled">Slėpti siuntėją ir pranešimą būsenos juostoje bei išjungti „Greitą atsakymą“</string>
   <string name="notification_single_title_privacy_mode">Naujas pranešimas</string>
@@ -34,7 +34,7 @@
   <string name="notification_ticker_privacy_mode">Gautas naujas pranešimas</string>
   <string name="pref_quickmessage">Greitas atsakymas</string>
   <string name="pref_dark_theme_title">Naudoti tamsią temą</string>
-  <string name="pref_dark_theme_summary">Jei nepasirinkta, pagal nutylėjimą bus naudojama „Šviesi” tema</string>
+  <string name="pref_dark_theme_summary">Jei nepasirinkta, pagal nutylėjimą bus naudojama „Šviesi“ tema</string>
   <string name="pref_quickmessage_title">Rodyti laikinąjį langą</string>
   <string name="pref_quickmessage_summary">Rodyti greitųjų pranešimų laikinąjį langą gaunamiems SMS pranešimams</string>
   <string name="pref_wake_unlock_title">Pažadinti ir atrakinti</string>
@@ -100,11 +100,11 @@
   <string name="fastscroll_index_groups">GR</string>
   <string name="pref_title_send_delay">Siuntimo delsimas</string>
   <string name="send_delay_immediate">Siųsti nedelsiant</string>
-  <string name="send_delay_3seconds">3 sekundės</string>
-  <string name="send_delay_5seconds">5 sekundės</string>
-  <string name="send_delay_10seconds">10 sekundžių</string>
-  <string name="send_delay_20seconds">20 sekundžių</string>
-  <string name="send_delay_30seconds">30 sekundžių</string>
+  <string name="send_delay_3seconds">3 sek.</string>
+  <string name="send_delay_5seconds">5 sek.</string>
+  <string name="send_delay_10seconds">10 sek.</string>
+  <string name="send_delay_20seconds">20 sek.</string>
+  <string name="send_delay_30seconds">30 sek.</string>
   <string name="sent_countdown">Pranešimo siuntimo laikmatis</string>
   <string name="pref_title_mms_notification_vibrate_pattern">Vibravimo stilius</string>
   <string name="pref_summary_mms_notification_vibrate_pattern">Pakeisti vibravimo stilių</string>
@@ -113,4 +113,9 @@
   <string name="pref_mms_notification_vibrate_long_vib">Ilgas vibravimas</string>
   <string name="pref_mms_notification_vibrate_mult_short">Kartotinis trumpas</string>
   <string name="pref_mms_notification_vibrate_mult_long">Kartotinis ilgas</string>
+  <string name="menu_insert_smiley">Įterpti šypsenėlę</string>
+  <string name="pref_title_enable_emoticons">Emocijų palaikymas</string>
+  <string name="pref_summary_enable_emoticons">Pakeisti tekstines emocijas į grafinius atitikmenis</string>
+  <string name="normal_show">Rodyti įprastu režimu</string>
+  <string name="cannot_play">Skaidrių peržiūra negalima.</string>
 </resources>

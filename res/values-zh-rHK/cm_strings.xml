@@ -16,7 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="menu_add_to_calendar">添加到日曆</string>
+  <string name="menu_add_to_calendar">新增到日曆</string>
   <string name="button_close">關閉</string>
   <string name="button_view">檢視</string>
   <string name="button_templates">範本</string>
@@ -24,7 +24,6 @@
   <string name="toast_sending_message">正在傳送訊息</string>
   <string name="qm_quick_reply">回覆</string>
   <string name="qm_mark_read">已讀</string>
-  <string name="message_counter_separator">/</string>
   <string name="pref_title_notification_privacy_mode_enabled">私隱模式</string>
   <string name="pref_summary_notification_privacy_mode_enabled">隱藏狀態列中的寄件者和訊息並停用「快速回覆」</string>
   <string name="notification_single_title_privacy_mode">新訊息</string>
@@ -82,7 +81,7 @@
   <string name="blacklist_title">黑名單</string>
   <string name="blacklist_summary_disabled">已停用</string>
   <string name="blacklist_summary">黑名單內電話號碼傳來的訊息將會被封鎖</string>
-  <string name="add_to_blacklist">添加到黑名單</string>
+  <string name="add_to_blacklist">新增到黑名單</string>
   <string name="add_to_blacklist_message">來自 %s 的訊息將被封鎖</string>
   <string name="alert_dialog_yes">是</string>
   <string name="alert_dialog_no">否</string>
@@ -113,4 +112,7 @@
   <string name="pref_mms_notification_vibrate_long_vib">長期震動</string>
   <string name="pref_mms_notification_vibrate_mult_short">多次短暫</string>
   <string name="pref_mms_notification_vibrate_mult_long">多次長期</string>
+  <string name="menu_insert_smiley">插入表情符號</string>
+  <string name="pref_title_enable_emoticons">表情符號支援</string>
+  <string name="pref_summary_enable_emoticons">用等同的圖形來替代文字表情符號</string>
 </resources>

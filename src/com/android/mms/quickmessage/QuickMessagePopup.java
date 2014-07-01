@@ -86,7 +86,7 @@ import com.android.mms.util.UnicodeFilter;
 import com.google.android.mms.MmsException;
 //import com.android.mms.ui.ImageAdapter;
 //import com.android.mms.util.EmojiParser;
-//import com.android.mms.util.SmileyParser;
+import com.android.mms.util.SmileyParser;
 
 public class QuickMessagePopup extends Activity implements
     LoaderManager.LoaderCallbacks<Cursor> {
@@ -184,6 +184,8 @@ public class QuickMessagePopup extends Activity implements
         // Load the views and Parse the intent to show the QuickMessage
         setupViews();
         parseIntent(getIntent().getExtras(), false);
+
+        setFinishOnTouchOutside(false);
     }
 
     private void setupViews() {
@@ -463,12 +465,14 @@ public class QuickMessagePopup extends Activity implements
      * Update the page indicator counter to show the currently selected visible page number
      */
     public void updateMessageCounter() {
-        String separator = mContext.getString(R.string.message_counter_separator);
-        mQmMessageCounter.setText((mCurrentPage + 1) + " " + separator + " " + mMessageList.size());
+        int current= mCurrentPage + 1;
+        int total = mMessageList.size();
+        mQmMessageCounter.setText(getString(R.string.message_counter, current, total));
 
-        if (DEBUG)
-            Log.d(LOG_TAG, "updateMessageCounter() called, counter text set to " + (mCurrentPage + 1)
-                    + " of " + mMessageList.size());
+        if (DEBUG) {
+            Log.d(LOG_TAG, "updateMessageCounter() called, counter text set to "
+                    + current + " of " + total);
+        }
     }
 
     /**
@@ -796,7 +800,8 @@ public class QuickMessagePopup extends Activity implements
                 qmFromName.setText(qm.getFromName());
                 qmTimestamp.setText(MessageUtils.formatTimeStampString(mContext, qm.getTimestamp(), mFullTimestamp));
                 updateContactBadge(qmContactBadge, qm.getFromNumber()[0], false);
-                qmMessageText.setText(qm.getMessageBody());
+                SmileyParser parser = SmileyParser.getInstance();
+                qmMessageText.setText(parser.addSmileySpans(qm.getMessageBody()));
 
                 if (!mDarkTheme) {
                     // We are using a holo.light background with a holo.dark activity theme

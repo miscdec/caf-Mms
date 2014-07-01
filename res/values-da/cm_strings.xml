@@ -24,7 +24,6 @@
   <string name="toast_sending_message">Sender besked...</string>
   <string name="qm_quick_reply">Svar</string>
   <string name="qm_mark_read">Læst</string>
-  <string name="message_counter_separator">af</string>
   <string name="pref_title_notification_privacy_mode_enabled">Privatlivstilstand</string>
   <string name="pref_summary_notification_privacy_mode_enabled">Skjul afsender og besked i statuslinje og slå Svar fra</string>
   <string name="notification_single_title_privacy_mode">Ny besked</string>
@@ -113,4 +112,7 @@
   <string name="pref_mms_notification_vibrate_long_vib">Lang vibration</string>
   <string name="pref_mms_notification_vibrate_mult_short">Flere korte</string>
   <string name="pref_mms_notification_vibrate_mult_long">Flere lange</string>
+  <string name="menu_insert_smiley">Indsæt smiley</string>
+  <string name="pref_title_enable_emoticons">Understøttelse af smileys</string>
+  <string name="pref_summary_enable_emoticons">Erstat tekst-smileys med grafik</string>
 </resources>

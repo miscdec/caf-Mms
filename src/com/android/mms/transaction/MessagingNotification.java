@@ -1081,7 +1081,7 @@ public class MessagingNotification {
                 callIntent.setData(mostRecentNotification.mSender.getPhoneUri(true));
                 PendingIntent callPendingIntent = PendingIntent.getActivity(context, 0, callIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT);
-                noti.addAction(R.drawable.ic_menu_call, callText, callPendingIntent);
+                noti.addAction(R.drawable.ic_menu_call_holo_dark, callText, callPendingIntent);
 
             }
 
@@ -1201,6 +1201,9 @@ public class MessagingNotification {
             noti.setContentText(privateModeContentText);
             notification = noti.build();
         }
+
+        // Update number of notifications
+        notification.number = messageCount;
 
         // Post the notification
         nm.notify(NOTIFICATION_ID, notification);

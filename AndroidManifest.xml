@@ -72,7 +72,6 @@
                   android:label="@string/app_label"
                   android:configChanges="orientation|screenSize|keyboardHidden"
                   android:theme="@style/MmsHoloTheme"
-                  android:uiOptions="splitActionBarWhenNarrow"
                   android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -188,6 +187,11 @@
 
         <activity android:name=".ui.SlideshowActivity"
             android:noHistory="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/MmsHoloTheme"
+            android:label="@string/slideshow_activity">
+        </activity>
+        <activity android:name=".ui.MobilePaperShowActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/MmsHoloTheme"
             android:label="@string/slideshow_activity">
