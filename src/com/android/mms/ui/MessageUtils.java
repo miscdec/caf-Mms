@@ -110,6 +110,7 @@ import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
 import com.android.mms.util.DownloadManager;
+import com.android.mms.util.MultiSimUtility;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.CharacterSets;
@@ -2463,5 +2464,14 @@ public class MessageUtils {
             default:
                 return MessagingNotification.THREAD_SIM;
         }
+    }
+
+    public static boolean isDataNetworkAvaiable(Context context) {
+        int currentDds = MultiSimUtility.getCurrentDataSubscription(context);
+        int type = isMultiSimEnabledMms() ? MSimTelephonyManager.getDefault()
+                .getDataNetworkType(currentDds)
+                : TelephonyManager.getDefault().getDataNetworkType();
+        Log.d(TAG, "isDataNetworkAvaiable type = " + type);
+        return type != TelephonyManager.NETWORK_TYPE_UNKNOWN;
     }
 }
