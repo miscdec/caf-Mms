@@ -1196,8 +1196,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         @Override
         public void onDestroyActionMode(ActionMode mode) {
-            ConversationListAdapter adapter = (ConversationListAdapter)getListView().getAdapter();
-            adapter.uncheckAll();
             mSelectedThreadIds = null;
             mSelectionMenu.dismiss();
         }
