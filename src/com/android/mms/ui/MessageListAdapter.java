@@ -308,10 +308,13 @@ public class MessageListAdapter extends CursorAdapter {
                     boxType == INCOMING_ITEM_TYPE_MMS) ?
                             R.layout.message_list_item_recv : R.layout.message_list_item_send,
                     parent, false);
-        }
-        if (boxType == INCOMING_ITEM_TYPE_MMS || boxType == OUTGOING_ITEM_TYPE_MMS) {
-            // We've got an mms item, pre-inflate the mms portion of the view
-            view.findViewById(R.id.mms_layout_view_stub).setVisibility(View.VISIBLE);
+            if (boxType == INCOMING_ITEM_TYPE_MMS || boxType == OUTGOING_ITEM_TYPE_MMS) {
+                // We've got an mms item, pre-inflate the mms portion of the view
+                View mmsStub = view.findViewById(R.id.mms_layout_view_stub);
+                if (mmsStub != null) {
+                    mmsStub.setVisibility(View.VISIBLE);
+                }
+            }
         }
         return view;
     }
