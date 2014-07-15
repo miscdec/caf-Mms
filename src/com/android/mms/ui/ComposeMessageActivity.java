@@ -4072,21 +4072,11 @@ public class ComposeMessageActivity extends Activity
                 final Runnable populateWorker = new Runnable() {
                     @Override
                     public void run() {
-                        // We must remove this listener before dealing with the contact list.
-                        // Because the listener will take a lot of time, this will cause an ANR.
-                        mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
                         mRecipientsEditor.populate(list);
                         // Set value for mRecipientsPickList and
                         // mRecipientsWatcher will update the UI.
                         mRecipientsPickList = list;
                         updateTitle(list);
-                        // When we finish dealing with the conatct list, the
-                        // RecipientsEditor will post the runnable "postHandlePendingChips"
-                        // to the message queue, then we add the TextChangedListener.
-                        // The mRecipientsWatcher will be call while UI thread deal
-                        // with the "postHandlePendingChips" runnable.
-                        mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
-
                         // if process finished, then dismiss the progress dialog
                         progressDialog.dismiss();
 
