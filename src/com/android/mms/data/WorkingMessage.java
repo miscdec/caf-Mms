@@ -38,6 +38,8 @@ import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
@@ -132,6 +134,8 @@ public class WorkingMessage {
     public static final int SLIDESHOW = 4;
     public static final int VCARD = 5;
 
+    private static final int SHOW_TOAST = 1;
+
     // Current attachment type of the message; one of the above values.
     private int mAttachmentType;
 
@@ -173,6 +177,23 @@ public class WorkingMessage {
 
     // Flag indicate resend sms that the recipient of conversion is more than one.
     private boolean mResendMultiRecipients;
+
+
+    private Handler mUiHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case SHOW_TOAST: {
+                    Toast.makeText(mActivity, R.string.cannot_send_attach_reason,
+                            Toast.LENGTH_SHORT).show();
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    };
+
 
     /**
      * Callback interface for communicating important state changes back to
@@ -1523,8 +1544,9 @@ public class WorkingMessage {
                         mActivity, null);
                 // Remove the sd card mmsUri will be null
                 if (mmsUri == null) {
-                    Toast.makeText(mActivity, R.string.cannot_send_attach_reason,
-                            Toast.LENGTH_SHORT).show();
+                    Message msg = Message.obtain();
+                    msg.what = SHOW_TOAST;
+                    mUiHandler.sendMessage(msg);
                     return;
                 }
             } else {
