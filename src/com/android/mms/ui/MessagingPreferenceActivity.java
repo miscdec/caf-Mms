@@ -58,6 +58,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.android.internal.telephony.MSimConstants;
+import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
@@ -843,6 +844,9 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 String action = intent.getAction();
                 if (Intent.ACTION_AIRPLANE_MODE_CHANGED.equals(action)) {
                     updateSMSCPref();
+                    if (isAirPlaneModeOn()) {
+                        mSmsPrefCategory.removePreference(mManageSimPref);
+                    }
                 } else if (NOTIFY_SMSC_ERROR.equals(action)) {
                     showToast(R.string.set_smsc_error);
                 } else if (NOTIFY_SMSC_SUCCESS.equals(action)) {
@@ -851,12 +855,17 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                     int sub = intent.getIntExtra(SMSC_DIALOG_SUB, 0);
                     String summary = intent.getStringExtra(SMSC_DIALOG_NUMBER);
                     mSmscPrefList.get(sub).setSummary(summary);
+                } else if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
+                    if (MmsApp.getApplication().getTelephonyManager().hasIccCard()) {
+                        mSmsPrefCategory.addPreference(mManageSimPref);
+                    }
                 }
             }
         };
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
         filter.addAction(NOTIFY_SMSC_ERROR);
         filter.addAction(NOTIFY_SMSC_SUCCESS);
         filter.addAction(NOTIFY_SMSC_UPDATE);
