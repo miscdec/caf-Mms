@@ -355,7 +355,6 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
             TextView tv = (TextView) view.findViewById(R.id.pick_item_detail);
             String displayName = cursor.getString(mDisplayNameIndex);
             tv.setText(displayName);
-            tv.setPadding(55, 20, 0, 20);
             tv.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {

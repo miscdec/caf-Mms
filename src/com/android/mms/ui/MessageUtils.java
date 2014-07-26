@@ -110,6 +110,7 @@ import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
 import com.android.mms.util.DownloadManager;
+import com.android.mms.util.MultiSimUtility;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.CharacterSets;
@@ -2451,5 +2452,25 @@ public class MessageUtils {
             return mmsStatus & ~DownloadManager.DEFERRED_MASK;
         }
         return mmsStatus;
+    }
+
+    public static boolean isDataNetworkAvaiable(Context context) {
+        int currentDds = MultiSimUtility.getCurrentDataSubscription(context);
+        int type = isMultiSimEnabledMms() ? MSimTelephonyManager.getDefault()
+                .getDataNetworkType(currentDds)
+                : TelephonyManager.getDefault().getDataNetworkType();
+        Log.d(TAG, "isDataNetworkAvaiable type = " + type);
+        return type != TelephonyManager.NETWORK_TYPE_UNKNOWN;
+    }
+    public static long getSimThreadBySubscription(int subId) {
+        switch (subId) {
+            case MSimConstants.SUB1:
+                return MessagingNotification.THREAD_SIM1;
+            case MSimConstants.SUB2:
+                return MessagingNotification.THREAD_SIM2;
+            case MSimConstants.INVALID_SUBSCRIPTION:
+            default:
+                return MessagingNotification.THREAD_SIM;
+        }
     }
 }
