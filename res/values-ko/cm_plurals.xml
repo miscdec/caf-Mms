@@ -17,12 +17,12 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <plurals name="template_confirm_delete_conversation">
-    <item quantity="other"><xliff:g id="number" example="15">%1$s</xliff:g>個のテンプレートを削除します。</item>
+    <item quantity="other"><xliff:g id="number" example="15">%1$s</xliff:g>개의 템플릿이 삭제됩니다.</item>
   </plurals>
   <plurals name="remaining_delay_time">
-    <item quantity="other">%1$d秒以内に送信します、タッチするとキャンセルします。</item>
+    <item quantity="other">%1$d초 후에 전송합니다. 터치하여 취소</item>
   </plurals>
   <plurals name="confirm_mark_unread_conversation">
-    <item quantity="other"><xliff:g id="number" example="15">%1$s</xliff:g>件の会話が未読になります。</item>
+    <item quantity="other"><xliff:g id="number" example="15">%1$s</xliff:g>개의 대화를 읽지 않음으로 표시합니다.</item>
   </plurals>
 </resources>

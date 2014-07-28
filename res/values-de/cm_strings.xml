@@ -87,6 +87,7 @@
   <string name="alert_dialog_yes">Ja</string>
   <string name="alert_dialog_no">Nein</string>
   <string name="menu_as_unread">Als ungelesen markieren</string>
+  <string name="menu_all_as_unread">Alle als ungelesen markieren</string>
   <string name="confirm_mark_unread_dialog_title">Als ungelesen markieren?</string>
   <string name="confirm_mark_unread_conversation">Diese Konversation wird als ungelesen markiert.</string>
   <string name="confirm_mark_unread_all_conversations">Alle Konversationen werden als ungelesen markiert.</string>
@@ -116,4 +117,6 @@
   <string name="menu_insert_smiley">Smiley einfügen</string>
   <string name="pref_title_enable_emoticons">Smiley-Unterstützung</string>
   <string name="pref_summary_enable_emoticons">Text-Smileys mit den zugehörigen Bild-Smileys ersetzen</string>
+  <string name="normal_show">Normal-Modus anzeigen</string>
+  <string name="cannot_play">Die Diashow kann nicht gestartet werden.</string>
 </resources>

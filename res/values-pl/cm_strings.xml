@@ -24,6 +24,7 @@
   <string name="toast_sending_message">Wysyłanie</string>
   <string name="qm_quick_reply">Odpisz</string>
   <string name="qm_mark_read">Odznacz</string>
+  <string name="message_counter">%1$d z %2$d</string>
   <string name="pref_title_notification_privacy_mode_enabled">Tryb prywatny</string>
   <string name="pref_summary_notification_privacy_mode_enabled">Ukrywa treść i nadawcę na pasku statusu oraz wyłącza szybkie wiadomości</string>
   <string name="notification_single_title_privacy_mode">Nowa wiadomość</string>
@@ -115,4 +116,6 @@
   <string name="menu_insert_smiley">Wstaw emotikonę</string>
   <string name="pref_title_enable_emoticons">Wsparcie dla emotikon</string>
   <string name="pref_summary_enable_emoticons">Zastępuj tekstowe emotikony ich graficznymi odpowiednikami</string>
+  <string name="normal_show">Tryb normalnego widoku</string>
+  <string name="cannot_play">Nie można odtworzyć pokazu slajdów.</string>
 </resources>

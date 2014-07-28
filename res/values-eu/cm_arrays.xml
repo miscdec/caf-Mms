@@ -17,7 +17,7 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <string-array name="pref_templates_gestures_sensitivity_entries">
-    <item>1 (найменш точно)</item>
+    <item>1 (zabala)</item>
     <item>2</item>
     <item>3</item>
     <item>4</item>
@@ -28,29 +28,29 @@
     <item>9</item>
     <item>10</item>
     <item>11</item>
-    <item>12 (точні жести)</item>
+    <item>12 (zorrotza)</item>
   </string-array>
   <string-array name="default_smiley_names">
-    <item>Щасливий</item>
-    <item>Сумний</item>
-    <item>Підморгнути</item>
-    <item>Показує язик</item>
-    <item>Здивований</item>
-    <item>Поцілунок</item>
-    <item>Репетує</item>
-    <item>Круто</item>
-    <item>Грошолюб</item>
-    <item>Тіпун на язик</item>
-    <item>Збентежений</item>
-    <item>Ангел</item>
-    <item>Невпевнений</item>
-    <item>Плач</item>
-    <item>Рот на замку</item>
-    <item>Сміх</item>
-    <item>Збентежений</item>
-    <item>Серце</item>
-    <item>Злість</item>
-    <item>Самовдоволена посмішка</item>
-    <item>Байдужий вираз</item>
+    <item>Alaia</item>
+    <item>Goibela</item>
+    <item>Keinua</item>
+    <item>Mihia atera</item>
+    <item>Harrituta</item>
+    <item>Musukatzen</item>
+    <item>Oihuka</item>
+    <item>Izugarri</item>
+    <item>Diruagatik hitz egin</item>
+    <item>Hanka sartu</item>
+    <item>Lotsatuta</item>
+    <item>Aingeruen antza</item>
+    <item>Zalantzati</item>
+    <item>Negarrez</item>
+    <item>Ezpain zigilatuak</item>
+    <item>Barrezka</item>
+    <item>Nahasita</item>
+    <item>Bihotza</item>
+    <item>Zoratuta</item>
+    <item>Imintzioa</item>
+    <item>Poker aurpegia</item>
   </string-array>
 </resources>

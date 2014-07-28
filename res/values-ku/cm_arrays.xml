@@ -17,7 +17,7 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <string-array name="pref_templates_gestures_sensitivity_entries">
-    <item>1 (найменш точно)</item>
+    <item>1 (جوڵه‌ی ساید)</item>
     <item>2</item>
     <item>3</item>
     <item>4</item>
@@ -28,29 +28,29 @@
     <item>9</item>
     <item>10</item>
     <item>11</item>
-    <item>12 (точні жести)</item>
+    <item>12 (توندڕه‌و)</item>
   </string-array>
   <string-array name="default_smiley_names">
-    <item>Щасливий</item>
-    <item>Сумний</item>
-    <item>Підморгнути</item>
-    <item>Показує язик</item>
-    <item>Здивований</item>
-    <item>Поцілунок</item>
-    <item>Репетує</item>
-    <item>Круто</item>
-    <item>Грошолюб</item>
-    <item>Тіпун на язик</item>
-    <item>Збентежений</item>
-    <item>Ангел</item>
-    <item>Невпевнений</item>
-    <item>Плач</item>
-    <item>Рот на замку</item>
-    <item>Сміх</item>
-    <item>Збентежений</item>
-    <item>Серце</item>
-    <item>Злість</item>
-    <item>Самовдоволена посмішка</item>
-    <item>Байдужий вираз</item>
+    <item>دڵخۆش</item>
+    <item>خەمبار</item>
+    <item>چاوداگرتن</item>
+    <item>زمان دەرهێنان</item>
+    <item>سەر سوڕماو</item>
+    <item>ماچکردن</item>
+    <item>هاوارکردن</item>
+    <item>جوان</item>
+    <item>پاره‌ی ده‌می</item>
+    <item>پێ له‌ناوده‌م</item>
+    <item>شڵه‌ژاو</item>
+    <item>فریشتە</item>
+    <item>بڕیارنه‌دراو</item>
+    <item>گریان</item>
+    <item>لێو مۆربونه‌ته‌وه‌</item>
+    <item>پێکه‌نین</item>
+    <item>سه‌رلێشێنراو</item>
+    <item>دڵ</item>
+    <item>تووڕە</item>
+    <item>فیز</item>
+    <item>ڕووی قومارکه‌ر</item>
   </string-array>
 </resources>
