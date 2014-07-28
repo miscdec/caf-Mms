@@ -157,6 +157,7 @@ public class TransactionService extends Service implements Observer {
     private static final int TOAST_NO_APN = 3;
     private static final int TOAST_SEND_FAILED_RETRY = 4;
     private static final int TOAST_DOWNLOAD_FAILED_RETRY = 5;
+    private static final int TOAST_DOWNLOAD_CANCELED = 6;
     private static final int TOAST_NONE = -1;
 
     // How often to extend the use of the MMS APN while a transaction
@@ -194,6 +195,8 @@ public class TransactionService extends Service implements Observer {
                 str = getString(R.string.send_failed_retry);
             } else if (msg.what == TOAST_DOWNLOAD_FAILED_RETRY) {
                 str = getString(R.string.download_failed_retry);
+            } else if (msg.what == TOAST_DOWNLOAD_CANCELED) {
+                str = getString(R.string.download_canceled);
             }
 
             if (str != null) {
@@ -452,6 +455,9 @@ public class TransactionService extends Service implements Observer {
             return;
         }
         boolean noNetwork = !isNetworkAvailable(enableMmsData);
+        if (getResources().getBoolean(R.bool.config_retry_always) && !noNetwork) {
+            noNetwork |= !MessageUtils.isDataNetworkAvaiable(getApplicationContext());
+        }
 
         Log.d(TAG, "onNewIntent: serviceId: " + serviceId + ": " + intent.getExtras() +
                 " intent=" + intent);
@@ -983,7 +989,6 @@ public class TransactionService extends Service implements Observer {
                     }
                     break;
                 case TransactionState.FAILED:
-                case TransactionState.CANCELED:
                     int type = transaction.getType();
                     if (uri != null) {
                         String msgId = uri.getLastPathSegment();
@@ -999,6 +1004,13 @@ public class TransactionService extends Service implements Observer {
                     Log.v(TAG, "Transaction failed: " + serviceId);
                     updateTxnFailedInMap(txnId);
                     updateTxnFailedInMap("init");
+                    break;
+                case TransactionState.CANCELED:
+                    Log.d(TAG, "Transaction canceled: " + serviceId);
+                    removeFromMap(txnId);
+                    if (transaction.getType() == Transaction.RETRIEVE_TRANSACTION) {
+                        mToastHandler.sendEmptyMessage(TOAST_DOWNLOAD_CANCELED);
+                    }
                     break;
                 default:
                     if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {

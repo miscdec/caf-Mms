@@ -104,6 +104,8 @@ public class ManageSimMessages extends Activity
 
     public static final int BATCH_DELETE = 100;
 
+    private AlertDialog mDeleteDialog;
+
     private final ContentObserver simChangeObserver =
             new ContentObserver(new Handler()) {
         @Override
@@ -126,9 +128,6 @@ public class ManageSimMessages extends Activity
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
-        mSubscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY,
-                MSimConstants.INVALID_SUBSCRIPTION);
-        mIccUri = MessageUtils.getIccUriBySubscription(mSubscription);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
         mContentResolver = getContentResolver();
@@ -145,6 +144,7 @@ public class ManageSimMessages extends Activity
         registerReceiver(mReceiver, filter);
 
         init();
+        registerSimChangeObserver();
     }
 
     @Override
@@ -157,6 +157,9 @@ public class ManageSimMessages extends Activity
     private void init() {
         MessagingNotification.cancelNotification(getApplicationContext(),
                 SIM_FULL_NOTIFICATION_ID);
+        mSubscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY,
+                MSimConstants.INVALID_SUBSCRIPTION);
+        mIccUri = MessageUtils.getIccUriBySubscription(mSubscription);
 
         updateState(SHOW_BUSY);
         startQuery();
@@ -226,6 +229,9 @@ public class ManageSimMessages extends Activity
     }
 
     private void refreshMessageList() {
+        if (mDeleteDialog != null && mDeleteDialog.isShowing()) {
+            mDeleteDialog.dismiss();
+        }
         updateState(SHOW_BUSY);
         if (mCursor != null) {
             stopManagingCursor(mCursor);
@@ -405,12 +411,18 @@ public class ManageSimMessages extends Activity
     @Override
     public void onResume() {
         super.onResume();
-        registerSimChangeObserver();
+        // Clean up the notification according to the SIM number.
+        MessagingNotification.blockingRemoveIccNotifications(this, mSubscription);
+
+        // Set current SIM thread id according to the SIM number.
+        MessagingNotification.setCurrentlyDisplayedThreadId(
+                MessageUtils.getSimThreadBySubscription(mSubscription));
     }
 
     @Override
     public void onPause() {
         super.onPause();
+        MessagingNotification.setCurrentlyDisplayedThreadId(MessagingNotification.THREAD_NONE);
     }
 
     @Override
@@ -545,7 +557,7 @@ public class ManageSimMessages extends Activity
         builder.setNegativeButton(R.string.no, null);
         builder.setMessage(messageId);
 
-        builder.show();
+        mDeleteDialog = builder.show();
     }
 
     private void showSimCapacityDialog() {
@@ -599,8 +611,6 @@ public class ManageSimMessages extends Activity
             default:
                 Log.e(TAG, "Invalid State");
         }
-        // Clean up the notification.
-        MessagingNotification.blockingRemoveIccNotifications(this, mSubscription);
     }
 
     private void viewMessage(Cursor cursor) {
