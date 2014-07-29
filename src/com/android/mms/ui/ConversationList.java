@@ -27,6 +27,7 @@ import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
 import android.content.ComponentName;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
@@ -40,6 +41,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -111,6 +113,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     public static final int MENU_VIEW_CONTACT         = 2;
     public static final int MENU_ADD_TO_CONTACTS      = 3;
 
+    // Keys for extras.
+    private static final String THREAD_ID = "thread_id";
+    private static final String MESSAGE_ID = "_id";
+    private static final String MESSAGE_TYPE = "type";
+
+    private static final String[] MMS_MESSAGE_TYPE_PROJECTION =
+            new String[] { Mms.MESSAGE_TYPE };
+
     private ThreadListQueryHandler mQueryHandler;
     private ConversationListAdapter mListAdapter;
     private SharedPreferences mPrefs;
@@ -143,10 +153,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.conversation_list_screen);
-        if (MessageUtils.isMailboxMode()) {
-            Intent modeIntent = new Intent(this, MailBoxMessageList.class);
-            startActivityIfNeeded(modeIntent, -1);
-            finish();
+        if (!handleIntent(getIntent())) {
             return;
         }
 
@@ -239,6 +246,79 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
 
         mListAdapter.setOnContentChangedListener(mContentChangedListener);
+    }
+
+    /**
+     * Handle the intent passed by the caller.
+     * @return True if the intent is cosumed at conversation mode.
+     *         False if the intent is forwarded at folder mode.
+     */
+    private boolean handleIntent(Intent intent) {
+        if (MessageUtils.isMailboxMode()) {
+            if (intent.hasExtra(MESSAGE_ID) && intent.hasExtra(MESSAGE_TYPE)) {
+                long msgId = intent.getLongExtra(MESSAGE_ID, -1);
+                String msgType = intent.getStringExtra(MESSAGE_TYPE);
+                if (msgId == -1) {
+                    // Mms has multiple unread messages, go to in-box message list.
+                    MessageUtils.showInboxMessageList(this);
+                } else {
+                    showMessageDetail(msgType, msgId);
+                }
+            } else {
+                Intent modeIntent = new Intent(this, MailBoxMessageList.class);
+                startActivityIfNeeded(modeIntent, -1);
+            }
+            finish();
+            return false;
+        } else {
+            if (intent.hasExtra(THREAD_ID)) {
+                long threadId = intent.getLongExtra(THREAD_ID, -1);
+                if (threadId != -1) {
+                    openThread(threadId);
+                }
+            }
+            return true;
+        }
+    }
+
+    private void showMessageDetail(String msgType, long msgId) {
+        if ("sms".equals(msgType)) {
+            MessageUtils.showSmsMessageContent(this, msgId);
+        } else {
+            Uri mmsUri = ContentUris.withAppendedId(Mms.Inbox.CONTENT_URI, msgId);
+            if (getMMSMessageType(mmsUri) != PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND) {
+                Intent intent = new Intent(this, MobilePaperShowActivity.class);
+                intent.setData(mmsUri);
+                intent.putExtra("unread", true);
+                intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivityIfNeeded(intent, -1);
+            } else {
+                // The mms not downloaded, show the in-box message list.
+                MessageUtils.showInboxMessageList(this);
+            }
+        }
+    }
+
+    private int getMMSMessageType(Uri uri) {
+        ContentResolver contentResolver = getContentResolver();
+        Cursor cursor = null;
+        int type = PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND;
+        cursor = contentResolver.query(uri, MMS_MESSAGE_TYPE_PROJECTION, null, null, null);
+        if (cursor == null) {
+            Log.e(TAG, "getMMSMessageType cursor is null ");
+            return type;
+        }
+        try {
+            if (cursor.moveToFirst()) {
+                type = cursor.getInt(0);
+                Log.d(TAG, "MMSMessageType = " + type);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            cursor.close();
+        }
+        return type;
     }
 
     private void setupActionBar() {
@@ -410,6 +490,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     @Override
     protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (!handleIntent(intent)) {
+            return;
+        }
         // Handle intents that occur after the activity has already been created.
         startAsyncQuery();
     }

@@ -125,7 +125,7 @@ public class MailBoxMessageList extends ListActivity implements
     private static final int MESSAGE_SEARCH_LIST_QUERY_TOKEN = 9002;
 
     // IDs of the spinner items for the box type, the values are based on original database.
-    private static final int TYPE_INBOX = 1;
+    public static final int TYPE_INBOX = 1;
     private static final int TYPE_SENTBOX = 2;
     private static final int TYPE_DRAFTBOX = 3;
     private static final int TYPE_OUTBOX = 4;
@@ -168,6 +168,7 @@ public class MailBoxMessageList extends ListActivity implements
     private TextView mMessageTitle;
     private View mSpinners;
     private Spinner mSlotSpinner = null;
+    private Spinner mBoxSpinner;
     private ModeCallback mModeCallback = null;
     // mark whether comes into MultiChoiceMode or not.
     private boolean mMultiChoiceMode = false;
@@ -188,7 +189,6 @@ public class MailBoxMessageList extends ListActivity implements
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        handleIntent(getIntent());
 
         mQueryHandler = new BoxMsgListQueryHandler(getContentResolver());
         setContentView(R.layout.mailbox_list_screen);
@@ -203,13 +203,15 @@ public class MailBoxMessageList extends ListActivity implements
         actionBar.setDisplayHomeAsUpEnabled(false);
         setupActionBar();
 
-        if (isSearchMode() && mTitle != null) {
-            mMessageTitle.setText(mTitle);
-            mSpinners.setVisibility(View.GONE);
-        } else {
-            mListView.setMultiChoiceModeListener(mModeCallback);
-        }
         mHandler = new Handler();
+        handleIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIntent(intent);
     }
 
     @Override
@@ -276,7 +278,7 @@ public class MailBoxMessageList extends ListActivity implements
                     startActivity(intent);
                     return;
                 }
-                showSmsMessageContent(c);
+                MessageUtils.showSmsMessageContent(this, c.getLong(MessageListAdapter.COLUMN_ID));
             } else {
                 int errorType = c.getInt(COLUMN_MMS_ERROR_TYPE);
                 // Assuming the current message is a failed one, reload it into the compose view so
@@ -387,49 +389,6 @@ public class MailBoxMessageList extends ListActivity implements
         }).start();
     }
 
-
-    private void showSmsMessageContent(Cursor c) {
-        if (c == null) {
-            return;
-        }
-
-        Intent i = new Intent(this, MailBoxMessageContent.class);
-
-        String addr = c.getString(COLUMN_SMS_ADDRESS);
-        Long date = c.getLong(COLUMN_SMS_DATE);
-        String dateStr = MessageUtils.formatTimeStampString(this, date, true);
-        String msgUriStr = "content://" + c.getString(COLUMN_MSG_TYPE)
-                + "/" + c.getString(COLUMN_ID);
-        int smsType = c.getInt(COLUMN_SMS_TYPE);
-
-        if (smsType == Sms.MESSAGE_TYPE_INBOX) {
-            i.putExtra("sms_fromtolabel", getString(R.string.from_label));
-            i.putExtra("sms_sendlabel", getString(R.string.received_label));
-        } else {
-            i.putExtra("sms_fromtolabel", getString(R.string.to_address_label));
-            i.putExtra("sms_sendlabel", getString(R.string.sent_label));
-        }
-        i.putExtra("sms_datelongformat", date);
-        i.putExtra("sms_datesentlongformat", c.getLong(COLUMN_SMS_DATE_SENT));
-        i.putExtra("sms_body", c.getString(COLUMN_SMS_BODY));
-        i.putExtra("sms_fromto", addr);
-        i.putExtra("sms_displayname", Contact.get(addr, true).getName());
-        i.putExtra("sms_date", dateStr);
-        i.putExtra("msg_uri", Uri.parse(msgUriStr));
-        i.putExtra("sms_threadid", c.getLong(COLUMN_THREAD_ID));
-        i.putExtra("sms_status", c.getInt(COLUMN_SMS_STATUS));
-        i.putExtra("sms_read", c.getInt(COLUMN_SMS_READ));
-        i.putExtra("mailboxId", smsType);
-        i.putExtra("sms_id", c.getInt(COLUMN_ID));
-        i.putExtra("sms_uri_str", msgUriStr);
-        i.putExtra("sms_on_uim", false);
-        i.putExtra("sms_type", smsType);
-        i.putExtra("sms_locked", c.getInt(COLUMN_SMS_LOCKED));
-        i.putExtra("sms_subid", c.getInt(COLUMN_SUB_ID));
-        i.putExtra("sms_select_text", true);
-        startActivity(i);
-    }
-
     private void handleIntent(Intent intent) {
         mMailboxId = intent.getIntExtra(MessageUtils.SEARCH_KEY_MAIL_BOX_ID, MAIL_BOX_ID_INVALID);
 
@@ -441,12 +400,33 @@ public class MailBoxMessageList extends ListActivity implements
             mSearchDisplayStr = intent.getStringExtra(MessageUtils.SEARCH_KEY_DISPLAY_STRING);
             mMatchWhole = intent.getIntExtra(MessageUtils.SEARCH_KEY_MATCH_WHOLE,
                     MessageUtils.MATCH_BY_ADDRESS);
+        } else {
+            mQueryBoxType = intent.getIntExtra(MessageUtils.SEARCH_KEY_MAIL_BOX_ID,
+                    PreferenceManager.getDefaultSharedPreferences(this).getInt(
+                            BOX_SPINNER_TYPE, TYPE_INBOX));
+            mBoxSpinner.setSelection(getSelectBoxIndex(mQueryBoxType));
         }
 
         // did not started by SearchActivityExtend
         if (mMailboxId <= MAIL_BOX_ID_INVALID) {
             mMailboxId = Sms.MESSAGE_TYPE_INBOX;
         }
+
+        if (isSearchMode() && mTitle != null) {
+            mMessageTitle.setText(mTitle);
+            mSpinners.setVisibility(View.GONE);
+        } else {
+            mListView.setMultiChoiceModeListener(mModeCallback);
+        }
+    }
+
+    private int getSelectBoxIndex(int mailBoxType) {
+        // Because box index starts from 0, while mailBoxType starts from 1.
+        // We need to "-1" on mailBoxType to get the right mail box index.
+        if(mailBoxType > TYPE_OUTBOX) {
+            return TYPE_OUTBOX -1;
+        }
+        return mailBoxType - 1;
     }
 
     @Override
@@ -473,18 +453,13 @@ public class MailBoxMessageList extends ListActivity implements
 
     private void initSpinner() {
         final SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        Spinner mBoxSpinner = (Spinner) findViewById(R.id.box_spinner);
-        Spinner mSlotSpinner = (Spinner) findViewById(R.id.slot_spinner);
-        // "TYPE_INBOX - 1" means the first value of "box type" in sharedpreference,
-        // because "box type" 1-4 means box: inbox, sent, outbox, draft, but position
-        // value is 0-3.
-        mBoxSpinner.setSelection(sp.getInt(BOX_SPINNER_TYPE, TYPE_INBOX - 1));
+        mBoxSpinner = (Spinner) findViewById(R.id.box_spinner);
+        mSlotSpinner = (Spinner) findViewById(R.id.slot_spinner);
         mBoxSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                sp.edit().putInt(BOX_SPINNER_TYPE, position).commit();
                 int oldQueryType = mQueryBoxType;
-                // position 0-3 means box: inbox, sent, outbox, draft
+                // position 0-3 means box: inbox, sent, draft, outbox
                 mQueryBoxType = position + 1;
                 if(mQueryBoxType>TYPE_OUTBOX)
                     mQueryBoxType = TYPE_OUTBOX;
@@ -493,6 +468,7 @@ public class MailBoxMessageList extends ListActivity implements
                     startAsyncQuery();
                     getListView().invalidateViews();
                 }
+                sp.edit().putInt(BOX_SPINNER_TYPE, mQueryBoxType).commit();
             }
 
             @Override
