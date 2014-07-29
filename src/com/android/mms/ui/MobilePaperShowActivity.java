@@ -204,14 +204,7 @@ public class MobilePaperShowActivity extends Activity {
 
         boolean unread = intent.getBooleanExtra("unread", false);
         if (unread) {
-            ContentValues values = new ContentValues(1);
-            values.put(Mms.READ, MESSAGE_READ);
-            SqliteWrapper.update(this, getContentResolver(),
-                mUri, values, null, null);
-
-            MessagingNotification.blockingUpdateNewMessageIndicator(
-                this, MessagingNotification.THREAD_NONE, false);
-
+            MessageUtils.markAsRead(MobilePaperShowActivity.this, mUri);
         }
 
         String mailboxUri = "content://mms-sms/mailbox/" + mMailboxId;
