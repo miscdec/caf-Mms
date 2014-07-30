@@ -884,6 +884,7 @@ public class MessagingNotification {
             clickIntent = new Intent(context, MailBoxMessageList.class);
         } else {
             clickIntent = ComposeMessageActivity.createIntent(context, threadId);
+            clickIntent.putExtra(MessageUtils.EXTRA_KEY_NEW_MESSAGE_NEED_RELOAD, true);
         }
         clickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -1051,10 +1052,10 @@ public class MessagingNotification {
 
         // Update the notification.
         noti.setContentTitle(title)
-            .setContentIntent(pendingIntent)
-            .addKind(Notification.KIND_MESSAGE)
-            .setPriority(Notification.PRIORITY_DEFAULT);     // TODO: set based on contact coming
-                                                             // from a favorite.
+                .setContentIntent(pendingIntent)
+                .addKind(Notification.KIND_MESSAGE)
+                .setPriority(Notification.PRIORITY_DEFAULT);
+        // TODO: set based on contact coming from a favorite.
 
         int defaults = 0;
 
