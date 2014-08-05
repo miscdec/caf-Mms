@@ -81,6 +81,7 @@ import com.android.mms.ui.ConversationList;
 import com.android.mms.ui.ManageSimMessages;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.ui.MailBoxMessageList;
 import com.android.mms.util.AddressUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.widget.MmsWidgetProvider;
@@ -878,7 +879,13 @@ public class MessagingNotification {
             Bitmap attachmentBitmap,
             Contact contact,
             int attachmentType) {
-        Intent clickIntent = ComposeMessageActivity.createIntent(context, threadId);
+        Intent clickIntent = null;
+        if (MessageUtils.isMailboxMode()) {
+            clickIntent = new Intent(context, MailBoxMessageList.class);
+        } else {
+            clickIntent = ComposeMessageActivity.createIntent(context, threadId);
+            clickIntent.putExtra(MessageUtils.EXTRA_KEY_NEW_MESSAGE_NEED_RELOAD, true);
+        }
         clickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -983,7 +990,6 @@ public class MessagingNotification {
         if (isNew) {
             noti.setTicker(mostRecentNotification.mTicker);
         }
-        TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(context);
 
         // If we have more than one unique thread, change the title (which would
         // normally be the contact who sent the message) to a generic one that
@@ -998,6 +1004,7 @@ public class MessagingNotification {
         final Resources res = context.getResources();
         String title = null;
         Bitmap avatar = null;
+        PendingIntent pendingIntent = null;
         if (uniqueThreadCount > 1) {    // messages from multiple threads
             Intent mainActivityIntent = new Intent(Intent.ACTION_MAIN);
 
@@ -1006,7 +1013,8 @@ public class MessagingNotification {
                     | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
             mainActivityIntent.setType("vnd.android-dir/mms-sms");
-            taskStackBuilder.addNextIntent(mainActivityIntent);
+            pendingIntent = PendingIntent.getActivity(context, 0,
+                    mainActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
             title = context.getString(R.string.message_count_notification, messageCount);
         } else {    // same thread, single or multiple messages
             title = mostRecentNotification.mTitle;
@@ -1032,8 +1040,9 @@ public class MessagingNotification {
                 }
             }
 
-            taskStackBuilder.addParentStack(ComposeMessageActivity.class);
-            taskStackBuilder.addNextIntent(mostRecentNotification.mClickIntent);
+            pendingIntent = PendingIntent.getActivity(context, 0,
+                    mostRecentNotification.mClickIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
         }
         // Always have to set the small icon or the notification is ignored
         noti.setSmallIcon(R.drawable.stat_notify_sms);
@@ -1043,11 +1052,10 @@ public class MessagingNotification {
 
         // Update the notification.
         noti.setContentTitle(title)
-            .setContentIntent(
-                    taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT))
-            .addKind(Notification.KIND_MESSAGE)
-            .setPriority(Notification.PRIORITY_DEFAULT);     // TODO: set based on contact coming
-                                                             // from a favorite.
+                .setContentIntent(pendingIntent)
+                .addKind(Notification.KIND_MESSAGE)
+                .setPriority(Notification.PRIORITY_DEFAULT);
+        // TODO: set based on contact coming from a favorite.
 
         int defaults = 0;
 
