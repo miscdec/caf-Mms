@@ -219,10 +219,10 @@ public class SelectMmsSubscription extends Service {
                 if (result == 1) { //Success.
                     Log.d(TAG, "Subscription switch done.");
 
-                    while(!isNetworkAvailable()) {
+                    do {
                         Log.d(TAG, "isNetworkAvailable = false, sleep..");
                         sleep(1000);
-                    }
+                    } while(!isNetworkAvailable());
                 } else {
                     synchronized (mQueue) {
                         enqueueTxnReq(req);
