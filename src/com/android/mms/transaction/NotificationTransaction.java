@@ -42,6 +42,7 @@ import com.android.internal.util.HexDump;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
+import com.android.mms.R;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.DownloadManager;
@@ -155,6 +156,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
         boolean isMobileDataDisabled = MessageUtils.isMobileDataDisabled(mContext);
         boolean isMemoryFull = MessageUtils.isMmsMemoryFull();
         boolean isTooLarge = isMmsSizeTooLarge(mNotificationInd);
+        boolean enableMmsRcvData = mContext.getResources().getBoolean(R.bool.config_mms_rcv_data);
         try {
             if (LOCAL_LOGV) {
                 Log.v(TAG, "Notification transaction launched: " + this);
@@ -165,7 +167,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
             // download a MM immediately.
             int status = STATUS_DEFERRED;
             // Don't try to download when data is suspended, as it will fail, so defer download
-            if (!autoDownload || isMobileDataDisabled) {
+            if (!autoDownload ||(isMobileDataDisabled && !enableMmsRcvData)) {
                 downloadManager.markState(mUri, DownloadManager.STATE_UNSTARTED);
                 sendNotifyRespInd(status);
                 return;
@@ -272,7 +274,8 @@ public class NotificationTransaction extends Transaction implements Runnable {
             Log.e(TAG, Log.getStackTraceString(t));
         } finally {
             mTransactionState.setContentUri(mUri);
-            if (!autoDownload || isMemoryFull || isTooLarge || isMobileDataDisabled) {
+            if (!autoDownload || isMemoryFull || isTooLarge ||
+                    (isMobileDataDisabled && !enableMmsRcvData)) {
                 // Always mark the transaction successful for deferred
                 // download since any error here doesn't make sense.
                 mTransactionState.setState(SUCCESS);
