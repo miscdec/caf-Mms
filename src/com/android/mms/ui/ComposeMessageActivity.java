@@ -1866,7 +1866,8 @@ public class ComposeMessageActivity extends Activity
 
                     final Cursor cursor = (Cursor) mMsgListAdapter.getItem(info.position);
                     if (mMsgItem.isSms()) {
-                        showSmsMessageContent(cursor);
+                        MessageUtils.showSmsMessageContent(ComposeMessageActivity.this,
+                                mMsgItem.mMsgId);
                     } else {
                         MessageUtils.viewMmsMessageAttachment(ComposeMessageActivity.this,
                                 ContentUris.withAppendedId(Mms.CONTENT_URI, mMsgItem.mMsgId), null,
@@ -3536,48 +3537,6 @@ public class ComposeMessageActivity extends Activity
                 break;
         }
         super.onPrepareDialog(id, dialog);
-    }
-
-    private void showSmsMessageContent(Cursor c) {
-        if (c == null) {
-            return;
-        }
-
-        Intent i = new Intent(this, MailBoxMessageContent.class);
-
-        String addr = c.getString(COLUMN_SMS_ADDRESS);
-        Long date = c.getLong(COLUMN_SMS_DATE);
-        String dateStr = MessageUtils.formatTimeStampString(this, date, true);
-        String msgUriStr = "content://" + c.getString(COLUMN_MSG_TYPE)
-                + "/" + c.getString(COLUMN_ID);
-        int smsType = c.getInt(COLUMN_SMS_TYPE);
-
-        if (smsType == Sms.MESSAGE_TYPE_INBOX) {
-            i.putExtra("sms_fromtolabel", getString(R.string.from_label));
-            i.putExtra("sms_sendlabel", getString(R.string.received_label));
-        } else {
-            i.putExtra("sms_fromtolabel", getString(R.string.to_address_label));
-            i.putExtra("sms_sendlabel", getString(R.string.sent_label));
-        }
-        i.putExtra("sms_datelongformat", date);
-        i.putExtra("sms_datesentlongformat", c.getLong(COLUMN_SMS_DATE_SENT));
-        i.putExtra("sms_body", c.getString(COLUMN_SMS_BODY));
-        i.putExtra("sms_fromto", addr);
-        i.putExtra("sms_displayname", Contact.get(addr, true).getName());
-        i.putExtra("sms_date", dateStr);
-        i.putExtra("msg_uri", Uri.parse(msgUriStr));
-        i.putExtra("sms_threadid", c.getLong(COLUMN_THREAD_ID));
-        i.putExtra("sms_status", c.getInt(COLUMN_SMS_STATUS));
-        i.putExtra("sms_read", c.getInt(COLUMN_SMS_READ));
-        i.putExtra("mailboxId", smsType);
-        i.putExtra("sms_id", c.getInt(COLUMN_ID));
-        i.putExtra("sms_uri_str", msgUriStr);
-        i.putExtra("sms_on_uim", false);
-        i.putExtra("sms_type", smsType);
-        i.putExtra("sms_locked", c.getInt(COLUMN_SMS_LOCKED));
-        i.putExtra("sms_subid", c.getInt(COLUMN_SUB_ID));
-        i.putExtra("sms_select_text", true);
-        startActivity(i);
     }
 
     private Dialog showImportTemplateDialog(){
