@@ -615,6 +615,7 @@
     <string name="mobile_data_disable">Mobile data is turned off, do you still want to <xliff:g>%1$s</xliff:g> MMS? If yes, it will generate mobile data traffic.</string>
     <string name="mobile_data_send">send</string>
     <string name="mobile_data_download">download</string>
+    <string name="inform_data_off">Mobile data is turned off, turn it on in the system setting and try again.</string>
     <!-- Mms size is too large dialog text. -->
     <string name="mms_too_large">The message is too large to download.</string>
 
