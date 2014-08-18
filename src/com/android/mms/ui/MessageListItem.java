@@ -382,7 +382,12 @@ public class MessageListItem extends LinearLayout implements
         }
 
         // Hide the indicators.
-        mLockedIndicator.setVisibility(View.GONE);
+        if (mMessageItem.mLocked) {
+            mLockedIndicator.setImageResource(R.drawable.ic_lock_message_sms);
+            mLockedIndicator.setVisibility(View.VISIBLE);
+        } else {
+            mLockedIndicator.setVisibility(View.GONE);
+        }
         mDeliveredIndicator.setVisibility(View.GONE);
         mDetailsIndicator.setVisibility(View.GONE);
         updateAvatarView(mMessageItem.mAddress, false);
