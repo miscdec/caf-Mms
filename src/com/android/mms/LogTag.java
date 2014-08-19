@@ -30,9 +30,9 @@ import com.android.mms.data.RecipientIdCache;
 public class LogTag {
     public static final String TAG = "Mms";
 
-    public static final String TRANSACTION = "Mms:transaction";
-    public static final String APP = "Mms:app";
-    public static final String THREAD_CACHE = "Mms:threadcache";
+    public static final String TRANSACTION = "Mms_transaction";
+    public static final String APP = "Mms_app";
+    public static final String THREAD_CACHE = "Mms_threadcache";
     public static final String THUMBNAIL_CACHE = "Mms:thumbnailcache";
     public static final String PDU_CACHE = "Mms:pducache";
     public static final String WIDGET = "Mms:widget";
@@ -43,10 +43,10 @@ public class LogTag {
      * To enable: adb shell setprop log.tag.Mms:strictmode DEBUG
      */
     public static final String STRICT_MODE_TAG = "Mms:strictmode";
-    public static final boolean VERBOSE = false;
+    public static final boolean VERBOSE = true;
     public static final boolean SEVERE_WARNING = true;                  // Leave this true
     private static final boolean SHOW_SEVERE_WARNING_DIALOG = false;    // Set to false before ship
-    public static final boolean DEBUG_SEND = false;    // Set to false before ship
+    public static final boolean DEBUG_SEND = true;    // Set to false before ship
     public static final boolean DEBUG_DUMP = false;    // Set to false before ship
     public static final boolean ALLOW_DUMP_IN_LOGS = false;  // Set to false before ship
 

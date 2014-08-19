@@ -138,6 +138,7 @@ public class SendTransaction extends Transaction implements Runnable {
             // with the sent one.
             byte[] reqId = sendReq.getTransactionId();
             byte[] confId = conf.getTransactionId();
+            Log.d(TAG, "Transaction-ID: req=" + new String(reqId) + ", conf=" + new String(confId));
             if (!Arrays.equals(reqId, confId)) {
                 Log.e(TAG, "Inconsistent Transaction-ID: req="
                         + new String(reqId) + ", conf=" + new String(confId));
