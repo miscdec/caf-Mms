@@ -63,6 +63,8 @@ public class TransactionBundle {
      */
     public static final String URI = "uri";
 
+    public static final String SUBSCRIPTION = "subscription";
+
     /**
      * This is the real Bundle to be sent to the TransactionService upon calling
      * startService.
@@ -94,6 +96,11 @@ public class TransactionBundle {
         mBundle.putString(URI, uri);
     }
 
+    public TransactionBundle(int transactionType, String uri, int subId) {
+        this(transactionType);
+        mBundle.putString(URI, uri);
+        mBundle.putInt(SUBSCRIPTION, subId);
+    }
     /**
      * Constructor of a transaction bundle used for incoming bundle instances.
      *
@@ -130,6 +137,10 @@ public class TransactionBundle {
         return mBundle.getString(URI);
     }
 
+    public int getSubId() {
+        return mBundle.getInt(SUBSCRIPTION);
+    }
+
     public byte[] getPushData() {
         return mBundle.getByteArray(PUSH_DATA);
     }
@@ -153,6 +164,7 @@ public class TransactionBundle {
             " pushData: " + IccUtils.bytesToHexString(getPushData()) +
             " mmscUrl: " + getMmscUrl() +
             " proxyAddress: " + getProxyAddress() +
-            " proxyPort: " + getProxyPort();
+            " proxyPort: " + getProxyPort() +
+            " subId: " + getSubId();
     }
 }
