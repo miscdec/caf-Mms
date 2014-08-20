@@ -82,6 +82,7 @@ import com.android.mms.data.Conversation;
 import com.android.mms.data.Conversation.ConversationQueryHandler;
 import com.android.mms.data.RecipientIdCache;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.mms.transaction.SmsReceiverService;
 import com.android.mms.transaction.SmsRejectedReceiver;
 import com.android.mms.ui.PopupList;
 import com.android.mms.ui.SelectionMenu;
@@ -1055,6 +1056,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 if (DEBUGCLEANUP) {
                     LogTag.debug("mDeleteObsoleteThreadsRunnable saving draft, trying again");
                 }
+                mHandler.postDelayed(mDeleteObsoleteThreadsRunnable, 1000);
+            } else if (SmsReceiverService.getSavingMessage()) {
+                LogTag.debug("mDeleteObsoleteThreadsRunnable saving new message, trying again");
                 mHandler.postDelayed(mDeleteObsoleteThreadsRunnable, 1000);
             } else {
                 if (DEBUGCLEANUP) {
