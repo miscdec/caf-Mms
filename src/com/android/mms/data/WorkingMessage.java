@@ -440,6 +440,25 @@ public class WorkingMessage {
         }
     }
 
+    private int updateAttachmentType(int type) {
+        if (mSlideshow.size() > 1) {
+            try {
+                PduBody pb = mSlideshow.toPduBody();
+                if (mMessageUri == null) {
+                    mMessageUri = saveAsMms(false);
+                }
+                PduPersister.getPduPersister(mActivity).updateParts(
+                    mMessageUri, pb, null);
+                mSlideshow.sync(pb);
+            }  catch (MmsException e) {
+                Log.e(TAG, "Cannot update the message: " + mMessageUri, e);
+            }
+            return SLIDESHOW;
+        } else {
+            return type;
+        }
+    }
+
     /**
      * Adds an attachment to the message, replacing an old one if it existed.
      * @param type Type of this attachment, such as {@link IMAGE}
@@ -478,7 +497,7 @@ public class WorkingMessage {
         // If we were successful, update mAttachmentType and notify
         // the listener than there was a change.
         if (result == OK) {
-            mAttachmentType = type;
+            mAttachmentType = updateAttachmentType(type);
         }
         correctAttachmentState(true);   // this can remove the slideshow if there are no attachments
 

@@ -131,6 +131,7 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_SUB_ID     = 5;
     private static final int SEND_COLUMN_PRIORITY   = 6;
 
+    private static boolean sIsSavingMessage = false;
 
     @Override
     public void onCreate() {
@@ -467,7 +468,7 @@ public class SmsReceiverService extends Service {
     }
 
     private void saveMessageToPhone(SmsMessage[] msgs, int error, String format){
-
+        setSavingMessage(true);
         Uri messageUri = insertMessage(this, msgs, error, format);
 
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
@@ -488,7 +489,7 @@ public class SmsReceiverService extends Service {
             Log.d(TAG, "handleSmsReceived messageUri: " + messageUri + " threadId: " + threadId);
             MessagingNotification.blockingUpdateNewMessageIndicator(this, threadId, false);
         }
-
+        setSavingMessage(false);
     }
 
     private void handleCbSmsReceived(Intent intent, int error) {
@@ -912,5 +913,13 @@ public class SmsReceiverService extends Service {
                 ? msm.copyMessageToIcc(null, pdu, SmsManager.STATUS_ON_ICC_READ, subscription)
                 : sm.copyMessageToIcc(null, pdu, SmsManager.STATUS_ON_ICC_READ);
         return result;
+    }
+
+    private static void setSavingMessage(boolean isSaving) {
+        sIsSavingMessage = isSaving;
+    }
+
+    public static boolean getSavingMessage() {
+        return sIsSavingMessage;
     }
 }
