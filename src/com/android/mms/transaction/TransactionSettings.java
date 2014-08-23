@@ -59,13 +59,11 @@ public class TransactionSettings {
      * @param context The context of the MMS Client
      */
     public TransactionSettings(Context context, String apnName) {
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
-            Log.v(TAG, "TransactionSettings: apnName: " + apnName);
-        }
+        Log.v(TAG, "TransactionSettings: apnName: " + apnName);
         String selection = Telephony.Carriers.CURRENT + " IS NOT NULL";
         String[] selectionArgs = null;
         if (!TextUtils.isEmpty(apnName)) {
-            selection += " AND " + Telephony.Carriers.APN + "=?";
+            selection = Telephony.Carriers.APN + "=?";
             selectionArgs = new String[]{ apnName.trim() };
         }
 
@@ -73,16 +71,15 @@ public class TransactionSettings {
                             Telephony.Carriers.CONTENT_URI,
                             APN_PROJECTION, selection, selectionArgs, null);
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
-            Log.v(TAG, "TransactionSettings looking for apn: " + selection + " returned: " +
-                    (cursor ==null ? "null cursor" : (cursor.getCount() + " hits")));
-        }
+        Log.v(TAG, "TransactionSettings looking for apn: " + selection + " returned: " +
+                (cursor ==null ? "null cursor" : (cursor.getCount() + " hits")));
 
         if (cursor == null) {
             Log.e(TAG, "Apn is not found in Database!");
             return;
         }
 
+        Log.d(TAG, "mServiceCenter = " + mServiceCenter);
         boolean sawValidApn = false;
         try {
             while (cursor.moveToNext() && TextUtils.isEmpty(mServiceCenter)) {
@@ -91,11 +88,13 @@ public class TransactionSettings {
                     sawValidApn = true;
 
                     String mmsc = cursor.getString(COLUMN_MMSC);
+                    Log.d(TAG, "mmsc in current record = " + mmsc);
                     if (mmsc == null) {
                         continue;
                     }
 
                     mServiceCenter = NetworkUtils.trimV4AddrZeros(mmsc.trim());
+                    Log.d(TAG, "mServiceCenter in current record = " + mServiceCenter);
                     mProxyAddress = NetworkUtils.trimV4AddrZeros(
                             cursor.getString(COLUMN_MMSPROXY));
                     if (isProxySet()) {
