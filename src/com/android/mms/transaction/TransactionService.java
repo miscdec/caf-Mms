@@ -146,6 +146,7 @@ public class TransactionService extends Service implements Observer {
     private static final int EVENT_HANDLE_NEXT_PENDING_TRANSACTION = 4;
     private static final int EVENT_NEW_INTENT = 5;
     private static final int EVENT_MMS_CONNECTIVITY_TIMEOUT = 6;
+    private static final int UT_EVENT_TRANSACTION_ABORT = 7;
     private static final int EVENT_QUIT = 100;
 
     // delay 75 seconds to check whether we have enabled mms connectivity
@@ -446,6 +447,7 @@ public class TransactionService extends Service implements Observer {
     }
 
     public void onNewIntent(Intent intent, int serviceId) {
+
         mConnMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         boolean enableMmsData = getApplicationContext().getResources().getBoolean(
                 com.android.internal.R.bool.config_setup_mms_data);
@@ -610,8 +612,8 @@ public class TransactionService extends Service implements Observer {
                                 addUnique(txnId, destSub, originSub);
 
                                 TransactionBundle args = new TransactionBundle(
-                                        transactionType, uri.toString());
-                                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
+                                        transactionType, uri.toString(), destSub);
+                                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                                     Log.v(TAG, "onNewIntent: launchTransaction uri=" + uri);
                                 }
                                 // FIXME: We use the same serviceId for all MMs.
@@ -670,7 +672,10 @@ public class TransactionService extends Service implements Observer {
             addUnique(txnId, destSub, originSub);
 
             // For launching NotificationTransaction and test purpose.
-            TransactionBundle args = new TransactionBundle(intent.getExtras());
+            Bundle bundle = intent.getExtras();
+            bundle.putInt(TransactionBundle.SUBSCRIPTION, destSub);
+
+            TransactionBundle args = new TransactionBundle(bundle);
             launchTransaction(serviceId, args, noNetwork);
         }
     }
@@ -755,10 +760,14 @@ public class TransactionService extends Service implements Observer {
     }
 
     private boolean isNetworkAvailable(boolean enableMmsData) {
+        int currentDds = MultiSimUtility.getCurrentDataSubscription
+                (getApplicationContext());
+
         if (mConnMgr == null) {
             return false;
         } else {
-            NetworkInfo ni = mConnMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
+            NetworkInfo ni = mConnMgr.getNetworkInfoForSubscription(
+                    ConnectivityManager.TYPE_MOBILE_MMS, currentDds);
             if (ni == null) {
                 return false;
             } else {
@@ -780,6 +789,16 @@ public class TransactionService extends Service implements Observer {
                 Log.w(TAG, "Unrecognized MESSAGE_TYPE: " + msgType);
                 return -1;
         }
+    }
+
+
+    private void utAbortTransaction(Transaction transaction, int subId) {
+        Message msg = mServiceHandler.obtainMessage(UT_EVENT_TRANSACTION_ABORT);
+        msg.arg1 = subId;
+        msg.obj = transaction;
+
+        Log.v(TAG, "utAbortTransaction " + msg+" after 30 sec");
+        mServiceHandler.sendMessageDelayed(msg, APN_EXTENSION_WAIT);
     }
 
     private void launchTransaction(int serviceId, TransactionBundle txnBundle, boolean noNetwork) {
@@ -1056,15 +1075,20 @@ public class TransactionService extends Service implements Observer {
         }
     }
 
-    protected int beginMmsConnectivity() throws IOException {
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
+    protected int beginMmsConnectivity(Transaction transaction, int subId) throws IOException {
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
             Log.v(TAG, "beginMmsConnectivity");
         }
         // Take a wake lock so we don't fall asleep before the message is downloaded.
         createWakeLock();
 
-        int result = mConnMgr.startUsingNetworkFeature(
-                ConnectivityManager.TYPE_MOBILE, Phone.FEATURE_ENABLE_MMS);
+        if (subId == -1) {
+            Log.d(TAG, "SubId unknown, trying on current temp DDS.");
+            subId = MultiSimUtility.getCurrentDataSubscription(getApplicationContext());
+        }
+
+        int result = mConnMgr.startUsingNetworkFeatureForSubscription(
+                ConnectivityManager.TYPE_MOBILE, Phone.FEATURE_ENABLE_MMS, subId);
 
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE )|| DEBUG) {
             Log.v(TAG, "beginMmsConnectivity: result=" + result);
@@ -1082,6 +1106,7 @@ public class TransactionService extends Service implements Observer {
                     mServiceHandler.sendEmptyMessageDelayed(EVENT_MMS_CONNECTIVITY_TIMEOUT,
                             MMS_CONNECTIVITY_DELAY);
                 }
+                //utAbortTransaction(transaction, subId);
                 return result;
         }
 
@@ -1089,23 +1114,36 @@ public class TransactionService extends Service implements Observer {
     }
 
     protected void endMmsConnectivity() {
+        int subId = MultiSimUtility.getCurrentDataSubscription(getApplicationContext());
+        endMmsConnectivity(subId);
+    }
+
+    protected void endMmsConnectivity(int subId) {
         try {
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
-                Log.v(TAG, "endMmsConnectivity");
+            Log.v(TAG, "endMmsConnectivity on subId=" + subId);
+
+            if (subId == -1) {
+                Log.d(TAG, "SubId unknown, trying on current temp DDS.");
+                subId = MultiSimUtility.getCurrentDataSubscription(getApplicationContext());
             }
 
-            // cancel timer for renewal of lease
-            mServiceHandler.removeMessages(EVENT_CONTINUE_MMS_CONNECTIVITY);
+            while(mServiceHandler.hasMessages(EVENT_CONTINUE_MMS_CONNECTIVITY)) {
+                Log.d(TAG, "Removing pending EVENT_CONTINUE_MMS_CONNECTIVITY");
+                // cancel timer for renewal of lease
+                mServiceHandler.removeMessages(EVENT_CONTINUE_MMS_CONNECTIVITY);
+            }
             if (mConnMgr != null) {
-                mConnMgr.stopUsingNetworkFeature(
+                mConnMgr.stopUsingNetworkFeatureForSubscription(
                         ConnectivityManager.TYPE_MOBILE,
-                        Phone.FEATURE_ENABLE_MMS);
+                        Phone.FEATURE_ENABLE_MMS, subId);
             }
         } finally {
             releaseWakeLock();
+            Log.d(TAG, "Deactivating MMS PDP. Mark the UI for all the pending"
+                    + " transactions as failed.");
+            mServiceHandler.markAllPendingTransactionsAsFailed();
         }
     }
-
     private final class ServiceHandler extends Handler {
         public ServiceHandler(Looper looper) {
             super(looper);
@@ -1122,6 +1160,8 @@ public class TransactionService extends Service implements Observer {
                 return "EVENT_HANDLE_NEXT_PENDING_TRANSACTION";
             } else if (msg.what == EVENT_NEW_INTENT) {
                 return "EVENT_NEW_INTENT";
+            } else if (msg.what == UT_EVENT_TRANSACTION_ABORT) {
+                return "UT_EVENT_TRANSACTION_ABORT";
             }
             return "unknown message.what";
         }
@@ -1171,7 +1211,10 @@ public class TransactionService extends Service implements Observer {
                     }
 
                     try {
-                        int result = beginMmsConnectivity();
+                        //Keep the lease on MMS PDP active.
+                        int subId = MultiSimUtility.getCurrentDataSubscription(
+                                getApplicationContext());
+                        int result = beginMmsConnectivity(null, subId);
                         if (result != PhoneConstants.APN_ALREADY_ACTIVE) {
                             Log.v(TAG, "Extending MMS connectivity returned " + result +
                                     " instead of APN_ALREADY_ACTIVE");
@@ -1187,6 +1230,34 @@ public class TransactionService extends Service implements Observer {
                     // Restart timer
                     renewMmsConnectivity();
                     return;
+                case UT_EVENT_TRANSACTION_ABORT: {
+                    Log.d(TAG, "UT_EVENT_TRANSACTION_ABORT");
+                    int subId = msg.arg1;
+                    Transaction sendTran = (Transaction) msg.obj;
+
+                    Log.d(TAG, "endMmsConnectivity on subId= "+subId);
+                    endMmsConnectivity(subId);
+                    Log.d(TAG, "removeNotification");
+                    removeNotification();
+
+                    synchronized (mProcessing) {
+                        mProcessing.clear();
+                        mPending.clear();
+                    }
+
+                    Uri mSendReqURI;
+                    PduPersister persister = PduPersister.getPduPersister(getApplicationContext());
+                    mSendReqURI = Uri.parse(sendTran.mId);
+                    try {
+                    Uri uri = persister.move(mSendReqURI, Sent.CONTENT_URI);
+                    } catch (Exception e) {
+                        Log.d(TAG, "Exception = "+e);
+                    }
+
+                    decRefCount();
+
+                    break;
+                }
 
                 case EVENT_TRANSACTION_REQUEST:
                     int serviceId = msg.arg1;
@@ -1263,6 +1334,8 @@ public class TransactionService extends Service implements Observer {
                                 transaction = null;
                                 return;
                         }
+                        //copy the subId from TransactionBundle to Transaction obj.
+                        transaction.setSubId(args.getSubId());
 
                         if (!processTransaction(transaction)) {
                             transaction = null;
@@ -1331,7 +1404,9 @@ public class TransactionService extends Service implements Observer {
 
                     if (!mPending.isEmpty()) {
                         try {
-                            beginMmsConnectivity();
+                            int subId = MultiSimUtility.getCurrentDataSubscription(
+                                   getApplicationContext());
+                            beginMmsConnectivity(null, subId);
                         } catch (IOException e) {
                             Log.w(TAG, "Attempt to use of MMS connectivity failed");
                             return;
@@ -1461,10 +1536,10 @@ public class TransactionService extends Service implements Observer {
                 * to defer processing the transaction until
                 * connectivity is established.
                 */
+                int subId = transaction.getSubId();
+                Log.d(TAG, "processTransaction: call beginMmsConnectivity on subId=" + subId);
 
-                Log.d(TAG, "processTransaction: call beginMmsConnectivity...");
-
-                int connectivityResult = beginMmsConnectivity();
+                int connectivityResult = beginMmsConnectivity(transaction, subId);
                 if (connectivityResult == PhoneConstants.APN_REQUEST_STARTED) {
                     mPending.add(transaction);
                     if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) || DEBUG) {
@@ -1478,6 +1553,7 @@ public class TransactionService extends Service implements Observer {
                 mProcessing.add(transaction);
             }
 
+            Log.d(TAG, "schedule EVENT_CONTINUE_MMS_CONNECTIVITY");
             // Set a timer to keep renewing our "lease" on the MMS connection
             sendMessageDelayed(obtainMessage(EVENT_CONTINUE_MMS_CONNECTIVITY),
                                APN_EXTENSION_WAIT);
@@ -1518,6 +1594,8 @@ public class TransactionService extends Service implements Observer {
     }
 
     private void renewMmsConnectivity() {
+        Log.d(TAG, "renewMmsConnectivity");
+
         // Set a timer to keep renewing our "lease" on the MMS connection
         mServiceHandler.sendMessageDelayed(
                 mServiceHandler.obtainMessage(EVENT_CONTINUE_MMS_CONNECTIVITY),
@@ -1563,6 +1641,8 @@ public class TransactionService extends Service implements Observer {
     private class ConnectivityBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
+            int currentDds = MultiSimUtility.getCurrentDataSubscription
+                (getApplicationContext());
             String action = intent.getAction();
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.w(TAG, "ConnectivityBroadcastReceiver.onReceive() action: " + action);
@@ -1577,7 +1657,8 @@ public class TransactionService extends Service implements Observer {
             boolean enableMmsData = context.getResources().getBoolean(
                     com.android.internal.R.bool.config_setup_mms_data);
             if (mConnMgr != null && (mConnMgr.getMobileDataEnabled() || enableMmsData)) {
-                mmsNetworkInfo = mConnMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
+                mmsNetworkInfo = mConnMgr.getNetworkInfoForSubscription(
+                        ConnectivityManager.TYPE_MOBILE_MMS, currentDds);
             } else {
                 if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                     Log.v(TAG, "mConnMgr is null, bail");
@@ -1636,12 +1717,19 @@ public class TransactionService extends Service implements Observer {
                         Log.v(TAG, "   TYPE_MOBILE_MMS not connected, bail");
                     }
 
+                    currentDds = MultiSimUtility.getCurrentDataSubscription
+                        (getApplicationContext());
+
                     // Retry mms connectivity once it's possible to connect
-                    if (mmsNetworkInfo.isAvailable()) {
-                        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
-                            Log.v(TAG, "   retrying mms connectivity for it's available");
+                    if (mmsNetworkInfo.isAvailable()
+                            && (mmsNetworkInfo.getSubscription() == currentDds)) {
+                        if (!mPending.isEmpty()) {
+                            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                                Log.v(TAG, "   retrying mms connectivity for it's available");
+                            }
+
+                            renewMmsConnectivity();
                         }
-                        renewMmsConnectivity();
                     } else {
                         if (!mPending.isEmpty()) {
                             abortPendingTransaction(true);

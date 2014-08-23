@@ -248,9 +248,12 @@ public class SelectMmsSubscription extends Service {
     }
 
     private boolean isNetworkAvailable() {
+        int currentDds = MultiSimUtility.getCurrentDataSubscription(mContext);
+
         ConnectivityManager connMgr = (ConnectivityManager) getSystemService(
                 Context.CONNECTIVITY_SERVICE);
-        NetworkInfo ni = connMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
+        NetworkInfo ni = connMgr.getNetworkInfoForSubscription(
+                ConnectivityManager.TYPE_MOBILE_MMS, currentDds);
 
         return (ni == null ? false : ni.isAvailable());
 
@@ -433,8 +436,10 @@ public class SelectMmsSubscription extends Service {
                     //There is a DdsSwitch request for no real MMS for that
                     //subscription. why to bother about the switch then, ignore
                     //it.
-                    Log.e(TAG, "Ignored, DDS switch req without MMS for the sub="
+                    Log.e(TAG, "DDS switch req without MMS for the sub="
                             + switchReq.destSub);
+                    switchSubscriptionTask = new SwitchSubscriptionTask();
+                    switchSubscriptionTask.execute(switchReq);
                     mQueue.remove(switchReq);
                 }
             } else if (count>0) {

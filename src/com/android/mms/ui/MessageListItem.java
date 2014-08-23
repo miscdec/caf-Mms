@@ -138,6 +138,8 @@ public class MessageListItem extends LinearLayout implements
     private int mPosition;      // for debugging
     private ImageLoadedCallback mImageLoadedCallback;
     private boolean mMultiRecipients;
+    private Contact mContact;
+    private Contact mSelfContact;
     private int mManageMode;
 
     public MessageListItem(Context context) {
@@ -221,11 +223,13 @@ public class MessageListItem extends LinearLayout implements
                                 // to this listitem. We always want the listview to handle the
                                 // clicks first.
 
+        mContact = Contact.get(mMessageItem.mAddress, true);
         switch (msgItem.mMessageType) {
             case PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND:
                 bindNotifInd();
                 break;
             default:
+                mSelfContact = Contact.getMe(false);
                 bindCommonMessage(sameItem);
                 break;
         }
@@ -382,7 +386,12 @@ public class MessageListItem extends LinearLayout implements
         }
 
         // Hide the indicators.
-        mLockedIndicator.setVisibility(View.GONE);
+        if (mMessageItem.mLocked) {
+            mLockedIndicator.setImageResource(R.drawable.ic_lock_message_sms);
+            mLockedIndicator.setVisibility(View.VISIBLE);
+        } else {
+            mLockedIndicator.setVisibility(View.GONE);
+        }
         mDeliveredIndicator.setVisibility(View.GONE);
         mDetailsIndicator.setVisibility(View.GONE);
         updateAvatarView(mMessageItem.mAddress, false);
@@ -443,7 +452,9 @@ public class MessageListItem extends LinearLayout implements
     private void updateAvatarView(String addr, boolean isSelf) {
         Drawable avatarDrawable;
         if (isSelf || !TextUtils.isEmpty(addr)) {
-            Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, true);
+            // As this function will be called two times when bind every MMS item,
+            // get contact object only once in bind function in order to save time.
+            Contact contact = isSelf ? mSelfContact : mContact;
             avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
 
             if (isSelf) {
@@ -502,7 +513,7 @@ public class MessageListItem extends LinearLayout implements
             } else {
                 buf.append(mContext.getString(R.string.to_address_label));
             }
-            buf.append(Contact.get(mMessageItem.mAddress, true).getName());
+            buf.append(mContact.getName());
             mSimMessageAddress.setText(buf);
         }
 
