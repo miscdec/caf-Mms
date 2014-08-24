@@ -375,6 +375,12 @@ public class MessageListItem extends LinearLayout implements
                                 builder.show();
                                 return;
                             }
+                            // If mobile data is turned off, inform user start data and try again.
+                            else if (MessageUtils.isMobileDataDisabled(mContext)) {
+                                builder.setMessage(mContext.getString(R.string.inform_data_off));
+                                builder.show();
+                                return;
+                            }
                         } catch (MmsException e) {
                             Log.e(TAG, e.getMessage(), e);
                             return;
@@ -386,7 +392,12 @@ public class MessageListItem extends LinearLayout implements
         }
 
         // Hide the indicators.
-        mLockedIndicator.setVisibility(View.GONE);
+        if (mMessageItem.mLocked) {
+            mLockedIndicator.setImageResource(R.drawable.ic_lock_message_sms);
+            mLockedIndicator.setVisibility(View.VISIBLE);
+        } else {
+            mLockedIndicator.setVisibility(View.GONE);
+        }
         mDeliveredIndicator.setVisibility(View.GONE);
         mDetailsIndicator.setVisibility(View.GONE);
         updateAvatarView(mMessageItem.mAddress, false);

@@ -98,6 +98,7 @@ import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.Sms;
@@ -143,6 +144,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Button;
 
+import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.MSimConstants;
@@ -395,6 +397,11 @@ public class ComposeMessageActivity extends Activity
     private static final int DIALOG_IMPORT_TEMPLATE = 1;
 
     private static final int MSG_ONLY_ONE_FAIL_LIST_ITEM = 1;
+
+    private static final String INTENT_ACTION_LTE_DATA_ONLY_DIALOG =
+            "com.qualcomm.qti.phonefeature.DISABLE_TDD_DATA_ONLY";
+    private static final String LTE_DATA_ONLY_KEY = "tdd_data_only";
+    private static final int LTE_DATA_ONLY_MODE = 1;
 
     /**
      * Whether this activity is currently running (i.e. not paused)
@@ -974,8 +981,43 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private boolean isLTEOnlyMode() {
+        try {
+            int tddOnly = Settings.Global.getInt(getContentResolver(), LTE_DATA_ONLY_KEY);
+            int network = Settings.Global.getInt(getContentResolver(),
+                    Settings.Global.PREFERRED_NETWORK_MODE);
+            return network == RILConstants.NETWORK_MODE_LTE_ONLY && tddOnly == LTE_DATA_ONLY_MODE;
+        } catch (SettingNotFoundException snfe) {
+            Log.w(TAG, "isLTEOnlyMode: Could not find PREFERRED_NETWORK_MODE!");
+        }
+        return false;
+    }
+
+    private boolean isLTEOnlyMode(int subscription) {
+        try {
+            int tddOnly = MSimTelephonyManager.getIntAtIndex(getContentResolver(),
+                    LTE_DATA_ONLY_KEY, subscription);
+            int network = MSimTelephonyManager.getIntAtIndex(getContentResolver(),
+                    Settings.Global.PREFERRED_NETWORK_MODE, subscription);
+            return network == RILConstants.NETWORK_MODE_LTE_ONLY && tddOnly == 1;
+        } catch (SettingNotFoundException snfe) {
+            Log.w(TAG, "isLTEOnlyMode: Could not find PREFERRED_NETWORK_MODE!");
+        }
+        return false;
+    }
+
+    private void showDisableLTEOnlyDialog(int subscription) {
+        Intent intent = new Intent();
+        intent.setAction(INTENT_ACTION_LTE_DATA_ONLY_DIALOG);
+        intent.putExtra("subscription", subscription);
+        startActivity(intent);
+    }
 
     private void confirmSendMessageIfNeeded(int subscription) {
+        if (isLTEOnlyMode(subscription)) {
+            showDisableLTEOnlyDialog(subscription);
+            return;
+        }
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
             if (MessageUtils.isMobileDataDisabled(this) &&
@@ -1002,6 +1044,13 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void confirmSendMessageIfNeeded() {
+        if ((MSimTelephonyManager.getDefault().isMultiSimEnabled() &&
+                isLTEOnlyMode(MSimSmsManager.getDefault().getPreferredSmsSubscription()))
+                || (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                        && isLTEOnlyMode())) {
+            showDisableLTEOnlyDialog(MSimSmsManager.getDefault().getPreferredSmsSubscription());
+            return;
+        }
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
             if (MessageUtils.isMobileDataDisabled(this) && enableMmsData && isMms) {
@@ -1866,7 +1915,8 @@ public class ComposeMessageActivity extends Activity
 
                     final Cursor cursor = (Cursor) mMsgListAdapter.getItem(info.position);
                     if (mMsgItem.isSms()) {
-                        showSmsMessageContent(cursor);
+                        MessageUtils.showSmsMessageContent(ComposeMessageActivity.this,
+                                mMsgItem.mMsgId);
                     } else {
                         MessageUtils.viewMmsMessageAttachment(ComposeMessageActivity.this,
                                 ContentUris.withAppendedId(Mms.CONTENT_URI, mMsgItem.mMsgId), null,
@@ -3538,48 +3588,6 @@ public class ComposeMessageActivity extends Activity
         super.onPrepareDialog(id, dialog);
     }
 
-    private void showSmsMessageContent(Cursor c) {
-        if (c == null) {
-            return;
-        }
-
-        Intent i = new Intent(this, MailBoxMessageContent.class);
-
-        String addr = c.getString(COLUMN_SMS_ADDRESS);
-        Long date = c.getLong(COLUMN_SMS_DATE);
-        String dateStr = MessageUtils.formatTimeStampString(this, date, true);
-        String msgUriStr = "content://" + c.getString(COLUMN_MSG_TYPE)
-                + "/" + c.getString(COLUMN_ID);
-        int smsType = c.getInt(COLUMN_SMS_TYPE);
-
-        if (smsType == Sms.MESSAGE_TYPE_INBOX) {
-            i.putExtra("sms_fromtolabel", getString(R.string.from_label));
-            i.putExtra("sms_sendlabel", getString(R.string.received_label));
-        } else {
-            i.putExtra("sms_fromtolabel", getString(R.string.to_address_label));
-            i.putExtra("sms_sendlabel", getString(R.string.sent_label));
-        }
-        i.putExtra("sms_datelongformat", date);
-        i.putExtra("sms_datesentlongformat", c.getLong(COLUMN_SMS_DATE_SENT));
-        i.putExtra("sms_body", c.getString(COLUMN_SMS_BODY));
-        i.putExtra("sms_fromto", addr);
-        i.putExtra("sms_displayname", Contact.get(addr, true).getName());
-        i.putExtra("sms_date", dateStr);
-        i.putExtra("msg_uri", Uri.parse(msgUriStr));
-        i.putExtra("sms_threadid", c.getLong(COLUMN_THREAD_ID));
-        i.putExtra("sms_status", c.getInt(COLUMN_SMS_STATUS));
-        i.putExtra("sms_read", c.getInt(COLUMN_SMS_READ));
-        i.putExtra("mailboxId", smsType);
-        i.putExtra("sms_id", c.getInt(COLUMN_ID));
-        i.putExtra("sms_uri_str", msgUriStr);
-        i.putExtra("sms_on_uim", false);
-        i.putExtra("sms_type", smsType);
-        i.putExtra("sms_locked", c.getInt(COLUMN_SMS_LOCKED));
-        i.putExtra("sms_subid", c.getInt(COLUMN_SUB_ID));
-        i.putExtra("sms_select_text", true);
-        startActivity(i);
-    }
-
     private Dialog showImportTemplateDialog(){
         String [] smsTempArray = null;
         Uri uri = Uri.parse("content://com.android.mms.MessageTemplateProvider/messages");
@@ -4576,6 +4584,7 @@ public class ComposeMessageActivity extends Activity
     //==========================================================
     // Interface methods
     //==========================================================
+
 
     @Override
     public void onClick(View v) {
