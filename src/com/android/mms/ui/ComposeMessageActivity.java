@@ -98,6 +98,7 @@ import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.Sms;
@@ -143,6 +144,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Button;
 
+import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.MSimConstants;
@@ -395,6 +397,11 @@ public class ComposeMessageActivity extends Activity
     private static final int DIALOG_IMPORT_TEMPLATE = 1;
 
     private static final int MSG_ONLY_ONE_FAIL_LIST_ITEM = 1;
+
+    private static final String INTENT_ACTION_LTE_DATA_ONLY_DIALOG =
+            "com.qualcomm.qti.phonefeature.DISABLE_TDD_DATA_ONLY";
+    private static final String LTE_DATA_ONLY_KEY = "tdd_data_only";
+    private static final int LTE_DATA_ONLY_MODE = 1;
 
     /**
      * Whether this activity is currently running (i.e. not paused)
@@ -974,8 +981,43 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private boolean isLTEOnlyMode() {
+        try {
+            int tddOnly = Settings.Global.getInt(getContentResolver(), LTE_DATA_ONLY_KEY);
+            int network = Settings.Global.getInt(getContentResolver(),
+                    Settings.Global.PREFERRED_NETWORK_MODE);
+            return network == RILConstants.NETWORK_MODE_LTE_ONLY && tddOnly == LTE_DATA_ONLY_MODE;
+        } catch (SettingNotFoundException snfe) {
+            Log.w(TAG, "isLTEOnlyMode: Could not find PREFERRED_NETWORK_MODE!");
+        }
+        return false;
+    }
+
+    private boolean isLTEOnlyMode(int subscription) {
+        try {
+            int tddOnly = MSimTelephonyManager.getIntAtIndex(getContentResolver(),
+                    LTE_DATA_ONLY_KEY, subscription);
+            int network = MSimTelephonyManager.getIntAtIndex(getContentResolver(),
+                    Settings.Global.PREFERRED_NETWORK_MODE, subscription);
+            return network == RILConstants.NETWORK_MODE_LTE_ONLY && tddOnly == 1;
+        } catch (SettingNotFoundException snfe) {
+            Log.w(TAG, "isLTEOnlyMode: Could not find PREFERRED_NETWORK_MODE!");
+        }
+        return false;
+    }
+
+    private void showDisableLTEOnlyDialog(int subscription) {
+        Intent intent = new Intent();
+        intent.setAction(INTENT_ACTION_LTE_DATA_ONLY_DIALOG);
+        intent.putExtra("subscription", subscription);
+        startActivity(intent);
+    }
 
     private void confirmSendMessageIfNeeded(int subscription) {
+        if (isLTEOnlyMode(subscription)) {
+            showDisableLTEOnlyDialog(subscription);
+            return;
+        }
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
             if (MessageUtils.isMobileDataDisabled(this) &&
@@ -1002,6 +1044,13 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void confirmSendMessageIfNeeded() {
+        if ((MSimTelephonyManager.getDefault().isMultiSimEnabled() &&
+                isLTEOnlyMode(MSimSmsManager.getDefault().getPreferredSmsSubscription()))
+                || (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                        && isLTEOnlyMode())) {
+            showDisableLTEOnlyDialog(MSimSmsManager.getDefault().getPreferredSmsSubscription());
+            return;
+        }
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
             if (MessageUtils.isMobileDataDisabled(this) && enableMmsData && isMms) {
@@ -4535,6 +4584,7 @@ public class ComposeMessageActivity extends Activity
     //==========================================================
     // Interface methods
     //==========================================================
+
 
     @Override
     public void onClick(View v) {
