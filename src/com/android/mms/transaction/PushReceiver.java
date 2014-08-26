@@ -31,6 +31,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SqliteWrapper;
@@ -38,6 +39,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.PowerManager;
 import android.os.SystemProperties;
+import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Mms.Inbox;
 import android.telephony.MSimTelephonyManager;
@@ -181,6 +183,16 @@ public class PushReceiver extends BroadcastReceiver {
                                     true,
                                     MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
                                     null, subId);
+
+                            SharedPreferences preferences = PreferenceManager.
+                                    getDefaultSharedPreferences(mContext);
+                            boolean autoDownload = preferences.getBoolean(
+                                    MessagingPreferenceActivity.AUTO_RETRIEVAL, true);
+                            if (!autoDownload && MSimTelephonyManager.getDefault().
+                                    isMultiSimEnabled()) {
+                                Log.d(TAG, "autoDownload is disabled bail out");
+                                break;
+                            }
 
                             // Start service to finish the notification transaction.
                             Intent svc = new Intent(mContext, TransactionService.class);
