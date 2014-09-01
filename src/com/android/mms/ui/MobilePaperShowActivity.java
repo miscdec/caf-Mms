@@ -35,6 +35,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -84,6 +85,9 @@ import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.SendReq;
 import com.google.android.mms.util.SqliteWrapper;
 
+import static com.android.mms.ui.MessageListAdapter.COLUMN_ID;
+import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_READ;
+
 public class MobilePaperShowActivity extends Activity {
     private static final String TAG = "MobilePaperShowActivity";
     private static final int MENU_SLIDESHOW = 1;
@@ -95,7 +99,6 @@ public class MobilePaperShowActivity extends Activity {
 
     // If the finger move over 100px, we don't think it's for click.
     private static final int CLICK_LIMIT = 100;
-    private static final int MESSAGE_READ = 1;
 
     private int mMailboxId = -1;
 
@@ -160,14 +163,29 @@ public class MobilePaperShowActivity extends Activity {
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         mHandler = new Handler();
+
+        setContentView(R.layout.mobile_paper_view);
+        mRootView = (LinearLayout)findViewById(R.id.view_root);
+        mSlideView = (FrameLayout)findViewById(R.id.view_scroll);
+        mScaleDetector = new ScaleGestureDetector(this, new MyScaleListener());
+        mAsyncQueryHandler = new BackgroundQueryHandler(getContentResolver());
+
+        handleIntent();
+        ActionBar actionBar = getActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
+    }
+
+    private void handleIntent() {
         Intent intent = getIntent();
         Uri msg = intent.getData();
-        setContentView(R.layout.mobile_paper_view);
+
+        // Cancel failed notification.
+        MessageUtils.cancelFailedToDeliverNotification(intent, this);
+        MessageUtils.cancelFailedDownloadNotification(intent, this);
+
         mMailboxId = getMmsMessageBoxID(this, msg);
         mUri = msg;
         MultimediaMessagePdu msgPdu;
-        mRootView = (LinearLayout)findViewById(R.id.view_root);
-        mSlideView = (FrameLayout)findViewById(R.id.view_scroll);
 
         try {
             mSlideModel = SlideshowModel.createFromMessageUri(this, msg);
@@ -199,31 +217,28 @@ public class MobilePaperShowActivity extends Activity {
             return;
         }
 
-        mScaleDetector = new ScaleGestureDetector(this, new MyScaleListener());
-        drawRootView();
-
-        boolean unread = intent.getBooleanExtra("unread", false);
-        if (unread) {
-            MessageUtils.markAsRead(MobilePaperShowActivity.this, mUri);
-        }
-
         String mailboxUri = "content://mms-sms/mailbox/" + mMailboxId;
-        mAsyncQueryHandler = new BackgroundQueryHandler(getContentResolver());
         mAsyncQueryHandler.startQuery(QUERY_MESSAGE_TOKEN, 0,
-            Uri.parse(mailboxUri),
-            MessageListAdapter.MAILBOX_PROJECTION,
-            "pdu._id= " + msg.getPathSegments().get(0),
-            null, "normalized_date DESC");
-
-        // Register a BroadcastReceiver to listen on HTTP I/O process.
-        ActionBar actionBar = getActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
+                Uri.parse(mailboxUri),
+                MessageListAdapter.MAILBOX_PROJECTION,
+                "pdu._id= " + msg.getPathSegments().get(0),
+                null, "normalized_date DESC");
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         MessageUtils.saveTextFontSize(this, mFontSizeForSave);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+
+        mRootView.removeAllViews();
+        handleIntent();
+        invalidateOptionsMenu();
     }
 
     public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -541,7 +556,12 @@ public class MobilePaperShowActivity extends Activity {
                 }
                 mCursor = cursor;
                 mCursor.moveToFirst();
+                if (mCursor.getInt(COLUMN_MMS_READ) == 0) {
+                    MessageUtils.markAsRead(MobilePaperShowActivity.this,
+                        ContentUris.withAppendedId(Mms.CONTENT_URI, mCursor.getInt(COLUMN_ID)));
+                }
             }
+            drawRootView();
             invalidateOptionsMenu();
         }
 
