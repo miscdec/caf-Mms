@@ -38,6 +38,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
@@ -2451,5 +2452,42 @@ public class MessageUtils {
             return mmsStatus & ~DownloadManager.DEFERRED_MASK;
         }
         return mmsStatus;
+    }
+
+    public static void showInboxMessageList(Context context) {
+        Intent intent = new Intent(context, MailBoxMessageList.class);
+        intent.putExtra(MessageUtils.SEARCH_KEY_MAIL_BOX_ID, MailBoxMessageList.TYPE_INBOX);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(intent);
+    }
+
+    public static void showSmsMessageContent(Context context, long msgId) {
+        Intent intent = new Intent(context, MailBoxMessageContent.class);
+        intent.setData(ContentUris.withAppendedId(Sms.CONTENT_URI, msgId));
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        context.startActivity(intent);
+    }
+
+    public static void markAsRead(final Context context, final Uri msgUri) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    ContentValues values = new ContentValues(2);
+                    values.put(Mms.READ, MessageUtils.MESSAGE_READ);
+                    values.put(Mms.SEEN, MessageUtils.MESSAGE_SEEN);
+                    SqliteWrapper.update(context,
+                            context.getContentResolver(),
+                            msgUri, values, null, null);
+
+                   MessagingNotification.blockingUpdateNewMessageIndicator(
+                            context,
+                            MessagingNotification.THREAD_NONE, false);
+                } catch (Exception e) {
+                    Log.e(TAG, "Update Read Error", e);
+                }
+            }
+        }).start();
     }
 }
