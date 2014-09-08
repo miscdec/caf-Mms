@@ -1873,8 +1873,6 @@ public class MessageUtils {
             UserData uData = new UserData();
             uData.payloadStr = message;
             // uData.userDataHeader = smsHeader;
-            uData.msgEncodingSet = true;
-            uData.msgEncoding = UserData.ENCODING_UNICODE_16;
 
             BearerData bearerData = new BearerData();
             bearerData.messageType = BearerData.MESSAGE_TYPE_DELIVER;
