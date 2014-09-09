@@ -82,6 +82,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
     // For posting UI update Runnables from other threads:
     private Handler mHandler = new Handler();
     private ListView mListView;
+    private Contact mContact;
     QuickContactBadge mAvatarView;
     TextView mNameView;
     TextView mBodyView;
@@ -153,20 +154,19 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
                     .getResources().getDrawable(R.drawable.ic_contact_picture_mms_card2);
         }
 
-        Contact contact = Contact.get(mAddress, true);
         if (mMsgType.equals("mms")) {
             avatarDrawable = sDefaultContactImageMms;
         } else {
             avatarDrawable = sDefaultContactImage;
         }
 
-        if (contact.existsInDatabase()) {
-            mAvatarView.assignContactUri(contact.getUri());
-        } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
+        if (mContact.existsInDatabase()) {
+            mAvatarView.assignContactUri(mContact.getUri());
+        } else if (MessageUtils.isWapPushNumber(mContact.getNumber())) {
             mAvatarView.assignContactFromPhone(
-                    MessageUtils.getWapPushNumber(contact.getNumber()), true);
+                    MessageUtils.getWapPushNumber(mContact.getNumber()), true);
         } else {
-            mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+            mAvatarView.assignContactFromPhone(mContact.getNumber(), true);
         }
 
         mAvatarView.setImageDrawable(avatarDrawable);
@@ -181,7 +181,6 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         mHandler.post(new Runnable() {
             public void run() {
                 updateAvatarView();
-                mName = Contact.get(mAddress, true).getName();
                 formatNameView(mAddress, mName);
             }
         });
@@ -256,6 +255,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             bodyStr = item.mBody;
             dateStr = item.mDateStr;
             nameContact = item.mName;
+            mContact = Contact.get(addr, true);
         } else if (type.equals("mms")) {
             final int mmsRead = cursor.getInt(COLUMN_MMS_READ);
             mSubscription = cursor.getInt(COLUMN_MMS_SUB_ID);
@@ -283,10 +283,12 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             addr = recipientIds;
             if (!TextUtils.isEmpty(recipientIds)) {
                 addr = MessageUtils.getRecipientsByIds(context, recipientIds, true);
-                nameContact = Contact.get(addr, true).getName();
+                mContact = Contact.get(addr, true);
+                nameContact = mContact.getName();
             } else if (threadId > 0) {
                 addr = MessageUtils.getAddressByThreadId(context, threadId);
-                nameContact = Contact.get(addr, true).getName();
+                mContact = Contact.get(addr, true);
+                nameContact = mContact.getName();
             } else {
                 addr = "";
                 nameContact = "";
