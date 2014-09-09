@@ -244,12 +244,14 @@ public class MessageUtils {
             Uri.parse("content://mms-sms/messagescount");
 
     // add for search
-    public static final String SEARCH_KEY_MAIL_BOX_ID    = "mailboxId";
+    public static final String SEARCH_KEY                = "is_search";
     public static final String SEARCH_KEY_TITLE          = "title";
     public static final String SEARCH_KEY_MODE_POSITION  = "mode_position";
     public static final String SEARCH_KEY_KEY_STRING     = "key_str";
     public static final String SEARCH_KEY_DISPLAY_STRING = "display_str";
     public static final String SEARCH_KEY_MATCH_WHOLE    = "match_whole";
+
+    public static final String MAIL_BOX_ID    = "mailbox_id";
 
     private static final String REPLACE_QUOTES_1 = "'";
     private static final String REPLACE_QUOTES_2 = "''";
@@ -2475,7 +2477,7 @@ public class MessageUtils {
 
     public static void showInboxMessageList(Context context) {
         Intent intent = new Intent(context, MailBoxMessageList.class);
-        intent.putExtra(MessageUtils.SEARCH_KEY_MAIL_BOX_ID, MailBoxMessageList.TYPE_INBOX);
+        intent.putExtra(MessageUtils.MAIL_BOX_ID, MailBoxMessageList.TYPE_INBOX);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -2508,5 +2510,25 @@ public class MessageUtils {
                 }
             }
         }).start();
+    }
+
+    public static boolean cancelFailedToDeliverNotification(Intent intent, Context context) {
+        if (MessagingNotification.isFailedToDeliver(intent)) {
+            // Cancel any failed message notifications
+            MessagingNotification.cancelNotification(context,
+                        MessagingNotification.MESSAGE_FAILED_NOTIFICATION_ID);
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean cancelFailedDownloadNotification(Intent intent, Context context) {
+        if (MessagingNotification.isFailedToDownload(intent)) {
+            // Cancel any failed download notifications
+            MessagingNotification.cancelNotification(context,
+                        MessagingNotification.DOWNLOAD_FAILED_NOTIFICATION_ID);
+            return true;
+        }
+        return false;
     }
 }
