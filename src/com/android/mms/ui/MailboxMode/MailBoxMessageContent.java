@@ -92,12 +92,10 @@ public class MailBoxMessageContent extends Activity {
     private Long mDateLongFormat;
     private int mMsgstatus;
     private int mRead;
-    private int mMailboxId;
     private int mMsgType = Sms.MESSAGE_TYPE_INBOX;
     private boolean mLock = false;
 
     private int mSubID = MessageUtils.SUB_INVALID;
-    private Cursor mCursor = null;
 
     private TextView mBodyTextView;
     /*Operations for gesture to scale the current text fontsize of content*/
@@ -432,6 +430,14 @@ public class MailBoxMessageContent extends Activity {
             if (c != null) c.close();
         }
         return locked;
+    }
+
+     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+
+        handleIntent();
     }
 
     private void handleIntent() {
