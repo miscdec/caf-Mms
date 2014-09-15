@@ -72,8 +72,9 @@ public class RetryScheduler implements Observer {
     }
 
     public void update(Observable observable) {
+        Transaction t = (Transaction) observable;
+        TransactionState state = t.getState();
         try {
-            Transaction t = (Transaction) observable;
 
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "[RetryScheduler] update " + observable);
@@ -86,7 +87,6 @@ public class RetryScheduler implements Observer {
                     || (t instanceof ReadRecTransaction)
                     || (t instanceof SendTransaction)) {
                 try {
-                    TransactionState state = t.getState();
                     if (state.getState() == TransactionState.FAILED) {
                         Uri uri = state.getContentUri();
                         if (uri != null) {
@@ -98,8 +98,10 @@ public class RetryScheduler implements Observer {
                 }
             }
         } finally {
-            if (isConnected()) {
+            if (state.getState() == TransactionState.FAILED) {
                 setRetryAlarm(mContext);
+            } else {
+                Log.d(TAG, "state.getState() = " + state.getState());
             }
         }
     }
