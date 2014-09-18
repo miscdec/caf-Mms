@@ -634,6 +634,7 @@ public class MailBoxMessageList extends ListActivity implements
             setProgressBarIndeterminateVisibility(false);
             mQueryDone = true;
             MessagingNotification.setCurrentlyDisplayedMsgType(mQueryBoxType);
+            Conversation.markAllConversationsAsSeen(MailBoxMessageList.this);
         }
 
     }
