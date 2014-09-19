@@ -448,11 +448,15 @@ public class TransactionService extends Service implements Observer {
 
     public void onNewIntent(Intent intent, int serviceId) {
 
+        int currentDds = MultiSimUtility.getCurrentDataSubscription
+                (getApplicationContext());
         mConnMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         boolean enableMmsData = getApplicationContext().getResources().getBoolean(
                 com.android.internal.R.bool.config_setup_mms_data);
-        if (mConnMgr == null || !MmsConfig.isSmsEnabled(getApplicationContext())) {
-            endMmsConnectivity();
+
+        if (mConnMgr == null || !(getMobileDataEnabled(mConnMgr, currentDds) || enableMmsData)
+                || !MmsConfig.isSmsEnabled(getApplicationContext())) {
+            endMmsConnectivity(currentDds);
             decRefCount();
             return;
         }
@@ -548,7 +552,8 @@ public class TransactionService extends Service implements Observer {
                                 // option, we also retry those messages that don't have any errors.
                                 DownloadManager downloadManager = DownloadManager.getInstance();
                                 boolean autoDownload = downloadManager.isAuto();
-                                boolean isMobileDataEnabled = mConnMgr.getMobileDataEnabled();
+                                boolean isMobileDataEnabled = getMobileDataEnabled(mConnMgr,
+                                        currentDds);
                                 if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                                     Log.v(TAG, "onNewIntent: failureType=" + failureType +
                                             " action=" + action + " isTransientFailure:" +
@@ -699,6 +704,16 @@ public class TransactionService extends Service implements Observer {
         }
     }
 
+    boolean getMobileDataEnabled(ConnectivityManager mConnMgr, int currentDds) {
+        boolean isMobileDataEnabled = false;
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            isMobileDataEnabled = mConnMgr.getMobileDataEnabledOnSubscription(currentDds);
+        } else {
+            isMobileDataEnabled = mConnMgr.getMobileDataEnabled();
+        }
+        return isMobileDataEnabled;
+    }
+
     private void removeNotification() {
         synchronized (mTxnSubIdMap) {
             Log.d(TAG, "removeNotification, txnId=init" );
@@ -784,7 +799,7 @@ public class TransactionService extends Service implements Observer {
                 return false;
             } else {
                 return ni.isAvailable() &&
-                        (enableMmsData || mConnMgr.getMobileDataEnabled());
+                        (enableMmsData || getMobileDataEnabled(mConnMgr, currentDds));
             }
         }
     }
@@ -1668,7 +1683,7 @@ public class TransactionService extends Service implements Observer {
 
             boolean enableMmsData = context.getResources().getBoolean(
                     com.android.internal.R.bool.config_setup_mms_data);
-            if (mConnMgr != null && (mConnMgr.getMobileDataEnabled() || enableMmsData)) {
+            if (mConnMgr != null && (getMobileDataEnabled(mConnMgr, currentDds) || enableMmsData)) {
                 mmsNetworkInfo = mConnMgr.getNetworkInfoForSubscription(
                         ConnectivityManager.TYPE_MOBILE_MMS, currentDds);
             } else {
