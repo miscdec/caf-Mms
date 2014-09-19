@@ -372,7 +372,9 @@ public class ManageSimMessages extends Activity
 
         switch (item.getItemId()) {
             case MENU_COPY_TO_PHONE_MEMORY:
-                copyToPhoneMemory(cursor);
+                if (!MessageUtils.checkIsPhoneMessageFull(this)) {
+                   copyToPhoneMemory(cursor);
+                }
                 return true;
             case MENU_DELETE_FROM_SIM:
                 confirmDeleteDialog(new OnClickListener() {
