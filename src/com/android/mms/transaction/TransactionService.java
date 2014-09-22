@@ -639,6 +639,7 @@ public class TransactionService extends Service implements Observer {
             for (Transaction transaction : mPending) {
                 transaction.cancelTransaction(mCancelUri);
             }
+            decRefCount();
         } else {
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                 Log.v(TAG, "onNewIntent: launch transaction...");
