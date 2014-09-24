@@ -28,6 +28,7 @@ import android.util.Log;
 
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.MultiSimUtility;
 
 /**
@@ -100,7 +101,10 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
 
             // Scan and send pending Mms once after boot completed since
             // ACTION_ANY_DATA_CONNECTION_STATE_CHANGED wasn't registered in a whole life cycle
-            wakeUpService(context);
+            if (!MessageUtils.isMultiSimEnabledMms()
+                    || MessageUtils.getActivatedIccCardCount() > 0) {
+                wakeUpService(context);
+            }
         }
     }
 }
