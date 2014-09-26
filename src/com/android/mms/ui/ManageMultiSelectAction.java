@@ -225,6 +225,7 @@ public class ManageMultiSelectAction extends Activity {
         int size = booleanArray.size();
 
         mSelectedLockedUris.clear();
+        mSelectedUris.clear();
 
         if (size > 0) {
             for (int j = 0; j < size; j++) {
