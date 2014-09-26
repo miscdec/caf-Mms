@@ -198,6 +198,16 @@ public class ManageMultiSelectAction extends Activity {
         }
     }
 
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mProgressDialog != null) {
+            mProgressDialog.dismiss();
+            mProgressDialog = null;
+        }
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
