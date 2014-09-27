@@ -810,7 +810,7 @@ public class TransactionService extends Service implements Observer {
                 }
                 else if (mProcessing.isEmpty()) {
                     Log.d(TAG, "update: endMmsConnectivity");
-                    endMmsConnectivity();
+                    endMmsConnectivity(transaction.getSubId());
                 } else {
                     if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                         Log.v(TAG, "update: mProcessing is not empty");
