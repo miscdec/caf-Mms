@@ -655,6 +655,7 @@ public class TransactionService extends Service implements Observer {
             if (txnId == null) {
                 Log.d(TAG, "Transaction already over.");
                 decRefCount();
+                launchSelectMmsSubscription(originSub);
                 return;
             }
 
@@ -678,6 +679,23 @@ public class TransactionService extends Service implements Observer {
 
             TransactionBundle args = new TransactionBundle(bundle);
             launchTransaction(serviceId, args, noNetwork);
+        }
+    }
+
+    private void launchSelectMmsSubscription(int origSub) {
+        Context context = getApplicationContext();
+        if (MultiSimUtility.getCurrentDataSubscription(context) !=
+                MultiSimUtility.getDefaultDataSubscription(context)) {
+            Intent silentIntent = new Intent(context,
+                    com.android.mms.ui.SelectMmsSubscription.class);
+            silentIntent.putExtra(Mms.SUB_ID, origSub);
+            /*since it is trigger_switch_only, origin is irrelevant.*/
+            silentIntent.putExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
+            silentIntent.putExtra("TRIGGER_SWITCH_ONLY", 1);
+            context.startService(silentIntent);
+        } else {
+            Log.d(TAG, "Not launching SelectMmsSubscription as both current and default DDS " +
+                    "are same");
         }
     }
 
@@ -719,15 +737,8 @@ public class TransactionService extends Service implements Observer {
                 }
 
                 if (isSilent) {
-                    int nextSub = req.originSub;
-                    Log.d(TAG, "MMS silent transaction finished for sub=" + nextSub);
-                    Intent silentIntent = new Intent(getApplicationContext(),
-                            com.android.mms.ui.SelectMmsSubscription.class);
-                    silentIntent.putExtra(Mms.SUB_ID, nextSub);
-                    /*since it is trigger_switch_only, origin is irrelevant.*/
-                    silentIntent.putExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
-                    silentIntent.putExtra("TRIGGER_SWITCH_ONLY", 1);
-                    getApplicationContext().startService(silentIntent);
+                    Log.d(TAG, "MMS silent transaction finished for sub=" + req.destSub);
+                    launchSelectMmsSubscription(req.originSub);
                 }
 
                 if (!anyFailure) {
