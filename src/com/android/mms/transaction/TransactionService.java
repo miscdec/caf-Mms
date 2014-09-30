@@ -431,9 +431,10 @@ public class TransactionService extends Service implements Observer {
                 (getApplicationContext());
 
         mConnMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (mConnMgr == null || !mConnMgr.getMobileDataEnabled()
+
+        if (mConnMgr == null || !getMobileDataEnabled(mConnMgr, currentDds)
                 || !MmsConfig.isSmsEnabled(getApplicationContext())) {
-            endMmsConnectivity();
+            endMmsConnectivity(currentDds);
             decRefCount();
             return;
         }
@@ -641,6 +642,16 @@ public class TransactionService extends Service implements Observer {
             Log.d(TAG, "Not launching SelectMmsSubscription as both current and default DDS " +
                     "are same");
         }
+    }
+
+    boolean getMobileDataEnabled(ConnectivityManager mConnMgr, int currentDds) {
+        boolean isMobileDataEnabled = false;
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            isMobileDataEnabled = mConnMgr.getMobileDataEnabledOnSubscription(currentDds);
+        } else {
+            isMobileDataEnabled = mConnMgr.getMobileDataEnabled();
+        }
+        return isMobileDataEnabled;
     }
 
     private void removeNotification() {
@@ -1396,7 +1407,7 @@ public class TransactionService extends Service implements Observer {
 
             NetworkInfo mmsNetworkInfo = null;
 
-            if (mConnMgr != null && mConnMgr.getMobileDataEnabled()) {
+            if (mConnMgr != null && getMobileDataEnabled(mConnMgr, currentDds)) {
                 mmsNetworkInfo = mConnMgr.getNetworkInfoForSubscription(
                         ConnectivityManager.TYPE_MOBILE_MMS, currentDds);
             } else {
