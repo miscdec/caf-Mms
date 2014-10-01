@@ -229,10 +229,16 @@ public class SelectMmsSubscription extends Service {
                 int result = (mtmgr.setPreferredDataSubscription(req.destSub))? 1: 0;
                 if (result == 1) { //Success.
                     Log.d(TAG, "Subscription switch done.");
-                    do {
-                        Log.d(TAG, "isNetworkAvailable = false, sleep..");
-                        sleep(1000);
-                    } while(!isNetworkAvailable());
+
+                    if (req.triggerSwitchOnly != true) {
+                        do {
+                            Log.d(TAG, "isNetworkAvailable = false, sleep..");
+                            sleep(1000);
+                        } while(!isNetworkAvailable());
+                    } else {
+                        Log.d(TAG, "For DDS switch back mechanism don't wait for" +
+                                "network availability");
+                    }
                 } else {
                     synchronized (mQueue) {
                         enqueueTxnReq(req);
