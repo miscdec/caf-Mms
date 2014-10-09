@@ -19,6 +19,7 @@ package com.android.mms.ui;
 
 import android.content.Context;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.mms.MmsConfig;
@@ -148,6 +149,17 @@ public class SlideshowEditor {
         return mModel.get(position).removeVcard();
     }
 
+    /**
+     * Update current message size of sildeshow model
+     * after text was changed.
+     */
+    public void updateCurrentMessageSizeAfterTextChanged(String oldText, String newText) {
+        int oldSize = (TextUtils.isEmpty(oldText)) ? 0 : oldText.getBytes().length;
+        int newSize = (TextUtils.isEmpty(newText)) ? 0 : newText.getBytes().length;
+        int currentSize = mModel.getCurrentMessageSize();
+        mModel.setCurrentMessageSize(currentSize - oldSize + newSize);
+    }
+
     public void changeText(int position, String newText) {
         if (newText != null) {
             SlideModel slide = mModel.get(position);
@@ -159,6 +171,11 @@ public class SlideshowEditor {
                 text.setText(newText);
                 slide.add(text);
             } else if (!newText.equals(text.getText())) {
+                // Should update the mCurrentMessageSize of slideshow model
+                // after text was changed, otherwise the mCurrentMessageSize
+                // isn't actual size of slideshow model, it will caused
+                // user can create more than 300KB MMS.
+                updateCurrentMessageSizeAfterTextChanged(text.getText(), newText);
                 text.setText(newText);
             }
         }

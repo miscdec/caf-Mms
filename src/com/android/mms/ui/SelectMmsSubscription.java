@@ -18,6 +18,8 @@
 
 package com.android.mms.ui;
 
+import static com.android.mms.ui.MessageUtils.SUB_INVALID;
+
 import com.android.mms.R;
 import com.android.mms.util.MultiSimUtility;
 import com.android.mms.transaction.TransactionService;
@@ -56,6 +58,7 @@ public class SelectMmsSubscription extends Service {
     private SwitchSubscriptionTask switchSubscriptionTask;;
     private TransactionService mTransactionService;
     private ArrayList<TxnRequest> mQueue = new ArrayList();
+    private int mSwitchingDDS = SUB_INVALID;
 
     private final String ACTION_ALARM = "android.intent.action.ACTION_ALARM";
 
@@ -74,8 +77,8 @@ public class SelectMmsSubscription extends Service {
                     Thread.currentThread().getName());
 
             TxnSwitchResult txnSwitchResult = new TxnSwitchResult(params[0], -1);
-
             if (MultiSimUtility.getCurrentDataSubscription(mContext) != params[0].destSub) {
+                mSwitchingDDS = params[0].destSub;
                 int result = switchSubscriptionTo(params[0]);
                 txnSwitchResult.setResult(result);
                 return txnSwitchResult;
@@ -94,6 +97,7 @@ public class SelectMmsSubscription extends Service {
                 Log.d(TAG, "onPostExecute(), Thread="+Thread.currentThread().getName());
 
                 int result = resultObj.result;
+                mSwitchingDDS = SUB_INVALID;
 
                 if (result == -1) {
                     Log.d(TAG, "No DDS switch required.");
@@ -453,7 +457,9 @@ public class SelectMmsSubscription extends Service {
 
     }
 
-
+    private boolean isSwitchingDDS() {
+        return mSwitchingDDS != SUB_INVALID;
+    }
 
     public int onStartCommand(Intent intent, int flags, int startId) {
 
@@ -471,7 +477,8 @@ public class SelectMmsSubscription extends Service {
             }
         }
 
-        int currentDds = MultiSimUtility.getCurrentDataSubscription(mContext);
+        int currentDds = isSwitchingDDS() ? mSwitchingDDS :
+                MultiSimUtility.getCurrentDataSubscription(mContext);
         int defaultDataSub = MultiSimUtility.getDefaultDataSubscription(mContext);
 
         int destSub = intent.getIntExtra(Mms.SUB_ID, currentDds);
@@ -487,6 +494,9 @@ public class SelectMmsSubscription extends Service {
         Log.d(TAG, "triggerSwitchOnly = " + triggerSwitchOnly);
         Log.d(TAG, "currentDds = " + currentDds);
         Log.d(TAG, "defaultDataSub = " + defaultDataSub);
+        if (isSwitchingDDS()) {
+            Log.d(TAG, "In the process of switching to sub =, " + mSwitchingDDS);
+        }
 
         TxnRequest req = new TxnRequest(intent, destSub, originSub,
                 (triggerSwitchOnly == 1)? true : false);
@@ -494,7 +504,7 @@ public class SelectMmsSubscription extends Service {
         if (req.destSub == currentDds && req.triggerSwitchOnly != true) {
             Log.d(TAG, "This txn is for current sub, triggerTransactionService, txn=" + req);
             triggerTransactionService(req);
-        } else if (!mTransactionService.isIdle()) {
+        } else if (!mTransactionService.isIdle() || isSwitchingDDS()) {
             Log.d(TAG, "This txn is for different sub and txnServ is not idle, Q it, txn="
                     + req);
             synchronized (mQueue) {
