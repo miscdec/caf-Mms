@@ -431,9 +431,10 @@ public class TransactionService extends Service implements Observer {
                 (getApplicationContext());
 
         mConnMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (mConnMgr == null || !mConnMgr.getMobileDataEnabled()
+
+        if (mConnMgr == null || !getMobileDataEnabled(mConnMgr, currentDds)
                 || !MmsConfig.isSmsEnabled(getApplicationContext())) {
-            endMmsConnectivity();
+            endMmsConnectivity(currentDds);
             decRefCount();
             return;
         }
@@ -599,6 +600,7 @@ public class TransactionService extends Service implements Observer {
             if (txnId == null) {
                 Log.d(TAG, "Transaction already over.");
                 decRefCount();
+                launchSelectMmsSubscription(originSub);
                 return;
             }
 
@@ -623,6 +625,33 @@ public class TransactionService extends Service implements Observer {
             TransactionBundle args = new TransactionBundle(bundle);
             launchTransaction(serviceId, args, noNetwork);
         }
+    }
+
+    private void launchSelectMmsSubscription(int origSub) {
+        Context context = getApplicationContext();
+        if (MultiSimUtility.getCurrentDataSubscription(context) !=
+                MultiSimUtility.getDefaultDataSubscription(context)) {
+            Intent silentIntent = new Intent(context,
+                    com.android.mms.ui.SelectMmsSubscription.class);
+            silentIntent.putExtra(Mms.SUB_ID, origSub);
+            /*since it is trigger_switch_only, origin is irrelevant.*/
+            silentIntent.putExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
+            silentIntent.putExtra("TRIGGER_SWITCH_ONLY", 1);
+            context.startService(silentIntent);
+        } else {
+            Log.d(TAG, "Not launching SelectMmsSubscription as both current and default DDS " +
+                    "are same");
+        }
+    }
+
+    boolean getMobileDataEnabled(ConnectivityManager mConnMgr, int currentDds) {
+        boolean isMobileDataEnabled = false;
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            isMobileDataEnabled = mConnMgr.getMobileDataEnabledOnSubscription(currentDds);
+        } else {
+            isMobileDataEnabled = mConnMgr.getMobileDataEnabled();
+        }
+        return isMobileDataEnabled;
     }
 
     private void removeNotification() {
@@ -663,15 +692,8 @@ public class TransactionService extends Service implements Observer {
                 }
 
                 if (isSilent) {
-                    int nextSub = req.originSub;
-                    Log.d(TAG, "MMS silent transaction finished for sub=" + nextSub);
-                    Intent silentIntent = new Intent(getApplicationContext(),
-                            com.android.mms.ui.SelectMmsSubscription.class);
-                    silentIntent.putExtra(Mms.SUB_ID, nextSub);
-                    /*since it is trigger_switch_only, origin is irrelevant.*/
-                    silentIntent.putExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
-                    silentIntent.putExtra("TRIGGER_SWITCH_ONLY", 1);
-                    getApplicationContext().startService(silentIntent);
+                    Log.d(TAG, "MMS silent transaction finished for sub=" + req.destSub);
+                    launchSelectMmsSubscription(req.originSub);
                 }
 
                 if (!anyFailure) {
@@ -810,7 +832,7 @@ public class TransactionService extends Service implements Observer {
                 }
                 else if (mProcessing.isEmpty()) {
                     Log.d(TAG, "update: endMmsConnectivity");
-                    endMmsConnectivity();
+                    endMmsConnectivity(transaction.getSubId());
                 } else {
                     if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                         Log.v(TAG, "update: mProcessing is not empty");
@@ -1385,7 +1407,7 @@ public class TransactionService extends Service implements Observer {
 
             NetworkInfo mmsNetworkInfo = null;
 
-            if (mConnMgr != null && mConnMgr.getMobileDataEnabled()) {
+            if (mConnMgr != null && getMobileDataEnabled(mConnMgr, currentDds)) {
                 mmsNetworkInfo = mConnMgr.getNetworkInfoForSubscription(
                         ConnectivityManager.TYPE_MOBILE_MMS, currentDds);
             } else {
