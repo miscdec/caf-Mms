@@ -242,6 +242,8 @@ public class PushReceiver extends BroadcastReceiver {
                             if (!autoDownload && MSimTelephonyManager.getDefault().
                                     isMultiSimEnabled()) {
                                 Log.d(TAG, "autoDownload is disabled bail out");
+                                MessagingNotification.nonBlockingUpdateNewMessageIndicator(mContext,
+                                        MessagingNotification.THREAD_ALL, false);
                                 break;
                             }
 
