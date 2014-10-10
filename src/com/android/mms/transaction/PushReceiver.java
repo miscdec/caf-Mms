@@ -234,19 +234,6 @@ public class PushReceiver extends BroadcastReceiver {
                                 MessagingNotification.nonBlockingUpdateNewMessageIndicator(mContext,
                                         MessagingNotification.THREAD_ALL, false);
                             }
-
-                            SharedPreferences preferences = PreferenceManager.
-                                    getDefaultSharedPreferences(mContext);
-                            boolean autoDownload = preferences.getBoolean(
-                                    MessagingPreferenceActivity.AUTO_RETRIEVAL, true);
-                            if (!autoDownload && MSimTelephonyManager.getDefault().
-                                    isMultiSimEnabled()) {
-                                Log.d(TAG, "autoDownload is disabled bail out");
-                                MessagingNotification.nonBlockingUpdateNewMessageIndicator(mContext,
-                                        MessagingNotification.THREAD_ALL, false);
-                                break;
-                            }
-
                             // Start service to finish the notification transaction.
                             Intent svc = new Intent(mContext, TransactionService.class);
                             svc.putExtra(TransactionBundle.URI, uri.toString());
