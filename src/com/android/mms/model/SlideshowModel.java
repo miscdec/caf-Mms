@@ -249,8 +249,12 @@ public class SlideshowModel extends Model
                     }
 
                     if (ContentType.TEXT_VCARD.toLowerCase().equals(contentType)) {
+                        byte[] data = part.getContentLocation();
+                        if (data == null) {
+                            data = part.getName();
+                        }
                         MediaModel vMedia = new VcardModel(context, ContentType.TEXT_VCARD,
-                                new String(part.getContentLocation()), part.getDataUri());
+                                new String(data), part.getDataUri());
                         mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
                         mediaSet.add(vMedia);
                         totalMessageSize += vMedia.getMediaSize();
