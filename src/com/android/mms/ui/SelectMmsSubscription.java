@@ -227,9 +227,14 @@ public class SelectMmsSubscription extends Service {
                 if (result == 1) { //Success.
                     Log.d(TAG, "Subscription switch done.");
 
-                    while(!isNetworkAvailable()) {
-                        Log.d(TAG, "isNetworkAvailable = false, sleep..");
-                        sleep(1000);
+                    if (req.triggerSwitchOnly != true) {
+                        while(!isNetworkAvailable()) {
+                            Log.d(TAG, "isNetworkAvailable = false, sleep..");
+                            sleep(1000);
+                        }
+                    } else {
+                        Log.d(TAG, "For DDS switch back mechanism don't wait for" +
+                                "network availability");
                     }
                 } else {
                     synchronized (mQueue) {
