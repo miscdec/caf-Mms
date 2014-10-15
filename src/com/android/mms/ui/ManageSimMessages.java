@@ -119,8 +119,11 @@ public class ManageSimMessages extends Activity
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
-                int subscription = intent.getIntExtra(MSimConstants.SUBSCRIPTION_KEY, 0);
-                if (subscription == mSubscription) {
+                int subscription = intent.getIntExtra(MSimConstants.SUBSCRIPTION_KEY,
+                        MessageUtils.SUB_INVALID);
+                Log.d(TAG, "receive sim state change, subscription: " + subscription);
+                if (!MessageUtils.isMultiSimEnabledMms()
+                        || subscription == mSubscription) {
                     refreshMessageList();
                 } else {
                     Log.d(TAG, "receive other sub sim change, do nothing");
@@ -162,10 +165,14 @@ public class ManageSimMessages extends Activity
     private void init() {
         MessagingNotification.cancelNotification(getApplicationContext(),
                 SIM_FULL_NOTIFICATION_ID);
-        mSubscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY,
-                MSimConstants.INVALID_SUBSCRIPTION);
-        mIccUri = MessageUtils.getIccUriBySubscription(mSubscription);
-
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            mSubscription = getIntent().getIntExtra(MSimConstants.SUBSCRIPTION_KEY,
+                    MessageUtils.SUB_INVALID);
+            mIccUri = MessageUtils.getIccUriBySubscription(mSubscription);
+        } else {
+            mSubscription = MessageUtils.SUB_INVALID;
+            mIccUri = ICC_URI;
+        }
         updateState(SHOW_BUSY);
         startQuery();
     }
@@ -223,9 +230,11 @@ public class ManageSimMessages extends Activity
 
     private void startQuery() {
         try {
+            Log.d(TAG, "IsQuery :" + mIsQuery + " iccUri :" + mIccUri);
             if (mIsQuery) {
                 return;
             }
+
             mIsQuery = true;
             mQueryHandler.startQuery(0, null, mIccUri, null, null, null, null);
         } catch (SQLiteException e) {
