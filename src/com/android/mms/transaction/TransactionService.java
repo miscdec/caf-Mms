@@ -220,6 +220,7 @@ public class TransactionService extends Service implements Observer {
         mReceiver = new ConnectivityBroadcastReceiver();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        intentFilter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
         registerReceiver(mReceiver, intentFilter);
     }
 
@@ -496,6 +497,11 @@ public class TransactionService extends Service implements Observer {
                             Log.d(TAG, "No network during MO or retry operation");
                             decRefCountN(count);
                             Log.d(TAG, "Reverted mRef to =" + mRef);
+                            if (mRef == 0) {
+                                int originSub = intent.getIntExtra(MultiSimUtility.ORIGIN_SUB_ID,
+                                        -1);
+                                launchSelectMmsSubscription(originSub);
+                            }
                             return;
                         }
                         switch (transactionType) {
@@ -1399,6 +1405,15 @@ public class TransactionService extends Service implements Observer {
             String action = intent.getAction();
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.w(TAG, "ConnectivityBroadcastReceiver.onReceive() action: " + action);
+            }
+
+            if (action.equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
+                boolean isAirplaneModeOn = intent.getBooleanExtra("state", false);
+                Log.d(TAG, "Intent ACTION_AIRPLANE_MODE_CHANGED received: "+ isAirplaneModeOn);
+                if (isAirplaneModeOn) {
+                    mRef = 0;
+                }
+                return;
             }
 
             if (!action.equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
