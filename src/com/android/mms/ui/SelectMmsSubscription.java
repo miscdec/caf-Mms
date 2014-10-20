@@ -576,8 +576,8 @@ public class SelectMmsSubscription extends Service {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (action.equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
-                Log.d(TAG, "Intent ACTION_AIRPLANE_MODE_CHANGED received");
                 boolean isAirplaneModeOn = intent.getBooleanExtra("state", false);
+                Log.d(TAG, "Intent ACTION_AIRPLANE_MODE_CHANGED received: "+ isAirplaneModeOn);
                 if (!isAirplaneModeOn) {
                     if (isAnyPendingMsgOnNonDdsSub(context) && mDestSubId != -1) {
                         //start selectMmsSubscription to process pending messages
@@ -589,6 +589,17 @@ public class SelectMmsSubscription extends Service {
                                context, mmsIntent);
                     } else {
                         Log.d(TAG, "No pending messages on non-dds subscription");
+                    }
+                } else {
+                    int currentDds = MultiSimUtility.getCurrentDataSubscription(mContext);
+                    int defaultDataSub = MultiSimUtility.getDefaultDataSubscription(mContext);
+                    Log.d(TAG, "currentDds = " + currentDds);
+                    Log.d(TAG, "defaultDataSub = " + defaultDataSub);
+
+                    if (currentDds != defaultDataSub) {
+                        MSimTelephonyManager mtmgr = (MSimTelephonyManager)
+                        mContext.getSystemService (Context.MSIM_TELEPHONY_SERVICE);
+                        mtmgr.setPreferredDataSubscription(defaultDataSub);
                     }
                 }
             }
