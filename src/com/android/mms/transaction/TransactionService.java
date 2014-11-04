@@ -430,13 +430,16 @@ public class TransactionService extends Service implements Observer {
     public void onNewIntent(Intent intent, int serviceId) {
         int currentDds = MultiSimUtility.getCurrentDataSubscription
                 (getApplicationContext());
-
+        int originSub = intent.getIntExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
         mConnMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 
         if (mConnMgr == null || !getMobileDataEnabled(mConnMgr, currentDds)
                 || !MmsConfig.isSmsEnabled(getApplicationContext())) {
             endMmsConnectivity(currentDds);
             decRefCount();
+            if (mRef == 0) {
+                launchSelectMmsSubscription(originSub);
+            }
             return;
         }
 
@@ -479,6 +482,9 @@ public class TransactionService extends Service implements Observer {
                         RetryScheduler.setRetryAlarm(this);
                         cleanUpIfIdle(serviceId);
                         decRefCount();
+                        if (mRef == 0) {
+                            launchSelectMmsSubscription(originSub);
+                        }
                         return;
                     }
 
@@ -498,8 +504,6 @@ public class TransactionService extends Service implements Observer {
                             decRefCountN(count);
                             Log.d(TAG, "Reverted mRef to =" + mRef);
                             if (mRef == 0) {
-                                int originSub = intent.getIntExtra(MultiSimUtility.ORIGIN_SUB_ID,
-                                        -1);
                                 launchSelectMmsSubscription(originSub);
                             }
                             return;
@@ -507,6 +511,9 @@ public class TransactionService extends Service implements Observer {
                         switch (transactionType) {
                             case -1:
                                 decRefCount();
+                                if (mRef == 0) {
+                                    launchSelectMmsSubscription(originSub);
+                                }
                                 break;
                             case Transaction.RETRIEVE_TRANSACTION:
                                 // If it's a transiently failed transaction,
@@ -529,6 +536,9 @@ public class TransactionService extends Service implements Observer {
                                     // transaction.
                                     Log.d(TAG, "onNewIntent: skipping - autodownload off");
                                     decRefCount();
+                                    if (mRef == 0) {
+                                        launchSelectMmsSubscription(originSub);
+                                    }
                                     break;
                                 }
                                 // Logic is twisty. If there's no failure or the failure
@@ -540,6 +550,9 @@ public class TransactionService extends Service implements Observer {
                                         Log.v(TAG, "onNewIntent: skipping - permanent error");
                                     }
                                     decRefCount();
+                                    if (mRef == 0) {
+                                        launchSelectMmsSubscription(originSub);
+                                    }
                                     break;
                                 }
                                 if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
@@ -560,12 +573,13 @@ public class TransactionService extends Service implements Observer {
                                     Log.d(TAG, "This MMS transaction can not be done"+
                                          "on current sub. Ignore it. uri="+uri);
                                     decRefCount();
+                                    if (mRef == 0) {
+                                        launchSelectMmsSubscription(originSub);
+                                    }
                                     break;
                                 }
 
                                 int destSub = intent.getIntExtra(Mms.SUB_ID, -1);
-                                int originSub = intent.getIntExtra(
-                                        MultiSimUtility.ORIGIN_SUB_ID, -1);
 
                                 Log.d(TAG, "Destination Sub = "+destSub);
                                 Log.d(TAG, "Origin Sub = "+originSub);
@@ -590,6 +604,9 @@ public class TransactionService extends Service implements Observer {
                 RetryScheduler.setRetryAlarm(this);
                 cleanUpIfIdle(serviceId);
                 decRefCount();
+                if (mRef == 0) {
+                    launchSelectMmsSubscription(originSub);
+                }
             }
         } else {
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
@@ -597,7 +614,6 @@ public class TransactionService extends Service implements Observer {
             }
             String uriStr = intent.getStringExtra("uri");
             int destSub = intent.getIntExtra(Mms.SUB_ID, -1);
-            int originSub = intent.getIntExtra(MultiSimUtility.ORIGIN_SUB_ID, -1);
 
             Uri uri = Uri.parse(uriStr);
             int subId = getSubIdFromDb(uri);
@@ -618,6 +634,9 @@ public class TransactionService extends Service implements Observer {
                 synchronized (mRef) {
                     Log.e(TAG, "No network during MT operation");
                     decRefCount();
+                    if (mRef == 0) {
+                        launchSelectMmsSubscription(originSub);
+                    }
                 }
                 return;
             }
