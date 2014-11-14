@@ -79,8 +79,9 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
                 }
                 return;
             }
-            NetworkInfo mmsNetworkInfo = mConnMgr
-                    .getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
+            NetworkInfo mmsNetworkInfo = mConnMgr.getNetworkInfoForSubscription(
+                    ConnectivityManager.TYPE_MOBILE_MMS,
+                    MultiSimUtility.getCurrentDataSubscription(context));
             boolean available = false;
             boolean isConnected = false;
 
