@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2009 The Android Open Source Project
  *
@@ -24,22 +24,31 @@ import com.android.mms.transaction.TransactionService;
 
 import com.android.internal.telephony.MSimConstants;
 
+import com.google.android.mms.pdu.PduPersister;
+import com.google.android.mms.util.SqliteWrapper;
+
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.ContentUris;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.Context;
 import android.content.BroadcastReceiver;
+import android.database.Cursor;
+import android.database.DatabaseUtils;
+import android.net.Uri;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemProperties;
+import android.provider.Settings;
 import android.provider.Telephony.Mms;
+import android.provider.Telephony.MmsSms.PendingMessages;
 
 import android.telephony.TelephonyManager;
 import android.telephony.MSimTelephonyManager;
@@ -56,6 +65,7 @@ public class SelectMmsSubscription extends Service {
     private SwitchSubscriptionTask switchSubscriptionTask;;
     private TransactionService mTransactionService;
     private ArrayList<TxnRequest> mQueue = new ArrayList();
+    private AirplaneModeBroadcastReceiver mReceiver;
 
     private final String ACTION_ALARM = "android.intent.action.ACTION_ALARM";
 
@@ -217,9 +227,14 @@ public class SelectMmsSubscription extends Service {
                 if (result == 1) { //Success.
                     Log.d(TAG, "Subscription switch done.");
 
-                    while(!isNetworkAvailable()) {
-                        Log.d(TAG, "isNetworkAvailable = false, sleep..");
-                        sleep(1000);
+                    if (req.triggerSwitchOnly != true) {
+                        while(!isNetworkAvailable()) {
+                            Log.d(TAG, "isNetworkAvailable = false, sleep..");
+                            sleep(1000);
+                        }
+                    } else {
+                        Log.d(TAG, "For DDS switch back mechanism don't wait for" +
+                                "network availability");
                     }
                 } else {
                     synchronized (mQueue) {
@@ -282,7 +297,10 @@ public class SelectMmsSubscription extends Service {
 
         Log.d (TAG, "Create()");
         mContext = getApplicationContext();
-
+        mReceiver = new AirplaneModeBroadcastReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        registerReceiver(mReceiver, intentFilter);
     }
 
     @Override
@@ -449,6 +467,11 @@ public class SelectMmsSubscription extends Service {
 
     public int onStartCommand(Intent intent, int flags, int startId) {
 
+        if (isAirplaneModeOn()) {
+            Log.d(TAG, "onStartCommand Airplane mode is enabled bail out!!!");
+            return Service.START_NOT_STICKY;
+        }
+
         if (ACTION_ALARM.equals(intent.getAction())) {
             Log.d(TAG, "Intent=" + intent);
             synchronized (mQueue) {
@@ -519,6 +542,111 @@ public class SelectMmsSubscription extends Service {
     public void onDestroy() {
         Log.d(TAG, "onDestroy()");
         super.onDestroy();
+        unregisterReceiver(mReceiver);
     }
 
+    private boolean isAirplaneModeOn() {
+        return Settings.Global.getInt(getApplicationContext().getContentResolver(),
+                Settings.Global.AIRPLANE_MODE_ON, 0) != 0;
+    }
+
+    public class AirplaneModeBroadcastReceiver extends BroadcastReceiver {
+        private int mDestSubId = -1;
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
+                boolean isAirplaneModeOn = intent.getBooleanExtra("state", false);
+                Log.d(TAG, "Intent ACTION_AIRPLANE_MODE_CHANGED received: "+ isAirplaneModeOn);
+                if (!isAirplaneModeOn) {
+                    if (isAnyPendingMsgOnNonDdsSub(context) && mDestSubId != -1) {
+                        //start selectMmsSubscription to process pending messages
+                        Intent mmsIntent = new Intent(context, TransactionService.class);
+                        mmsIntent.putExtra(Mms.SUB_ID, mDestSubId); //destination sub id
+                        mmsIntent.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
+                                MultiSimUtility.getDefaultDataSubscription(context));
+                        MultiSimUtility.startSelectMmsSubsciptionServ(
+                               context, mmsIntent);
+                    } else {
+                        Log.d(TAG, "No pending messages on non-dds subscription");
+                    }
+                } else {
+                    int currentDds = MultiSimUtility.getCurrentDataSubscription(mContext);
+                    int defaultDataSub = MultiSimUtility.getDefaultDataSubscription(mContext);
+                    Log.d(TAG, "currentDds = " + currentDds);
+                    Log.d(TAG, "defaultDataSub = " + defaultDataSub);
+
+                    if (currentDds != defaultDataSub) {
+                        MSimTelephonyManager mtmgr = (MSimTelephonyManager)
+                        mContext.getSystemService (Context.MSIM_TELEPHONY_SERVICE);
+                        mtmgr.setPreferredDataSubscription(defaultDataSub);
+                    }
+                }
+            }
+        }
+
+        private boolean isAnyPendingMsgOnNonDdsSub(Context context) {
+            Cursor cursor = PduPersister.getPduPersister(context).getPendingMessages(
+                    Long.MAX_VALUE);
+            if (cursor != null) {
+                try {
+                    int count = cursor.getCount();
+                    if (count == 0) {
+                        return false;
+                    }
+
+                    if (cursor.moveToFirst()) {
+                        do {
+                            int columnIndexOfMsgId = cursor.getColumnIndexOrThrow(
+                                    PendingMessages.MSG_ID);
+                            Uri uri = ContentUris.withAppendedId(
+                                    Mms.CONTENT_URI,
+                                    cursor.getLong(columnIndexOfMsgId));
+                            mDestSubId = -1;
+                            int destSubId = getSubIdFromDb(uri, context);
+                            if (destSubId != -1 && destSubId != MultiSimUtility.
+                                    getDefaultDataSubscription(context)) {
+                                mDestSubId = destSubId;
+                                Log.d(TAG, "isAnyPendingMsgOnNonDdsSub dest sub : " +
+                                        mDestSubId);
+                                return true;
+                            } else {
+                                continue;
+                            }
+                        } while (cursor.moveToNext());
+                    }
+                } finally {
+                    if (cursor != null) {
+                        cursor.close();
+                    }
+                }
+            } else {
+                Log.d(TAG, "isAnyPendingMsgOnNonDdsSub cursor is invalid");
+            }
+            return false;
+        }
+
+        private int getSubIdFromDb(Uri uri, Context context) {
+            int subId = -1;
+            Cursor c = context.getContentResolver().query(uri,
+                    null, null, null, null);
+            Log.d(TAG, "Cursor= " + DatabaseUtils.dumpCursorToString(c));
+            if (c != null) {
+                try {
+                    if (c.moveToFirst()) {
+                        subId = c.getInt(c.getColumnIndex(Mms.SUB_ID));
+                        Log.d(TAG, "subId in db= " + subId );
+                        c.close();
+                        c = null;
+                    }
+                } finally {
+                    if (c != null) {
+                        c.close();
+                    }
+                }
+            }
+            return subId;
+        }
+    }
 }
