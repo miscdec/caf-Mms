@@ -238,16 +238,16 @@ public class SlideshowModel extends Model
                 }
             }
             // Add vcard when receive from other products without ref target in smil.
-            boolean isNeedAddFromPart = ((mediaNum == 0 || isClassCastFailed) && slidesNum == 1);
+            int partsNum = pb.getPartsNum();
+            boolean isNeedAddFromPart = ((mediaNum != partsNum || isClassCastFailed)
+                    && slidesNum == 1);
             if (isNeedAddFromPart) {
-                int partsNum = pb.getPartsNum();
                 for (int k = 0; k < partsNum; k++) {
                     PduPart part = pb.getPart(k);
                     String contentType = (new String(part.getContentType())).toLowerCase();
                     if (OCT_STREAM.equals(contentType)) {
                         contentType = getOctStreamContentType(part);
                     }
-
                     if (ContentType.TEXT_VCARD.toLowerCase().equals(contentType)) {
                         byte[] data = part.getContentLocation();
                         if (data == null) {
@@ -255,7 +255,6 @@ public class SlideshowModel extends Model
                         }
                         MediaModel vMedia = new VcardModel(context, ContentType.TEXT_VCARD,
                                 new String(data), part.getDataUri());
-                        mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
                         mediaSet.add(vMedia);
                         totalMessageSize += vMedia.getMediaSize();
                         break;
