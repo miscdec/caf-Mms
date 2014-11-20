@@ -47,10 +47,15 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
     private static ConnectivityManager mConnMgr = null;
 
     public static void wakeUpService(Context context) {
-        Log.d(TAG, "wakeUpService: start service ...");
-        MultiSimUtility.startSelectMmsSubsciptionServ(
-                context,
-                new Intent(context, TransactionService.class));
+        if (TransactionService.getInstance() == null
+                || TransactionService.getInstance().isIdle()) {
+            Log.d(TAG, "wakeUpService: start service ...");
+            MultiSimUtility.startSelectMmsSubsciptionServ(
+                    context,
+                    new Intent(context, TransactionService.class));
+        } else {
+            Log.d(TAG, "no need to wakeUp Service");
+        }
     }
 
     @Override
@@ -74,8 +79,9 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
                 }
                 return;
             }
-            NetworkInfo mmsNetworkInfo = mConnMgr
-                    .getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
+            NetworkInfo mmsNetworkInfo = mConnMgr.getNetworkInfoForSubscription(
+                    ConnectivityManager.TYPE_MOBILE_MMS,
+                    MultiSimUtility.getCurrentDataSubscription(context));
             boolean available = false;
             boolean isConnected = false;
 
