@@ -92,4 +92,7 @@
 
     <!-- Configuration to auto receiving Mms when mobile data is disable.-->
     <bool name="config_mms_rcv_data">false</bool>
+
+    <!-- configuration for error toast during retry -->
+    <bool name="config_mms_retry_toast">false</bool>
 </resources>
