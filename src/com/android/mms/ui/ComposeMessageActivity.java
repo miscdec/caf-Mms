@@ -3157,6 +3157,8 @@ public class ComposeMessageActivity extends Activity
             WorkingMessage.removeThumbnailsFromCache(slideShow);
             SlideModel slide = slideShow.get(0);
             currentSlideSize = slide.getSlideSize();
+            // Text can't replace by record video and sound data, so need to take it off
+            currentSlideSize -= (slide.hasText() ? slide.getText().getMediaSize() : 0);
         }
         switch (type) {
             case AttachmentTypeSelectorAdapter.ADD_IMAGE:
@@ -3223,8 +3225,7 @@ public class ComposeMessageActivity extends Activity
         // Computer attachment size limit. Subtract 1K for some text.
         long sizeLimit = MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP;
         if (slideShow != null) {
-            sizeLimit = sizeLimit -slideShow.getCurrentMessageSize()-
-                    slideShow.getTotalTextMessageSize();
+            sizeLimit = sizeLimit - slideShow.getCurrentMessageSize();
 
             // We're about to ask the camera to capture some video (or the sound recorder
             // to record some audio) which will eventually replace the content on the current
