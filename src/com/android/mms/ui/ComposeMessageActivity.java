@@ -149,6 +149,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.TelephonyProperties;
+import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -164,6 +165,7 @@ import com.android.mms.drm.DrmUtils;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.mms.transaction.SmsReceiverService;
 import com.android.mms.ui.MessageListView.OnSizeChangedListener;
 import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
 import com.android.mms.ui.MultiPickContactGroups;
@@ -254,6 +256,13 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_COPY_TO_SIM           = 34;
     private static final int MENU_RESEND                = 35;
     private static final int MENU_COPY_EXTRACT_URL      = 36;
+    private static final int MENU_ADD_TO_BLACKLIST      = 37;
+
+    private static final int DIALOG_TEMPLATE_SELECT     = 1;
+    private static final int DIALOG_TEMPLATE_NOT_AVAILABLE = 2;
+    private static final int LOAD_TEMPLATE_BY_ID        = 0;
+    private static final int LOAD_TEMPLATES             = 1;
+
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
 
@@ -399,7 +408,7 @@ public class ComposeMessageActivity extends Activity
     /**
      * Whether this activity is currently running (i.e. not paused)
      */
-    private boolean mIsRunning;
+    public static boolean mIsRunning;
 
     // we may call loadMessageAndDraft() from a few different places. This is used to make
     // sure we only load message+draft once.
@@ -2244,6 +2253,8 @@ public class ComposeMessageActivity extends Activity
         // Register a BroadcastReceiver to listen on HTTP I/O process.
         registerReceiver(mHttpProgressReceiver, mHttpProgressFilter);
 
+        registerReceiver(mDelayedSendProgressReceiver, DELAYED_SEND_COUNTDOWN_FILTER);
+
         // figure out whether we need to show the keyboard or not.
         // if there is draft to be loaded for 'mConversation', we'll show the keyboard;
         // otherwise we hide the keyboard. In any event, delay loading
@@ -2305,7 +2316,7 @@ public class ComposeMessageActivity extends Activity
         // the thread. Unblocking occurs when we're done querying for the conversation
         // items.
         mConversation.blockMarkAsRead(true);
-        mConversation.markAsRead();         // dismiss any notifications for this convo
+        mConversation.markAsRead(true);         // dismiss any notifications for this convo
         startMsgListQuery();
         updateSendFailedNotification();
     }
@@ -2395,7 +2406,7 @@ public class ComposeMessageActivity extends Activity
 
         mIsRunning = true;
         updateThreadIdIfRunning();
-        mConversation.markAsRead();
+        mConversation.markAsRead(true);
     }
 
     @Override
@@ -2432,7 +2443,7 @@ public class ComposeMessageActivity extends Activity
             Log.v(TAG, "onPause: mSavedScrollPosition=" + mSavedScrollPosition);
         }
 
-        mConversation.markAsRead();
+        mConversation.markAsRead(true);
         mIsRunning = false;
     }
 
@@ -2474,6 +2485,7 @@ public class ComposeMessageActivity extends Activity
 
         // Cleanup the BroadcastReceiver.
         unregisterReceiver(mHttpProgressReceiver);
+        unregisterReceiver(mDelayedSendProgressReceiver);
     }
 
     @Override
@@ -2907,6 +2919,13 @@ public class ComposeMessageActivity extends Activity
 
         buildAddAddressToContactMenuItem(menu);
 
+        // Add to Blacklist item (if enabled)
+        if (BlacklistUtils.isBlacklistEnabled(this)) {
+            menu.add(0, MENU_ADD_TO_BLACKLIST, 0, R.string.add_to_blacklist)
+                    .setIcon(R.drawable.ic_block_message_holo_dark)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+        }
+
         menu.add(0, MENU_PREFERENCES, 0, R.string.menu_preferences).setIcon(
                 android.R.drawable.ic_menu_preferences);
 
@@ -3023,6 +3042,9 @@ public class ComposeMessageActivity extends Activity
                 Conversation.dump();
                 LogTag.dumpInternalTables(this);
                 break;
+            case MENU_ADD_TO_BLACKLIST:
+                confirmAddBlacklist();
+                break;
         }
 
         return true;
@@ -3108,6 +3130,42 @@ public class ComposeMessageActivity extends Activity
         }
 
     }
+
+    /**
+     *  Pop up a dialog confirming adding the current number to the blacklist
+     */
+    private void confirmAddBlacklist() {
+        //TODO: get the sender number
+        final String number = getSenderNumber();
+        if (TextUtils.isEmpty(number)) {
+            return;
+        }
+
+        // Show dialog
+        final String message = getString(R.string.add_to_blacklist_message, number);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.add_to_blacklist)
+                .setMessage(message)
+                .setPositiveButton(R.string.alert_dialog_yes, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        BlacklistUtils.addOrUpdate(getApplicationContext(), number,
+                                BlacklistUtils.BLOCK_MESSAGES, BlacklistUtils.BLOCK_MESSAGES);
+                    }
+                })
+                .setNegativeButton(R.string.alert_dialog_no, null)
+                .show();
+    }
+
+    private String getSenderNumber() {
+        if (isRecipientCallable()) {
+            return getRecipients().get(0).getNumber().toString();
+        }
+
+        // Not a callable sender
+        return null;
+    }
+
     private void confirmDeleteThread(long threadId) {
         Conversation.startQueryHaveLockedMessages(mBackgroundQueryHandler,
                 threadId, ConversationList.HAVE_LOCKED_MESSAGES_TOKEN);
@@ -5773,4 +5831,34 @@ public class ComposeMessageActivity extends Activity
 
         }
     }
+
+        private static final IntentFilter DELAYED_SEND_COUNTDOWN_FILTER = new IntentFilter(
+                SmsReceiverService.ACTION_SEND_COUNTDOWN);
+
+    private final BroadcastReceiver mDelayedSendProgressReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (!SmsReceiverService.ACTION_SEND_COUNTDOWN.equals(intent.getAction())) {
+                return;
+            }
+
+            int countDown = intent.getIntExtra(SmsReceiverService.DATA_COUNTDOWN, 0);
+            Uri uri = (Uri) intent.getExtra(SmsReceiverService.DATA_MESSAGE_URI);
+            long msgId = ContentUris.parseId(uri);
+            MessageItem item = getMessageItem(uri.getAuthority(), msgId, false);
+            if (item != null) {
+                item.setCountDown(countDown);
+                int count = mMsgListView.getCount();
+                for (int i = 0; i < count; i++) {
+                    MessageListItem v = (MessageListItem) mMsgListView.getChildAt(i);
+                    MessageItem listItem = v.getMessageItem();
+                    if (item.equals(listItem)) {
+                        v.updateDelayCountDown();
+                        break;
+                    }
+                }
+            }
+        }
+    };
+
 }
