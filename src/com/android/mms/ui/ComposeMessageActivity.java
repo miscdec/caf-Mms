@@ -375,7 +375,6 @@ public class ComposeMessageActivity extends Activity
 
     private boolean mWaitingForSubActivity;
     private int mLastRecipientCount;            // Used for warning the user on too many recipients.
-    private AttachmentTypeSelectorAdapter mAttachmentTypeSelectorAdapter;
 
     private boolean mSendingMessage;    // Indicates the current message is sending, and shouldn't send again.
 
@@ -390,6 +389,7 @@ public class ComposeMessageActivity extends Activity
     private int mLastSmoothScrollPosition;
     private boolean mScrollOnSend;      // Flag that we need to scroll the list to the end.
 
+    private boolean mIsReplaceAttachment;
     private int mCurrentAttachmentPager;
     private int mSavedScrollPosition = -1;  // we save the ListView's scroll position in onPause(),
                                             // so we can remember it after re-entering the activity.
@@ -565,10 +565,22 @@ public class ComposeMessageActivity extends Activity
                 case AttachmentEditor.MSG_REPLACE_VIDEO:
                 case AttachmentEditor.MSG_REPLACE_AUDIO:
                 case AttachmentEditor.MSG_REPLACE_VCARD:
-                    showAttachmentSelector(true);
+                    if (mAttachmentSelector.getVisibility() == View.VISIBLE
+                            && mIsReplaceAttachment) {
+                        mAttachmentSelector.setVisibility(View.GONE);
+                    } else {
+                        showAttachmentSelector(true);
+                        Toast.makeText(ComposeMessageActivity.this,
+                                R.string.replace_current_attachment, Toast.LENGTH_SHORT).show();
+                    }
                     break;
 
                 case AttachmentEditor.MSG_REMOVE_ATTACHMENT:
+                    // Update the icon state in attachment selector.
+                    if (mAttachmentSelector.getVisibility() == View.VISIBLE
+                            && !mIsReplaceAttachment) {
+                        showAttachmentSelector(true);
+                    }
                     mWorkingMessage.removeAttachment(true);
                     break;
 
@@ -3030,10 +3042,6 @@ public class ComposeMessageActivity extends Activity
                 }
                 break;
             case KeyEvent.KEYCODE_BACK:
-                if (mAttachmentSelector.getVisibility() == View.VISIBLE) {
-                    mAttachmentSelector.setVisibility(View.GONE);
-                    return true;
-                }
                 exitComposeMessageActivity(new Runnable() {
                     @Override
                     public void run() {
@@ -3711,23 +3719,23 @@ public class ComposeMessageActivity extends Activity
             currentSlideSize = slide.getSlideSize();
         }
         switch (type) {
-            case AttachmentTypeSelectorAdapter.ADD_IMAGE:
+            case AttachmentPagerAdapter.ADD_IMAGE:
                 MessageUtils.selectImage(this,
                         getMakRequestCode(replace, REQUEST_CODE_ATTACH_IMAGE));
                 break;
 
-            case AttachmentTypeSelectorAdapter.TAKE_PICTURE: {
+            case AttachmentPagerAdapter.TAKE_PICTURE: {
                 MessageUtils.capturePicture(this,
                         getMakRequestCode(replace, REQUEST_CODE_TAKE_PICTURE));
                 break;
             }
 
-            case AttachmentTypeSelectorAdapter.ADD_VIDEO:
+            case AttachmentPagerAdapter.ADD_VIDEO:
                 MessageUtils.selectVideo(this,
                         getMakRequestCode(replace, REQUEST_CODE_ATTACH_VIDEO));
                 break;
 
-            case AttachmentTypeSelectorAdapter.RECORD_VIDEO: {
+            case AttachmentPagerAdapter.RECORD_VIDEO: {
                 long sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 if (sizeLimit > 0) {
                     MessageUtils.recordVideo(this,
@@ -3740,28 +3748,28 @@ public class ComposeMessageActivity extends Activity
             }
             break;
 
-            case AttachmentTypeSelectorAdapter.ADD_SOUND:
+            case AttachmentPagerAdapter.ADD_SOUND:
                 MessageUtils.selectAudio(this,
                         getMakRequestCode(replace, REQUEST_CODE_ATTACH_SOUND));
                 break;
 
-            case AttachmentTypeSelectorAdapter.RECORD_SOUND:
+            case AttachmentPagerAdapter.RECORD_SOUND:
                 long sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 MessageUtils.recordSound(this,
                         getMakRequestCode(replace, REQUEST_CODE_RECORD_SOUND), sizeLimit);
                 break;
 
-            case AttachmentTypeSelectorAdapter.ADD_SLIDESHOW:
+            case AttachmentPagerAdapter.ADD_SLIDESHOW:
                 editSlideshow();
                 break;
 
-            case AttachmentTypeSelectorAdapter.ADD_CONTACT_AS_TEXT:
+            case AttachmentPagerAdapter.ADD_CONTACT_AS_TEXT:
                 pickContacts(MultiPickContactsActivity.MODE_INFO,
                         replace ? REQUEST_CODE_ATTACH_REPLACE_CONTACT_INFO
                                 : REQUEST_CODE_ATTACH_ADD_CONTACT_INFO);
                 break;
 
-            case AttachmentTypeSelectorAdapter.ADD_CONTACT_AS_VCARD:
+            case AttachmentPagerAdapter.ADD_CONTACT_AS_VCARD:
                 pickContacts(MultiPickContactsActivity.MODE_VCARD,
                         REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD);
                 break;
@@ -3789,21 +3797,20 @@ public class ComposeMessageActivity extends Activity
 
     private void showAttachmentSelector(final boolean replace) {
         mAttachmentPager = (ViewPager) findViewById(R.id.attachments_selector_pager);
+        mIsReplaceAttachment = replace;
         hideKeyboard();
-        if (mAttachmentTypeSelectorAdapter == null) {
-            mAttachmentTypeSelectorAdapter = new AttachmentTypeSelectorAdapter(
-                    this, AttachmentTypeSelectorAdapter.MODE_WITH_SLIDESHOW);
-        }
         if (mAttachmentPagerAdapter == null) {
             mAttachmentPagerAdapter = new AttachmentPagerAdapter(this);
+        } else {
+            mAttachmentPagerAdapter.setExistAttachmentType(mWorkingMessage.hasAttachment(),
+                    mWorkingMessage.hasVcard(), mWorkingMessage.hasSlideshow(), replace);
         }
 
         mAttachmentPagerAdapter.setGridItemClickListener(new OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (view != null) {
-                    addAttachment(mAttachmentTypeSelectorAdapter.buttonToCommand(
-                            mCurrentAttachmentPager > 0 ? position
+                    addAttachment((mCurrentAttachmentPager > 0 ? position
                             + mAttachmentPagerAdapter.PAGE_GRID_COUNT : position), replace);
                     mAttachmentSelector.setVisibility(View.GONE);
                 }
@@ -4588,7 +4595,9 @@ public class ComposeMessageActivity extends Activity
                 mAttachmentEditor.requestFocus();
                 return;
             } else {
-                mBottomPanel.setVisibility(View.GONE);
+                mTextEditor.setVisibility(View.INVISIBLE);
+                mTextEditor.setText("");
+                mAttachmentEditor.hideSlideshowSendButton();
                 mAttachmentEditor.requestFocus();
                 return;
             }
@@ -4597,10 +4606,8 @@ public class ComposeMessageActivity extends Activity
         if (LOCAL_LOGV) {
             Log.v(TAG, "CMA.drawBottomPanel");
         }
-        if (mShowTwoButtons && mTextEditor.getVisibility() == View.GONE) {
+        if (mTextEditor.getVisibility() != View.VISIBLE) {
             mTextEditor.setVisibility(View.VISIBLE);
-        } else {
-            mBottomPanel.setVisibility(View.VISIBLE);
         }
 
         CharSequence text = mWorkingMessage.getText();
@@ -4662,10 +4669,14 @@ public class ComposeMessageActivity extends Activity
         } else if ((v == mRecipientsPickerGroups)) {
             launchContactGroupPicker();
         } else if ((v == mAddAttachmentButton)) {
-            if (mAttachmentSelector.getVisibility() == View.GONE) {
-                showAttachmentSelector(false);
-            } else {
+            if (mAttachmentSelector.getVisibility() == View.VISIBLE && !mIsReplaceAttachment) {
                 mAttachmentSelector.setVisibility(View.GONE);
+            } else {
+                showAttachmentSelector(false);
+                if (mWorkingMessage.hasAttachment()) {
+                    Toast.makeText(this, R.string.add_another_attachment, Toast.LENGTH_SHORT)
+                            .show();
+                }
             }
         }
     }
@@ -5275,19 +5286,8 @@ public class ComposeMessageActivity extends Activity
 
     private void updateSendButtonState() {
         boolean enable = false;
-        if (mShowTwoButtons && isPreparedForSending()) {
+        if (isPreparedForSending()) {
             enable = true;
-        } else if (isPreparedForSending()) {
-            // When the type of attachment is slideshow, we should
-            // also hide the 'Send' button since the slideshow view
-            // already has a 'Send' button embedded.
-            if (!mWorkingMessage.hasSlideshow()) {
-                enable = true;
-            } else {
-                mAttachmentEditor.setCanSend(true);
-            }
-        } else if (null != mAttachmentEditor){
-            mAttachmentEditor.setCanSend(false);
         }
 
         // invalidate the menu whether the message can be send or can't.
