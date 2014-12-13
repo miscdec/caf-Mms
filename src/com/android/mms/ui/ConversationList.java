@@ -1235,8 +1235,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         unCheckAll();
                     } else {
                         checkAll();
+                        mode.invalidate();
                     }
-                    mode.invalidate();
                     break;
                 default:
                     break;
