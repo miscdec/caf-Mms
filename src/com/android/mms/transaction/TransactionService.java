@@ -161,6 +161,10 @@ public class TransactionService extends Service implements Observer {
     private static final int TOAST_DOWNLOAD_CANCELED = 6;
     private static final int TOAST_NONE = -1;
 
+    Object mMmsConnectivityLock = new Object();
+    //wait for 500ms between endMmsConnectivity and beginMmsConnectivity
+    private static final int END_MMS_CONNECTIVITY_DELAY = 500;
+
     // How often to extend the use of the MMS APN while a transaction
     // is still being processed.
     private static final int APN_EXTENSION_WAIT = 30 * 1000;
@@ -185,6 +189,7 @@ public class TransactionService extends Service implements Observer {
         @Override
         public void handleMessage(Message msg) {
             String str = null;
+            boolean showRetryToast = getResources().getBoolean(R.bool.config_mms_retry_toast);
 
             if (msg.what == TOAST_MSG_QUEUED) {
                 str = getString(R.string.message_queued);
@@ -192,9 +197,9 @@ public class TransactionService extends Service implements Observer {
                 str = getString(R.string.download_later);
             } else if (msg.what == TOAST_NO_APN) {
                 str = getString(R.string.no_apn);
-            } else if (msg.what == TOAST_SEND_FAILED_RETRY) {
+            } else if (msg.what == TOAST_SEND_FAILED_RETRY && showRetryToast) {
                 str = getString(R.string.send_failed_retry);
-            } else if (msg.what == TOAST_DOWNLOAD_FAILED_RETRY) {
+            } else if (msg.what == TOAST_DOWNLOAD_FAILED_RETRY && showRetryToast) {
                 str = getString(R.string.download_failed_retry);
             } else if (msg.what == TOAST_DOWNLOAD_CANCELED) {
                 str = getString(R.string.download_canceled);
@@ -1137,29 +1142,30 @@ public class TransactionService extends Service implements Observer {
             subId = MultiSimUtility.getCurrentDataSubscription(getApplicationContext());
         }
 
-        int result = mConnMgr.startUsingNetworkFeatureForSubscription(
-                ConnectivityManager.TYPE_MOBILE, Phone.FEATURE_ENABLE_MMS, subId);
+        synchronized(mMmsConnectivityLock) {
+            int result = mConnMgr.startUsingNetworkFeatureForSubscription(
+                    ConnectivityManager.TYPE_MOBILE, Phone.FEATURE_ENABLE_MMS, subId);
 
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE )|| DEBUG) {
-            Log.v(TAG, "beginMmsConnectivity: result=" + result);
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE )|| DEBUG) {
+                Log.v(TAG, "beginMmsConnectivity: result=" + result);
+            }
+
+            switch (result) {
+                case PhoneConstants.APN_ALREADY_ACTIVE:
+                    acquireWakeLock();
+                    return result;
+                case PhoneConstants.APN_REQUEST_STARTED:
+                    acquireWakeLock();
+                    boolean reconnect = getResources().getBoolean(R.bool.config_reconnect)
+                            || getResources().getBoolean(R.bool.config_retry_always);
+                    if (reconnect) {
+                        mServiceHandler.sendEmptyMessageDelayed(EVENT_MMS_CONNECTIVITY_TIMEOUT,
+                                MMS_CONNECTIVITY_DELAY);
+                    }
+                    //utAbortTransaction(transaction, subId);
+                    return result;
+            }
         }
-
-        switch (result) {
-            case PhoneConstants.APN_ALREADY_ACTIVE:
-                acquireWakeLock();
-                return result;
-            case PhoneConstants.APN_REQUEST_STARTED:
-                acquireWakeLock();
-                boolean reconnect = getResources().getBoolean(R.bool.config_reconnect)
-                        || getResources().getBoolean(R.bool.config_retry_always);
-                if (reconnect) {
-                    mServiceHandler.sendEmptyMessageDelayed(EVENT_MMS_CONNECTIVITY_TIMEOUT,
-                            MMS_CONNECTIVITY_DELAY);
-                }
-                //utAbortTransaction(transaction, subId);
-                return result;
-        }
-
         throw new IOException("Cannot establish MMS connectivity");
     }
 
@@ -1182,11 +1188,15 @@ public class TransactionService extends Service implements Observer {
                 // cancel timer for renewal of lease
                 mServiceHandler.removeMessages(EVENT_CONTINUE_MMS_CONNECTIVITY);
             }
-            if (mConnMgr != null) {
-                mConnMgr.stopUsingNetworkFeatureForSubscription(
-                        ConnectivityManager.TYPE_MOBILE,
-                        Phone.FEATURE_ENABLE_MMS, subId);
-            }
+
+            synchronized(mMmsConnectivityLock) {
+                if (mConnMgr != null) {
+                    mConnMgr.stopUsingNetworkFeatureForSubscription(
+                            ConnectivityManager.TYPE_MOBILE,
+                            Phone.FEATURE_ENABLE_MMS, subId);
+                }
+                sleep(END_MMS_CONNECTIVITY_DELAY);
+             }
         } finally {
             releaseWakeLock();
             Log.d(TAG, "Deactivating MMS PDP. Mark the UI for all the pending"
@@ -1194,6 +1204,18 @@ public class TransactionService extends Service implements Observer {
             mServiceHandler.markAllPendingTransactionsAsFailed();
         }
     }
+
+    void sleep(int ms) {
+        try {
+            Log.d(TAG, "Sleeping for "+ms+"(ms)...");
+            Thread.currentThread().sleep(ms);
+            Log.d(TAG, "Sleeping...Done!");
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
     private final class ServiceHandler extends Handler {
         public ServiceHandler(Looper looper) {
             super(looper);
