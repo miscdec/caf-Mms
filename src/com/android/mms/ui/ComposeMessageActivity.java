@@ -5402,7 +5402,6 @@ public class ComposeMessageActivity extends Activity
         // and the text editor is not already focused, focus the
         // recipients editor.
         if (isRecipientsEditorVisible()
-                && TextUtils.isEmpty(mRecipientsEditor.getText())
                 && !mTextEditor.isFocused()) {
             mRecipientsEditor.requestFocus();
             return;
