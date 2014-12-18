@@ -26,6 +26,9 @@
     <drawable name="text_color_black">#ff000000</drawable>
     <color name="text_hairline">#ffcccccc</color>
     <color name="message_count_color">#66333333</color>
+    <color name="message_recv_date_color">#7f000000</color>
+    <color name="message_send_date_color">#7fffffff</color>
+    <color name="message_link_color">#ff0000ff</color>
 
     <!-- Chat "sent time" text background -->
     <color name="timestamp_color">#bf000000</color>

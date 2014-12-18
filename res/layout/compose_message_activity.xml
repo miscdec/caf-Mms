@@ -70,6 +70,7 @@
             android:visibility="gone"
             android:fadingEdge="none"
             android:layout_marginBottom="1dip"
+            android:listSelector="@android:color/transparent"
             android:cacheColorHint="@android:color/white"
             android:scrollbarAlwaysDrawVerticalTrack="false"
             android:scrollbarStyle="insideOverlay"

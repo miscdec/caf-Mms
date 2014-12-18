@@ -110,6 +110,7 @@ public class MessageListItem extends LinearLayout implements
     static final int MSG_LIST_PLAY    = 2;
     static final int MSG_LIST_DETAILS = 3;
 
+    private boolean mSimMessagesMode = false;
     private boolean mMultiChoiceMode = false;
 
     private View mMmsView;
@@ -189,14 +190,10 @@ public class MessageListItem extends LinearLayout implements
             if (mChecked != null) {
                 mChecked.setChecked(selected);
             }
-            mMessageBlock.getBackground().setAlpha(ALPHA_TRANSPARENT);
-            mMmsLayout.setBackgroundResource(R.drawable.list_selected_holo_light);
         } else {
             if (mChecked != null) {
                 mChecked.setChecked(selected);
             }
-            mMessageBlock.setBackgroundResource(R.drawable.listitem_background);
-            mMmsLayout.setBackgroundResource(R.drawable.listitem_background);
         }
     }
 
@@ -253,6 +250,10 @@ public class MessageListItem extends LinearLayout implements
         if (mPresenter != null) {
             mPresenter.cancelBackgroundLoading();
         }
+    }
+
+    public int getItemPosition() {
+        return mPosition;
     }
 
     public MessageItem getMessageItem() {
@@ -400,7 +401,11 @@ public class MessageListItem extends LinearLayout implements
         }
         mDeliveredIndicator.setVisibility(View.GONE);
         mDetailsIndicator.setVisibility(View.GONE);
-        updateAvatarView(mMessageItem.mAddress, false);
+        if (mSimMessagesMode) {
+            updateAvatarView(mMessageItem.mAddress, false);
+        } else {
+            mAvatar.setVisibility(View.GONE);
+        }
     }
 
     private void startDownloadAttachment() {
@@ -515,10 +520,14 @@ public class MessageListItem extends LinearLayout implements
         // the pdu, we don't want to call updateAvatarView because it
         // will set the avatar to the generic avatar then when this method is called again
         // from onPduLoaded, it will reset to the real avatar. This test is to avoid that flash.
-        if (!sameItem || haveLoadedPdu) {
-            boolean isSelf = Sms.isOutgoingFolder(mMessageItem.mBoxId);
-            String addr = isSelf ? null : mMessageItem.mAddress;
-            updateAvatarView(addr, isSelf);
+        if (mSimMessagesMode) {
+            if (!sameItem || haveLoadedPdu) {
+                boolean isSelf = Sms.isOutgoingFolder(mMessageItem.mBoxId);
+                String addr = isSelf ? null : mMessageItem.mAddress;
+                updateAvatarView(addr, isSelf);
+            }
+        } else {
+            mAvatar.setVisibility(View.GONE);
         }
 
         // Add SIM sms address above body.
@@ -632,6 +641,19 @@ public class MessageListItem extends LinearLayout implements
                 mPresenter.present(mImageLoadedCallback);
             }
         }
+        mMessageBlock.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onMessageListItemClick();
+            }
+        });
+        // Call context menu of message list.
+        mMessageBlock.setOnLongClickListener(new OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                return v.showContextMenu();
+            }
+        });
         drawRightStatusIndicator(mMessageItem);
 
         requestLayout();
@@ -832,19 +854,6 @@ public class MessageListItem extends LinearLayout implements
                 // Set call-back for the 'Play' button.
                 mSlideShowButton.setOnClickListener(this);
                 mSlideShowButton.setVisibility(View.VISIBLE);
-                setLongClickable(true);
-
-                // When we show the mSlideShowButton, this list item's onItemClickListener doesn't
-                // get called. (It gets set in ComposeMessageActivity:
-                // mMsgListView.setOnItemClickListener) Here we explicitly set the item's
-                // onClickListener. It allows the item to respond to embedded html links and at the
-                // same time, allows the slide show play button to work.
-                setOnClickListener(new OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        onMessageListItemClick();
-                    }
-                });
                 break;
             default:
                 mSlideShowButton.setVisibility(View.GONE);
@@ -1097,6 +1106,10 @@ public class MessageListItem extends LinearLayout implements
                 mDateView.setVisibility(View.GONE);
             }
         }
+    }
+
+    public void setSimMessagesMode(boolean isSimMessagesMode) {
+        mSimMessagesMode = isSimMessagesMode;
     }
 
     public void setMultiChoiceMode(boolean isMultiChoiceMode) {

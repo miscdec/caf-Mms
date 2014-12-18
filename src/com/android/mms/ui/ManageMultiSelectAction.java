@@ -518,33 +518,18 @@ public class ManageMultiSelectAction extends Activity {
                             ManageMultiSelectAction.this, mCursor, mMsgListView, false, null);
                     mMsgListAdapter.setMultiChoiceMode(true);
                     mMsgListAdapter.setMultiManageMode(mManageMode);
+                    mMsgListAdapter.setMultiManageClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            updateSelectState(v);
+                            updateSelectMenu();
+                        }
+                    });
                     mMsgListView.setAdapter(mMsgListAdapter);
+                    mMsgListView.setDivider(null);
                     mMsgListView.setVisibility(View.VISIBLE);
                     mMessage.setVisibility(View.GONE);
                     mMsgListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-                    mMsgListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                        public void onItemClick(AdapterView<?> parent, View view, int position,
-                                long id) {
-                            mMsgListView.invalidateViews();
-                            final int checkedCount = mMsgListView.getCheckedItemCount();
-                            mSelectionMenu
-                                    .setTitle(getString(R.string.selected_count, checkedCount));
-                            int count = mMsgListAdapter.getCount();
-                            if (checkedCount == count) {
-                                mHasSelectAll = true;
-                            }
-                            else {
-                                mHasSelectAll = false;
-                            }
-                            mSelectionMenu.updateSelectAllMode(mHasSelectAll);
-                            if (checkedCount == 0) {
-                                mActionButton.setEnabled(false);
-                            } else {
-                                mActionButton.setEnabled(true);
-                            }
-                        }
-                    });
-                    mMsgListView.requestFocus();
                     setProgressBarIndeterminateVisibility(false);
                 } else {
                     mMsgListAdapter.changeCursor(mCursor);
@@ -553,6 +538,38 @@ public class ManageMultiSelectAction extends Activity {
                 finish();
             }
             return;
+        }
+
+        private void updateSelectState(View listItemChild) {
+            int clickPosition = getMessageListItem(listItemChild).getItemPosition();
+            mMsgListView.setItemChecked(
+                    clickPosition, !(mMsgListView.isItemChecked(clickPosition)));
+            mMsgListView.invalidateViews();
+        }
+
+        private MessageListItem getMessageListItem(View listItemChild) {
+            View parent = (View) listItemChild.getParent();
+            while (!(parent instanceof MessageListItem)) {
+                parent = (View) parent.getParent();
+            }
+            return (MessageListItem) parent;
+        }
+
+        private void updateSelectMenu() {
+            final int checkedCount = mMsgListView.getCheckedItemCount();
+            mSelectionMenu.setTitle(getString(R.string.selected_count, checkedCount));
+            int count = mMsgListAdapter.getCount();
+            if (checkedCount == count) {
+                mHasSelectAll = true;
+            } else {
+                mHasSelectAll = false;
+            }
+            mSelectionMenu.updateSelectAllMode(mHasSelectAll);
+            if (checkedCount == 0) {
+                mActionButton.setEnabled(false);
+            } else {
+                mActionButton.setEnabled(true);
+            }
         }
     }
 }

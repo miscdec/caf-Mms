@@ -29,7 +29,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:cacheColorHint="#ffffffff"
-        android:listSelector="@android:drawable/list_selector_background"
+        android:listSelector="@android:color/transparent"
         android:divider="@android:drawable/divider_horizontal_bright"
         android:focusable="true"
         android:drawSelectorOnTop="false"
