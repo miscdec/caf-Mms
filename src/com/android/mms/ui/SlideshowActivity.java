@@ -330,6 +330,9 @@ public class SlideshowActivity extends Activity implements EventListener {
 
     @Override
     protected void onDestroy() {
+        if (!mSmilPlayer.isStoppedState()) {
+            mSmilPlayer.stop();
+        }
         if (mSlideView != null) {
             mSlideView.setMediaController(null);
         }
