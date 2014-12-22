@@ -185,6 +185,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         registerListeners();
         updateSmsEnabledState();
         updateSMSCPref();
+        updateManageSimPref();
     }
 
     @Override
@@ -843,6 +844,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 String action = intent.getAction();
                 if (Intent.ACTION_AIRPLANE_MODE_CHANGED.equals(action)) {
                     updateSMSCPref();
+                    updateManageSimPref();
                 } else if (NOTIFY_SMSC_ERROR.equals(action)) {
                     showToast(R.string.set_smsc_error);
                 } else if (NOTIFY_SMSC_SUCCESS.equals(action)) {
@@ -1010,5 +1012,14 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         return MmsConfig.getGroupMmsEnabled() &&
                 groupMmsPrefOn &&
                 !TextUtils.isEmpty(MessageUtils.getLocalNumber());
+    }
+
+    private void updateManageSimPref() {
+        if (!isAirPlaneModeOn() &&
+                MmsApp.getApplication().getTelephonyManager().hasIccCard()) {
+            mSmsPrefCategory.addPreference(mManageSimPref);
+        } else {
+            mSmsPrefCategory.removePreference(mManageSimPref);
+        }
     }
 }
