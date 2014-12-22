@@ -87,6 +87,7 @@ import com.android.mms.ui.SearchActivityExtend;
 import com.android.mms.ui.SelectionMenu;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.DownloadManager;
+import com.android.mms.util.DraftCache;
 import com.android.mms.util.MultiSimUtility;
 import com.google.android.mms.pdu.PduHeaders;
 
@@ -874,6 +875,10 @@ public class MailBoxMessageList extends ListActivity implements
                             Toast.LENGTH_LONG).show();
                 }
             }
+        }
+
+        if (mQueryBoxType == TYPE_DRAFTBOX) {
+            DraftCache.getInstance().refresh();
         }
 
         if (mThreadIds.size() > 0) {
