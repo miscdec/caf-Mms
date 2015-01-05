@@ -1148,6 +1148,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 if (DEBUGCLEANUP) {
                     LogTag.debug("onQueryComplete finished DELETE_OBSOLETE_THREADS_TOKEN");
                 }
+
+                if (result > 0) {
+                    startAsyncQuery();
+                }
                 break;
             }
         }
