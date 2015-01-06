@@ -487,6 +487,11 @@ public class SelectMmsSubscription extends Service {
             return Service.START_NOT_STICKY;
         }
 
+        if (MessageUtils.getActivatedIccCardCount() == 0) {
+            Log.d(TAG, "onStartCommand Activated Icc Card Count is zero bail out!!!");
+            return Service.START_NOT_STICKY;
+        }
+
         if (ACTION_ALARM.equals(intent.getAction())) {
             Log.d(TAG, "Intent=" + intent);
             synchronized (mQueue) {
