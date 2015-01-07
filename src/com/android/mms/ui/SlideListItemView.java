@@ -28,6 +28,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
@@ -162,6 +163,13 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
                                     intent.putExtra(MessageUtils.VIEW_VCARD, true);
                                 } else {
                                     if (lookupUri != null) {
+                                        if (!MessageUtils
+                                                .isVcardExistInContactDB(mContext, lookupUri)) {
+                                            Toast.makeText(mContext,
+                                                    R.string.invalidContactMessage,
+                                                    Toast.LENGTH_SHORT).show();
+                                            return;
+                                        }
                                         intent.setData(lookupUri);
                                     } else {
                                         intent.setData(attachmentUri);

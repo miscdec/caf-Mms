@@ -959,6 +959,10 @@
     <string name="contact_info_text_as_phone">Tel:</string>
     <string name="contact_info_text_as_email">Email:</string>
 
+    <!-- Message displayed in a toast when you try to view the details of a contact that
+     for some reason doesn't exist anymore.-->
+    <string name="invalidContactMessage">The contact doesn\'t exist.</string>
+
     <!-- title of mailboxmessagecontent -->
     <string name="sim_card">SIM card</string>
 
