@@ -868,14 +868,39 @@ public class ComposeMessageActivity extends Activity
     }
 
     private class SendIgnoreInvalidRecipientListener implements OnClickListener {
+        int mSubIndicator = MessageUtils.SUB_INVALID;
+
+        public SendIgnoreInvalidRecipientListener(int subscription) {
+            mSubIndicator = subscription;
+        }
+
+        public SendIgnoreInvalidRecipientListener() {
+        }
+
+        private void showDialog() {
+            if (mSubIndicator == MessageUtils.SUB_INVALID) {
+                showMobileDataDisabledDialog();
+            } else {
+                showMobileDataDisabledDialog(mSubIndicator);
+            }
+        }
+
+        private void sendMessageWithInvalidRecipient() {
+            if (mSubIndicator == MessageUtils.SUB_INVALID) {
+                sendMsimMessage(true);
+            } else {
+                sendMsimMessage(true, mSubIndicator);
+            }
+        }
+
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
             boolean isMms = mWorkingMessage.requiresMms();
             if (MessageUtils.isMobileDataDisabled(ComposeMessageActivity.this)
                     && enableMmsData && isMms) {
-                showMobileDataDisabledDialog();
+                showDialog();
             } else if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-                sendMsimMessage(true);
+                sendMessageWithInvalidRecipient();
             } else {
                 sendMessage(true);
             }
@@ -1022,7 +1047,7 @@ public class ComposeMessageActivity extends Activity
         if (!isRecipientsEditorVisible()) {
             if (MessageUtils.isMobileDataDisabled(this) &&
                     enableMmsData && isMms) {
-                showMobileDataDisabledDialog();
+                showMobileDataDisabledDialog(subscription);
             } else {
                 sendMsimMessage(true, subscription);
             }
@@ -1030,10 +1055,10 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
-            showInvalidRecipientDialog();
+            showInvalidRecipientDialog(subscription);
         } else if (MessageUtils.isMobileDataDisabled(this) &&
                 enableMmsData && isMms) {
-            showMobileDataDisabledDialog();
+            showMobileDataDisabledDialog(subscription);
         } else {
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
@@ -1102,6 +1127,28 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private void showInvalidRecipientDialog(int subscription) {
+        boolean isMms = mWorkingMessage.requiresMms();
+        if (mRecipientsEditor.getValidRecipientsCount(isMms)
+                > MessageUtils.ALL_RECIPIENTS_INVALID) {
+            String title = getResourcesString(R.string.has_invalid_recipient,
+                    mRecipientsEditor.formatInvalidNumbers(isMms));
+            mInvalidRecipientDialog = new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(R.string.invalid_recipient_message)
+                .setPositiveButton(R.string.try_to_send,
+                        new SendIgnoreInvalidRecipientListener(subscription))
+                .setNegativeButton(R.string.no, new CancelSendingListener())
+                .show();
+        } else {
+            mInvalidRecipientDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.cannot_send_message)
+                .setMessage(R.string.cannot_send_message_reason)
+                .setPositiveButton(R.string.yes, new CancelSendingListener())
+                .show();
+        }
+    }
+
     private void showMobileDataDisabledDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.send)
@@ -1111,6 +1158,24 @@ public class ComposeMessageActivity extends Activity
                 public void onClick(DialogInterface dialog, int whichButton) {
                     if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                         sendMsimMessage(true);
+                    } else {
+                        sendMessage(true);
+                    }
+                    dialog.dismiss();
+                }
+            })
+            .setNegativeButton(R.string.no, null).show();
+    }
+
+    private void showMobileDataDisabledDialog(final int subscription) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.send)
+            .setMessage(this.getString(R.string.mobile_data_disable,
+                this.getString(R.string.mobile_data_send)))
+            .setPositiveButton(R.string.yes, new OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                        sendMsimMessage(true, subscription);
                     } else {
                         sendMessage(true);
                     }
