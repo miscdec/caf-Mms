@@ -485,6 +485,11 @@ public class ComposeMessageActivity extends Activity
     private boolean mIsAudioPlayerActivityRunning = false;
     private boolean mIsLocked = false;
 
+    private static String FILE_PATH_COLUMN = "_data";
+    private static String BROADCAST_DATA_SCHEME = "file";
+    private static String URI_SCHEME_CONTENT = "content";
+    private static String URI_HOST_MEDIA = "media";
+
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
         Thread current = Thread.currentThread();
@@ -2219,6 +2224,14 @@ public class ComposeMessageActivity extends Activity
         }
     };
 
+    private final BroadcastReceiver mMediaStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i(TAG, "mMediaStateReceiver action = " + intent.getAction());
+            checkAttachFileState(context);
+        }
+    };
+
     private static ContactList sEmptyContactList;
 
     private ContactList getRecipients() {
@@ -2684,6 +2697,14 @@ public class ComposeMessageActivity extends Activity
         // Register a BroadcastReceiver to listen on HTTP I/O process.
         registerReceiver(mHttpProgressReceiver, mHttpProgressFilter);
 
+        // Register a BroadcastReceiver to listen on SD card state.
+        IntentFilter f = new IntentFilter();
+        f.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
+        f.addAction(Intent.ACTION_MEDIA_REMOVED);
+        f.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
+        f.addDataScheme(BROADCAST_DATA_SCHEME);
+        registerReceiver(mMediaStateReceiver, f);
+
         // figure out whether we need to show the keyboard or not.
         // if there is draft to be loaded for 'mConversation', we'll show the keyboard;
         // otherwise we hide the keyboard. In any event, delay loading
@@ -2920,6 +2941,7 @@ public class ComposeMessageActivity extends Activity
 
         // Cleanup the BroadcastReceiver.
         unregisterReceiver(mHttpProgressReceiver);
+        unregisterReceiver(mMediaStateReceiver);
 
         if (mAttachmentSelector.getVisibility() == View.VISIBLE) {
             mAttachmentSelector.setVisibility(View.GONE);
@@ -5932,5 +5954,48 @@ public class ComposeMessageActivity extends Activity
             }
         }
         return ret;
+    }
+
+    private String getAttachFilePath(Context context, Uri uri){
+        if (URI_SCHEME_CONTENT.equals(uri.getScheme())
+                && URI_HOST_MEDIA.equals(uri.getHost())) {
+            Cursor c = context.getContentResolver().query(uri, null,
+                    null, null, null);
+            if (c != null) {
+                try {
+                    if (c.moveToFirst()) {
+                        return c.getString(c.getColumnIndex(FILE_PATH_COLUMN));
+                    }
+                } finally {
+                    c.close();
+                }
+            }
+            return null;
+        } else {
+            return uri.getPath().toString();
+        }
+    }
+
+    private void checkAttachFileState(Context context) {
+        if (mWorkingMessage.hasAttachment() && !mWorkingMessage.hasSlideshow()) {
+            ArrayList<Uri> attachFileUris = mWorkingMessage.getSlideshow().getAttachFileUri();
+            for (Uri uri : attachFileUris) {
+                Log.i(TAG, "Attach file uri is " + uri);
+                if (uri == null) {
+                    continue;
+                }
+                String path = getAttachFilePath(context, uri);
+                Log.i(TAG, "File path is " + path);
+                File f = new File(path);
+                if (f == null || !f.exists()) {
+                    Log.i(TAG, "set attachment null");
+                    Toast.makeText(ComposeMessageActivity.this,
+                            R.string.cannot_send_attach_reason,
+                            Toast.LENGTH_SHORT).show();
+                    mWorkingMessage.setAttachment(WorkingMessage.TEXT, null, false);
+                    break;
+                }
+            }
+        }
     }
 }
