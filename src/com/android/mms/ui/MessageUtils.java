@@ -769,6 +769,19 @@ public class MessageUtils {
         }
     }
 
+    public static boolean isVcardExistInContactDB(Context context, Uri uri) {
+        Cursor cursor = context.getContentResolver().query(uri, null, null,
+                null, null);
+        if (cursor != null) {
+            try {
+                return cursor.moveToFirst();
+            } finally {
+                cursor.close();
+            }
+        }
+        return false;
+    }
+
     public static void viewSimpleSlideshow(Context context, SlideshowModel slideshow) {
         if (!slideshow.isSimple()) {
             throw new IllegalArgumentException(
@@ -783,7 +796,10 @@ public class MessageUtils {
         } else if (slide.hasVcard()) {
             mm = slide.getVcard();
             String lookupUri = ((VcardModel) mm).getLookupUri();
-
+            if (!isVcardExistInContactDB(context, Uri.parse(lookupUri))) {
+                Toast.makeText(context, R.string.invalidContactMessage,Toast.LENGTH_SHORT).show();
+                return;
+            }
             Intent intent = new Intent(Intent.ACTION_VIEW);
             if (!TextUtils.isEmpty(lookupUri) && lookupUri.contains("contacts")) {
                 // if the uri is from the contact, we suggest to view the contact.
