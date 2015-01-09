@@ -85,6 +85,8 @@ public class PushReceiver extends BroadcastReceiver {
     private static final String WAP_PUSH_TYPE_SLC = "application/vnd.wap.slc";
     private static final String WAP_PUSH = ":Browser Information"; // Wap push key
 
+    private static final int DDS_SWITCH_DELAY_TIME = 2000;
+
     private class ReceivePushTask extends AsyncTask<Intent,Void,Void> {
         private Context mContext;
         public ReceivePushTask(Context context) {
@@ -252,6 +254,12 @@ public class PushReceiver extends BroadcastReceiver {
                                 }
 
                                 if (isSilent) {
+                                    // Delay 2s to switch DDS to avoid switch failure
+                                    // due to CM busy.
+                                    if (subId != MultiSimUtility
+                                            .getDefaultDataSubscription(mContext)) {
+                                        sleep(DDS_SWITCH_DELAY_TIME);
+                                    }
                                     Log.d(TAG, "MMS silent transaction");
                                     Intent silentIntent = new Intent(mContext,
                                             com.android.mms.ui.SelectMmsSubscription.class);
@@ -288,6 +296,16 @@ public class PushReceiver extends BroadcastReceiver {
             }
 
             return null;
+        }
+    }
+
+    void sleep(int ms) {
+        try {
+            Log.d(TAG, "Sleeping for "+ms+"(ms)...");
+            Thread.currentThread().sleep(ms);
+            Log.d(TAG, "Sleeping...Done!");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
