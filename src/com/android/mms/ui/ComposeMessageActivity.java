@@ -69,6 +69,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -475,6 +476,8 @@ public class ComposeMessageActivity extends Activity
     private boolean mShowTwoButtons = false;
 
     private Object mAddAttachmentLock = new Object();
+    private int mResizeImageCount = 0;
+    private Object mObjectLock = new Object();
 
     private boolean mShowAttIcon = false;
     private final static int REPLACE_ATTACHMEN_MASK = 1 << 16;
@@ -4212,6 +4215,14 @@ public class ComposeMessageActivity extends Activity
         // TODO: make this produce a Uri, that's what we want anyway
         @Override
         public void onResizeResult(PduPart part, boolean append) {
+            synchronized (mObjectLock) {
+                mResizeImageCount = mResizeImageCount - 1;
+                if (mResizeImageCount <= 0) {
+                    log("finish resize all images.");
+                    mObjectLock.notifyAll();
+                }
+            }
+
             if (part == null) {
                 handleAddAttachmentError(WorkingMessage.UNKNOWN_ERROR, R.string.type_picture);
                 return;
@@ -4316,6 +4327,7 @@ public class ComposeMessageActivity extends Activity
             if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 log("resize image " + uri);
             }
+            mResizeImageCount ++;
             MessageUtils.resizeImageAsync(ComposeMessageActivity.this,
                     uri, mAttachmentEditorHandler, mResizeImageCallback, append);
             return;
@@ -4444,6 +4456,9 @@ public class ComposeMessageActivity extends Activity
             getAsyncDialog().runAsync(new Runnable() {
                 @Override
                 public void run() {
+                    setRequestedOrientation(mIsLandscape ?
+                        ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                        : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                     String type = mimeType;
                     for (int i = 0; i < numberToImport; i++) {
                         Parcelable uri = uris.get(i);
@@ -4455,11 +4470,26 @@ public class ComposeMessageActivity extends Activity
                         }
                     }
                     updateMmsSizeIndicator();
+                    synchronized (mObjectLock) {
+                        if (mResizeImageCount != 0) {
+                            waitForResizeImages();
+                        }
+                    }
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                 }
             }, null, R.string.adding_attachments_title);
             return true;
         }
         return false;
+    }
+
+    private void waitForResizeImages() {
+        try {
+            log("wait for " + mResizeImageCount + " resize image finish. ");
+            mObjectLock.wait();
+        } catch (InterruptedException ex) {
+            // try again by virtue of the loop unless mQueryPending is false
+        }
     }
 
     private String getAttachmentMimeType(Uri uri) {
