@@ -223,7 +223,7 @@ public class MessageListItem extends LinearLayout implements
                                 // to this listitem. We always want the listview to handle the
                                 // clicks first.
 
-        mContact = Contact.get(mMessageItem.mAddress, true);
+        mContact = Contact.get(mMessageItem.mAddress, false);
         switch (msgItem.mMessageType) {
             case PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND:
                 bindNotifInd();
