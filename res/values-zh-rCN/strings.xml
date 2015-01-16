@@ -448,6 +448,7 @@
     <string name="slot1">"卡1"</string>
     <string name="slot2">"卡2"</string>
     <string name="contact_app_not_found">"找不到联系人应用"</string>
+    <string name="audio_picker_app_not_found">"找不到选择音频的应用"</string>
     <string name="search_bar_hint">"搜索联系人"</string>
     <string name="select_all">"全选"</string>
     <string name="pref_summary_wap_push_enabled">"允许接收服务信息"</string>
