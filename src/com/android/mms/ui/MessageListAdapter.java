@@ -45,6 +45,7 @@ import android.widget.ListView;
 
 import com.android.mms.R;
 import com.google.android.mms.MmsException;
+import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
 
 /**
  * The back-end data adapter of a message list.
@@ -62,6 +63,20 @@ public class MessageListAdapter extends CursorAdapter {
         Sms.ADDRESS,
         Sms.BODY,
         Sms.SUB_ID,
+        "rcs_path" ,
+        "rcs_thumb_path" ,
+        "rcs_msg_type" ,
+        "rcs_id",
+        "rcs_burn_flag",
+        "rcs_is_burn",
+        "rcs_is_download",
+        "rcs_msg_state",
+        "rcs_mime_type",
+        "favourite",
+        "rcs_file_size",
+        "rcs_play_time",
+        "rcs_message_id",
+        "rcs_chat_type",
         Sms.DATE,
         Sms.DATE_SENT,
         Sms.READ,
@@ -94,6 +109,20 @@ public class MessageListAdapter extends CursorAdapter {
         Sms.ADDRESS,
         Sms.BODY,
         Sms.SUB_ID,
+        "rcs_path" ,
+        "rcs_thumb_path" ,
+        "rcs_msg_type" ,
+        "rcs_id",
+        "rcs_burn_flag",
+        "rcs_is_burn",
+        "rcs_is_download",
+        "rcs_msg_state",
+        "rcs_mime_type",
+        "favourite",
+        "rcs_file_size",
+        "rcs_play_time",
+        "rcs_message_id",
+        "rcs_chat_type",
         Sms.DATE,
         Sms.DATE_SENT,
         Sms.READ,
@@ -126,6 +155,20 @@ public class MessageListAdapter extends CursorAdapter {
         Sms.ADDRESS,
         Sms.BODY,
         Sms.SUB_ID,
+        "rcs_path" ,
+        "rcs_thumb_path" ,
+        "rcs_msg_type" ,
+        "rcs_id",
+        "rcs_burn_flag",
+        "rcs_is_burn",
+        "rcs_msg_state",
+        "rcs_is_download",
+        "rcs_mime_type",
+        "favourite",
+        "rcs_file_size",
+        "rcs_play_time",
+        "rcs_message_id",
+        "rcs_chat_type",
         Sms.DATE,
         Sms.DATE_SENT,
         Sms.READ,
@@ -143,28 +186,44 @@ public class MessageListAdapter extends CursorAdapter {
     static final int COLUMN_SMS_ADDRESS         = 3;
     static final int COLUMN_SMS_BODY            = 4;
     static final int COLUMN_SUB_ID              = 5;
-    static final int COLUMN_SMS_DATE            = 6;
-    static final int COLUMN_SMS_DATE_SENT       = 7;
-    static final int COLUMN_SMS_READ            = 8;
-    static final int COLUMN_SMS_TYPE            = 9;
-    static final int COLUMN_SMS_STATUS          = 10;
-    static final int COLUMN_SMS_LOCKED          = 11;
-    static final int COLUMN_SMS_ERROR_CODE      = 12;
-    static final int COLUMN_MMS_SUBJECT         = 13;
-    static final int COLUMN_MMS_SUBJECT_CHARSET = 14;
-    static final int COLUMN_MMS_DATE            = 15;
-    static final int COLUMN_MMS_DATE_SENT       = 16;
-    static final int COLUMN_MMS_READ            = 17;
-    static final int COLUMN_MMS_MESSAGE_TYPE    = 18;
-    static final int COLUMN_MMS_MESSAGE_BOX     = 19;
-    static final int COLUMN_MMS_DELIVERY_REPORT = 20;
-    static final int COLUMN_MMS_READ_REPORT     = 21;
-    static final int COLUMN_MMS_ERROR_TYPE      = 22;
-    static final int COLUMN_MMS_LOCKED          = 23;
-    static final int COLUMN_MMS_STATUS          = 24;
-    static final int COLUMN_MMS_TEXT_ONLY       = 25;
-    static final int COLUMN_MMS_SUB_ID          = 26;
-    static final int COLUMN_RECIPIENT_IDS       = 27;
+
+    static final int COLUMN_RCS_PATH            = 6; 
+    static final int COLUMN_RCS_THUMB_PATH      = 7;
+    static final int COLUMN_RCS_MSG_TYPE        = 8;
+    static final int COLUMN_RCS_ID              = 9;
+    static final int COLUMN_RCS_BURN_FLAG       = 10;
+    static final int COLUMN_RCS_IS_BURN         = 11;
+    static final int COLUMN_RCS_IS_DOWNLOAD     = 12;
+    static final int COLUMN_RCS_MSG_STATE       = 13;
+    static final int COLUMN_RCS_MIME_TYPE       = 14;
+    static final int COLUMN_FAVOURITE           = 15 ;
+    static final int COLUMN_RCS_FILESIZE        = 16 ;
+    static final int COLUMN_RCS_PLAY_TIME       = 17 ;
+    static final int COLUMN_RCS_MESSAGE_ID = 18;
+    static final int COLUMN_CHAT_TYPE = 19;
+
+    static final int COLUMN_SMS_DATE            = 20;
+    static final int COLUMN_SMS_DATE_SENT       = 21;
+    static final int COLUMN_SMS_READ            = 22;
+    static final int COLUMN_SMS_TYPE            = 23;
+    static final int COLUMN_SMS_STATUS          = 24;
+    static final int COLUMN_SMS_LOCKED          = 25;
+    static final int COLUMN_SMS_ERROR_CODE      = 26;
+    static final int COLUMN_MMS_SUBJECT         = 27;
+    static final int COLUMN_MMS_SUBJECT_CHARSET = 28;
+    static final int COLUMN_MMS_DATE            = 29;
+    static final int COLUMN_MMS_DATE_SENT       = 30;
+    static final int COLUMN_MMS_READ            = 31;
+    static final int COLUMN_MMS_MESSAGE_TYPE    = 32;
+    static final int COLUMN_MMS_MESSAGE_BOX     = 33;
+    static final int COLUMN_MMS_DELIVERY_REPORT = 34;
+    static final int COLUMN_MMS_READ_REPORT     = 35;
+    static final int COLUMN_MMS_ERROR_TYPE      = 36;
+    static final int COLUMN_MMS_LOCKED          = 37;
+    static final int COLUMN_MMS_STATUS          = 38;
+    static final int COLUMN_MMS_TEXT_ONLY       = 39;
+    static final int COLUMN_MMS_SUB_ID          = 40;
+    static final int COLUMN_RECIPIENT_IDS       = 41;
 
     private static final int CACHE_SIZE         = 50;
 
@@ -172,6 +231,7 @@ public class MessageListAdapter extends CursorAdapter {
     public static final int OUTGOING_ITEM_TYPE_SMS = 1;
     public static final int INCOMING_ITEM_TYPE_MMS = 2;
     public static final int OUTGOING_ITEM_TYPE_MMS = 3;
+    public static final int GROUP_CHAT_ITEM_TYPE = 4;
 
     protected LayoutInflater mInflater;
     private final ListView mListView;
@@ -183,6 +243,7 @@ public class MessageListAdapter extends CursorAdapter {
     private Pattern mHighlight;
     private Context mContext;
     private boolean mIsGroupConversation;
+    private int mGroupId;
     private boolean mMultiChoiceMode = false;
     // for multi delete sim messages or forward merged message
     private int mMultiManageMode = MessageUtils.INVALID_MODE;
@@ -242,7 +303,7 @@ public class MessageListAdapter extends CursorAdapter {
                     messageBlock.setOnCreateContextMenuListener((ManageSimMessages) mContext);
                     mli.setSimMessagesMode(true);
                 }
-                mli.bind(msgItem, mIsGroupConversation, position);
+                mli.bind(msgItem, mIsGroupConversation, position, mGroupId);
                 mli.setMsgListItemHandler(mMsgListItemHandler);
 
                 if (mMultiChoiceMode) {
@@ -251,6 +312,8 @@ public class MessageListAdapter extends CursorAdapter {
                     messageBlock.setOnClickListener(mMultiManageClickListener);
                 }
             }
+        } else if (view instanceof RcsNotificationMessageListItem) {
+            ((RcsNotificationMessageListItem) view).bind(cursor, mColumnsMap);
         }
     }
 
@@ -282,6 +345,10 @@ public class MessageListAdapter extends CursorAdapter {
 
     public void setIsGroupConversation(boolean isGroup) {
         mIsGroupConversation = isGroup;
+    }
+
+    public void setRcsGroupId(int groupId) {
+        mGroupId = groupId;
     }
 
     public void cancelBackgroundLoading() {
@@ -325,22 +392,27 @@ public class MessageListAdapter extends CursorAdapter {
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
         int boxType = getItemViewType(cursor);
         View view;
-        if (mMultiChoiceMode) {
-            view = mInflater.inflate((boxType == INCOMING_ITEM_TYPE_SMS ||
-                    boxType == INCOMING_ITEM_TYPE_MMS) ?
-                            R.layout.message_list_multi_recv : R.layout.message_list_multi_send,
-                    parent, false);
-            ((MessageListItem)view).setMultiChoiceMode(mMultiChoiceMode);
+        if (boxType == GROUP_CHAT_ITEM_TYPE) {
+            view = mInflater.inflate(R.layout.rcs_message_item_group_chat_notification, parent,
+                    false);
         } else {
-            view = mInflater.inflate((boxType == INCOMING_ITEM_TYPE_SMS ||
-                    boxType == INCOMING_ITEM_TYPE_MMS) ?
-                            R.layout.message_list_item_recv : R.layout.message_list_item_send,
-                    parent, false);
-            if (boxType == INCOMING_ITEM_TYPE_MMS || boxType == OUTGOING_ITEM_TYPE_MMS) {
-                // We've got an mms item, pre-inflate the mms portion of the view
-                View mmsStub = view.findViewById(R.id.mms_layout_view_stub);
-                if (mmsStub != null) {
-                    mmsStub.setVisibility(View.VISIBLE);
+            if (mMultiChoiceMode) {
+                view = mInflater.inflate((boxType == INCOMING_ITEM_TYPE_SMS ||
+                        boxType == INCOMING_ITEM_TYPE_MMS) ?
+                                R.layout.message_list_multi_recv : R.layout.message_list_multi_send,
+                        parent, false);
+                ((MessageListItem)view).setMultiChoiceMode(mMultiChoiceMode);
+            } else {
+                view = mInflater.inflate((boxType == INCOMING_ITEM_TYPE_SMS ||
+                        boxType == INCOMING_ITEM_TYPE_MMS) ?
+                                R.layout.message_list_item_recv : R.layout.message_list_item_send,
+                        parent, false);
+                if (boxType == INCOMING_ITEM_TYPE_MMS || boxType == OUTGOING_ITEM_TYPE_MMS) {
+                    // We've got an mms item, pre-inflate the mms portion of the view
+                    View mmsStub = view.findViewById(R.id.mms_layout_view_stub);
+                    if (mmsStub != null) {
+                        mmsStub.setVisibility(View.VISIBLE);
+                    }
                 }
             }
         }
@@ -392,7 +464,7 @@ public class MessageListAdapter extends CursorAdapter {
      */
     @Override
     public int getViewTypeCount() {
-        return 4;   // Incoming and outgoing messages, both sms and mms
+        return 5;   // Incoming and outgoing messages, both sms and mms, and Rcs Group Chat notification.
     }
 
     @Override
@@ -402,19 +474,24 @@ public class MessageListAdapter extends CursorAdapter {
     }
 
     private int getItemViewType(Cursor cursor) {
-        String type = cursor.getString(mColumnsMap.mColumnMsgType);
-        int boxId;
-        if ("sms".equals(type)) {
-            boxId = cursor.getInt(mColumnsMap.mColumnSmsType);
-            // Note that messages from the SIM card all have a boxId of zero.
-            return (boxId == TextBasedSmsColumns.MESSAGE_TYPE_INBOX ||
-                    boxId == TextBasedSmsColumns.MESSAGE_TYPE_ALL) ?
-                    INCOMING_ITEM_TYPE_SMS : OUTGOING_ITEM_TYPE_SMS;
+        int rcsMsgType = cursor.getInt(mColumnsMap.mColumnRcsMsgType);
+        if (rcsMsgType == SuntekMessageData.MSG_TYPE_NOTIFICATION) { // RCS Group chat notification message.
+            return GROUP_CHAT_ITEM_TYPE;
         } else {
-            boxId = cursor.getInt(mColumnsMap.mColumnMmsMessageBox);
-            // Note that messages from the SIM card all have a boxId of zero: Mms.MESSAGE_BOX_ALL
-            return (boxId == Mms.MESSAGE_BOX_INBOX || boxId == Mms.MESSAGE_BOX_ALL) ?
-                    INCOMING_ITEM_TYPE_MMS : OUTGOING_ITEM_TYPE_MMS;
+            String type = cursor.getString(mColumnsMap.mColumnMsgType);
+            int boxId;
+            if ("sms".equals(type)) {
+                boxId = cursor.getInt(mColumnsMap.mColumnSmsType);
+                // Note that messages from the SIM card all have a boxId of zero.
+                return (boxId == TextBasedSmsColumns.MESSAGE_TYPE_INBOX ||
+                        boxId == TextBasedSmsColumns.MESSAGE_TYPE_ALL) ?
+                        INCOMING_ITEM_TYPE_SMS : OUTGOING_ITEM_TYPE_SMS;
+            } else {
+                boxId = cursor.getInt(mColumnsMap.mColumnMmsMessageBox);
+                // Note that messages from the SIM card all have a boxId of zero: Mms.MESSAGE_BOX_ALL
+                return (boxId == Mms.MESSAGE_BOX_INBOX || boxId == Mms.MESSAGE_BOX_ALL) ?
+                        INCOMING_ITEM_TYPE_MMS : OUTGOING_ITEM_TYPE_MMS;
+            }
         }
     }
 
@@ -443,7 +520,7 @@ public class MessageListAdapter extends CursorAdapter {
                 do {
                     long id = cursor.getLong(mRowIDColumn);
                     String type = cursor.getString(mColumnsMap.mColumnMsgType);
-                    if ((id == item.mMsgId) && type.equals(item.mType)) {
+                    if (id == item.mMsgId && (type != null && type.equals(item.mType))) {
                         return cursor;
                     }
                 } while (cursor.moveToNext());
@@ -480,7 +557,20 @@ public class MessageListAdapter extends CursorAdapter {
         public int mColumnMmsTextOnly;
         public int mColumnMmsSubId;
         public int mColumnRecipientIds;
-
+        public int mColumnRcsMsgType;
+        public int mColumnRcsPath;
+        public int mColumnRcsThumbPath;
+        public int mColumnRcsId;
+        public int mColumnRcsBurnFlag;
+        public int mColumnRcsIsBurn;
+        public int mColumnRcsIsDownload;
+        public int mColumnRcsMsgState;
+        public int mColumnRcsMimeType;
+        public int mColumnFavoutite;
+        public int mColumnRcsFileSize;
+        public int mColumnRcsPlayTime;
+        public int mColumnRcsChatType;
+        public int mColumnRcsMessageId;
         public ColumnsMap() {
             mColumnMsgType            = COLUMN_MSG_TYPE;
             mColumnMsgId              = COLUMN_ID;
@@ -505,6 +595,20 @@ public class MessageListAdapter extends CursorAdapter {
             mColumnMmsTextOnly        = COLUMN_MMS_TEXT_ONLY;
             mColumnMmsSubId           = COLUMN_MMS_SUB_ID;
             mColumnRecipientIds       = COLUMN_RECIPIENT_IDS;
+            mColumnRcsPath            = COLUMN_RCS_PATH;
+            mColumnRcsThumbPath       = COLUMN_RCS_THUMB_PATH;
+            mColumnRcsId              = COLUMN_RCS_ID;
+            mColumnRcsBurnFlag        = COLUMN_RCS_BURN_FLAG;
+            mColumnRcsIsBurn          = COLUMN_RCS_IS_BURN;
+            mColumnRcsIsDownload      = COLUMN_RCS_IS_DOWNLOAD;
+            mColumnRcsMsgState        = COLUMN_RCS_MSG_STATE;
+            mColumnRcsMimeType        = COLUMN_RCS_MIME_TYPE;
+            mColumnRcsMsgType         = COLUMN_RCS_MSG_TYPE;
+            mColumnFavoutite          = COLUMN_FAVOURITE;
+            mColumnRcsFileSize        = COLUMN_RCS_FILESIZE;
+            mColumnRcsPlayTime        = COLUMN_RCS_PLAY_TIME;
+            mColumnRcsChatType        = COLUMN_CHAT_TYPE;
+            mColumnRcsMessageId       = COLUMN_RCS_MESSAGE_ID;
         }
 
         public ColumnsMap(Cursor cursor) {
@@ -537,6 +641,97 @@ public class MessageListAdapter extends CursorAdapter {
 
             try {
                 mColumnSubId = cursor.getColumnIndexOrThrow(Sms.SUB_ID);
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnFavoutite = cursor.getColumnIndexOrThrow(
+                        "favoutite");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsFileSize = cursor.getColumnIndexOrThrow(
+                        "rcs_file_size");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsPlayTime = cursor.getColumnIndexOrThrow(
+                        "rcs_play_time");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsChatType = cursor.getColumnIndexOrThrow(
+                        "rcs_chat_type");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsMessageId = cursor.getColumnIndexOrThrow(
+                        "rcs_message_id");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsMimeType = cursor.getColumnIndexOrThrow(
+                        "rcs_mime_type");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsPath = cursor.getColumnIndexOrThrow("rcs_path");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsThumbPath = cursor
+                    .getColumnIndexOrThrow("rcs_thumb_path");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsMsgType = cursor.getColumnIndexOrThrow("rcs_msg_type");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsId = cursor.getColumnIndexOrThrow("rcs_id");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsBurnFlag = cursor.getColumnIndexOrThrow("rcs_burn_flag");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsIsBurn = cursor.getColumnIndexOrThrow("rcs_is_burn");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsIsDownload = cursor.getColumnIndexOrThrow("rcs_is_download");
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnRcsMsgState = cursor.getColumnIndexOrThrow("rcs_msg_state");
             } catch (IllegalArgumentException e) {
                 Log.w("colsMap", e.getMessage());
             }

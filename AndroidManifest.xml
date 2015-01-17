@@ -52,6 +52,8 @@
     <uses-permission android:name="com.android.browser.permission.WRITE_HISTORY_BOOKMARKS"/>
     <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
     <uses-permission android:name="android.permission.GET_TASKS"/>
+    <uses-permission android:name="com.android.firewall.READ_GRAVITY" />
+    <uses-permission android:name="com.android.firewall.WRITE_GRAVITY" />
     <uses-permission android:name="com.qualcomm.permission.USE_PHONE_SERVICE" />
     <uses-permission android:name="android.permission.MANAGE_DOCUMENTS" />
 
@@ -62,6 +64,7 @@
             android:backupAgent="QTIBackupAgent"
             android:allowTaskReparenting="true">
         <uses-library android:name="com.qrd.wappush" android:required="false" />
+        <uses-library android:name="com.suntek.mway.rcs.client.api" android:required="false" />
 
         <service android:name=".transaction.TransactionService"
                  android:exported="false" />
@@ -399,9 +402,11 @@
         </activity>
 
         <activity android:name=".ui.MultiPickContactGroups"
-            android:configChanges="orientation|screenSize">
+            android:configChanges="orientation|screenSize"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+                <action android:name="com.android.mms.MultiPickContactGroups" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -474,5 +479,53 @@
         <provider android:name="MessageTemplateProvider"
                 android:authorities="com.android.mms.MessageTemplateProvider" >
         </provider>
+
+        <receiver android:name=".rcs.RcsMessageStatusReceiver" >
+            <intent-filter>
+                <action android:name="android.intent.action.SIM_STATE_CHANGED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.suntek.mway.rcs.ACTION_UI_MESSAGE_ADD_TO_DATABASE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.suntek.mway.rcs.ACTION_UI_MESSAGE_STATUS_CHANGE_NOTIFY" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.suntek.mway.rcs.UI_DOWNLOADING_FILE_CHANGE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+             <intent-filter>
+                <action android:name="com.suntek.mway.rcs.ACTION_UI_SHOW_RECV_REPORT_INFO" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="ACTION_UI_SHOW_GROUP_MESSAGE_NOTIFY" />
+            </intent-filter>
+        </receiver>
+
+        <service android:name=".rcs.RcsMessageStatusService"/>
+
+        <activity
+            android:name=".rcs.BurnFlagMessageActivity"
+            android:exported="true"
+            android:theme="@style/burn_message" >
+        </activity>
+
+       <activity android:name=".ui.FavouriteMessageList"
+            android:label="@string/app_label"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/MmsHoloTheme"
+            android:uiOptions="splitActionBarWhenNarrow"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
     </application>
 </manifest>
