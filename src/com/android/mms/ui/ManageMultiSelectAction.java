@@ -427,7 +427,7 @@ public class ManageMultiSelectAction extends Activity {
             } else if (mManageMode == MessageUtils.SIM_MESSAGE_MODE) {
                 mActionButton.setText(R.string.done_delete);
             } else if (mManageMode == MessageUtils.BATCH_DELETE_MODE) {
-                mActionButton.setText(R.string.menu_batch_delete);
+                mActionButton.setText(R.string.delete_message);
             }
             mActionButton.setEnabled(false);
             mActionButton.setOnClickListener(new View.OnClickListener() {
