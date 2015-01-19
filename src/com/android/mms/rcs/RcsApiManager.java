@@ -21,8 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-
-package com.android.mms;
+package com.android.mms.rcs;
 
 import com.suntek.mway.rcs.client.api.RCSServiceListener;
 import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
@@ -32,6 +31,8 @@ import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
 import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.capability.impl.CapabilityApi;
+import com.suntek.mway.rcs.client.api.emoticon.EmoticonApi;
+import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
 
 import android.content.Context;
 import android.os.RemoteException;
@@ -45,6 +46,8 @@ public class RcsApiManager {
     private static RcsAccountApi mRcsAccountApi = new RcsAccountApi();
     private static CapabilityApi mCapabilityApi = new CapabilityApi();
     private static McloudFileApi mMcloudFileApi = new McloudFileApi();
+    private static ProfileApi mProfileApi = new ProfileApi();
+    private static EmoticonApi mEmoticonApi = new EmoticonApi();
 
     public static void init(Context context) {
         mIsRcsServiceInstalled = RcsSupportApi.isRcsServiceInstalled(context);
@@ -85,13 +88,24 @@ public class RcsApiManager {
                 Log.d("RCS_UI", "ConfApi connected");
             }
         });
+        mEmoticonApi.init(context,new RCSServiceListener() {
+            public void onServiceDisconnected() throws RemoteException {
+                Log.d("RCS_UI", "EmoticonApi disconnected");
+            }
 
+            public void onServiceConnected() throws RemoteException {
+                Log.d("RCS_UI", "EmoticonApi connected");
+            }
+        });
+        mProfileApi.init(context,null);
         mCapabilityApi.init(context, null);
         mMcloudFileApi.init(context,null);
     }
+
     public static McloudFileApi getMcloudFileApi(){
         return mMcloudFileApi;
     }
+
     public static MessageApi getMessageApi() {
         return mMessageApi;
     }
@@ -118,5 +132,13 @@ public class RcsApiManager {
 
     public static CapabilityApi getCapabilityApi() {
         return mCapabilityApi;
+    }
+
+    public static ProfileApi getProfileApi() {
+        return mProfileApi;
+    }
+
+    public static EmoticonApi getEmoticonApi() {
+        return mEmoticonApi;
     }
 }
