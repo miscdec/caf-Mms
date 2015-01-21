@@ -36,8 +36,10 @@ import android.util.Log;
 import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.CheckBox;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
 
@@ -175,6 +177,7 @@ public class MessageListAdapter extends CursorAdapter {
     private final ListView mListView;
     private final MessageItemCache mMessageItemCache;
     private final ColumnsMap mColumnsMap;
+    private View.OnClickListener mMultiManageClickListener;
     private OnDataSetChangedListener mOnDataSetChangedListener;
     private Handler mMsgListItemHandler;
     private Pattern mHighlight;
@@ -234,8 +237,19 @@ public class MessageListAdapter extends CursorAdapter {
                 if (mMultiManageMode != MessageUtils.INVALID_MODE) {
                     mli.setManageSelectMode(mMultiManageMode);
                 }
+                View messageBlock = view.findViewById(R.id.message_block);
+                if (mContext instanceof ManageSimMessages) {
+                    messageBlock.setOnCreateContextMenuListener((ManageSimMessages) mContext);
+                    mli.setSimMessagesMode(true);
+                }
                 mli.bind(msgItem, mIsGroupConversation, position);
                 mli.setMsgListItemHandler(mMsgListItemHandler);
+
+                if (mMultiChoiceMode) {
+                    CheckBox checkbox = (CheckBox) view.findViewById(R.id.selected_check);
+                    checkbox.setOnClickListener(mMultiManageClickListener);
+                    messageBlock.setOnClickListener(mMultiManageClickListener);
+                }
             }
         }
     }
@@ -252,6 +266,10 @@ public class MessageListAdapter extends CursorAdapter {
     public interface OnDataSetChangedListener {
         void onDataSetChanged(MessageListAdapter adapter);
         void onContentChanged(MessageListAdapter adapter);
+    }
+
+    public void setMultiManageClickListener(View.OnClickListener l) {
+        mMultiManageClickListener = l;
     }
 
     public void setOnDataSetChangedListener(OnDataSetChangedListener l) {

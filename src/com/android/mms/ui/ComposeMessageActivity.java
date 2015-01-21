@@ -5076,14 +5076,8 @@ public class ComposeMessageActivity extends Activity
         mMsgListView.setVisibility((mSendDiscreetMode || MessageUtils.isMailboxMode())
                 ? View.INVISIBLE : View.VISIBLE);
         mMsgListView.setOnCreateContextMenuListener(mMsgListMenuCreateListener);
-        mMsgListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                if (view != null) {
-                    ((MessageListItem) view).onMessageListItemClick();
-                }
-            }
-        });
+        // Show context menu only when long click message body.
+        mMsgListView.setLongClickable(false);
     }
 
     /**

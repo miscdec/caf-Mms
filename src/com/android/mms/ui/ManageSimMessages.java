@@ -202,6 +202,7 @@ public class ManageSimMessages extends Activity
                     mListAdapter = new MessageListAdapter(
                             mParent, mCursor, mSimList, false, null);
                     mSimList.setAdapter(mListAdapter);
+                    mSimList.setDivider(null);
                     mSimList.setOnCreateContextMenuListener(mParent);
                     mSimList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                         @Override
@@ -258,6 +259,7 @@ public class ManageSimMessages extends Activity
     public void onCreateContextMenu(
             ContextMenu menu, View v,
             ContextMenu.ContextMenuInfo menuInfo) {
+        menu.clear();
         menu.add(0, MENU_COPY_TO_PHONE_MEMORY, 0,
                  R.string.sim_copy_to_phone_memory);
         menu.add(0, MENU_DELETE_FROM_SIM, 0, R.string.sim_delete);
