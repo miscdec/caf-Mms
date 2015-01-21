@@ -155,8 +155,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Cache recipients information in a background thread in advance.
-        RecipientIdCache.init(this);
-
+        RecipientIdCache.init(getApplication());
         setContentView(R.layout.conversation_list_screen);
         if (!handleIntent(getIntent())) {
             return;
@@ -550,18 +549,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // multi-select mode (if we're in it) and remove all the selections.
         getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
 
-        // Close the cursor in the ListAdapter if the activity stopped.
-        Cursor cursor = mListAdapter.getCursor();
-
-        if (cursor != null && !cursor.isClosed()) {
-            cursor.close();
-        }
-
-        mListAdapter.changeCursor(null);
     }
 
     @Override
     protected void onDestroy() {
+        if (mListAdapter != null) {
+            mListAdapter.changeCursor(null);
+        }
         super.onDestroy();
 
         Contact.clearListener();

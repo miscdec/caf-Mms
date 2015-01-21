@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
@@ -166,7 +165,6 @@ public class MessageListItem extends LinearLayout implements
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-
         mBodyTopTextView = (TextView) findViewById(R.id.text_view_top);
         mBodyTopTextView.setVisibility(View.GONE);
         mBodyButtomTextView = (TextView) findViewById(R.id.text_view_buttom);
@@ -1101,5 +1099,11 @@ public class MessageListItem extends LinearLayout implements
 
     public void setMultiChoiceMode(boolean isMultiChoiceMode) {
         mMultiChoiceMode = isMultiChoiceMode;
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        unbind();
+        super.onDetachedFromWindow();
     }
 }

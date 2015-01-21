@@ -2923,18 +2923,6 @@ public class ComposeMessageActivity extends Activity
         // Allow any blocked calls to update the thread's read status.
         mConversation.blockMarkAsRead(false);
 
-        if (mMsgListAdapter != null) {
-            // Close the cursor in the ListAdapter if the activity stopped.
-            Cursor cursor = mMsgListAdapter.getCursor();
-
-            if (cursor != null && !cursor.isClosed()) {
-                cursor.close();
-            }
-
-            mMsgListAdapter.changeCursor(null);
-            mMsgListAdapter.cancelBackgroundLoading();
-        }
-
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             log("save draft");
         }
@@ -2960,6 +2948,10 @@ public class ComposeMessageActivity extends Activity
             android.os.Debug.stopMethodTracing();
         }
 
+        if (mMsgListAdapter != null) {
+            mMsgListAdapter.changeCursor(null);
+            mMsgListAdapter.cancelBackgroundLoading();
+        }
         super.onDestroy();
     }
 

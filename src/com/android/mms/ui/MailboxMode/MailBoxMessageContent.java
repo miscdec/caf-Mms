@@ -596,6 +596,9 @@ public class MailBoxMessageContent extends Activity {
                     } else {
                         Log.e(TAG, "Can't find this SMS. URI: " + mMessageUri);
                     }
+                    if (cursor != null) {
+                        cursor.close();
+                    }
                     break;
                 default:
                     Log.e(TAG, "Unknown query token :" + token);
