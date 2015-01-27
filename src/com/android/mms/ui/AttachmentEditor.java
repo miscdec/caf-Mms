@@ -318,4 +318,12 @@ public class AttachmentEditor extends LinearLayout {
             mSendButton.setVisibility(View.GONE);
         }
     }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        if (mPresenter != null) {
+            mPresenter.cancelBackgroundLoading();
+        }
+        super.onDetachedFromWindow();
+    }
 }

@@ -455,6 +455,7 @@ public class ManageSimMessages extends Activity
     @Override
     public void onDestroy() {
         mContentResolver.unregisterContentObserver(simChangeObserver);
+        unregisterReceiver(mReceiver);
         super.onDestroy();
     }
 

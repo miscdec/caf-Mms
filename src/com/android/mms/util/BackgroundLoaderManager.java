@@ -83,6 +83,7 @@ abstract class BackgroundLoaderManager {
     }
 
     public void clear() {
+        clearCallback();
     }
 
     /**
@@ -121,6 +122,16 @@ abstract class BackgroundLoaderManager {
         }
         callbacks.add(callback);
         return true;
+    }
+
+    public void clearCallback() {
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "clear image callback ");
+        }
+        for (final Uri uri : mCallbacks.keySet()) {
+            final Set<ItemLoadedCallback> callbacks = mCallbacks.get(uri);
+            callbacks.clear();
+        }
     }
 
     public void cancelCallback(ItemLoadedCallback callback) {
