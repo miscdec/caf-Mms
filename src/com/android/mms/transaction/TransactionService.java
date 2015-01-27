@@ -1754,8 +1754,9 @@ public class TransactionService extends Service implements Observer {
                     renewMmsConnectivity();
                     return;
                 }
-
-                if (mmsNetworkInfo.isConnected()) {
+                boolean isAlwaysRetry = context.getResources().getBoolean(
+                        R.bool.config_retry_always);
+                if (mmsNetworkInfo.isConnected() || isAlwaysRetry) {
                     TransactionSettings settings = new TransactionSettings(
                             TransactionService.this, mmsNetworkInfo.getExtraInfo());
                     // If this APN doesn't have an MMSC, mark everything as failed and bail.
