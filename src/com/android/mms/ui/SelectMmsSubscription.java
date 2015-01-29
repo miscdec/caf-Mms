@@ -123,6 +123,9 @@ public class SelectMmsSubscription extends Service {
                 //way.
                 if (result == -1 || result == 1) {
                     if (resultObj.req.triggerSwitchOnly == true) {
+                        //all req on destSub has been processed in transactionServices
+                        //so remove dup req.
+                        removeTxnReq(resultObj.req.destSub);
                         removeAbortNotification(resultObj.req);
                         if (result == 1) {
                             removeStatusBarNotification(resultObj.req);
@@ -130,6 +133,7 @@ public class SelectMmsSubscription extends Service {
                         return;
 
                     }
+
                     if(result == -1) {
                         //no change in sub and the trigger was not switch only,
                         //start transaction service without any UI.
@@ -478,6 +482,19 @@ public class SelectMmsSubscription extends Service {
 
     private boolean isSwitchingDDS() {
         return mSwitchingDDS != SUB_INVALID;
+    }
+
+    private void removeTxnReq(int destSub) {
+        Log.d(TAG, "removeTxnReq destSub : " + destSub);
+        synchronized (mQueue) {
+            for(int i=0;i<mQueue.size();i++) {
+                TxnRequest t = mQueue.get(i);
+                if (t.destSub == destSub && t.triggerSwitchOnly == false) {
+                    Log.d(TAG, "removeTxnReq:  req="+t);
+                    mQueue.remove(t);
+                }
+            }
+        }
     }
 
     public int onStartCommand(Intent intent, int flags, int startId) {
