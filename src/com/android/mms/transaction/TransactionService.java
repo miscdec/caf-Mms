@@ -621,8 +621,20 @@ public class TransactionService extends Service implements Observer {
                                 int subId = getSubIdFromDb(uri);
                                 Log.d(TAG, "SubId from DB= "+subId);
 
-                                if(subId != MultiSimUtility.getCurrentDataSubscription
-                                        (getApplicationContext())) {
+                                int destSub = intent.getIntExtra(Mms.SUB_ID, -1);
+
+                                Log.d(TAG, "Destination Sub = " + destSub);
+                                Log.d(TAG, "Origin Sub = " + originSub);
+
+                                // Get latest current subscription from telephony manager.
+                                int currentSub = MultiSimUtility.getCurrentDataSubscription
+                                        (getApplicationContext());
+                                Log.d(TAG, "currentSub = "+ currentSub);
+
+                                // The currentSub is guaranteed to be the same with the destSub in
+                                // SelectMmsSubscription.java. If not, it means dds switch is in
+                                // progress. We handle it after dds switch finished.
+                                if (subId != currentSub || currentSub != destSub) {
                                     Log.d(TAG, "This MMS transaction can not be done"+
                                          "on current sub. Ignore it. uri="+uri);
                                     decRefCount();
@@ -631,11 +643,6 @@ public class TransactionService extends Service implements Observer {
                                     }
                                     break;
                                 }
-
-                                int destSub = intent.getIntExtra(Mms.SUB_ID, -1);
-
-                                Log.d(TAG, "Destination Sub = "+destSub);
-                                Log.d(TAG, "Origin Sub = "+originSub);
 
                                 addUnique(txnId, destSub, originSub);
 
