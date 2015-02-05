@@ -1639,24 +1639,27 @@ public class MessageUtils {
         return false;
     }
 
-    /* check to see whether short message count is up to 2000 */
-    public static boolean checkIsPhoneMessageFull(Context context) {
-        boolean isPhoneMemoryFull = isPhoneMemoryFull();
-        boolean isPhoneSmsCountFull = false;
-        int maxSmsMessageCount = context.getResources().getInteger(R.integer.max_sms_message_count);
-        if (maxSmsMessageCount != -1) {
-            int msgCount = getSmsMessageCount(context);
-            isPhoneSmsCountFull = msgCount >= maxSmsMessageCount;
+    public static boolean checkIsPhoneMessageFull(Context context, boolean isSms) {
+        boolean isPhoneMemoryFull = false;
+        if (isSms) {
+            int maxSmsMessageCount = context.getResources().getInteger(
+                    R.integer.max_sms_message_count);
+            if (maxSmsMessageCount != -1) {
+                int msgCount = getSmsMessageCount(context);
+                isPhoneMemoryFull = msgCount >= maxSmsMessageCount;
+                Log.d(TAG, "checkIsPhoneMemoryFull : isPhoneSmsCountFull = "
+                        + isPhoneMemoryFull);
+            }
+        } else {
+            isPhoneMemoryFull = isPhoneMemoryFull();
+            Log.d(TAG, "checkIsPhoneMemoryFull : isPhoneMemoryFull = " + isPhoneMemoryFull);
         }
 
-        Log.d(TAG, "checkIsPhoneMessageFull : isPhoneMemoryFull = " + isPhoneMemoryFull
-                + "isPhoneSmsCountFull = " + isPhoneSmsCountFull);
-
-        if (isPhoneMemoryFull || isPhoneSmsCountFull) {
-            MessagingNotification.updateSmsMessageFullIndicator(context, true);
+        if (isPhoneMemoryFull) {
+            MessagingNotification.updateMessageFullIndicator(context, isSms, true);
             return true;
         } else {
-            MessagingNotification.updateSmsMessageFullIndicator(context, false);
+            MessagingNotification.updateMessageFullIndicator(context, isSms, false);
             return false;
         }
     }

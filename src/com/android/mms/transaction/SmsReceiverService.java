@@ -689,7 +689,7 @@ public class SmsReceiverService extends Service {
 
     private Uri storeMessage(Context context, SmsMessage[] msgs, int error) {
         // Check to see whether short message count is up to 2000 for cmcc
-        if (MessageUtils.checkIsPhoneMessageFull(this)) {
+        if (MessageUtils.checkIsPhoneMessageFull(this, true)) {
             return null;
         }
 
@@ -763,7 +763,7 @@ public class SmsReceiverService extends Service {
 
     private Uri storeCbMessage(Context context, CellBroadcastMessage sms, int error) {
         // Check to see whether short message count is up to 2000 for cmcc
-        if (MessageUtils.checkIsPhoneMessageFull(this)) {
+        if (MessageUtils.checkIsPhoneMessageFull(this, true)) {
             return null;
         }
 

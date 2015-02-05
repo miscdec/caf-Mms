@@ -117,7 +117,7 @@ public class SmsMessageSender implements MessageSender {
                 }
                 log("updating Database with sub = " + mSubscription);
                 // Check to see whether short message count is up to 2000 for cmcc
-                if (MessageUtils.checkIsPhoneMessageFull(mContext)) {
+                if (MessageUtils.checkIsPhoneMessageFull(mContext, true)) {
                     break;
                 }
                 Sms.addMessageToUri(mContext.getContentResolver(),
