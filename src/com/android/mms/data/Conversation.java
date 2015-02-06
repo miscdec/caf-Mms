@@ -404,17 +404,13 @@ public class Conversation {
                             Log.e(TAG, "Database is full");
                             e.printStackTrace();
                             showStorageFullToast(mContext);
-                        } finally {
                             return null;
                         }
+                        MessagingNotification.blockingUpdateAllNotifications(mContext,
+                                MessagingNotification.THREAD_NONE);
                     }
                     setHasUnreadMessages(false);
                 }
-                // Always update notifications regardless of the read state, which is usually
-                // canceling the notification of the thread that was just marked read.
-                MessagingNotification.blockingUpdateAllNotifications(mContext,
-                        MessagingNotification.THREAD_NONE);
-
                 return null;
             }
         }.execute();
