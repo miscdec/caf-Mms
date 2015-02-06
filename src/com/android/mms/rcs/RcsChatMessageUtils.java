@@ -24,7 +24,6 @@
 package com.android.mms.rcs;
 
 import com.android.mms.R;
-import com.android.mms.RcsApiManager;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
 import com.android.mms.data.WorkingMessage;
@@ -146,12 +145,11 @@ public class RcsChatMessageUtils {
     }
 
     public static boolean isFileDownload(String filePath, long fileSize) {
-
         if (TextUtils.isEmpty(filePath)) {
             return false;
         }
-		if(fileSize==0)
-		    return false;
+        if (fileSize == 0)
+            return false;
         boolean isDownload = false;
         File file = new File(filePath);
         if (file != null) {
@@ -162,7 +160,6 @@ public class RcsChatMessageUtils {
             }
         }
         return isDownload;
-
     }
 
     public static void startBurnMessageActivity(Context mContext,int rcs_is_burn,long smsId){
@@ -492,9 +489,6 @@ public class RcsChatMessageUtils {
                         }
                             break;
                         case SuntekMessageData.MSG_TYPE_CONTACT:
-//                            RCSContact rcsContact = ChatMessageUtil.readVcardFile(filePath);
-//                           messageApi.sendVCard(threadId, -1, number,
-//                                            rcsContact);
                             messageApi.sendVCard(threadId, -1, number, RcsUtils.RCS_MMS_VCARD_PATH);
 
                             break;
@@ -510,17 +504,17 @@ public class RcsChatMessageUtils {
                     break;
                 }
                 case SuntekMessageData.CHAT_TYPE_ONE2GROUP: {
-                    Log.i("RCS_UI","one_to_group");
+                    Log.i("RCS_UI", "one_to_group");
                     List<String> array;
                     if (model != null) {
                         String numbers = model.getReceiversOfOne2Many();
                         if (TextUtils.isEmpty(numbers)) {
-                            Log.i("RCS_UI","NUMBERS IS NULL");
+                            Log.i("RCS_UI", "NUMBERS IS NULL");
                             return false;
                         }
                         String[] numberArray = numbers.split(",");
                         if (numberArray == null) {
-                            Log.i("RCS_UI","NUMBERS IS NULL");
+                            Log.i("RCS_UI", "NUMBERS IS NULL");
                             return false;
                         }
                         array = Arrays.asList(numberArray);
@@ -557,9 +551,6 @@ public class RcsChatMessageUtils {
                         }
                             break;
                         case SuntekMessageData.MSG_TYPE_CONTACT:
-//                            Profile profile = ChatMessageUtil.readVcardFile(filePath);
-//                           messageApi.sendOne2ManyVCard(threadId, -1, array,
-//                                            ProfileManager.profileToRCSContact(profile));
                             messageApi.sendOne2ManyVCard(threadId, -1, array,
                                     RcsUtils.RCS_MMS_VCARD_PATH);
                             break;
@@ -601,9 +592,6 @@ public class RcsChatMessageUtils {
         }
         return true;
     }
-
-    //forward
-    //forward
 
     public static String getForwordFileName(ChatMessage cMsg)
             throws ServiceDisconnectedException {

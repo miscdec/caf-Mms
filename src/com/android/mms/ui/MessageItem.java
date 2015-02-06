@@ -75,17 +75,17 @@ public class MessageItem {
 
     final Context mContext;
     final String mType;
-    final long mMsgId;
+    public final long mMsgId;
     final int mBoxId;
 
     DeliveryStatus mDeliveryStatus;
     boolean mReadReport;
     boolean mLocked;            // locked to prevent auto-deletion
 
-    String mTimestamp;
+    public String mTimestamp;
     String mAddress;
     String mContact;
-    String mBody; // Body of SMS, first text of MMS.
+    public String mBody; // Body of SMS, first text of MMS.
     int mSubscription;   // Holds current mms/sms subscription value.
     String mTextContentType; // ContentType of text of MMS.
     Pattern mHighlight; // portion of message to highlight (from search)
@@ -117,25 +117,25 @@ public class MessageItem {
     private PduLoadedCallback mPduLoadedCallback;
     private ItemLoadedFuture mItemLoadedFuture;
     int mLayoutType = LayoutModel.DEFAULT_LAYOUT_TYPE;
-    long mDate;
+    public long mDate;
     boolean mIsForwardable;
     boolean mHaveSomethingToCopyToSDCard;
     boolean mIsDrmRingtoneWithRights;
 
-    String mRcsPath;
-    String mRcsThumbPath;
-    int    mRcsType;
-    int    mRcsId;
-    int    mRcsBurnFlag;
-    int    mRcsIsBurn;
-    static int    mRcsIsDownload;
-    int    mRcsMsgState;
-    int    mRcsPlayTime;
-    int    mRcsFileSize;
-    String mRcsMimeType;
-    int mRcsChatType;
-    String mRcsMessageId;
-    int mFavourite;
+    public String mRcsPath;
+    public String mRcsThumbPath;
+    public int mRcsType;
+    public int mRcsId;
+    public int mRcsBurnFlag;
+    public int mRcsIsBurn;
+    public static int mRcsIsDownload;
+    public int mRcsMsgState;
+    public int mRcsPlayTime;
+    public int mRcsFileSize;
+    public String mRcsMimeType;
+    public int mRcsChatType;
+    public String mRcsMessageId;
+    public int mFavourite;
     MessageItem(Context context, String type, final Cursor cursor,
             final ColumnsMap columnsMap, Pattern highlight) throws MmsException {
         mContext = context;

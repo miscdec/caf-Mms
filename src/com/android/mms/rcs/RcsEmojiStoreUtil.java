@@ -20,6 +20,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
 package com.android.mms.rcs;
 
 import java.lang.ref.SoftReference;
@@ -65,6 +66,9 @@ public class RcsEmojiStoreUtil {
     }
 
     public void loadImageAsynById(ImageView imageView, String imageId, int loaderType) {
+        if(imageView == null){
+            return;
+        }
         if (mCaches.containsKey(imageId)) {
             SoftReference<Bitmap> rf = mCaches.get(imageId);
             Bitmap bitmap = rf.get();

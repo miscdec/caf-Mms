@@ -332,7 +332,7 @@ public class WorkingMessage {
         // what they wanted.
         UserHappinessSignals.userAcceptedImeText(mActivity);
 
-        mStatusListener.onPreMessageSent();
+       // mStatusListener.onPreMessageSent();
 
         long origThreadId = conv.getThreadId();
 
@@ -386,24 +386,31 @@ public class WorkingMessage {
         MessageApi messageApi = RcsApiManager.getMessageApi();
         switch (mRcsType) {
             case RcsUtils.RCS_MSG_TYPE_TEXT:
+                mStatusListener.onPreMessageSent();
                 sendRcsText(msgText, dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_IMAGE:
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsImage(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_VIDEO:
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsVideo(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_AUDIO:
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsAudio(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_MAP:
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsLocation(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_VCARD:
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsVcard(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_PAID_EMO:
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsPaidEmo(dests, threadId, messageApi);
                 break;
             default:
@@ -509,8 +516,8 @@ public class WorkingMessage {
             String conversationId = groupChat.getConversationId();
             int sms_id = -1;
             String groupId = String.valueOf(groupChat.getId());
-            messageApi.sendGroupLocation(thread_id, conversationId, sms_id, 31.205048, 131.608728,
-                    "ok beijin", groupId);
+            messageApi.sendGroupLocation(thread_id, conversationId, sms_id, getLatitude(), getLongitude(),
+                    getLocation(), groupId);
         } else if (dests.length == 1) {
             messageApi.sendLocation(threadId, -1, dests[0], getLatitude(), getLongitude(),
                     getLocation());
@@ -627,6 +634,11 @@ public class WorkingMessage {
          * Called just before the process of sending a message.
          */
         void onPreMessageSent();
+
+        /**
+         * Called just before the process of sending a RCS message.
+         */
+        void onPreRcsMessageSent();
 
         /**
          * Called once the process of sending a message, triggered by

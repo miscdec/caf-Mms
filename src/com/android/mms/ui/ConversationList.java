@@ -101,6 +101,7 @@ import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.pdu.PduHeaders;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
 
 import java.util.ArrayList;
@@ -168,8 +169,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private boolean mIsRcsEnabled;
     private Toast mComposeDisabledToast;
     private boolean mConvsertionSelect = false;
+    private String[] mNumbers;
+    private GroupChatModel mGroupChatModel;
     private final static String MULTI_SELECT_CONV = "select_conversation";
-    private GroupChatManagerReceiver groupReceiver = new GroupChatManagerReceiver(
+    private GroupChatManagerReceiver mGroupReceiver = new GroupChatManagerReceiver(
             new GroupChatNotifyCallback() {
 
                 @Override
@@ -206,8 +209,15 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 showProgressDialog(arg0,progress,arg0.getString(R.string.message_is_saving),total);
                 break;
             case 2:
-                mSaveOrBackProgressDialog.dismiss();
+                if (mSaveOrBackProgressDialog != null) {
+                    mSaveOrBackProgressDialog.dismiss();
+                }
                 Toast.makeText(arg0,R.string.message_save_ok,0).show();
+                break;
+            case -1:
+                if (mSaveOrBackProgressDialog != null)
+                    mSaveOrBackProgressDialog.dismiss();
+                Toast.makeText(arg0,R.string.message_save_fail,500).show();
                 break;
             default:
                 break;
@@ -259,7 +269,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     } catch (Exception e) {
                         Log.w("RCS_UI",e);
                     }
-                    mSaveOrBackProgressDialog.dismiss();
+                    if (mSaveOrBackProgressDialog != null) {
+                        mSaveOrBackProgressDialog.dismiss();
+                    }
                     Toast.makeText(arg0,R.string.message_restore_ok,0).show();
                    break;
                default:
@@ -272,7 +284,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Cache recipients information in a background thread in advance.
-        RecipientIdCache.init(getApplication());
+        RecipientIdCache.init(this);
         setContentView(R.layout.conversation_list_screen);
         mConvsertionSelect = getIntent().getBooleanExtra(MULTI_SELECT_CONV, false);
         Log.i("RCS_UI","mConvsertionSelect="+mConvsertionSelect);
@@ -322,7 +334,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mSavedFirstItemOffset = 0;
         }
 
-        registerReceiver(groupReceiver, new IntentFilter(BroadcastConstants.UI_GROUP_MANAGE_NOTIFY));
+        registerReceiver(mGroupReceiver, new IntentFilter(BroadcastConstants.UI_GROUP_MANAGE_NOTIFY));
         registerReceiver(backAllMessageReceiver, new IntentFilter("com.suntek.mway.rcs.BACKUP_ALL_MESSAGE"));
         registerReceiver(restoreAllMessageReceiver,new IntentFilter("com.suntek.mway.rcs.RESTORE_ALL_MESSAGE"));
     }
@@ -720,7 +732,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         Contact.clearListener();
         MessageUtils.removeDialogs();
         try {
-            unregisterReceiver(groupReceiver);
+            unregisterReceiver(mGroupReceiver);
             unregisterReceiver(backAllMessageReceiver);
             unregisterReceiver(restoreAllMessageReceiver);
         } catch (Exception e) {
@@ -1001,6 +1013,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         });
         builder.create().show();
     }
+
     private void showProgressDialog(Context context,int progress,String title,int total) {
         if (mSaveOrBackProgressDialog == null) {
             mSaveOrBackProgressDialog = new ProgressDialog(context);
@@ -1010,10 +1023,22 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mSaveOrBackProgressDialog.setCancelable(false);
             mSaveOrBackProgressDialog.setCanceledOnTouchOutside(false);
             mSaveOrBackProgressDialog.setProgress(progress);
+            mSaveOrBackProgressDialog.setButton(context.getResources().
+                    getString(R.string.cacel_back_message),new DialogInterface.OnClickListener(){
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    try {
+                        //RcsApiManager.getMessageApi().cancelBackup(); 
+                    } catch (Exception e) {
+                        Log.w("RCS_UI",e);
+                    }
+                }
+            });
             mSaveOrBackProgressDialog.show();
         } else {
             mSaveOrBackProgressDialog.setMessage(title);
             mSaveOrBackProgressDialog.setProgress(progress);
+            mSaveOrBackProgressDialog.show();
         }
     }
 
@@ -1036,6 +1061,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
         if (!mConvsertionSelect) {
             openThread(tid);
+        } else {
+            mNumbers = conv.getRecipients().getNumbers();
+            mGroupChatModel = conv.getGroupChat();
         }
     }
 
@@ -1548,6 +1576,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     if (mSelectedThreadIds.size() > 0) {
                         Intent intent = new Intent();
                         intent.putExtra("selectThreadId", mSelectedThreadIds);
+                        intent.putExtra("numbers", mNumbers);
+                        if (mGroupChatModel != null) {
+                            intent.putExtra("groupChatModel", mGroupChatModel);
+                        }
                         setResult(RESULT_OK,intent);
                         finish();
                     }

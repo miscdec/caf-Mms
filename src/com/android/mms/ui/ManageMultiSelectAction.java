@@ -40,9 +40,13 @@ import android.app.ProgressDialog;
 import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
@@ -55,6 +59,7 @@ import android.provider.Telephony.Sms;
 import android.provider.Telephony.Threads;
 import android.provider.Telephony.Sms.Conversations;
 import android.util.SparseBooleanArray;
+import android.util.Log;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -71,8 +76,14 @@ import android.widget.Toast;
 
 import com.android.mms.data.Contact;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsApiManager;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.ui.PopupList;
 import com.android.mms.ui.SelectionMenu;
+
+import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
+import com.suntek.mway.rcs.client.aidl.provider.model.SimpleMsg;
+import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
 
 import java.util.ArrayList;
 
@@ -100,6 +111,8 @@ public class ManageMultiSelectAction extends Activity {
     ArrayList<String> mSelectedUris = new ArrayList<String>();
     ArrayList<String> mSelectedLockedUris = new ArrayList<String>();
     ArrayList<MessageItem> mMessageItems = new ArrayList<MessageItem>();
+    ArrayList<SimpleMsg> mSimpleMsgs = new ArrayList<SimpleMsg>();
+    private MessageApi mMessageApi;
 
     private int mManageMode;
     private long mThreadId;
@@ -119,6 +132,8 @@ public class ManageMultiSelectAction extends Activity {
     private static final String LEFT_PARENTHESES = "(";
     private static final String RIGHT_PARENTHESES = ")";
     private static final String LINE_BREAK = "\n";
+    
+    private ProgressDialog mSaveOrBackProgressDialog = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,6 +150,9 @@ public class ManageMultiSelectAction extends Activity {
         } else if (mManageMode == MessageUtils.SIM_MESSAGE_MODE){
             mSubscription = intent.getIntExtra(MessageUtils.SUB_KEY, SUB_INVALID);
             mIccUri = MessageUtils.getIccUriBySubscription(mSubscription);
+        } else if (mManageMode == MessageUtils.BATCH_FAVOURITE_MODE
+                || mManageMode == MessageUtils.BATCH_BACKUP_MODE) {
+            mThreadId = intent.getLongExtra(ComposeMessageActivity.THREAD_ID, INVALID_THREAD);
         }
 
         mMsgListView = (ListView) findViewById(R.id.messages);
@@ -146,7 +164,13 @@ public class ManageMultiSelectAction extends Activity {
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
 
+        mMessageApi = RcsApiManager.getMessageApi();
+
         startMsgListQuery();
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("com.suntek.mway.rcs.BACKUP_ALL_MESSAGE");
+        registerReceiver(mBackupStateReceiver,filter);
     }
 
     private Handler mUiHandler = new Handler() {
@@ -196,6 +220,7 @@ public class ManageMultiSelectAction extends Activity {
         if (mCursor != null) {
             mCursor.close();
         }
+        unregisterReceiver(mBackupStateReceiver);
     }
 
 
@@ -238,13 +263,37 @@ public class ManageMultiSelectAction extends Activity {
                     return;
                 }
                 mSelectedCursors.add(c);
-                if (mManageMode == MessageUtils.FORWARD_MODE) {
+                if (mManageMode == MessageUtils.FORWARD_MODE
+                        || mManageMode == MessageUtils.BATCH_BACKUP_MODE) {
                     String type = c.getString(COLUMN_MSG_TYPE);
                     long msgId = c.getLong(COLUMN_ID);
                     mMessageItems.add(mMsgListAdapter.getCachedMessageItem(type, msgId, c));
+                    try {
+                        MessageItem mi = mMsgListAdapter.getCachedMessageItem(type, msgId, c);
+                        String rowId = String.valueOf(mi.mRcsId);
+                        SimpleMsg sm = new SimpleMsg();
+                        if (mi.mRcsId == RcsUtils.SMS_DEFAULT_RCS_ID && mi.isSms()) {
+                            sm.setStoreType(SuntekMessageData.STORE_TYPE_SMS);
+                            sm.setRowId(String.valueOf(msgId));
+                            sm.setMessageId(rowId);
+                        }else if (mi.isMms()) {
+                            sm.setStoreType(SuntekMessageData.STORE_TYPE_MMS);
+                            sm.setRowId(String.valueOf(msgId));
+                            sm.setMessageId(rowId);
+                        }else if (mi.mRcsId != RcsUtils.SMS_DEFAULT_RCS_ID && mi.isSms()) {
+                            sm.setRowId(rowId);
+                            sm.setMessageId(String.valueOf(msgId));
+                            sm.setStoreType(SuntekMessageData.STORE_TYPE_NEW_MSG);
+                        }
+                        mSimpleMsgs.add(sm);
+                        Log.i("RCS_UI","rowId ->" + rowId + " messageId ->" + msgId + " type ->"+ sm.getStoreType());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 } else if (mManageMode == MessageUtils.SIM_MESSAGE_MODE) {
                     mSelectedUris.add(getUriStrByCursor(c));
-                } else if (mManageMode == MessageUtils.BATCH_DELETE_MODE) {
+                } else if (mManageMode == MessageUtils.BATCH_DELETE_MODE
+                        || mManageMode == MessageUtils.BATCH_FAVOURITE_MODE) {
                     long msgId = c.getLong(COLUMN_ID);
                     Uri uri = c.getString(COLUMN_MSG_TYPE).equals("sms")
                             ? ContentUris.withAppendedId(Sms.CONTENT_URI, msgId)
@@ -263,6 +312,10 @@ public class ManageMultiSelectAction extends Activity {
                 || mManageMode == MessageUtils.BATCH_DELETE_MODE) {
             MultiMessagesListener l = new MultiMessagesListener();
             confirmDeleteDialog(l);
+        } else if (mManageMode == MessageUtils.BATCH_FAVOURITE_MODE) {
+            favouriteMessage();
+        } else if (mManageMode == MessageUtils.BATCH_BACKUP_MODE) {
+            backupMessage();
         }
     }
 
@@ -402,7 +455,12 @@ public class ManageMultiSelectAction extends Activity {
                         new String[]{String.valueOf(mThreadId)}, SORT_ORDER);
             } else if (mManageMode == MessageUtils.SIM_MESSAGE_MODE) {
                 mBackgroundQueryHandler.startQuery(0, null, mIccUri, null, null, null, null);
-            } else if (mManageMode == MessageUtils.BATCH_DELETE_MODE) {
+            } else if (mManageMode == MessageUtils.BATCH_FAVOURITE_MODE
+                    || mManageMode == MessageUtils.BATCH_BACKUP_MODE) {
+                Uri uri = ContentUris.withAppendedId(Threads.CONTENT_URI, mThreadId);
+                mBackgroundQueryHandler.startQuery(0, null, uri,
+                        MessageListAdapter.PROJECTION, "rcs_burn_flag != 1", null, null);
+            } else if (mManageMode == MessageUtils.BATCH_DELETE_MODE){
                 Uri uri = ContentUris.withAppendedId(Threads.CONTENT_URI, mThreadId);
                 mBackgroundQueryHandler.startQuery(0, null, uri,
                         MessageListAdapter.PROJECTION, null, null, null);
@@ -427,7 +485,11 @@ public class ManageMultiSelectAction extends Activity {
             } else if (mManageMode == MessageUtils.SIM_MESSAGE_MODE) {
                 mActionButton.setText(R.string.done_delete);
             } else if (mManageMode == MessageUtils.BATCH_DELETE_MODE) {
-                mActionButton.setText(R.string.delete_message);
+                mActionButton.setText(R.string.menu_batch_delete);
+            } else if (mManageMode == MessageUtils.BATCH_FAVOURITE_MODE) {
+                mActionButton.setText(R.string.batch_favourite);
+            } else if (mManageMode == MessageUtils.BATCH_BACKUP_MODE) {
+                mActionButton.setText(R.string.batch_backup);
             }
             mActionButton.setEnabled(false);
             mActionButton.setOnClickListener(new View.OnClickListener() {
@@ -539,37 +601,137 @@ public class ManageMultiSelectAction extends Activity {
             }
             return;
         }
+    }
 
-        private void updateSelectState(View listItemChild) {
-            int clickPosition = getMessageListItem(listItemChild).getItemPosition();
-            mMsgListView.setItemChecked(
-                    clickPosition, !(mMsgListView.isItemChecked(clickPosition)));
-            mMsgListView.invalidateViews();
+    private void favouriteMessage() {
+
+        for (int i = 0; i < mSelectedUris.size(); i++) {
+            final Uri lockUri = Uri.parse(mSelectedUris.get(i));
+            final ContentValues values = new ContentValues(1);
+            values.put("favourite", true ? 1 : 0);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    getContentResolver().update(lockUri, values, null, null);
+                }
+            }, "ManageMultiSelectActivity.favourite").start();
+
+        }
+        Message msg = Message.obtain();
+        msg.what = SHOW_TOAST;
+        msg.obj = getString(R.string.operate_success);
+        mUiHandler.sendMessage(msg);
+
+    }
+    
+    private void backupMessage() {
+
+        try {
+            mMessageApi.backupMessageList(mSimpleMsgs);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        private MessageListItem getMessageListItem(View listItemChild) {
-            View parent = (View) listItemChild.getParent();
-            while (!(parent instanceof MessageListItem)) {
-                parent = (View) parent.getParent();
-            }
-            return (MessageListItem) parent;
-        }
+    }
 
-        private void updateSelectMenu() {
-            final int checkedCount = mMsgListView.getCheckedItemCount();
-            mSelectionMenu.setTitle(getString(R.string.selected_count, checkedCount));
-            int count = mMsgListAdapter.getCount();
-            if (checkedCount == count) {
-                mHasSelectAll = true;
-            } else {
-                mHasSelectAll = false;
+
+    private void updateSelectState(View listItemChild) {
+        int clickPosition = getMessageListItem(listItemChild).getItemPosition();
+        mMsgListView.setItemChecked(
+                clickPosition, !(mMsgListView.isItemChecked(clickPosition)));
+        mMsgListView.invalidateViews();
+    }
+
+    private MessageListItem getMessageListItem(View listItemChild) {
+        View parent = (View) listItemChild.getParent();
+        while (!(parent instanceof MessageListItem)) {
+            parent = (View) parent.getParent();
+        }
+        return (MessageListItem) parent;
+    }
+
+    private void updateSelectMenu() {
+        final int checkedCount = mMsgListView.getCheckedItemCount();
+        mSelectionMenu.setTitle(getString(R.string.selected_count, checkedCount));
+        int count = mMsgListAdapter.getCount();
+        if (checkedCount == count) {
+            mHasSelectAll = true;
+        } else {
+            mHasSelectAll = false;
+        }
+        mSelectionMenu.updateSelectAllMode(mHasSelectAll);
+        if (checkedCount == 0) {
+            mActionButton.setEnabled(false);
+        } else {
+            mActionButton.setEnabled(true);
+        }
+    }
+
+    private final BroadcastReceiver mBackupStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if ("com.suntek.mway.rcs.BACKUP_ALL_MESSAGE".equals(action)) {
+                int progress = intent.getIntExtra("progress", 0);
+                int total = intent.getIntExtra("total", 0);
+                int status = intent.getIntExtra("status", 0);
+                Log.i("RCS_UI", "progress = " + progress + " total = " + total + " status = "
+                        + status);
+                switch (status) {
+                case 0:
+                    showProgressDialog(context, 0, context.getString(R.string.message_is_begin),total);
+                    break;
+                case 1:
+                    if (total == 0){
+                        return;
+                    }
+                    showProgressDialog(context,progress,context.getString(R.string.message_is_saving),total);
+                    break;
+                case 2:
+                    mSaveOrBackProgressDialog.dismiss();
+                    Toast.makeText(context,R.string.message_save_ok,0).show();
+                    break;
+                case -1:
+                    mSaveOrBackProgressDialog.dismiss();
+                    clearSelect();
+                    mSimpleMsgs.clear();
+                    mSaveOrBackProgressDialog = null;
+                    break;
+                default:
+                    break;
+               }
             }
-            mSelectionMenu.updateSelectAllMode(mHasSelectAll);
-            if (checkedCount == 0) {
-                mActionButton.setEnabled(false);
-            } else {
-                mActionButton.setEnabled(true);
-            }
+        }
+    };
+
+    private void showProgressDialog(Context context,int progress,String title,int total) {
+        if (mSaveOrBackProgressDialog == null) {
+            mSaveOrBackProgressDialog = new ProgressDialog(context);
+            mSaveOrBackProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            mSaveOrBackProgressDialog.setMessage(title);
+            mSaveOrBackProgressDialog.setMax(total);
+            mSaveOrBackProgressDialog.setCancelable(false);
+            mSaveOrBackProgressDialog.setCanceledOnTouchOutside(false);
+            mSaveOrBackProgressDialog.setProgress(progress);
+            mSaveOrBackProgressDialog.setButton(
+                    context.getResources().getString(R.string.cacel_back_message),
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            try {
+                                //RcsApiManager.getMessageApi().cancelBackup();
+                                mSaveOrBackProgressDialog.cancel();
+                                mSaveOrBackProgressDialog = null;
+                            } catch (Exception e) {
+                                Log.w("RCS_UI", e);
+                            }
+                        }
+                    });
+            mSaveOrBackProgressDialog.show();
+        } else {
+            mSaveOrBackProgressDialog.setMessage(title);
+            mSaveOrBackProgressDialog.setProgress(progress);
+            mSaveOrBackProgressDialog.show();
         }
     }
 }

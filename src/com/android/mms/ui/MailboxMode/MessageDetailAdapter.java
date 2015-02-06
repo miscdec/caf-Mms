@@ -56,7 +56,7 @@ import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.android.mms.R;
-import com.android.mms.RcsApiManager;
+import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.rcs.GeoLocation;
 import com.android.mms.rcs.RcsUtils;
 import com.android.mms.ui.MessageUtils;

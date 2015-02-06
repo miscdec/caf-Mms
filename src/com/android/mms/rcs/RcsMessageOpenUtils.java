@@ -23,9 +23,11 @@
 
 package com.android.mms.rcs;
 
+import com.android.mms.R;
 import com.android.mms.ui.MessageItem;
 import com.android.mms.ui.MessageListItem;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.emoticon.EmoticonConstant;
+import com.suntek.mway.rcs.client.aidl.plugin.entity.mcloudfile.TransNode;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
 import com.suntek.mway.rcs.client.aidl.provider.model.CloudFileMessage;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
@@ -60,7 +62,8 @@ public class RcsMessageOpenUtils {
                 RcsApiManager.getMessageApi().retransmitMessageById(
                         String.valueOf(messageItem.mRcsId));
             } catch (ServiceDisconnectedException e) {
-                toast(R.string.rcs_service_is_not_available);
+                Toast.makeText(messageListItem.getContext(), R.string.rcs_service_is_not_available,
+                        Toast.LENGTH_LONG).show();
                 e.printStackTrace();
             }
         } else {
@@ -255,7 +258,8 @@ public class RcsMessageOpenUtils {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(geourl));
             messageListItem.getContext().startActivity(intent);
         } catch (Exception e) {
-            toast(R.string.toast_install_map);
+            Toast.makeText(messageListItem.getContext(), R.string.toast_install_map,
+                    Toast.LENGTH_LONG).show();
         }
     }
 
@@ -269,14 +273,17 @@ public class RcsMessageOpenUtils {
             msg = RcsApiManager.getMessageApi().getMessageById(String.valueOf(messageItem.mRcsId));
             cMessage = msg.getCloudFileMessage();
             api = RcsApiManager.getMcloudFileApi();
+            String rootPath = "/sdcard/Android/data/com.suntek.mway.rcs.app.service/mcloud/";
             if (msg != null)
-                isFileDownload = RcsChatMessageUtils.isFileDownload(api.getLocalRootPath()
-                                    + cMessage.getFileName(), cMessage.getFileSize());
+                isFileDownload = RcsChatMessageUtils.isFileDownload(rootPath
+                        + cMessage.getFileName(), cMessage.getFileSize());
             if (!isFileDownload ) {
-                api.downloadFileFromUrl(cMessage.getShareUrl(), cMessage.getFileName(),
-                        TransNode.TransOper.NEW, messageItem.mRcsId);
+                // api.downloadFileFromUrl(cMessage.getShareUrl(), cMessage.getFileName(),
+                //        TransNode.TransOper.NEW, messageItem.mRcsId);
+                Toast.makeText(messageListItem.getContext(), R.string.rcs_service_is_not_available,
+                        Toast.LENGTH_LONG).show();
             } else {
-                String path = api.getLocalRootPath() + cMessage.getFileName();
+                String path = rootPath + cMessage.getFileName();
                 Intent intent2 = RcsUtils.OpenFile(path);
                 messageListItem.getContext().startActivity(intent2);
             }
