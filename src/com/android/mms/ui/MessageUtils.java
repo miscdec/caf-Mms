@@ -805,8 +805,10 @@ public class MessageUtils {
         } else if (slide.hasVcard()) {
             mm = slide.getVcard();
             String lookupUri = ((VcardModel) mm).getLookupUri();
-            if (!isVcardExistInContactDB(context, Uri.parse(lookupUri))) {
-                Toast.makeText(context, R.string.invalidContactMessage,Toast.LENGTH_SHORT).show();
+            if (!TextUtils.isEmpty(lookupUri)
+                    && !isVcardExistInContactDB(context, Uri.parse(lookupUri))) {
+                Toast.makeText(context, R.string.invalidContactMessage,
+                        Toast.LENGTH_SHORT).show();
                 return;
             }
             Intent intent = new Intent(Intent.ACTION_VIEW);
