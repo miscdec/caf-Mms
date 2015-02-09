@@ -278,7 +278,7 @@ public class ClassZeroActivity extends Activity {
 
     private Uri storeMessage(SmsMessage sms) {
         // Check to see whether short message count is up to 2000 for cmcc
-        if (MessageUtils.checkIsPhoneMessageFull(this)) {
+        if (MessageUtils.checkIsPhoneMessageFull(this, true)) {
             return null;
         }
 

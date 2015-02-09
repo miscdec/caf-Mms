@@ -383,7 +383,7 @@ public class ManageSimMessages extends Activity
 
         switch (item.getItemId()) {
             case MENU_COPY_TO_PHONE_MEMORY:
-                if (!MessageUtils.checkIsPhoneMessageFull(this)) {
+                if (!MessageUtils.checkIsPhoneMessageFull(this, true)) {
                    copyToPhoneMemory(cursor);
                 }
                 return true;

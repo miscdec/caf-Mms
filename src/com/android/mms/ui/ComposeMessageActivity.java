@@ -5123,8 +5123,7 @@ public class ComposeMessageActivity extends Activity
         if ((!mWaitingForSubActivity &&
                 !mWorkingMessage.isWorthSaving() &&
                 (!isRecipientsEditorVisible() || recipientCount() == 0)) ||
-                // Check to see whether short message count is up to 2000 for cmcc
-                (MessageUtils.checkIsPhoneMessageFull(this))) {
+                (MessageUtils.checkIsPhoneMessageFull(this, !mWorkingMessage.requiresMms()))) {
             if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 log("not worth saving, discard WorkingMessage and bail");
             }
