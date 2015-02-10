@@ -21,11 +21,9 @@
  * IN THE SOFTWARE.
  */
 
-
 package com.android.mms.rcs;
 
 import com.android.mms.R;
-import com.android.mms.RcsApiManager;
 import com.android.mms.transaction.MessagingNotification;
 import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
@@ -135,6 +133,9 @@ public class RcsMessageStatusService extends IntentService {
                     try {
                         GroupChatModel model = messageApi.getGroupChatByThreadId(rcsThreadId);
                         if (model != null) {
+                            //load groupchat chat count
+                            RcsUtils.loadGroupMessageCountByGroupId(RcsMessageStatusService.this, String.valueOf(model.getId()));
+
                             int msgNotifyType = model.getRemindPolicy();
                             if (msgNotifyType == 0) {
                                 MessagingNotification.blockingUpdateNewMessageIndicator(
@@ -192,6 +193,10 @@ public class RcsMessageStatusService extends IntentService {
                          e.printStackTrace();
                      }
                     }
+                } else if (BroadcastConstants.ACTION_INPUT_SMS_VERIFY_CODE.equals(intent.getAction())) {
+                    Intent intentCode = new Intent("com.suntek.mway.rcs.nativeui.ui.InputSMSVerifyCodeActivity");
+                    intentCode.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    RcsMessageStatusService.this.startActivity(intentCode);
                 }
 
                 Log.w("RCS_UI", "runningId=" + currentRunningId + ", countOfRunning="

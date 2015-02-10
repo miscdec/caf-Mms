@@ -21,7 +21,6 @@
  * IN THE SOFTWARE.
  */
 
-
 package com.android.mms.ui;
 
 import android.content.Context;

@@ -21,30 +21,41 @@
  * IN THE SOFTWARE.
  */
 
-
 package com.android.mms.rcs;
 
 import com.android.mms.R;
-import com.android.mms.RcsApiManager;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
+import com.android.mms.ui.MessageItem;
+import com.android.mms.ui.MessageListItem;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
+import com.android.vcard.VCardParser;
+import com.android.vcard.VCardParser_V21;
+import com.android.vcard.exception.VCardException;
 import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
 import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.util.log.LogHelper;
 
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.app.Activity;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
 import android.media.MediaPlayer;
@@ -53,6 +64,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.BaseColumns;
 import android.provider.DocumentsContract;
@@ -69,10 +81,21 @@ import android.provider.Telephony.Threads;
 import android.provider.Telephony.Sms.Sent;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup.LayoutParams;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
+import android.widget.TextView;
+import android.view.LayoutInflater;
+import android.widget.ImageView;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -81,8 +104,10 @@ import java.io.FileInputStream;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.NinePatch;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.NinePatchDrawable;
 import android.content.res.AssetFileDescriptor;
@@ -103,6 +128,7 @@ public class RcsUtils {
     public static final int RCS_IS_DOWNLOAD_FALSE = 0;
     public static final int RCS_IS_DOWNLOAD_OK = 1;
     public static final int SMS_DEFAULT_RCS_ID = -1;
+    public static final int SMS_DEFAULT_RCS_GROUP_ID = 0;
     public static final int RCS_MSG_TYPE_TEXT = SuntekMessageData.MSG_TYPE_TEXT;
     public static final int RCS_MSG_TYPE_IMAGE = SuntekMessageData.MSG_TYPE_IMAGE;
     public static final int RCS_MSG_TYPE_VIDEO = SuntekMessageData.MSG_TYPE_VIDEO;
@@ -111,6 +137,7 @@ public class RcsUtils {
     public static final int RCS_MSG_TYPE_VCARD = SuntekMessageData.MSG_TYPE_CONTACT;
     public static final int RCS_MSG_TYPE_NOTIFICATION = SuntekMessageData.MSG_TYPE_NOTIFICATION;
     public static final int RCS_MSG_TYPE_CAIYUNFILE = SuntekMessageData.MSG_TYPE_CLOUD_FILE;
+    public static final int RCS_MSG_TYPE_PAID_EMO = SuntekMessageData.MSG_TYPE_PAID_EMO;
 
     public static final String GROUP_CHAT_NOTIFICATION_KEY_WORDS_CREATED = "create_not_active";
     public static final String GROUP_CHAT_NOTIFICATION_KEY_WORDS_ACTIVE = "create";
@@ -128,7 +155,22 @@ public class RcsUtils {
     public static final String IM_ONLY     = "1";
     public static final String SMS_ONLY     ="2";
     public static final String RCS_MMS_VCARD_PATH="sdcard/rcs/" + "mms.vcf";
+    public static final String SMS_URI_ALL = "content://sms/";
+    private static final int NEED_GET_PROFILE_PHOTO_CHAT_COUNT =1;
     static  boolean mIsSupportRcs=true ;//true for test
+    static String contentType  = "text/x-vCard";
+
+    // message status
+    public static final int MESSAGE_SENDING = 64;
+    public static final int MESSAGE_HAS_SENDED = 32;
+    public static final int MESSAGE_SENDED = -1;
+    public static final int MESSAGE_FAIL = 128;
+    public static final int MESSAGE_HAS_BURNED = 2;
+    public static final int MESSAGE_SEND_RECEIVE = 99;//delivered
+    public static final int MESSAGE_HAS_READ = 100;//displayed
+    public static final int MESSAGE_HAS_SEND_SERVER = 0;//send to server
+
+    private static final String LOG_TAG = "RCS_UI";
 
     public static boolean isSupportRcs() {
         return mIsSupportRcs;
@@ -165,15 +207,18 @@ public class RcsUtils {
         ContentValues values = new ContentValues();
         values.put("rcs_burn_body", "");
         values.put("rcs_is_burn", 1);
-        context.getContentResolver().update(Uri.parse("content://sms/"), values, "rcs_is_burn = ?",
+        context.getContentResolver().update(Uri.parse("content://sms/"), values, "rcs_burn_flag = ?",
                 new String[] {
-                    "0"
+                    "1"
                 });
     }
-    public static void deleteMessageById(Context context, long id){
+
+    public static void deleteMessageById(Context context, long id) {
         String smsId = String.valueOf(id);
         ContentValues values = new ContentValues();
-        context.getContentResolver().delete(Uri.parse("content://sms/"), "_id=?", new String[]{smsId});
+        context.getContentResolver().delete(Uri.parse("content://sms/"), "rcs_id=?", new String[] {
+            smsId
+        });
     }
 
     public static void updateState(Context context, String rcs_id, int rcsMsgState) {
@@ -189,7 +234,6 @@ public class RcsUtils {
             case SuntekMessageData.MSG_STATE_SENDED:
                 values.put(Sms.TYPE, Sms.MESSAGE_TYPE_SENT);
                 break;
-            //case SuntekMessageData.MSG_STATE_SEND_REC:
             case SuntekMessageData.MSG_STATE_DOWNLOAD_FAIL:
                 values.put(Sms.TYPE, Sms.MESSAGE_TYPE_INBOX);
                 break;
@@ -213,7 +257,7 @@ public class RcsUtils {
         }
 
         ContentResolver resolver = context.getContentResolver();
-      int result=  resolver.update(Sms.CONTENT_URI, values, selection, selectionArgs);
+        int result = resolver.update(Sms.CONTENT_URI, values, selection, selectionArgs);
         if (result == 0) {
             try {
                 Thread.sleep(3000);
@@ -221,9 +265,7 @@ public class RcsUtils {
             } catch (Exception e) {
                 // TODO: handle exception
             }
-          
         }
-
     }
 
     public static void updateManyState(Context context, String rcs_id,
@@ -241,10 +283,12 @@ public class RcsUtils {
             number = number.substring(3);
         }
         String formatNumber = getAndroidFormatNumber(number);
-           context.getContentResolver().update(Sms.CONTENT_URI, values,
-                "rcs_message_id = ? and ( address = ? OR address = ? OR address = ? )", new String[] {
-                        rcs_id, number, numberW86, formatNumber
-                });
+        ContentResolver resolver = context.getContentResolver();
+        String selection = "rcs_message_id = ? and ( address = ? OR address = ? OR address = ? )";
+        String[] selectionArgs = new String[] {
+                rcs_id, number, numberW86, formatNumber
+        };
+        resolver.update(Sms.CONTENT_URI, values, selection, selectionArgs);
     }
 
     public static String getAndroidFormatNumber(String number) {
@@ -286,7 +330,7 @@ public class RcsUtils {
     public static void cancelTopConversion(Context context, long mThreadId) {
         ContentValues values = new ContentValues();
         values.put("top", 0);
-        values.put("top_time",0);
+        values.put("top_time", 0);
         final Uri THREAD_ID_CONTENT_URI = Uri.parse("content://mms-sms/update-top");
         Uri uri = ContentUris.withAppendedId(THREAD_ID_CONTENT_URI, mThreadId);
         context.getContentResolver().update(THREAD_ID_CONTENT_URI, values, "_id=?", new String[] {
@@ -322,7 +366,7 @@ public class RcsUtils {
         } catch (Exception e) {
             // TODO: handle exception
         }
-     return str;
+        return str;
 
     }
 
@@ -336,15 +380,15 @@ public class RcsUtils {
      * @param rcs_have_attach
      * @param rcs_path
      */
-    public static void rcsInsertInbox(Context context,String body,String address ,int is_rcs,
-            int rcs_msg_type ,String rcs_mime_type ,int rcs_have_attach,String rcs_path) {
+    public static void rcsInsertInbox(Context context, String body, String address, int is_rcs,
+            int rcs_msg_type, String rcs_mime_type, int rcs_have_attach, String rcs_path) {
         ContentValues values = new ContentValues();
-        values.put(Inbox.BODY,body);
-        values.put(Inbox.ADDRESS,address);
+        values.put(Inbox.BODY, body);
+        values.put(Inbox.ADDRESS, address);
         values.put("is_rcs", is_rcs);
         values.put("rcs_msg_type", rcs_msg_type); //text or image  //0 text,1 image ,2 video ,3 audio ,4 map,5 vcard
         values.put("rcs_mime_type",rcs_mime_type); //text or image
-        values.put("rcs_have_attach",rcs_have_attach);
+        values.put("rcs_have_attach", rcs_have_attach);
         values.put("rcs_path", rcs_path);
         Long threadId = Conversation.getOrCreateThreadId(context,address);
         ContentResolver resolver = context.getContentResolver();
@@ -354,6 +398,38 @@ public class RcsUtils {
         Recycler.getSmsRecycler().deleteOldMessagesByThreadId(context, threadId);
         MmsWidgetProvider.notifyDatasetChanged(context);
 
+    }
+
+    public static void rcsInsertMany(Context context, List<ChatMessage> cMsgList)
+            throws ServiceDisconnectedException {
+        if(cMsgList.size() == 0){
+            Log.i("RCS_UI","RETURN");
+            return;
+        }
+        for(ChatMessage cMsg:cMsgList){
+            if (cMsg != null && !isMessageExist(context, cMsg)) {
+                rcsInsert(context, cMsg);
+            }
+        }
+    }
+
+    public static boolean isMessageExist(Context context, ChatMessage chatMessage) {
+        Log.i("RCS_UI", "chatMessage.getMessageId()=" + chatMessage.getMessageId());
+        ContentResolver resolver = context.getContentResolver();
+        Cursor cursor = SqliteWrapper.query(context, resolver, Sms.CONTENT_URI, null,
+                "rcs_message_id = ?", new String[] {
+                    chatMessage.getMessageId()
+                }, null);
+        try {
+            if (cursor != null && cursor.moveToNext()) {
+                dumpCursorRows(cursor);
+                return true;
+            }
+        } finally {
+            if (cursor != null)
+                cursor.close();
+        }
+        return false;
     }
 
     public static long rcsInsert(Context context, ChatMessage chatMessage)
@@ -424,6 +500,9 @@ public class RcsUtils {
             case SuntekMessageData.MSG_TYPE_CONTACT:
                 rcs_path = getFilePath(chatMessage);
                 rcs_thumb_path = messageApi.getThumbFilepath(chatMessage);
+                break;
+            case SuntekMessageData.MSG_TYPE_PAID_EMO:
+                body = chatMessage.getData() + "," + chatMessage.getFilename();
                 break;
         }
 
@@ -595,7 +674,7 @@ public class RcsUtils {
             }
         }
 
-        Log.d("RCS_UI", "getThreadIdByRcsMessageId(): rcs_id=" + rcs_id + ", threadId=" + threadId);
+        Log.d(LOG_TAG, "getThreadIdByRcsMessageId(): rcs_id=" + rcs_id + ", threadId=" + threadId);
 
         return threadId;
     }
@@ -622,7 +701,7 @@ public class RcsUtils {
             }
         }
 
-        Log.d("RCS_UI", "getRcsThreadIdByThreadId(): threadId=" + threadId + ", recipientId="
+        Log.d(LOG_TAG, "getRcsThreadIdByThreadId(): threadId=" + threadId + ", recipientId="
                 + recipientId);
 
         if (TextUtils.isEmpty(recipientId)) {
@@ -648,7 +727,7 @@ public class RcsUtils {
             }
         }
 
-        Log.d("RCS_UI", "getRcsThreadIdByThreadId(): threadId=" + threadId + ", recipientId="
+        Log.d(LOG_TAG, "getRcsThreadIdByThreadId(): threadId=" + threadId + ", recipientId="
                 + recipientId + ", rcsThreadId=" + rcsThreadId);
 
         return rcsThreadId;
@@ -664,7 +743,7 @@ public class RcsUtils {
         try {
             groupChat = RcsApiManager.getMessageApi().getGroupChatById(groupId);
         } catch (ServiceDisconnectedException e) {
-            Log.w("RCS_UI", e);
+            Log.w(LOG_TAG, e);
         }
 
         if (groupChat == null) {
@@ -693,7 +772,7 @@ public class RcsUtils {
             }
         }
 
-        Log.d("RCS_UI", "getThreadIdByRcsMessageId(): groupId=" + groupId + ", recipientId="
+        Log.d(LOG_TAG, "getThreadIdByRcsMessageId(): groupId=" + groupId + ", recipientId="
                 + recipientId);
 
         if (recipientId > 0) {
@@ -715,7 +794,7 @@ public class RcsUtils {
             }
         }
 
-        Log.d("RCS_UI", "getThreadIdByRcsMessageId(): groupId=" + groupId + ", recipientId="
+        Log.d(LOG_TAG, "getThreadIdByRcsMessageId(): groupId=" + groupId + ", recipientId="
                 + recipientId + ", threadId=" + threadId);
 
         return threadId;
@@ -896,7 +975,7 @@ public class RcsUtils {
 
             uriBuilder.appendQueryParameter("recipient", recipient);
         }
-        Log.d("RCS_UI", "uriBuilder.appendQueryParameter(\"isGroupChat\", \"1\");");
+        Log.d(LOG_TAG, "uriBuilder.appendQueryParameter(\"isGroupChat\", \"1\");");
         uriBuilder.appendQueryParameter("isGroupChat", "1");
 
         Uri uri = uriBuilder.build();
@@ -909,14 +988,14 @@ public class RcsUtils {
                 if (cursor.moveToFirst()) {
                     return cursor.getLong(0);
                 } else {
-                    Log.e("RCS_UI", "getOrCreateThreadId returned no rows!");
+                    Log.e(LOG_TAG, "getOrCreateThreadId returned no rows!");
                 }
             } finally {
                 cursor.close();
             }
         }
 
-        Log.e("RCS_UI", "getOrCreateThreadId failed with uri " + uri.toString());
+        Log.e(LOG_TAG, "getOrCreateThreadId failed with uri " + uri.toString());
         throw new IllegalArgumentException("Unable to find or allocate a thread ID.");
     }
 
@@ -945,9 +1024,9 @@ public class RcsUtils {
 
     public static void dumpCursorRows(Cursor cursor) {
         int count = cursor.getColumnCount();
-        Log.d("RCS_UI", "------ dump cursor row ------");
+        Log.d(LOG_TAG, "------ dump cursor row ------");
         for (int i = 0; i < count; i++) {
-            Log.d("RCS_UI", cursor.getColumnName(i) + "=" + cursor.getString(i));
+            Log.d(LOG_TAG, cursor.getColumnName(i) + "=" + cursor.getString(i));
         }
     }
 
@@ -955,11 +1034,11 @@ public class RcsUtils {
         String action = intent.getAction();
         Bundle extras = intent.getExtras();
 
-        Log.d("RCS_UI", "============ onReceive ============");
-        Log.d("RCS_UI", "action=" + action);
+        Log.d(LOG_TAG, "============ onReceive ============");
+        Log.d(LOG_TAG, "action=" + action);
         if (extras != null) {
             for (String key : extras.keySet()) {
-                Log.d("RCS_UI", key + "=" + extras.get(key));
+                Log.d(LOG_TAG, key + "=" + extras.get(key));
             }
         }
     }
@@ -1261,5 +1340,359 @@ public class RcsUtils {
             return false;
         }
     }
+
+    public static int getMessageCountByGroupIdAndNumber(Context context, String groupId,
+            String number) {
+        long threadId = getThreadIdByGroupId(context, groupId);
+        ContentResolver cr = context.getContentResolver();
+        String[] projection = new String[] {
+                "count(distinct address)"
+        };
+        Uri uri = Uri.parse(SMS_URI_ALL);
+        Cursor cursor = cr.query(uri, projection,
+                "address = ? AND type = ? AND thread_id =? AND 1=1) GROUP BY (address",
+                new String[] {
+                        number, "1", String.valueOf(threadId)
+                }, "date DESC");
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    return cursor.getInt(0);
+                } else {
+                    Log.e("RCS_UI", "getMessageCountByGroupIdAndNumber returned no rows!");
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return 0;
+    }
+
+    public static synchronized HashMap<String, Integer> loadGroupMessageCountByGroupId(Context context,
+            String groupId) {
+        Looper.prepare();
+        HashMap<String, Integer> groupChatCount = new HashMap<String, Integer>();
+        int count = 0;
+        GroupChatModel groupModel = null;
+        try{
+            groupModel = RcsApiManager.getMessageApi().getGroupChatById(groupId);
+        }catch(ServiceDisconnectedException ex){
+            ex.printStackTrace();
+        }
+        if (groupModel != null) {
+            List<GroupChatUser> userList = groupModel.getUserList();
+            if (userList == null || userList.size() == 0)
+                return null;
+            for (GroupChatUser groupChatUser : userList) {
+                if (groupChatUser != null) {
+                    count = getMessageCountByGroupIdAndNumber(context, groupId, groupChatUser.getNumber());
+                    Log.i("RCS_UI", "groudId = " + groupId +" number = " + groupChatUser.getNumber() + " count = "+count);
+                    if(count == NEED_GET_PROFILE_PHOTO_CHAT_COUNT){
+                        RcsContactsUtils.updateContactPhotosByNumber(context, groupChatUser.getNumber());
+                    }
+                    groupChatCount.put(groupId+groupChatUser.getNumber(),Integer.valueOf(count));
+                }
+            }
+        }
+        Looper.loop();
+        return groupChatCount;
+    }
+
+    public static boolean isPackageInstalled(Context context, String packageName) {
+        PackageManager pm = context.getPackageManager();
+        List<ApplicationInfo> installedApps = pm
+                .getInstalledApplications(PackageManager.GET_UNINSTALLED_PACKAGES);
+        for (ApplicationInfo info : installedApps) {
+            if (packageName.equals(info.packageName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void startEmojiStore(Context context) {
+        if (RcsUtils.isPackageInstalled(context, "com.temobi.dm.emoji.store")) {
+            Intent mIntent = new Intent();
+            ComponentName comp = new ComponentName("com.temobi.dm.emoji.store",
+                    "com.temobi.dm.emoji.store.activity.EmojiActivity");
+            mIntent.setComponent(comp);
+            context.startActivity(mIntent);
+        } else {
+            Toast.makeText(context, R.string.install_emoj_store, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @SuppressWarnings("static-access")
+    public static void closeKB(Activity activity) {
+        if (activity.getCurrentFocus() != null) {
+            ((InputMethodManager)activity.getSystemService(activity.INPUT_METHOD_SERVICE))
+                    .hideSoftInputFromWindow(activity.getCurrentFocus().getWindowToken(),
+                            InputMethodManager.HIDE_NOT_ALWAYS);
+        }
+    }
+
+    public static void openKB(Context context) {
+        InputMethodManager inputMethodManager = (InputMethodManager)context
+                .getSystemService(Context.INPUT_METHOD_SERVICE);
+        inputMethodManager.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+    }
+
+    public static int dip2px(Context context, float dipValue) {
+        final float scale = context.getResources().getDisplayMetrics().density;
+        return (int)(dipValue * scale + 0.5f);
+    }
+
+    public static void openPopupWindow(Context context, View view, byte[] data) {
+        LinearLayout.LayoutParams mGifParam = new LinearLayout.LayoutParams(
+                LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+        int windowWidth = bitmap.getWidth() + RcsUtils.dip2px(context, 40);
+        int windowHeight = bitmap.getHeight() + RcsUtils.dip2px(context, 40);
+        ColorDrawable transparent = new ColorDrawable(Color.TRANSPARENT);
+        RelativeLayout relativeLayout = new RelativeLayout(context);
+        relativeLayout
+                .setLayoutParams(new LinearLayout.LayoutParams(windowWidth, windowHeight));
+        relativeLayout.setBackgroundResource(R.drawable.rcs_emoji_popup_bg);
+        relativeLayout.setGravity(Gravity.CENTER);
+        RcsEmojiGifView emojiGifView = new RcsEmojiGifView(context);
+        emojiGifView.setLayoutParams(mGifParam);
+        emojiGifView.setBackground(transparent);
+        emojiGifView.setMonieByteData(data);
+        relativeLayout.addView(emojiGifView);
+        PopupWindow popupWindow = new PopupWindow(view, windowWidth, windowHeight);
+        popupWindow.setBackgroundDrawable(transparent);
+        popupWindow.setFocusable(true);
+        popupWindow.setOutsideTouchable(true);
+        popupWindow.setContentView(relativeLayout);
+        popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0);
+        popupWindow.update();
+    }
     
+    public static void showOpenRcsVcardDialog(final Context context,final MessageListItem messageListItem){
+        final String[] openVcardItems = new String[] {
+            context.getString(R.string.vcard_detail_info),
+            context.getString(R.string.vcard_import)
+        };
+        final MessageItem messageItem = messageListItem.getMessageItem();
+        AlertDialog.Builder builder = new AlertDialog.Builder(messageListItem.getContext());
+        builder.setItems(openVcardItems, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case 0:
+                        String vcardFilePath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
+                        ArrayList<PropertyNode> propList = openRcsVcardDetail(context,vcardFilePath);
+                        showDetailVcard(context,propList);
+                        break;
+                    case 1:
+                        try {
+                          String filePath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
+                          File file = new File(filePath);
+                          Intent intent = new Intent(Intent.ACTION_VIEW);
+                          intent.setDataAndType(Uri.fromFile(file), contentType.toLowerCase());
+                          intent.putExtra("VIEW_VCARD_FROM_MMS", true);
+                          messageListItem.getContext().startActivity(intent);
+                      } catch (Exception e) {
+                          Log.w("RCS_UI", e);
+                      }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        });
+        builder.create().show();
+    }
+
+    public static ArrayList<PropertyNode> openRcsVcardDetail(Context context,String filePath){
+        if (TextUtils.isEmpty(filePath)){
+            return null;
+        }
+        try {
+            File file = new File(filePath);
+            FileInputStream fis = new FileInputStream(file);
+           
+            VNodeBuilder builder = new VNodeBuilder();
+            VCardParser parser = new VCardParser_V21();
+            parser.addInterpreter(builder);
+            parser.parse(fis);
+            List<VNode> vNodeList = builder.getVNodeList();
+            ArrayList<PropertyNode> propList = vNodeList.get(0).propList;
+            return propList;
+        } catch (Exception e) {
+            Log.w("RCS_UI",e);
+            return null;
+        }
+    }
+
+    private static void showDetailVcard(Context context,ArrayList<PropertyNode> propList){
+        AlertDialog.Builder builder = new Builder(context);
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View vcardView = inflater.inflate(R.layout.rcs_vcard_detail, null);
+
+        ImageView photoView = (ImageView)vcardView.findViewById(R.id.vcard_photo);
+        TextView nameView, priNumber, firNumber, senNumber,thrNumber, addrText,comName, positionText;
+        nameView = (TextView)vcardView.findViewById(R.id.vcard_name);
+        priNumber = (TextView)vcardView.findViewById(R.id.vcard_number);
+       // ArrayList<PropertyNode> propList = vNodeList.get(0).propList;
+       firNumber = (TextView)vcardView.findViewById(R.id.vcard_number_1);
+       senNumber = (TextView)vcardView.findViewById(R.id.vcard_number_2);
+       thrNumber = (TextView)vcardView.findViewById(R.id.vcard_number_3);
+       addrText = (TextView) vcardView.findViewById(R.id.vcard_addre);
+       positionText = (TextView)vcardView.findViewById(R.id.vcard_position);
+       comName = (TextView) vcardView.findViewById(R.id.vcard_com_name);
+
+       ArrayList<String> numberList = new ArrayList<String>();
+        for (PropertyNode propertyNode : propList) {
+            if ("FN".equals(propertyNode.propName)) {
+                if(!TextUtils.isEmpty(propertyNode.propValue)){
+                nameView.setText(context.getString(R.string.vcard_name)+propertyNode.propValue);
+                }
+            } else if ("TEL".equals(propertyNode.propName)) {
+                if(!TextUtils.isEmpty(propertyNode.propValue)){
+                    numberList.add(context.getString(R.string.vcard_number)+propertyNode.propValue);
+                }
+            } else if("ADR".equals(propertyNode.propName)){
+                if(!TextUtils.isEmpty(propertyNode.propValue)){
+                    addrText.setText(context.getString(R.string.vcard_compony_addre)+":"+propertyNode.propValue);
+                }
+            } else if("ORG".equals(propertyNode.propName)){
+                if(!TextUtils.isEmpty(propertyNode.propValue)){
+                    comName.setText(context.getString(R.string.vcard_compony_name)+":"+propertyNode.propValue);
+                }
+            } else if("TITLE".equals(propertyNode.propName)){
+                if(!TextUtils.isEmpty(propertyNode.propValue)){
+                    positionText.setText(context.getString(R.string.vcard_compony_position)+":"+propertyNode.propValue);
+                }
+            } else if("PHOTO".equals(propertyNode.propName)){
+                if(propertyNode.propValue_bytes != null){
+                    byte[] bytes = propertyNode.propValue_bytes;
+                    final Bitmap vcardBitmap = BitmapFactory
+                            .decodeByteArray(bytes, 0, bytes.length);
+                    photoView.setImageBitmap(vcardBitmap) ;
+                }
+            } 
+        }
+        if ( numberList.size() >=1 && !TextUtils.isEmpty(numberList.get(0))) {
+            priNumber.setText(numberList.get(0));
+        }
+        if (numberList.size() >=2 && !TextUtils.isEmpty(numberList.get(1))) {
+            firNumber.setText(numberList.get(1));
+        }
+        if (numberList.size() >=3 && !TextUtils.isEmpty(numberList.get(2))) {
+            senNumber.setText(numberList.get(2));
+        }
+        if (numberList.size() >=4 && !TextUtils.isEmpty(numberList.get(3))) {
+            thrNumber.setText(numberList.get(3));
+        }
+        builder.setTitle(R.string.vcard_detail_info);
+        builder.setView(vcardView);
+        builder.create();
+        builder.show();
+    }
+
+    public static Intent OpenFile(String filePath) {
+        File file = new File(filePath);
+        if (!file.exists())
+            return null;
+        String end = file.getName()
+                .substring(file.getName().lastIndexOf(".") + 1, file.getName().length())
+                .toLowerCase();
+        Log.i("RCS_UI", "END=" + end);
+        if (end.equals("m4a") || end.equals("mp3") || end.equals("mid") || end.equals("xmf")
+                || end.equals("ogg") || end.equals("wav") || end.equals("amr")) {
+            return getAudioFileIntent(filePath);
+        } else if (end.equals("3gp") || end.equals("mp4")) {
+            return getVideoFileIntent(filePath);
+        } else if (end.equals("jpg") || end.equals("gif") || end.equals("png")
+                || end.equals("jpeg") || end.equals("bmp")) {
+            return getImageFileIntent(filePath);
+        }
+        return null;
+    }
+
+    private static Intent getVideoFileIntent(String param) {
+        Intent intent = new Intent("android.intent.action.VIEW");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("oneshot", 0);
+        intent.putExtra("configchange", 0);
+        Uri uri = Uri.fromFile(new File(param));
+        intent.setDataAndType(uri, "video/*");
+        return intent;
+    }
+
+    private static Intent getAudioFileIntent(String param) {
+        Intent intent = new Intent("android.intent.action.VIEW");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("oneshot", 0);
+        intent.putExtra("configchange", 0);
+        Uri uri = Uri.fromFile(new File(param));
+        intent.setDataAndType(uri, "audio/*");
+        return intent;
+    }
+
+    private static Intent getImageFileIntent(String param) {
+        Intent intent = new Intent("android.intent.action.VIEW");
+        intent.addCategory("android.intent.category.DEFAULT");
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Uri uri = Uri.fromFile(new File(param));
+        intent.setDataAndType(uri, "image/*");
+        return intent;
+    }
+
+    public static String getRcsMessageStatusText(Context context, MessageItem mMessageItem) {
+        String text;
+
+        switch (mMessageItem.mRcsMsgState) {
+            case MESSAGE_SENDING:
+                if ((mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_IMAGE
+                        || mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO)) {
+                    if (MessageListItem.sFileTrasnfer != null) {
+                        Long percent = MessageListItem.sFileTrasnfer
+                                .get(mMessageItem.mRcsMessageId);
+                        if (percent != null) {
+                            text = context.getString(R.string.uploading_percent,
+                                    percent.intValue());
+                        } else {
+                            text = context.getString(R.string.message_adapte_sening);
+                        }
+                    } else {
+                        text = context.getString(R.string.message_adapte_sening);
+                    }
+                } else {
+                    text = context.getString(R.string.message_adapte_sening);
+                }
+                break;
+            case MESSAGE_HAS_SENDED:
+                text = context.getString(R.string.message_adapter_has_send)
+                        + "  " + mMessageItem.mTimestamp;
+                break;
+            case MESSAGE_SENDED:
+                text = context.getString(R.string.message_received)
+                        + "  " + mMessageItem.mTimestamp;
+                break;
+            case MESSAGE_FAIL:
+                if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_TEXT) {
+                    text = context.getString(R.string.message_send_fail);
+                } else {
+                    text = context.getString(R.string.message_send_fail_resend);
+                }
+                break;
+            case MESSAGE_SEND_RECEIVE:
+                text = context.getString(R.string.message_received) + "  "
+                        + mMessageItem.mTimestamp;
+                break;
+            case MESSAGE_HAS_BURNED:
+                text = context.getString(R.string.message_received)
+                        + "  " + mMessageItem.mTimestamp;
+                if (mMessageItem.mRcsIsBurn != 1)
+                    RcsUtils.burnMessageAtLocal(context, mMessageItem.mMsgId);
+                break;
+            default:
+                text = context.getString(R.string.message_adapte_sening);
+                break;
+        }
+
+        return text;
+    }
+
 }

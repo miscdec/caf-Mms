@@ -1,33 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-/* Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ /*
+ * Copyright (c) 2014 pci-suntektech Technologies, Inc.  All Rights Reserved.
+ * pci-suntektech Technologies Proprietary and Confidential.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above
- *       copyright notice, this list of conditions and the following
- *       disclaimer in the documentation and/or other materials provided
- *       with the distribution.
- *     * Neither the name of The Linux Foundation nor the names of its
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
- * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
- * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
--->
+ -->
 <resources>
 
     <string name="rcs_service_is_not_available">RCS Service is not available.</string>
@@ -64,7 +59,10 @@
     <string name="group_chat_quit">%1$s left the group chat.</string>
     <string name="group_chat_disbanded">Group chat is disbanded.</string>
     <string name="group_chat_policy">Message receiving policy has been changed.</string>
+    <string name="install_emoj_store">Please install emoticon store</string>
 
+    <string name="file_is_too_larger">file is too larger</string>
+    <string name="name_not_fix">FileName not fit</string>
     <string name="attach_map">位置</string>
     <string name="message_received">送达</string>
     <string name="message_send_fail">发送失败</string>
@@ -127,6 +125,17 @@
     <string name="select_contact_conversation">选择联系人或会话</string>
     <string name="file_share">彩云文件分享</string>
     <string name="save_back_message">消息备份/恢复</string>
+    <string name="cacel_back_message">取消</string>
+    <string name="cacel_restore_message">取消恢复</string>
+    <string name="message_save">消息备份</string>
+    <string name="message_back">消息恢复</string>
+    <string name="message_is_begin">准备备份</string>
+    <string name="message_is_saving">消息备份中</string>
+    <string name="message_save_ok">备份完成</string>
+    <string name="message_save_fail">备份失败</string>
+    <string name="message_is_restore_begin">准备恢复</string>
+    <string name="message_restoring">消息恢复中</string>
+    <string name="message_restore_ok">恢复完成</string>
     <string name="not_online_message_too_big">非在线状态，文本过大</string>
     <string name="on_airplain_mode">飞行模式无法转发</string>
     <string name="rcs_mcloud_share_file">彩云文件分享</string>
@@ -169,8 +178,24 @@
     <string name="create_groupchat_name_toast">只能输入三十个字节，超出部分将被丢弃。</string>
     <string name="mcloud_share_file_befor">彩云文件地址 \n</string>
     <string name="mcloud_share_file_after"> \n 请点击下载。</string>
+    <string name="mcloud_share_file_sms_temp">文件名称：$FILE_NAME$，文件大小：$FILE_SIZE$，分享链接：$SHARE_URL$</string>
     <string name="confirm_cancel_selected_fav_messages">确认取消选中收藏吗？</string>
     <string name="stop_down_load">暂停下载</string>
     <string name="burn_all_message">拔卡焚掉所有</string>
+    <string name="groupchat_invalid">群聊已失效</string>
+    <string name="batch_favourite">批量收藏会话</string>
+    <string name="batch_backup">备份多条消息</string>
+   <string name="vcard_name">姓名：</string>
+    <string name="vcard_number">手机号：</string>
+    <string name="vcard_other_number">其他号码</string>
+    <string name="vcard_compony_info">公司信息</string>
+    <string name="vcard_compony_addre">地址</string>
+    <string name="vcard_compony_position">职位</string>
+    <string name="vcard_number_null">无设置</string>
+    <string name="vcard_compony_name">名称</string>
+    <string name="vcard_detail_info">联系人详情</string>
+    <string name="vcard_import">导入联系人</string>
+    <string name="function_is_opering">功能正在开发中...</string>
+    <string name="download_mcloud_file_fail">下载彩云文件失败：%1$s</string>
 
 </resources>

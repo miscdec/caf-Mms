@@ -196,11 +196,11 @@ public class MessageListAdapter extends CursorAdapter {
     static final int COLUMN_RCS_IS_DOWNLOAD     = 12;
     static final int COLUMN_RCS_MSG_STATE       = 13;
     static final int COLUMN_RCS_MIME_TYPE       = 14;
-    static final int COLUMN_FAVOURITE           = 15 ;
-    static final int COLUMN_RCS_FILESIZE        = 16 ;
-    static final int COLUMN_RCS_PLAY_TIME       = 17 ;
-    static final int COLUMN_RCS_MESSAGE_ID = 18;
-    static final int COLUMN_CHAT_TYPE = 19;
+    static final int COLUMN_FAVOURITE           = 15;
+    static final int COLUMN_RCS_FILESIZE        = 16;
+    static final int COLUMN_RCS_PLAY_TIME       = 17;
+    static final int COLUMN_RCS_MESSAGE_ID      = 18;
+    static final int COLUMN_CHAT_TYPE           = 19;
 
     static final int COLUMN_SMS_DATE            = 20;
     static final int COLUMN_SMS_DATE_SENT       = 21;
@@ -231,7 +231,7 @@ public class MessageListAdapter extends CursorAdapter {
     public static final int OUTGOING_ITEM_TYPE_SMS = 1;
     public static final int INCOMING_ITEM_TYPE_MMS = 2;
     public static final int OUTGOING_ITEM_TYPE_MMS = 3;
-    public static final int GROUP_CHAT_ITEM_TYPE = 4;
+    public static final int GROUP_CHAT_ITEM_TYPE   = 4;
 
     protected LayoutInflater mInflater;
     private final ListView mListView;

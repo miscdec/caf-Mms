@@ -159,6 +159,8 @@ public class MessageUtils {
     public static final int FORWARD_MODE = 0;
     public static final int SIM_MESSAGE_MODE = 1;
     public static final int BATCH_DELETE_MODE = 2;
+	public static final int BATCH_FAVOURITE_MODE = 3;
+    public static final int BATCH_BACKUP_MODE = 4;
     // add for obtaining icc uri when copying messages to card
     public static final Uri ICC_URI = Uri.parse("content://sms/icc");
     public static final Uri ICC1_URI = Uri.parse("content://sms/icc1");
