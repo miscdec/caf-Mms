@@ -40,6 +40,8 @@ import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
+import com.android.mms.rcs.RcsUtils;
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 
 /**
  * This class manages the view for given conversation.
@@ -57,6 +59,7 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     private QuickContactBadge mAvatarView;
 
     static private Drawable sDefaultContactImage;
+    static private Drawable sDefaultGroupChatImage; // The RCS Group Chat photo.
 
     // For posting UI update Runnables from other threads:
     private Handler mHandler = new Handler();
@@ -74,6 +77,9 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
         if (sDefaultContactImage == null) {
             sDefaultContactImage = context.getResources().getDrawable(R.drawable.ic_contact_picture);
+        }
+        if (sDefaultGroupChatImage == null) {
+            sDefaultGroupChatImage = context.getResources().getDrawable(R.drawable.rcs_ic_group_chat_photo);
         }
     }
 
@@ -105,7 +111,17 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     private CharSequence formatMessage() {
         final int color = android.R.styleable.Theme_textColorSecondary;
         SpannableStringBuilder buf = null;
-        String from = mConversation.getRecipients().formatNames(", ");
+        String from;
+        if (mConversation.isGroupChat()) {
+            GroupChatModel groupChat = mConversation.getGroupChat();
+            if (groupChat != null) {
+                from = RcsUtils.getDisplayName(groupChat); // TODO change to gorupChat.getDisplayName();
+            } else {
+                from = mContext.getString(R.string.groupchat_invalid);
+            }
+        } else {
+            from = mConversation.getRecipients().formatNames(", ");
+        }
         if (MessageUtils.isWapPushNumber(from)) {
             String[] mAddresses = from.split(":");
             buf = new SpannableStringBuilder(mAddresses[mContext.getResources().getInteger(
@@ -145,7 +161,10 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
     private void updateAvatarView() {
         Drawable avatarDrawable;
-        if (mConversation.getRecipients().size() == 1) {
+        if (mConversation.isGroupChat()) { // RCS Group Chat
+            avatarDrawable = sDefaultGroupChatImage;
+            mAvatarView.assignContactUri(null);
+        } else if (mConversation.getRecipients().size() == 1) {
             Contact contact = mConversation.getRecipients().get(0);
             avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
 
@@ -223,7 +242,11 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         Contact.addListener(this);
 
         // Subject
-        mSubjectView.setText(conversation.getSnippet());
+        String snippet = conversation.getSnippet();
+        if (conversation.isGroupChat()) { // TODO judge the latest message is notification message.
+            snippet = RcsUtils.getStringOfNotificationBody(context, snippet);
+        }
+        mSubjectView.setText(snippet);
         LayoutParams subjectLayout = (LayoutParams)mSubjectView.getLayoutParams();
         // We have to make the subject left of whatever optional items are shown on the right.
         subjectLayout.addRule(RelativeLayout.LEFT_OF, hasAttachment ? R.id.attachment :

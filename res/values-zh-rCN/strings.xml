@@ -579,4 +579,5 @@
     <string name="sub">卡</string>
     <string name="menu_batch_delete">"批量删除会话"</string>
     <string name="download_dialog_title">确认下载信息？</string>
+    <string name="install_emoj_store">请安装表情商店</string>
 </resources>

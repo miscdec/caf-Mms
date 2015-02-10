@@ -20,6 +20,10 @@
 package com.android.mms.ui;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import android.app.ActionBar;
 import android.app.Activity;
@@ -69,14 +73,26 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.mms.data.Contact;
+import com.android.mms.data.ContactList;
+import com.android.mms.data.Conversation;
 import com.android.mms.LogTag;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsApiManager;
+import com.android.mms.rcs.RcsChatMessageUtils;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessageSender;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.SmsMessageSender;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.WwwContextMenuActivity;
 import com.google.android.mms.MmsException;
+import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.api.util.FileSuffixException;
+import com.suntek.mway.rcs.client.api.util.FileTransferException;
+import com.suntek.mway.rcs.client.api.util.FileDurationException;
 
 public class MailBoxMessageContent extends Activity {
     private static final String TAG = "MailBoxMessageContent";
@@ -94,10 +110,16 @@ public class MailBoxMessageContent extends Activity {
     private int mRead;
     private int mMsgType = Sms.MESSAGE_TYPE_INBOX;
     private boolean mLock = false;
+    private boolean mIsConvMode;
+    private int mIsFavouriteMessage;
+    private int mIsRcs;
+    private int mRcsId;
 
     private int mSubID = MessageUtils.SUB_INVALID;
+    private Cursor mCursor = null;
 
     private TextView mBodyTextView;
+    private MessageDetailAdapter mPagerAdapter;
     /*Operations for gesture to scale the current text fontsize of content*/
     private float mScaleFactor = 1;
     private  ScaleGestureDetector mScaleDetector;
@@ -109,6 +131,8 @@ public class MailBoxMessageContent extends Activity {
     private static final int MENU_RESEND = Menu.FIRST + 4;
     private static final int MENU_SAVE_TO_CONTACT = Menu.FIRST + 5;
     private static final int MENU_LOCK = Menu.FIRST + 6;
+    private static final int MENU_FAVORITED = Menu.FIRST + 7;
+    private static final int MENU_UNFAVORITED = Menu.FIRST + 8;
 
     private BackgroundHandler mBackgroundHandler;
     private static final int DELETE_MESSAGE_TOKEN = 6701;
@@ -134,6 +158,14 @@ public class MailBoxMessageContent extends Activity {
         Sms.STATUS,
         Sms.READ,
         Sms.TYPE,
+        "favourite",
+        "rcs_msg_type",
+        "rcs_file_size",
+        "rcs_path",
+        "rcs_mime_type",
+        "rcs_thumb_path",
+        "is_rcs",
+        "rcs_id"
     };
 
     private static final int COLUMN_THREAD_ID = 0;
@@ -146,10 +178,18 @@ public class MailBoxMessageContent extends Activity {
     private static final int COLUMN_STATUS = 7;
     private static final int COLUMN_SMS_READ = 8;
     private static final int COLUMN_SMS_TYPE = 9;
+    private static final int COLUMN_SMS_ISFAV = 10;
+    private static final int COULUMN_IS_RCS = 16;
+    private static final int COULUMN_RCS_ID = 17;
 
     private static final int SMS_ADDRESS_INDEX = 0;
     private static final int SMS_BODY_INDEX = 1;
     private static final int SMS_SUB_ID_INDEX = 2;
+
+    public static final int REQUEST_CODE_RCS_PICK = 115;
+    public static final int REQUEST_SELECT_CONV = 116;
+    public static final int REQUEST_SELECT_GROUP = 117;
+    private static final String INTENT_MULTI_PICK = "com.android.contacts.action.MULTI_PICK";
 
     private float mFontSizeForSave = MessageUtils.FONT_SIZE_DEFAULT;
 
@@ -252,6 +292,12 @@ public class MailBoxMessageContent extends Activity {
             menu.add(0, MENU_SAVE_TO_CONTACT, 0, R.string.menu_add_to_contacts);
         }
 
+        if (!RcsChatMessageUtils.isFavoritedMessage(this, mMsgId)) {
+            menu.add(0, MENU_FAVORITED, 0, R.string.favorited);
+        } else {
+            menu.add(0, MENU_UNFAVORITED, 0, R.string.unfavorited);
+        }
+
         return true;
     }
 
@@ -279,11 +325,16 @@ public class MailBoxMessageContent extends Activity {
                 confirmDeleteDialog(l, mLock);
                 break;
             case MENU_FORWARD:
-                Intent intentForward = new Intent(this, ComposeMessageActivity.class);
-                intentForward.putExtra("sms_body", mMsgText);
-                intentForward.putExtra("exit_on_sent", true);
-                intentForward.putExtra("forwarded_message", true);
-                this.startActivity(intentForward);
+                if (mIsRcs != RcsUtils.SMS_DEFAULT_RCS_ID) {
+                    Log.i("RCS_UI", "IS RCS MESSAGE");
+                    RcsChatMessageUtils.forwardContactOrConversation(this, new ForwardClickListener());
+                } else {
+                    Intent intentForward = new Intent(this, ComposeMessageActivity.class);
+                    intentForward.putExtra("sms_body", mMsgText);
+                    intentForward.putExtra("exit_on_sent", true);
+                    intentForward.putExtra("forwarded_message", true);
+                    this.startActivity(intentForward);
+                }
                 break;
             case MENU_REPLY:
                 Intent intentReplay = new Intent(this, ComposeMessageActivity.class);
@@ -302,6 +353,13 @@ public class MailBoxMessageContent extends Activity {
             case MENU_SAVE_TO_CONTACT:
                 saveToContact();
                 break;
+            case MENU_FAVORITED:
+                RcsChatMessageUtils.favoritedMessage(this, mMsgId);
+                break;
+            case MENU_UNFAVORITED:
+                Log.i("RCS_UI","mMsgId="+mMsgId);
+                RcsChatMessageUtils.unFavoritedMessage(this, mMsgId);
+                break;
             case android.R.id.home:
                 finish();
                 break;
@@ -311,7 +369,65 @@ public class MailBoxMessageContent extends Activity {
 
         return true;
     }
+    public class ForwardClickListener implements OnClickListener{
+        public void onClick(DialogInterface dialog, int whichButton) {
+            switch (whichButton) {
+                case 0:
+                   launchRcsPhonePicker();
+                    break;
+                case 1:
+                    Intent intent = new Intent(MailBoxMessageContent.this,ConversationList.class);
+                    intent.putExtra("select_conversation",true);
+                    MessageUtils.setMailboxMode(false);
+                    startActivityForResult(intent, REQUEST_SELECT_CONV);
+                    break;
+                case 2:
+                    launchRcsContactGroupPicker(REQUEST_SELECT_GROUP);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.i("RCS_UI","requestCode="+requestCode+",resultCode="+resultCode+",data="+data);
+        if (resultCode != RESULT_OK){
+            return;
+        }
+        switch (requestCode) {
+            case REQUEST_CODE_RCS_PICK:
+                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId, MailBoxMessageContent.this);
+                break;
+            case REQUEST_SELECT_CONV:
+                RcsChatMessageUtils.sendForwardRcsMessageToConv(data, mRcsId, MailBoxMessageContent.this);
+                break;
+            case REQUEST_SELECT_GROUP:
+                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId, MailBoxMessageContent.this);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void launchRcsContactGroupPicker(int requestCode) {
+        Intent intent = new Intent(MailBoxMessageContent.this, MultiPickContactGroups.class);
+        try {
+            startActivityForResult(intent, requestCode);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(MailBoxMessageContent.this, R.string.contact_app_not_found, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void launchRcsPhonePicker() {
+        Intent intent = new Intent(INTENT_MULTI_PICK, Contacts.CONTENT_URI);
+
+        try {
+            startActivityForResult(intent, REQUEST_CODE_RCS_PICK);
+        } catch (ActivityNotFoundException ex) {
+            Toast.makeText(MailBoxMessageContent.this, R.string.contact_app_not_found, Toast.LENGTH_SHORT).show();
+        }
+    }
     private void confirmDeleteDialog(OnClickListener listener, boolean locked) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(true);
@@ -467,6 +583,9 @@ public class MailBoxMessageContent extends Activity {
         mMsgstatus = cursor.getInt(COLUMN_STATUS);
         mSubID = cursor.getInt(COLUMN_SMS_SUBID);
         mMsgId = cursor.getInt(COLUMN_MSGID);
+        mIsFavouriteMessage = cursor.getInt(COLUMN_SMS_ISFAV);
+        mIsRcs = cursor.getInt(COULUMN_IS_RCS);
+        mRcsId = cursor.getInt(COULUMN_RCS_ID);
 
         if (mMsgType == Sms.MESSAGE_TYPE_INBOX) {
             mFromtoLabel = getString(R.string.from_label);

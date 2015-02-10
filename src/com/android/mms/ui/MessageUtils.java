@@ -131,7 +131,9 @@ import static android.telephony.SmsMessage.ENCODING_UNKNOWN;
 import static android.telephony.SmsMessage.MAX_USER_DATA_BYTES;
 import static android.telephony.SmsMessage.MAX_USER_DATA_BYTES_WITH_HEADER;
 import static android.telephony.SmsMessage.MAX_USER_DATA_SEPTETS;
-
+import com.android.mms.rcs.RcsUtils;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 /**
  * An utility class for managing messages.
  */
@@ -321,7 +323,7 @@ public class MessageUtils {
                     return "";
             }
         } else {
-            return getTextMessageDetails(context, cursor);
+            return getTextMessageDetails(context, cursor, false);
         }
     }
 
@@ -481,7 +483,7 @@ public class MessageUtils {
         return details.toString();
     }
 
-    private static String getTextMessageDetails(Context context, Cursor cursor) {
+    public static String getTextMessageDetails(Context context, Cursor cursor, boolean isAppendContentType) {
         Log.d(TAG, "getTextMessageDetails");
 
         StringBuilder details = new StringBuilder();
@@ -489,8 +491,29 @@ public class MessageUtils {
 
         // Message Type: Text message.
         details.append(res.getString(R.string.message_type_label));
-        details.append(res.getString(R.string.text_message));
+        int rcsId = cursor.getInt(cursor.getColumnIndexOrThrow("rcs_id"));
+        if (rcsId != RcsUtils.SMS_DEFAULT_RCS_ID)
+            details.append(res.getString(R.string.rcs_text_message));
+        else
+            details.append(res.getString(R.string.text_message));
 
+        if (isAppendContentType) {
+            details.append('\n');
+            details.append(res.getString(R.string.message_content_type));
+            int msgType = cursor.getInt(cursor.getColumnIndex("rcs_msg_type"));
+            if (msgType == RcsUtils.RCS_MSG_TYPE_IMAGE)
+                details.append(res.getString(R.string.message_content_image));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_AUDIO)
+                details.append(res.getString(R.string.message_content_audio));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_VIDEO)
+                details.append(res.getString(R.string.message_content_video));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_MAP)
+                details.append(res.getString(R.string.message_content_map));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_VCARD)
+                details.append(res.getString(R.string.message_content_vcard));
+            else
+                details.append(res.getString(R.string.message_content_text));
+        }
         // Address: ***
         details.append('\n');
         int smsType = cursor.getInt(MessageListAdapter.COLUMN_SMS_TYPE);
@@ -700,7 +723,13 @@ public class MessageUtils {
         intent.setType(ContentType.AUDIO_AMR);
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
-        intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
+        if (RcsUtils.isSupportRcs()) {
+            sizeLimit = 12800/8*RcsUtils.getAudioMaxTime(); //the audio maxSize of rcs auido. 
+            sizeLimit/=0.992F;
+            intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES,sizeLimit);
+        } else {
+            intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
+        }
         intent.putExtra(EXIT_AFTER_RECORD, true);
         activity.startActivityForResult(intent, requestCode);
     }
@@ -718,15 +747,34 @@ public class MessageUtils {
         }
 
         Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
-        intent.putExtra("android.intent.extra.sizeLimit", sizeLimit);
-        intent.putExtra("android.intent.extra.durationLimit", durationLimit);
+        if(RcsUtils.isSupportRcs()){
+            intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, CamcorderProfile.QUALITY_HIGH);
+            intent.putExtra("android.intent.extra.sizeLimit",getVideoCaptureSizeLimit( RcsUtils.getVideoMaxTime()));
+            intent.putExtra("android.intent.extra.durationLimit", RcsUtils.getVideoMaxTime());
+        } else {
+            intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
+            intent.putExtra("android.intent.extra.sizeLimit", sizeLimit);
+            intent.putExtra("android.intent.extra.durationLimit", durationLimit);
+        }
         intent.putExtra(MediaStore.EXTRA_OUTPUT, TempFileProvider.SCRAP_CONTENT_URI);
         try {
             activity.startActivityForResult(intent, requestCode);
         } catch (ActivityNotFoundException e) {
             Log.e(TAG, "startActivity failed", e);
         }
+    }
+
+    public static long getVideoCaptureSizeLimit(long duration) {
+        CamcorderProfile camcorder = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH);
+        if (camcorder == null) {
+            return 0;
+        }
+        Log.i("RCS_UI", "audio="+camcorder.audioBitRate);
+        Log.i("RCS_UI", "video="+camcorder.videoBitRate);
+        Log.i("RCS_UI", "video="+camcorder.videoFrameRate);
+        long byteLimit= duration * (camcorder.audioBitRate + camcorder.videoBitRate)/8;
+        byteLimit /= .95F;
+        return byteLimit;
     }
 
     public static void capturePicture(Activity activity, int requestCode) {

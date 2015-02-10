@@ -31,6 +31,7 @@ import com.android.mms.R;
 public class AttachmentTypeSelectorAdapter extends IconListAdapter {
     public final static int MODE_WITH_SLIDESHOW    = 0;
     public final static int MODE_WITHOUT_SLIDESHOW = 1;
+    public final static int MODE_RCS = 2;
 
     public final static int ADD_IMAGE               = 0;
     public final static int TAKE_PICTURE            = 1;
@@ -41,7 +42,7 @@ public class AttachmentTypeSelectorAdapter extends IconListAdapter {
     public final static int ADD_SLIDESHOW           = 6;
     public final static int ADD_CONTACT_AS_TEXT     = 7;
     public final static int ADD_CONTACT_AS_VCARD    = 8;
-
+    public final static int ADD_MAP                 = 9;
     private boolean mShowMediaOnly = false;
     private static int mMediaCount;
 
@@ -83,7 +84,7 @@ public class AttachmentTypeSelectorAdapter extends IconListAdapter {
                 R.drawable.ic_attach_capture_audio_holo_light, RECORD_SOUND);
         mMediaCount ++;
 
-        if (mode == MODE_WITH_SLIDESHOW) {
+        if (mode == MODE_WITH_SLIDESHOW || mode == MODE_RCS) {
             addItem(data, context.getString(R.string.attach_slideshow),
                     R.drawable.ic_attach_slideshow_holo_light, ADD_SLIDESHOW);
         }
@@ -94,6 +95,10 @@ public class AttachmentTypeSelectorAdapter extends IconListAdapter {
 
             addItem(data, context.getString(R.string.attach_add_contact_as_vcard),
                     R.drawable.ic_attach_capture_contact_vcard_holo_light, ADD_CONTACT_AS_VCARD);
+        }
+        if (mode == MODE_RCS) {
+            addItem(data, context.getString(R.string.attach_map),
+                    R.drawable.ic_attach_slideshow_holo_light, ADD_MAP);
         }
         return data;
     }
