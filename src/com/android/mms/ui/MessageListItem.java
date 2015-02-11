@@ -324,7 +324,7 @@ public class MessageListItem extends LinearLayout implements
     }
 
     private boolean isRcsMessage() {
-        return mMessageItem.mRcsId != RcsUtils.SMS_DEFAULT_RCS_ID;
+        return mMessageItem.mRcsId > 0;
     }
 
     private void bindRcsMessage() {
