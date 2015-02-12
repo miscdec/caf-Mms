@@ -67,6 +67,7 @@ import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.Data;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Threads;
@@ -2490,12 +2491,50 @@ public class MessageUtils {
         return false;
     }
 
+    /* Returns User Prompt property, enabed or not*/
+    public static boolean isPromptEnabled(Context context) {
+        int value = 0;
+        try {
+            value = Settings.Global.getInt(context.getContentResolver(),
+                    Settings.Global.MULTI_SIM_SMS_PROMPT);
+        } catch (SettingNotFoundException e) {
+            Log.e(TAG, "Settings Exception Reading Dual Sim Voice Prompt Values");
+        }
+        return (value != 0);
+    }
+
+
+    /* Gets current Sms subscription setting*/
+    public static int getSmsSubscription(Context context) {
+        int subscription = 0;
+
+        try {
+            subscription = Settings.Global.getInt(context.getContentResolver(),
+                    Settings.Global.MULTI_SIM_SMS_SUBSCRIPTION);
+        } catch (SettingNotFoundException e) {
+            Log.e(TAG, "Settings Exception Reading Dual Sim Data Call Values");
+        }
+
+        if (subscription >= MSimTelephonyManager.getDefault().getPhoneCount()
+                || subscription < 0) {
+            Log.e(TAG, "Subscription is invalid..." + subscription + " Set to 0");
+            subscription = 0;
+        }
+        return subscription;
+    }
+
     public static void dialNumber(Context context, String number) {
         Intent dialIntent;
-        if (isMsimIccCardActive())
-            dialIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tel:" + number));
-        else
+        if (isMsimIccCardActive()) {
+            if (isPromptEnabled(context)) {
+                dialIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tel:" + number));
+            } else {
+                dialRecipient(context, number, getSmsSubscription(context));
+                return;
+            }
+        } else {
             dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        }
         context.startActivity(dialIntent);
      }
 
