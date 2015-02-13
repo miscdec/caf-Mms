@@ -87,6 +87,7 @@ import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.WorkingMessage;
+import com.android.mms.image.ImageLoader;
 import com.android.mms.model.LayoutModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
@@ -114,6 +115,7 @@ import com.google.android.mms.pdu.NotificationInd;
 import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
 
+import com.suntek.mway.rcs.client.aidl.plugin.callback.IMcloudOperationCtrl;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.emoticon.EmoticonConstant;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.mcloudfile.TransNode;
 import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
@@ -182,11 +184,12 @@ public class MessageListItem extends LinearLayout implements
     boolean mRcsShowMmsView = false;
     private int mRcsGroupId;
     public String mRcsContentType = "";
-    public static HashMap<String, Long> sFileTrasnfer = new HashMap<String, Long>();
+    public static HashMap<String, Long> sFileTrasnfer;
 
-    public static void setsFileTrasnfer(HashMap<String, Long> sFileTrasnfer) {
-        MessageListItem.sFileTrasnfer = sFileTrasnfer;
+    public void setFileTrasnfer(HashMap<String, Long> fileTrasnfer){
+        this.sFileTrasnfer = fileTrasnfer;
     }
+    public IMcloudOperationCtrl operation;
 
     public MessageListItem(Context context) {
         super(context);
@@ -280,7 +283,7 @@ public class MessageListItem extends LinearLayout implements
     }
 
     public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position,
-            int rcsGroupId) {
+            int rcsGroupId, ImageLoader imageLoader) {
         if (DEBUG) {
             Log.v(TAG, "bind for item: " + position + " old: " +
                    (mMessageItem != null ? mMessageItem.toString() : "NULL" ) +
@@ -308,7 +311,7 @@ public class MessageListItem extends LinearLayout implements
 
         mContact = Contact.get(mMessageItem.mAddress, false);
         if (isRcsMessage()) {
-            bindRcsMessage();
+            bindRcsMessage(imageLoader);
         }
         switch (msgItem.mMessageType) {
             case PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND:
@@ -327,13 +330,13 @@ public class MessageListItem extends LinearLayout implements
         return mMessageItem.mRcsId > 0;
     }
 
-    private void bindRcsMessage() {
+    private void bindRcsMessage(ImageLoader imageLoader) {
         updateNameTextView();
 
         if (mMessageItem.mRcsBurnFlag == RcsUtils.RCS_IS_BURN_TRUE) {
             bindRcsBurnMessage();
         } else {
-            bindRcsNotBurnMessage();
+            bindRcsNotBurnMessage(imageLoader);
         }
     }
 
@@ -356,7 +359,7 @@ public class MessageListItem extends LinearLayout implements
                         RcsMessageOpenUtils.retransmisMessage(mMessageItem);
                     } else if (mMessageItem.mRcsIsBurn == 0) {
                         RcsChatMessageUtils.startBurnMessageActivity(mContext,
-                                mMessageItem.mRcsIsBurn, mMessageItem.getMessageId());
+                                mMessageItem.mRcsIsBurn, mMessageItem.getMessageId(), mMessageItem.mRcsId);
                     } else {
                         toast(R.string.message_has_been_burned);
                     }
@@ -367,38 +370,39 @@ public class MessageListItem extends LinearLayout implements
         mBodyTextView.setVisibility(View.GONE);
     }
 
-    private void bindRcsNotBurnMessage() {
-        Bitmap bitmap = null;
-        if (mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_MAP) {
+    private void bindRcsNotBurnMessage(ImageLoader imageLoader) {
+        int imageId = -1;
+
+        if (mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_MAP
+            && mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
             mBodyTextView.setVisibility(View.GONE);
         }
+        showMmsView(mMessageItem.mRcsType != 0);
+        String imageUrl = null;
+        int imageID = -1;
+        Bitmap bitmap = null;
+        int defaultImageId = -1;
+        int failImageId = -1;
+        boolean bitmapSetted = false;
         if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_IMAGE) {
-            if (mMessageItem.mRcsThumbPath != null
+            if (!TextUtils.isEmpty(mMessageItem.mRcsThumbPath)
                     && new File(mMessageItem.mRcsThumbPath).exists()) {
-            } else if(mMessageItem.mRcsThumbPath != null) {
+            } else if (!TextUtils.isEmpty(mMessageItem.mRcsThumbPath)) {
                 if (mMessageItem.mRcsThumbPath.contains(".")) {
                     mMessageItem.mRcsThumbPath = mMessageItem.mRcsThumbPath.substring(0,
                             mMessageItem.mRcsThumbPath.lastIndexOf("."));
                 }
             }
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inJustDecodeBounds = true;
-            bitmap = BitmapFactory.decodeFile(mMessageItem.mRcsThumbPath, options);
-            options.inJustDecodeBounds = false;
 
-            int be = (int)(options.outHeight / (float)200);
-            if (be <= 0)
-                be = 1;
-            options.inSampleSize = be;
-
-            bitmap = BitmapFactory.decodeFile(mMessageItem.mRcsThumbPath, options);
             mRcsContentType=mMessageItem.mRcsMimeType;
-            if(mRcsContentType==null){
-                 mRcsContentType = "image/*";
-            }
+            imageUrl = mMessageItem.mRcsThumbPath;
+            defaultImageId = R.drawable.ic_attach_picture_holo_light;
+            failImageId = R.drawable.ic_attach_picture_disable;
             mRcsContentType = "image/*";
         } else if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO) {
-            bitmap = BitmapFactory.decodeFile(mMessageItem.mRcsThumbPath);
+            imageUrl = mMessageItem.mRcsThumbPath;
+            defaultImageId = R.drawable.ic_attach_video_holo_light;
+            failImageId = R.drawable.ic_attach_video_disable;
             mRcsContentType = "video/*";
 
             mMessageItem.mBody = mMessageItem.mRcsFileSize / 1024 + "KB/ "
@@ -407,6 +411,7 @@ public class MessageListItem extends LinearLayout implements
         } else if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VCARD) {
             String name = "";
             String number = "";
+            imageID = R.drawable.ic_attach_vcard;
             String vcardFilePath = RcsUtils.getFilePath(mMessageItem.mRcsId,
                     mMessageItem.mRcsPath);
             ArrayList<PropertyNode> propList = RcsUtils.openRcsVcardDetail(getContext(),
@@ -428,8 +433,7 @@ public class MessageListItem extends LinearLayout implements
                         byte[] bytes = propertyNode.propValue_bytes;
                         bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
                     } else {
-                        bitmap = BitmapFactory.decodeResource(mContext.getResources(),
-                                R.drawable.ic_attach_vcard);
+                        imageID = R.drawable.ic_attach_vcard;
                     }
                 }
             }
@@ -438,20 +442,21 @@ public class MessageListItem extends LinearLayout implements
                     + name + "\n" + mContext.getString(R.string.vcard_number) + number);
             mRcsContentType = "text/x-vCard";
         } else if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_AUDIO) {
-            bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.rcs_voice);
+            imageID = R.drawable.rcs_voice;
             mRcsContentType = "audio/*";
             mBodyTextView.setVisibility(View.VISIBLE);
             mBodyTextView.setText(mMessageItem.mRcsPlayTime + "''");
             mMessageItem.mBody = mMessageItem.mRcsPlayTime + "''";
         } else if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_MAP) {
-            bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.rcs_map);
+            imageID = R.drawable.rcs_map;
             mRcsContentType = "map/*";
         } else if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_PAID_EMO){
             String[] body = mMessageItem.mBody.split(",");
             RcsEmojiStoreUtil.getInstance().loadImageAsynById(mImageView, body[0],
                     RcsEmojiStoreUtil.EMO_STATIC_FILE);
+            bitmapSetted = true;
         } else if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
-            bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.rcs_ic_cloud);
+            imageID = R.drawable.rcs_ic_cloud;
             mBodyTextView.setVisibility(View.VISIBLE);
             // TODO caiyun file view
             ChatMessage msg = null;
@@ -477,8 +482,6 @@ public class MessageListItem extends LinearLayout implements
         }
 
         if (mMessageItem.mRcsType != 0) {
-
-            showMmsView(true);
             if (mSlideShowButton == null) {
                 mSlideShowButton = (ImageButton) findViewById(R.id.play_slideshow_button);
             }
@@ -501,16 +504,18 @@ public class MessageListItem extends LinearLayout implements
                     }
                 });
             }
-            if (bitmap != null && mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_PAID_EMO) {
-                Matrix matrix = new Matrix();
-                matrix.postScale(1.5f, 1.5f);
-                Bitmap resizeBmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
-                        bitmap.getHeight(), matrix, true);
-                if (mImageView != null) {
-                    mImageView.setImageBitmap(bitmap);
-                }
-            }
+
             if (mImageView != null) {
+                if (!TextUtils.isEmpty(imageUrl)) {
+                    imageLoader.load(mImageView, imageUrl, defaultImageId,
+                            failImageId);
+                } else if (imageID > 0) {
+                    mImageView.setImageResource(imageID);
+                } else if (bitmap != null) {
+                    mImageView.setImageBitmap(bitmap);
+                } else if (!bitmapSetted) {
+                    mImageView.setImageBitmap(null);
+                }
                 mImageView.setOnClickListener(new OnClickListener() {
 
                     @Override
@@ -523,7 +528,6 @@ public class MessageListItem extends LinearLayout implements
         } else {
             mBodyTextView.setVisibility(View.VISIBLE);
             mRcsShowMmsView = false;
-            showMmsView(false);
         }
     }
 
@@ -1026,6 +1030,9 @@ public class MessageListItem extends LinearLayout implements
         if (mMsgItem == null) {
             return false;
         }
+        if (mMsgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
+           return RcsMessageOpenUtils.isCaiYunFileDown(mMsgItem);
+        }
         String filePath = RcsUtils.getFilePath(mMsgItem.mRcsId, mMsgItem.mRcsPath);
         ChatMessage msg = null;
         boolean isFileDownload = false;
@@ -1497,12 +1504,12 @@ public class MessageListItem extends LinearLayout implements
         mSimMessagesMode = isSimMessagesMode;
     }
 
-    public static void setRcsIsStopDown(boolean rcsIsStopDown) {
-        MessageListItem.mRcsIsStopDown = rcsIsStopDown;
+    public boolean getRcsIsStopDown() {
+        return mRcsIsStopDown;
     }
 
-    public static HashMap<String, Long> getFileTrasnferHashMap() {
-        return sFileTrasnfer;
+    public void setRcsIsStopDown(boolean rcsIsStopDown) {
+            mRcsIsStopDown = rcsIsStopDown;
     }
 
     public void setMultiChoiceMode(boolean isMultiChoiceMode) {

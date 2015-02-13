@@ -20,6 +20,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
 package com.android.mms.image;
 
 import android.content.Context;
@@ -48,7 +49,7 @@ public class NetImageUtil {
         return url.substring(url.lastIndexOf("/"));
     }
 
-    public static void saveBitmap(Context context, String url, Bitmap bitmap) {
+    public static String saveBitmap(Context context, String url, Bitmap bitmap) {
         String folderPath = getImgDownloadPath(context);
         File folder = new File(folderPath);
         if (!folder.exists()) {
@@ -62,10 +63,12 @@ public class NetImageUtil {
             bitmap.compress(CompressFormat.JPEG, 100, fos);
             fos.flush();
             fos.close();
+            return filePath;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return null;
     }
 }

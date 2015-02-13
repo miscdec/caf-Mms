@@ -132,7 +132,7 @@ public class ManageMultiSelectAction extends Activity {
     private static final String LEFT_PARENTHESES = "(";
     private static final String RIGHT_PARENTHESES = ")";
     private static final String LINE_BREAK = "\n";
-    
+
     private ProgressDialog mSaveOrBackProgressDialog = null;
 
     @Override
@@ -168,9 +168,6 @@ public class ManageMultiSelectAction extends Activity {
 
         startMsgListQuery();
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("com.suntek.mway.rcs.BACKUP_ALL_MESSAGE");
-        registerReceiver(mBackupStateReceiver,filter);
     }
 
     private Handler mUiHandler = new Handler() {
@@ -220,7 +217,6 @@ public class ManageMultiSelectAction extends Activity {
         if (mCursor != null) {
             mCursor.close();
         }
-        unregisterReceiver(mBackupStateReceiver);
     }
 
 
@@ -315,6 +311,15 @@ public class ManageMultiSelectAction extends Activity {
         } else if (mManageMode == MessageUtils.BATCH_FAVOURITE_MODE) {
             favouriteMessage();
         } else if (mManageMode == MessageUtils.BATCH_BACKUP_MODE) {
+            IntentFilter filter = new IntentFilter();
+            filter.addAction("com.suntek.mway.rcs.BACKUP_ALL_MESSAGE");
+            registerReceiver(mBackupStateReceiver, filter);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mActionButton.setEnabled(false);
+                }
+            });
             backupMessage();
         }
     }
@@ -678,28 +683,50 @@ public class ManageMultiSelectAction extends Activity {
                 Log.i("RCS_UI", "progress = " + progress + " total = " + total + " status = "
                         + status);
                 switch (status) {
-                case 0:
-                    showProgressDialog(context, 0, context.getString(R.string.message_is_begin),total);
-                    break;
-                case 1:
-                    if (total == 0){
-                        return;
-                    }
-                    showProgressDialog(context,progress,context.getString(R.string.message_is_saving),total);
-                    break;
-                case 2:
-                    mSaveOrBackProgressDialog.dismiss();
-                    Toast.makeText(context,R.string.message_save_ok,0).show();
-                    break;
-                case -1:
-                    mSaveOrBackProgressDialog.dismiss();
-                    clearSelect();
-                    mSimpleMsgs.clear();
-                    mSaveOrBackProgressDialog = null;
-                    break;
-                default:
-                    break;
-               }
+                    case 0:
+                        showProgressDialog(ManageMultiSelectAction.this, 0,
+                                context.getString(R.string.message_is_begin), total);
+                        if (mSaveOrBackProgressDialog != null && !mSaveOrBackProgressDialog.isShowing()) {
+                            mSaveOrBackProgressDialog.show();
+                        }
+                        break;
+                    case 1:
+                        if (total == 0) {
+                            return;
+                        }
+                        showProgressDialog(ManageMultiSelectAction.this, progress,
+                                context.getString(R.string.message_is_saving), total);
+                        if (mSaveOrBackProgressDialog != null && !mSaveOrBackProgressDialog.isShowing()) {
+                            mSaveOrBackProgressDialog.show();
+                        }
+                        break;
+                    case 2:
+                        if (mSaveOrBackProgressDialog != null) {
+                            mSaveOrBackProgressDialog.dismiss();
+                        }
+                        // Toast.makeText(ManageMultiSelectAction.this,
+                        // R.string.message_save_ok, 0).show();
+                        clearSelect();
+                        mSimpleMsgs.clear();
+                        mSaveOrBackProgressDialog = null;
+                        mActionButton.setEnabled(true);
+                        unregisterReceiver(mBackupStateReceiver);
+                        Toast.makeText(context, R.string.message_save_ok, Toast.LENGTH_SHORT).show();
+                        break;
+                    case -1:
+                        if (mSaveOrBackProgressDialog != null) {
+                            mSaveOrBackProgressDialog.dismiss();
+                        }
+                        clearSelect();
+                        mSimpleMsgs.clear();
+                        mSaveOrBackProgressDialog = null;
+                        mActionButton.setEnabled(true);
+                        unregisterReceiver(mBackupStateReceiver);
+                        Toast.makeText(context, R.string.message_save_fail, Toast.LENGTH_SHORT).show();
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     };
@@ -709,29 +736,33 @@ public class ManageMultiSelectAction extends Activity {
             mSaveOrBackProgressDialog = new ProgressDialog(context);
             mSaveOrBackProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
             mSaveOrBackProgressDialog.setMessage(title);
-            mSaveOrBackProgressDialog.setMax(total);
             mSaveOrBackProgressDialog.setCancelable(false);
             mSaveOrBackProgressDialog.setCanceledOnTouchOutside(false);
-            mSaveOrBackProgressDialog.setProgress(progress);
             mSaveOrBackProgressDialog.setButton(
                     context.getResources().getString(R.string.cacel_back_message),
                     new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             try {
-                                //RcsApiManager.getMessageApi().cancelBackup();
+                                RcsApiManager.getMessageApi().cancelBackup();
                                 mSaveOrBackProgressDialog.cancel();
-                                mSaveOrBackProgressDialog = null;
+                                clearSelect();
+                                mSimpleMsgs.clear();
+                                mActionButton.setEnabled(true);
                             } catch (Exception e) {
                                 Log.w("RCS_UI", e);
+                            } finally {
+                                unregisterReceiver(mBackupStateReceiver);
                             }
                         }
                     });
             mSaveOrBackProgressDialog.show();
+            mSaveOrBackProgressDialog.setMax(total);
+            mSaveOrBackProgressDialog.setProgress(progress);
         } else {
             mSaveOrBackProgressDialog.setMessage(title);
+            mSaveOrBackProgressDialog.setMax(total);
             mSaveOrBackProgressDialog.setProgress(progress);
-            mSaveOrBackProgressDialog.show();
         }
     }
 }

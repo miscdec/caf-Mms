@@ -118,6 +118,8 @@ public class BurnFlagMessageActivity extends Activity {
 
     private long mSmsId;
 
+    private long mRcsId;
+
     private BroadcastReceiver simStateReceiver = new BroadcastReceiver() {
 
         @Override
@@ -126,7 +128,7 @@ public class BurnFlagMessageActivity extends Activity {
             if (action == ACTION_SIM_STATE_CHANGED) {
                 if (TelephonyManager.SIM_STATE_ABSENT == mTelManager.getSimState()) {
                     Toast.makeText(BurnFlagMessageActivity.this, R.string.burn_all_message, 0).show();
-                    burnMessage(mSmsId);
+                    burnMessage(mSmsId, mRcsId);
                     try {
                         RcsApiManager.getMessageApi().burnAllMsgAtOnce();
                         RcsUtils.burnAllMessageAtLocal(BurnFlagMessageActivity.this);
@@ -200,9 +202,10 @@ public class BurnFlagMessageActivity extends Activity {
 
     };
 
-    public static void start(Context context, String messageId) {
+    public static void start(Context context, String messageId, String rcsId) {
         Intent intent = new Intent(context, BurnFlagMessageActivity.class);
         intent.putExtra("smsId", messageId);
+        intent.putExtra("rcsId", rcsId);
         context.startActivity(intent);
     }
 
@@ -311,6 +314,8 @@ public class BurnFlagMessageActivity extends Activity {
         registerReceiver(simStateReceiver,simOutFilter);
 
         mSmsId = getIntent().getLongExtra("smsId", -1);
+        mRcsId = getIntent().getLongExtra("rcsId", -1);
+        Log.i("RCS_UI", "mSmsId.............="+mSmsId);
         mMsg = RcsChatMessageUtils.getChatMessageOnSMSDB(this, mSmsId);
 
         if (mMsg == null) {
@@ -345,7 +350,7 @@ public class BurnFlagMessageActivity extends Activity {
             mMediaPlayer.release();
         }
         if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-            burnMessage(mSmsId);
+            burnMessage(mSmsId, mRcsId);
             finish();
         }
     }
@@ -372,7 +377,7 @@ public class BurnFlagMessageActivity extends Activity {
             mVideo.setVideoURI(Uri.parse(filepath));
             mVideo.start();
             if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-                burnMessage(mSmsId);
+                burnMessage(mSmsId, mRcsId);
             }
             handler.sendEmptyMessage(VIDEO_TIME_REFRESH);
         } else {
@@ -394,7 +399,7 @@ public class BurnFlagMessageActivity extends Activity {
             Bitmap imageBm = ImageUtils.getBitmap(mFilePath);
             mImage.setImageBitmap(imageBm);
             if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-                burnMessage(mSmsId);
+                burnMessage(mSmsId, mRcsId);
             }
             mProgressText.setVisibility(View.GONE);
         } else {
@@ -422,7 +427,7 @@ public class BurnFlagMessageActivity extends Activity {
                 mText.setVisibility(View.VISIBLE);
                 mText.setText(mMsg.getData());
                 if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-                    burnMessage(mSmsId);
+                    burnMessage(mSmsId, mRcsId);
                 }
                 break;
             case SuntekMessageData.MSG_TYPE_IMAGE:
@@ -476,7 +481,7 @@ public class BurnFlagMessageActivity extends Activity {
                 }
                 mMediaPlayer.start();
                 if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-                    burnMessage(mSmsId);
+                    burnMessage(mSmsId, mRcsId);
                 }
                 animaition.start();
                 handler.sendEmptyMessage(AUDIO_TIME_REFRESH);
@@ -520,8 +525,8 @@ public class BurnFlagMessageActivity extends Activity {
         return 0;
     }
 
-    private void burnMessage(long id) {
-        String smsId = String.valueOf(id);
+    private void burnMessage(long RcsId, long messageId ) {
+        String smsId = String.valueOf(RcsId);
         try {
             if (mMsg != null) {
                 RcsApiManager.getMessageApi().burnMessageAtOnce(smsId);
@@ -531,9 +536,9 @@ public class BurnFlagMessageActivity extends Activity {
         }
         ContentValues values = new ContentValues();
         values.put("rcs_is_burn", 1);
-        values.put("rcs_burn_body","");
-        getContentResolver().update(Uri.parse("content://sms/"), values, "_id = ? ", new String[] {
-                smsId
+        values.put("rcs_burn_body", "");
+        getContentResolver().update(Uri.parse("content://sms/"), values, "rcs_id = ? ", new String[] {
+            String.valueOf(messageId)
         });
     }
 

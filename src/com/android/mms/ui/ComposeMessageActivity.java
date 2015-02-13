@@ -265,7 +265,7 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD    = 111;
     public static final int REQUEST_CODE_ATTACH_REPLACE_CONTACT_INFO = 112;
     public static final int REQUEST_CODE_BATCH_DELETE     = 113;
-	public static final int REQUEST_CODE_BATCH_FAVOURITE  = 114;
+    public static final int REQUEST_CODE_BATCH_FAVOURITE  = 114;
     public static final int REQUEST_CODE_BATCH_BACKUP     = 115;
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_RCS_VCARD = 200;
     public static final int REQUEST_CODE_ATTACH_MAP       = 201;
@@ -274,12 +274,14 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_SELECT_GROUP          = 204;
     public static final int REQUEST_CODE_VCARD_GROUP      = 205;
     public static final int REQUEST_CODE_SAIYUN           = 206;
+    public static final int REQUEST_CODE_EMOJI_STORE      = 207;
 
     private static final Uri WHITELIST_CONTENT_URI = Uri
             .parse("content://com.android.firewall/whitelistitems");
     private static final Uri BLACKLIST_CONTENT_URI = Uri
             .parse("content://com.android.firewall/blacklistitems");
     private static final String TAG = "Mms/compose";
+    private static final String LOG_TAG = "RCS_UI";
     private static final String FIREWALL_APK_NAME = "com.android.firewall";
 
     private static final boolean DEBUG = false;
@@ -596,7 +598,7 @@ public class ComposeMessageActivity extends Activity
                             GroupChatModel groupChat = mMessageApi.getGroupChatById(groupId);
                             mConversation.setGroupChat(groupChat);
                         } catch (ServiceDisconnectedException e) {
-                            Log.w("RCS_UI", "Exception onDisband()" + e);
+                            Log.w(LOG_TAG, "Exception onDisband()" + e);
                         }
                     }
                 }
@@ -1715,9 +1717,9 @@ public class ComposeMessageActivity extends Activity
                     menu.add(0, MENU_COPY_MESSAGE_TEXT, 0, R.string.copy_message_text)
                             .setOnMenuItemClickListener(l);
                 }
-    
+
                 addCallAndContactMenuItems(menu, l, msgItem);
-    
+
                 // Forward is not available for undownloaded messages.
                 if (msgItem.isDownloaded() && (msgItem.isSms() || msgItem.mIsForwardable)) {
                     menu.add(0, MENU_FORWARD_MESSAGE, 0, R.string.menu_forward)
@@ -2078,7 +2080,7 @@ public class ComposeMessageActivity extends Activity
                             }
                         }
                     } catch (ServiceDisconnectedException e) {
-                        Log.w("RCS_UI",e);
+                        Log.w(LOG_TAG,e);
                     }
                     forwardMessage(mMsgItem);
                     return true;
@@ -2228,7 +2230,7 @@ public class ComposeMessageActivity extends Activity
 
     private void favouriteMessage(MessageItem msgItem, boolean favourite) {
         Uri uri;
-      
+
         uri = Sms.CONTENT_URI;
         final Uri lockUri = ContentUris.withAppendedId(uri, msgItem.mMsgId);
 
@@ -2243,7 +2245,7 @@ public class ComposeMessageActivity extends Activity
             }
         }, "ComposeMessageActivity.favourite").start();
     }
-    
+
     /**
      * Copies media from an Mms to the DrmProvider
      * @param msgId
@@ -2484,11 +2486,11 @@ public class ComposeMessageActivity extends Activity
             NetworkInfo gprs = manager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
             NetworkInfo wifi = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
-            if(!gprs.isConnected() && !wifi.isConnected()){
-                MessageListItem.setRcsIsStopDown(true);
+            if (!gprs.isConnected() && !wifi.isConnected()) {
+                mMsgListAdapter.setRcsIsStopDown(true);
                 mMsgListAdapter.notifyDataSetChanged();
                 return;
-               }
+            }
             long start = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_START, -1);
             long end = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_END, -1);
             long total = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_TOTAL, -1);
@@ -2496,7 +2498,7 @@ public class ComposeMessageActivity extends Activity
                     .getStringExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_MESSAGE_ID);
             LogHelper.trace("messageId =" + notifyMessageId
                     + "start =" + start + ";end =" + end + ";total =" + total);
-            HashMap<String, Long> fileProgressHashMap = MessageListItem.getFileTrasnferHashMap();
+            HashMap<String, Long> fileProgressHashMap = mMsgListAdapter.getFileTrasnferHashMap();
             if (notifyMessageId != null && start == end) {
                 LogHelper.trace("download finish ");
                 fileProgressHashMap.remove(notifyMessageId);
@@ -2508,8 +2510,7 @@ public class ComposeMessageActivity extends Activity
                 long temp = start * 100 / total;
                 if (temp == 100) {
                     fileProgressHashMap.remove(notifyMessageId);
-                    MessageItem.setRcsIsDownload(RcsUtils.RCS_IS_DOWNLOAD_OK);
-                    Log.i("RCS_UI","100");
+                    Log.i(LOG_TAG,"100");
                     return;
                 }
                 if (lastProgress != null) {
@@ -2519,7 +2520,7 @@ public class ComposeMessageActivity extends Activity
                 if (lastProgress == null || temp - lastProgress >= 5) {
                     lastProgress = temp;
                     fileProgressHashMap.put(notifyMessageId, Long.valueOf(temp));
-                    MessageListItem.setsFileTrasnfer(fileProgressHashMap);
+                    mMsgListAdapter.setsFileTrasnfer(fileProgressHashMap);
                     mMsgListAdapter.notifyDataSetChanged();
                 }
             }
@@ -2535,26 +2536,26 @@ public class ComposeMessageActivity extends Activity
             NetworkInfo wifi = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
             if (!gprs.isConnected() && !wifi.isConnected()) {
-                MessageListItem.setRcsIsStopDown(true);
+                mMsgListAdapter.setRcsIsStopDown(true);
                 mMsgListAdapter.notifyDataSetChanged();
                 return;
             }
             String eventType = intent.getStringExtra(BroadcastConstants.BC_VAR_MC_ENENTTYPE);
-            int messageId = intent.getIntExtra("chatMessageId", -1);
+            int messageId = intent.getIntExtra(BroadcastConstants.BC_VAR_MC_CHATMESSAGE_ID, -1);
             Log.i(TAG, "eventType=" + eventType + ",tag=" + "tag_file_" + messageId);
-            HashMap<String, Long> fileProgressHashMap = MessageListItem.getFileTrasnferHashMap();
+            HashMap<String, Long> fileProgressHashMap = mMsgListAdapter.getFileTrasnferHashMap();
 
             TextView textDataView = (TextView) mMsgListView
                     .findViewWithTag("tag_file_" + messageId);
 
-            if (eventType.equals(BroadcastConstants.BC_V_MC_EVENTTYPE_ERROR)) {
+            if (!TextUtils.isEmpty(eventType) && BroadcastConstants.BC_V_MC_EVENTTYPE_ERROR.equals(eventType)) {
                 String message = intent.getStringExtra(BroadcastConstants.BC_VAR_MC_MESSAGE);
                 toast(R.string.download_mcloud_file_fail);
                 fileProgressHashMap.remove(String.valueOf(messageId));
                 if (textDataView != null) {
                     textDataView.setText(getString(R.string.stop_down_load));
                 }
-            } else if (eventType.equals(BroadcastConstants.BC_V_MC_EVENTTYPE_PROGRESS)) {
+            } else if (!TextUtils.isEmpty(eventType) && BroadcastConstants.BC_V_MC_EVENTTYPE_PROGRESS.equals(eventType)) {
                 float process = (int) intent.getLongExtra(
                         BroadcastConstants.BC_VAR_MC_PROCESS_SIZE, 0);
                 float total = (int) intent.getLongExtra(
@@ -2564,14 +2565,14 @@ public class ComposeMessageActivity extends Activity
                 if (textDataView != null) {
                     textDataView.setText(getString(R.string.downloading_percent, percent));
                 }
-            } else if (eventType.equals(BroadcastConstants.BC_V_MC_EVENTTYPE_SUCCESS)) {
+            } else if (!TextUtils.isEmpty(eventType) && BroadcastConstants.BC_V_MC_EVENTTYPE_SUCCESS.equals(eventType)) {
                 fileProgressHashMap.remove(String.valueOf(messageId));
                 if (textDataView != null) {
                     textDataView.setText(getString(R.string.downloading_finish));
                 }
-            } else if(eventType.equals(BroadcastConstants.BC_V_MC_EVENTTYPE_FILE_TOO_LARGE)) {
+            } else if(!TextUtils.isEmpty(eventType) && BroadcastConstants.BC_V_MC_EVENTTYPE_FILE_TOO_LARGE.equals(eventType)) {
                 toast(R.string.file_is_too_larger);
-            } else if(eventType.equals(BroadcastConstants.BC_V_MC_EVENTTYPE_SUFFIX_NOT_ALLOWED)) {
+            } else if(!TextUtils.isEmpty(eventType) && BroadcastConstants.BC_V_MC_EVENTTYPE_SUFFIX_NOT_ALLOWED.equals(eventType)) {
                 toast(R.string.name_not_fix); 
             }
         }
@@ -2735,7 +2736,7 @@ public class ComposeMessageActivity extends Activity
                     ContactList contacts = editor.constructContactsFromInput(false);
                     updateTitle(contacts);
                     if(mRecipientsEditor.getNumbers().size() == 1){
-                        checkCapability(mRecipientsEditor.getNumbers().get(0)); 
+                        checkCapability(mRecipientsEditor.getNumbers().get(0));
                      }
                 } else {
                     if (mAttachmentSelector.getVisibility() == View.VISIBLE) {
@@ -2799,7 +2800,6 @@ public class ComposeMessageActivity extends Activity
         if (TRACE) {
             android.os.Debug.startMethodTracing("compose");
         }
-        sendRcsOption();
     }
 
     private void sendRcsOption() {
@@ -2839,7 +2839,7 @@ public class ComposeMessageActivity extends Activity
                     mConversation.setGroupChat(groupChat);
                     mSentMessage = true;
                 } catch (ServiceDisconnectedException e) {
-                    Log.w("RCS_UI", "Exception initRcsComponents()" + e);
+                    Log.w(LOG_TAG, "Exception initRcsComponents()" + e);
                 }
             } else {
                 long threadId = mConversation.getThreadId();
@@ -2854,10 +2854,12 @@ public class ComposeMessageActivity extends Activity
                             mSentMessage = true;
                         }
                     } catch (ServiceDisconnectedException e) {
-                        Log.w("RCS_UI", "Exception initRcsComponents()" + e);
+                        Log.w(LOG_TAG, "Exception initRcsComponents()" + e);
                     }
                 }
             }
+        } else {
+            sendRcsOption();
         }
 
         IntentFilter filter = new IntentFilter();
@@ -2878,6 +2880,8 @@ public class ComposeMessageActivity extends Activity
             filter.addAction(BroadcastConstants.UI_SHOW_GROUP_REFER_ERROR);
         }
         registerReceiver(mRcsServiceCallbackReceiver, filter);
+        IntentFilter photoUpdateFilter = new IntentFilter(RcsContactsUtils.NOTIFY_CONTACT_PHOTO_CHANGE);
+        registerReceiver(mPhotoUpdateReceiver, photoUpdateFilter);
     }
 
     private void showSubjectEditor(boolean show) {
@@ -3194,8 +3198,15 @@ public class ComposeMessageActivity extends Activity
         fileFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(mFileTranferReceiver, fileFilter);
         registerReceiver(mGroupReceiver, new IntentFilter(BroadcastConstants.UI_GROUP_MANAGE_NOTIFY));
-        registerReceiver(mCloudFileReceiver, new IntentFilter(
-                BroadcastConstants.UI_MC_DOWNLOAD_FILE_FROM_URL));
+        
+        IntentFilter cloudFileFilter = new IntentFilter();
+        cloudFileFilter.addAction(BroadcastConstants.UI_MC_DOWNLOAD_FILE_FROM_URL);
+        cloudFileFilter.addAction(BroadcastConstants.UI_MC_SHARE_AND_SEND_FILE);
+        cloudFileFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(mCloudFileReceiver, cloudFileFilter);
+        IntentFilter emotionFilter = new IntentFilter();
+        emotionFilter.addAction(BroadcastConstants.UI_MESSAGE_PAID_EMO_DOWNLOAD_RESULT);
+        registerReceiver(mEmotionDownloadReceiver, emotionFilter);
 
         // figure out whether we need to show the keyboard or not.
         // if there is draft to be loaded for 'mConversation', we'll show the keyboard;
@@ -3435,6 +3446,7 @@ public class ComposeMessageActivity extends Activity
         unregisterReceiver(mFileTranferReceiver);
         unregisterReceiver(mGroupReceiver);
         unregisterReceiver(mCloudFileReceiver);
+        unregisterReceiver(mEmotionDownloadReceiver);
     }
 
     @Override
@@ -3449,7 +3461,7 @@ public class ComposeMessageActivity extends Activity
         }
 
         unregisterReceiver(mRcsServiceCallbackReceiver);
-
+        unregisterReceiver(mPhotoUpdateReceiver);
         super.onDestroy();
     }
 
@@ -3937,6 +3949,15 @@ public class ComposeMessageActivity extends Activity
                     dialConferenceCall();
                 } else if (size == 1) {
                     String number = getRecipients().get(0).getNumber();
+                    if (mIsRcsEnabled &&
+                            RcsUtils.isDeletePrefixSpecailNumberAvailable(this)) {
+                        try {
+                            number = RcsApiManager.getSpecialServiceNumApi()
+                                    .delSpecialPreNum(number);
+                        } catch (ServiceDisconnectedException e){
+                            Log.i(LOG_TAG,"delSpecialPreNum error");
+                        }
+                    }
                     MessageUtils.dialNumber(this, number);
                 }
             }
@@ -4110,7 +4131,7 @@ public class ComposeMessageActivity extends Activity
         } else if (mIsSmsEnabled) {
             menu.add(0, MENU_DISCARD, 0, R.string.discard).setIcon(android.R.drawable.ic_menu_delete);
         }
-        
+
         // add batch favourite
         if (mMsgListAdapter.getCount() > 0 && mIsSmsEnabled) {
             Cursor cursor = mMsgListAdapter.getCursor();
@@ -4118,7 +4139,7 @@ public class ComposeMessageActivity extends Activity
                 menu.add(0, MENU_BATCH_FAVOURITE, 0, R.string.batch_favourite);
             }
         }
-        
+
         // add batch backup
         if (mMsgListAdapter.getCount() > 0 && mIsSmsEnabled) {
             Cursor cursor = mMsgListAdapter.getCursor();
@@ -4184,7 +4205,7 @@ public class ComposeMessageActivity extends Activity
         } catch (ServiceDisconnectedException e) {
             Toast.makeText(ComposeMessageActivity.this, R.string.rcs_service_is_not_available,
                     Toast.LENGTH_LONG).show();
-            Log.w("RCS_UI", e);
+            Log.w(LOG_TAG, e);
         }
     }
 
@@ -4207,7 +4228,7 @@ public class ComposeMessageActivity extends Activity
                         @Override
                         public void onCallback(RCSCapabilities capabilities, int resultCode,
                                 String resultDesc, String arg3) throws RemoteException {
-                            Log.i("RCS_UI", "resultCode = " + resultCode
+                            Log.i(LOG_TAG, "resultCode = " + resultCode
                                     + " RCSCapabilities = "
                                     + (capabilities == null ? "null" : capabilities.toString()));
                             if ((resultCode == CAPABILITY_RCS_ONLINE
@@ -4231,7 +4252,7 @@ public class ComposeMessageActivity extends Activity
             finish();
             RcsUtils.startCreateGroupChatActivity(ComposeMessageActivity.this, numbers, null);
         } catch (Exception e) {
-            android.util.Log.w("RCS_UI", e);
+            Log.w(LOG_TAG, e);
         }
     }
 
@@ -4607,7 +4628,17 @@ public class ComposeMessageActivity extends Activity
 
             case AttachmentPagerAdapter.ADD_CONTACT_AS_VCARD:
                 if (mIsRcsEnabled) {
-                    vcardContactOrGroup(new sendVcardClickListener());
+                    try {
+                        if(mAccountApi.isOnline()){
+                            vcardContactOrGroup(new sendVcardClickListener());
+                        }else{
+                            pickContacts(MultiPickContactsActivity.MODE_VCARD,
+                                    REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD);
+                        }
+                    } catch (ServiceDisconnectedException e) {
+                        pickContacts(MultiPickContactsActivity.MODE_VCARD,
+                                REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD);
+                    }
                 } else {
                     pickContacts(MultiPickContactsActivity.MODE_VCARD,
                             REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD);
@@ -4841,6 +4872,12 @@ public class ComposeMessageActivity extends Activity
             mIsAudioPlayerActivityRunning = false;
         }
 
+        if(requestCode == REQUEST_CODE_EMOJI_STORE){
+            if(mRcsEmojiInitialize != null){
+                mRcsEmojiInitialize.refreshData();
+            }
+        }
+
         if (resultCode != RESULT_OK){
             if (LogTag.VERBOSE) log("bail due to resultCode=" + resultCode);
             return;
@@ -5019,7 +5056,7 @@ public class ComposeMessageActivity extends Activity
                         if (mConversation.isGroupChat()) {
                             GroupChatModel groupChat = mConversation.getGroupChat();
                             RcsApiManager.getMcloudFileApi().shareFileAndSendGroup(id, "",
-                                    mConversation.getThreadId(), groupChat.getConversationId(),
+                                    groupChat.getThreadId(), groupChat.getConversationId(),
                                     String.valueOf(groupChat.getId()));
                         } else if (mConversation.getRecipients().size() == 1) {
                             Log.i(TAG,"SEND 1 V 1");
@@ -5209,11 +5246,11 @@ public class ComposeMessageActivity extends Activity
             case REQUEST_CODE_BATCH_DELETE:
                 startMsgListQuery(MESSAGE_LIST_QUERY_AFTER_DELETE_TOKEN);
                 break;
-                
+
             case REQUEST_CODE_BATCH_FAVOURITE:
                 Log.i("BATCH_FAVOURITE","LOOK THE FAVOURITE");
                 break;
-                
+
             case REQUEST_CODE_BATCH_BACKUP:
                 Log.i("BATCH_BACKUP","BACKUP SUCCESS");
                 break;
@@ -5719,7 +5756,7 @@ public class ComposeMessageActivity extends Activity
         if (Intent.ACTION_SEND.equals(action)) {
             if (extras.containsKey(Intent.EXTRA_STREAM)) {
                 final Uri uri = (Uri)extras.getParcelable(Intent.EXTRA_STREAM);
-               
+
                 boolean isRcsAvailable = RcsApiManager.isRcsServiceInstalled()
                         && RcsApiManager.isRcsOnline();
                 if (isRcsAvailable && uri.toString().contains("as_vcard")) {
@@ -6027,11 +6064,11 @@ public class ComposeMessageActivity extends Activity
             }
         } else if (v == mButtonEmoj) {
             ViewStub viewStub = (ViewStub) findViewById(R.id.emoji_view_stub);
-            showPhizView(viewStub);
+            showEmojiView(viewStub);
         }
     }
 
-    private void showPhizView(ViewStub emojiViewStub) {
+    private void showEmojiView(ViewStub emojiViewStub) {
         if (mRcsEmojiInitialize == null)
             mRcsEmojiInitialize = new RcsEmojiInitialize(this, emojiViewStub,
                     mViewOnClickListener);
@@ -6071,7 +6108,8 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         public void addEmojiPackageListener() {
-            RcsUtils.startEmojiStore(ComposeMessageActivity.this);
+            RcsUtils.startEmojiStore(ComposeMessageActivity.this,
+                    REQUEST_CODE_EMOJI_STORE);
         }
 
         @Override
@@ -6552,8 +6590,10 @@ public class ComposeMessageActivity extends Activity
         int recipientCount = recipientCount();
 
         if (mConversation.isGroupChat()) {
-            return (!mSentMessage && mConversation.getGroupChat() == null)
-                    || mConversation.isGroupChatActive();}
+            return (!mSentMessage && mConversation.getGroupChat() == null && recipientCount > 0
+                    && (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText()
+                    || mWorkingMessage.hasSubject())) || mConversation.isGroupChatActive();
+        }
 
         return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&
                 recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
@@ -6710,9 +6750,9 @@ public class ComposeMessageActivity extends Activity
      */
     private void createGroupChatOrSendGroupChatMessage(String recipient) {
         try {
-            Log.d("RCS_UI", "sendMessage(): isGroupChat=" + mConversation.isGroupChat()
+            Log.d(LOG_TAG, "sendMessage(): isGroupChat=" + mConversation.isGroupChat()
                     + ", isRcsEnabled=" + mIsRcsEnabled + ", isOnline=" + mAccountApi.isOnline());
-            if (mIsRcsEnabled && mAccountApi.isOnline()) {
+            if (mIsRcsEnabled) {
                 // create group chat if needed.
                 GroupChatModel groupChat = mConversation.getGroupChat();
                 if (groupChat == null) {
@@ -6747,7 +6787,7 @@ public class ComposeMessageActivity extends Activity
             }
         } catch (ServiceDisconnectedException e) {
             toast(R.string.rcs_service_is_not_available);
-            Log.w("RCS_UI", e);
+            Log.w(LOG_TAG, e);
         }
     }
 
@@ -6757,11 +6797,11 @@ public class ComposeMessageActivity extends Activity
             String action = intent.getAction();
             Bundle extras = intent.getExtras();
 
-            Log.d("RCS_UI", "============ onReceive ============");
-            Log.d("RCS_UI", "action=" + action);
+            Log.d(LOG_TAG, "============ onReceive ============");
+            Log.d(LOG_TAG, "action=" + action);
             if (extras != null) {
                 for (String key : extras.keySet()) {
-                    Log.d("RCS_UI", key + "=" + extras.get(key));
+                    Log.d(LOG_TAG, key + "=" + extras.get(key));
                 }
 
                 if (BroadcastConstants.UI_GROUP_MANAGE_NOTIFY.equals(action)) {
@@ -6773,9 +6813,16 @@ public class ComposeMessageActivity extends Activity
                 } else if (BroadcastConstants.UI_ALERT_FILE_SUFFIX_INVALID.equals(action)) {
                     toast(R.string.file_suffix_vaild_tip);
                 } else {
-                    Log.d("RCS_UI", "Abort handdling broadcast: " + action);
+                    Log.d(LOG_TAG, "Abort handdling broadcast: " + action);
                 }
             }
+        }
+    };
+
+    private BroadcastReceiver mPhotoUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            mMsgListAdapter.notifyDataSetChanged();
         }
     };
 
@@ -6831,7 +6878,7 @@ public class ComposeMessageActivity extends Activity
             GroupChatModel groupChat = mMessageApi.getGroupChatById(groupId);
             mConversation.setGroupChat(groupChat);
             mWorkingMessage.setConversation(mConversation);
-            Log.d("RCS_UI", groupChat.toString());
+            Log.d(LOG_TAG, groupChat.toString());
             notifyChangeGroupChat(groupId);
             // We already received the first group chat management notifiaction message.
             mSentMessage = true;
@@ -6842,7 +6889,7 @@ public class ComposeMessageActivity extends Activity
             onMessageSent();
             updateTitle(new ContactList());
         } catch (ServiceDisconnectedException e) {
-            Log.w("RCS_UI", e);
+            Log.w(LOG_TAG, e);
         }
     }
 
@@ -6867,11 +6914,11 @@ public class ComposeMessageActivity extends Activity
     private void handleRcsGroupChatCreate(Bundle extras) {
         String groupId = extras.getString(BroadcastConstants.BC_VAR_GROUP_ID);
         GroupChatModel groupChat = mConversation.getGroupChat();
-        Log.d("RCS_UI", "handleRcsGroupChatCreate(): groupId=" + groupId + ", groupChat="
+        Log.d(LOG_TAG, "handleRcsGroupChatCreate(): groupId=" + groupId + ", groupChat="
                 + groupChat);
         if (groupChat != null) {
             if (groupId.equals(String.valueOf(groupChat.getId()))) {
-                Log.d("RCS_UI", groupChat.toString());
+                Log.d(LOG_TAG, groupChat.toString());
                 groupChat.setStatus(GroupChatModel.GROUP_STATUS_COMPETE);
                 mConversation.setGroupChat(groupChat);
                 mWorkingMessage.setConversation(mConversation);
@@ -6881,7 +6928,6 @@ public class ComposeMessageActivity extends Activity
                 notifyChangeGroupChat(groupId);
                 Toast.makeText(ComposeMessageActivity.this, R.string.group_chat_status_ok,
                         Toast.LENGTH_LONG).show();
-                RcsUtils.createGroupChat(ComposeMessageActivity.this,groupChat);
             }
         }
     }
@@ -6892,12 +6938,11 @@ public class ComposeMessageActivity extends Activity
             String groupId = extras.getString(BroadcastConstants.BC_VAR_GROUP_ID);
             if (groupId != null && groupId.equals(String.valueOf(groupChat.getId()))) {
                 String newSubject = extras.getString(BroadcastConstants.BC_VAR_GROUP_SUBJECT);
-                Log.d("RCS_UI", "update group subject: " + groupChat.getSubject() + " -> "
+                Log.d(LOG_TAG, "update group subject: " + groupChat.getSubject() + " -> "
                         + newSubject);
                 groupChat.setSubject(newSubject);
 
                 updateTitle(new ContactList());
-                RcsUtils.UpdateGroupChatSubject(ComposeMessageActivity.this,groupChat);
             }
         }
     }
@@ -6908,12 +6953,11 @@ public class ComposeMessageActivity extends Activity
             String groupId = extras.getString(BroadcastConstants.BC_VAR_GROUP_ID);
             if (groupId != null && groupId.equals(String.valueOf(groupChat.getId()))) {
                 String newRemark = extras.getString(BroadcastConstants.BC_VAR_GROUP_REMARK);
-                Log.d("RCS_UI", "update group subject: " + groupChat.getRemark() + " -> "
+                Log.d(LOG_TAG, "update group subject: " + groupChat.getRemark() + " -> "
                         + newRemark);
                 groupChat.setRemark(newRemark);
 
                 updateTitle(new ContactList());
-                RcsUtils.UpdateGroupChatSubject(ComposeMessageActivity.this,groupChat);
             }
         }
     }
@@ -7806,4 +7850,21 @@ public class ComposeMessageActivity extends Activity
             mMsgListAdapter.notifyDataSetChanged();
         }
     }
+
+    private BroadcastReceiver mEmotionDownloadReceiver = new BroadcastReceiver(){
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BroadcastConstants.UI_MESSAGE_PAID_EMO_DOWNLOAD_RESULT.equals(action)) {
+                boolean downloadResult = 
+                        intent.getBooleanExtra(BroadcastConstants.BC_VAR_RESULT, false);
+                if(downloadResult){
+                    startMsgListQuery();
+                } else {
+                    toast(R.string.emotion_download_fail);
+                }
+            }
+        }
+    };
+
 }

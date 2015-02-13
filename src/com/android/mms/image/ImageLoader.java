@@ -20,13 +20,13 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
 package com.android.mms.image;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Handler;
 import android.text.TextUtils;
-import android.util.Log;
 import android.util.LruCache;
 import android.widget.ImageView;
 
@@ -37,7 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class ImageLoader {
-    // private HashMap<String, SoftReference<Bitmap>> bitmapCacheMap;
     private static final int MIN_MEMORY = 10 * 1024 * 1024;// at least 10m
     private LruCache<String, Bitmap> bitmapCache;
     private ExecutorService executor;
@@ -62,22 +61,34 @@ public class ImageLoader {
         this.handler = new Handler();
     }
 
-    public void load(ImageView imageView, String path) {
-        if (TextUtils.isEmpty(path) || imageView == null) {
+    public void load(ImageView imageView, String path, int default_id, final int fail_id) {
+        if (imageView == null) {
+            return;
+        }
+
+        if (TextUtils.isEmpty(path) || path.equals("null")) {
+            if (default_id > 0) {
+                imageView.setImageResource(default_id);
+            } else {
+                imageView.setImageBitmap(null);
+            }
             return;
         }
 
         // check if the image already download if it is from net
         ImageGetter imageGetter;
-        boolean isNetImage = false;
+        final boolean isNetImage;
         if (path.startsWith("http://") || path.startsWith("https://")) {
-            String realPath = getRealPath(path);
+            String realPath = getLocalFilePath(path);
             if (realPath.equals(path)) {
                 // image not download yet
                 isNetImage = true;
-            }else{
+            } else {
                 path = realPath;
+                isNetImage = false;
             }
+        } else {
+            isNetImage = false;
         }
         final String uri = path;
 
@@ -87,29 +98,47 @@ public class ImageLoader {
             return;
         }
 
-        final ImageTask imageTask = new ImageTask(uri, imageView);
+        if (isUriLoading(uri)) {
+            // the uri loading
+            return;
+        }
+
+        final ImageTask imageTask = new ImageTask(uri, imageView, default_id, fail_id);
         ImageLoaderListener listener = new ImageLoaderListener() {
 
             @Override
-            public void onLoaded(String url, final Bitmap bitmap, final ImageView imageView) {
-                if (bitmap == null) {
-                    return;
-                }
-                if (imageView.getTag() != null && !imageTask.isCanceled()) {
-                    if (String.valueOf(imageView.getTag()).equals(url)) {
-                        handler.post(new Runnable() {
-
-                            @Override
-                            public void run() {
-                                imageView.setImageBitmap(bitmap);
-                            }
-                        });
+            public void onLoaded(final String url, Bitmap bitmap, final ImageView imageView) {
+                final Bitmap resultBitmap;
+                if (bitmap != null) {
+                    if (isNetImage) {
+                        // save bitmap to sdcard
+                        String savePath = NetImageUtil.saveBitmap(context, uri, bitmap);
+                        bitmap = ScaleBitmapDecoder.decodeFile(savePath, 200, 200);
                     }
+                    bitmapCache.put(uri, bitmap);
+                    resultBitmap = bitmap;
+                } else {
+                    resultBitmap = null;
                 }
 
-                bitmapCache.put(uri, bitmap);
-                // save bitmap to sdcard
-                NetImageUtil.saveBitmap(context, uri, bitmap);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (resultBitmap == null) {
+                            if (fail_id > 0) {
+                                imageView.setImageResource(fail_id);
+                            } else {
+                                imageView.setImageBitmap(null);
+                            }
+                            return;
+                        }
+                        if (imageView.getTag() != null && !imageTask.isCanceled()) {
+                            if (String.valueOf(imageView.getTag()).equals(url)) {
+                                imageView.setImageBitmap(resultBitmap);
+                            }
+                        }
+                    }
+                });
             }
 
             @Override
@@ -130,16 +159,30 @@ public class ImageLoader {
         }
 
         imageView.setTag(uri);
+        if (default_id > 0) {
+            imageView.setImageResource(default_id);
+        } else {
+            imageView.setImageBitmap(null);
+        }
         // executor.execute(imageGetter);
         Future future = executor.submit(imageGetter);
         futureMap.put(uri, future);
+    }
+
+    private boolean isUriLoading(String uri) {
+        Future future = futureMap.get(uri);
+        if (future != null && !future.isDone()) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void cancel(String path) {
         if (TextUtils.isEmpty(path)) {
             return;
         }
-        path = getRealPath(path);
+        path = getLocalFilePath(path);
         Future future = futureMap.get(path);
         if (future != null) {
             future.cancel(true);
@@ -147,7 +190,7 @@ public class ImageLoader {
         }
     }
 
-    private String getRealPath(String path) {
+    private String getLocalFilePath(String path) {
         String filePath = NetImageUtil.getImgDownloadPath(context)
                 + NetImageUtil.getImgNameByUrl(path);
         if (new File(filePath).exists()) {

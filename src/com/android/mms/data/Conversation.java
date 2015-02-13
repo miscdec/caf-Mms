@@ -46,6 +46,8 @@ import com.android.mms.util.DraftCache;
 import com.google.android.mms.pdu.PduHeaders;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
+
 /**
  * An interface for finding information about conversations and/or creating new ones.
  */
@@ -858,6 +860,8 @@ public class Conversation {
 
             handler.setDeleteToken(token);
             handler.startDelete(token, new Long(-1), Threads.CONTENT_URI, selection, null);
+            handler.startDelete(token, new Long(-1), SuntekMessageData.SUNTEK_MESSAGE_CONTENT_URI,
+                    null, null);
         }
     }
 

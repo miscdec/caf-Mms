@@ -90,6 +90,9 @@
     <!-- configuration for display add attachment icon always -->
     <bool name="config_show_attach_icon_always">false</bool>
 
+    <!-- configuration for prefix special Number delete -->
+    <bool name="config_mms_delete_prefix_special_number">true</bool>
+
     <!-- Configuration to auto receiving Mms when mobile data is disable.-->
     <bool name="config_mms_rcv_data">false</bool>
 

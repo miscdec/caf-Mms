@@ -162,13 +162,15 @@ public class RcsChatMessageUtils {
         return isDownload;
     }
 
-    public static void startBurnMessageActivity(Context mContext,int rcs_is_burn,long smsId){
+    public static void startBurnMessageActivity(Context mContext, int rcs_is_burn, long smsId,
+            long rcsId) {
         Log.i("rcs_test", "it is burn message,id = " + smsId);
         if (rcs_is_burn == 1) {
-            Toast.makeText(mContext, mContext.getString(R.string.message_is_burnd),Toast.LENGTH_LONG).show();
+            Toast.makeText(mContext, mContext.getString(R.string.message_is_burnd),
+                    Toast.LENGTH_LONG).show();
         } else {
             mContext.startActivity(new Intent(mContext, BurnFlagMessageActivity.class)
-                    .putExtra("smsId", smsId));
+                    .putExtra("smsId", smsId).putExtra("rcsId", rcsId));
         }
 
     }
@@ -253,36 +255,29 @@ public class RcsChatMessageUtils {
                                       String.valueOf(groupChatModel.getId()), false);
                       break;
                   case SuntekMessageData.MSG_TYPE_VIDEO: {
-                      String newFilePath = getForwordFileName(chatMessage);
-                      String path = messageApi.getFilepath(chatMessage);
-                      renameFile(path, newFilePath);
-                      Log.i("RCS_UI",
-                              "threadId=" + threadId +
-                              ";conversationId="+ groupChatModel.getConversationId() +
-                               ";newVideoFilePath="+ newFilePath +
-                               ";getAudioLength=" + getAudioLength(chatMessage));
-                     messageApi
-                              .sendGroupVideoFile(threadId, groupChatModel.getConversationId(),
-                                      -1, newFilePath, getAudioLength(chatMessage),
-                                      String.valueOf(groupChatModel.getId()), false);
-                  }
+                            String newFilePath = getForwordFileName(chatMessage);
+                            String path = messageApi.getFilepath(chatMessage);
+                            boolean success = renameFile(path, newFilePath);
+                            if (success) {
+                                messageApi.sendGroupVideoFile(threadId, groupChatModel.getConversationId(), -1,
+                                        newFilePath, getAudioLength(chatMessage),
+                                        String.valueOf(groupChatModel.getId()), false);
+                            } else {
+                                return false;
+                            }
+                        }
                       break;
                   case SuntekMessageData.MSG_TYPE_IMAGE: {
-                      String newFilePath = getForwordFileName(chatMessage);
-                      String path = messageApi.getFilepath(chatMessage);
-                      renameFile(path, newFilePath);
-                      Log.i("RCS_UI",
-                              "threadId=" + threadId +
-                              ";conversationId="+ groupChatModel.getConversationId() +
-                               ";FilePath="+ getFilePath(chatMessage) +
-                               ";newfilepaht="+newFilePath+
-                               ";forwardPath="+newFilePath+
-                               ";groupId=" + String.valueOf(groupChatModel.getId()));
-                     messageApi
-                              .sendGroupImageFile(threadId, groupChatModel.getConversationId(),
-                                      -1, newFilePath,
-                                      String.valueOf(groupChatModel.getId()), 100);
-                  }
+                        String newFilePath = getForwordFileName(chatMessage);
+                        String path = messageApi.getFilepath(chatMessage);
+                        boolean success = renameFile(path, newFilePath);
+                        if (success) {
+                            messageApi.sendGroupImageFile(threadId, groupChatModel.getConversationId(), -1,
+                                    newFilePath, String.valueOf(groupChatModel.getId()), 100);
+                        } else {
+                            return false;
+                        }
+                    }
                       break;
                   case SuntekMessageData.MSG_TYPE_CONTACT:
                 // Profile profile = ChatMessageUtil.readVcardFile(filePath);
@@ -476,16 +471,23 @@ public class RcsChatMessageUtils {
                             break;
                         case SuntekMessageData.MSG_TYPE_VIDEO: {
                             String newFilePath = getForwordFileName(chatMessage);
-                            renameFile(filePath, newFilePath);
-                            messageApi.sendVideoFile(threadId, -1, number, filePath, getAudioLength(chatMessage),
-                                            SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0,false);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendVideoFile(threadId, -1, number, newFilePath,
+                                        getAudioLength(chatMessage),
+                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                            }
                         }
                             break;
                         case SuntekMessageData.MSG_TYPE_IMAGE: {
                             String newFilePath = getForwordFileName(chatMessage);
-                            renameFile(filePath, newFilePath);
-                           messageApi.sendImageFile(threadId, -1, number, filePath,
-                                            SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, 100);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendImageFile(threadId, -1, number, newFilePath,
+                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, 100);
+                            } else {
+                                return false;
+                            }
                         }
                             break;
                         case SuntekMessageData.MSG_TYPE_CONTACT:
@@ -537,17 +539,25 @@ public class RcsChatMessageUtils {
                             break;
                         case SuntekMessageData.MSG_TYPE_VIDEO: {
                             String newFilePath = getForwordFileName(chatMessage);
-                            renameFile(filePath, newFilePath);
-                           messageApi.sendOne2ManyVideoFile(threadId, -1, array,
-                                            filePath, getAudioLength(chatMessage),
-                                            SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendOne2ManyVideoFile(threadId, -1, array, newFilePath,
+                                        getAudioLength(chatMessage),
+                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                            } else {
+                                return false;
+                            }
                         }
                             break;
                         case SuntekMessageData.MSG_TYPE_IMAGE: {
                             String newFilePath = getForwordFileName(chatMessage);
-                            renameFile(filePath, newFilePath);
-                           messageApi.sendOne2ManyImageFile(threadId, -1, array,
-                                   filePath,SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, 100);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendOne2ManyImageFile(threadId, -1, array, newFilePath,
+                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, 100);
+                            } else {
+                                return false;
+                            }
                         }
                             break;
                         case SuntekMessageData.MSG_TYPE_CONTACT:
