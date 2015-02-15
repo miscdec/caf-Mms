@@ -813,14 +813,21 @@ public class Conversation {
             MmsApp.getApplication().getPduLoaderManager().clear();
             sDeletingThreads = true;
 
+            String selection = null;
+            StringBuilder buf = new StringBuilder();
             for (long threadId : threadIds) {
-                Uri uri = ContentUris.withAppendedId(Threads.CONTENT_URI, threadId);
-                String selection = deleteAll ? null : "locked=0";
-
-                handler.setDeleteToken(token);
-                handler.startDelete(token, new Long(threadId), uri, selection, null);
-
+                buf.append(threadId + ",");
                 DraftCache.getInstance().setDraftState(threadId, false);
+            }
+            if (buf.length() > 0) {
+                selection = buf.toString();
+                selection = selection.substring(0, selection.length() - 1);
+                selection = Mms.THREAD_ID + " in (" + selection + ")";
+                if (!deleteAll) {
+                    selection += " and locked=0";
+                }
+                handler.setDeleteToken(token);
+                handler.startDelete(token, new Long(-1), Threads.CONTENT_URI, selection, null);
             }
         }
     }

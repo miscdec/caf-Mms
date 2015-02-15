@@ -29,6 +29,8 @@ import android.widget.CursorAdapter;
 import com.android.mms.R;
 import com.android.mms.data.Conversation;
 
+import java.util.HashSet;
+
 /**
  * The back-end data adapter for ConversationList.
  */
@@ -85,12 +87,14 @@ public class ConversationListAdapter extends CursorAdapter implements AbsListVie
         }
     }
 
-    public void uncheckAll() {
-        int count = getCount();
-        for (int i = 0; i < count; i++) {
-            Cursor cursor = (Cursor)getItem(i);
-            Conversation conv = Conversation.from(mContext, cursor);
-            conv.setIsChecked(false);
+    public void setChecked(HashSet<Long> threadIds, boolean checked) {
+        for (long threadId : threadIds) {
+            setChecked(threadId, checked);
         }
+    }
+
+    private void setChecked(long threadId, boolean checked) {
+        Conversation conv = Conversation.get(mContext, threadId, false);
+        conv.setIsChecked(checked);
     }
 }
