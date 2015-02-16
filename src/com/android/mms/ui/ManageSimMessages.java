@@ -54,6 +54,7 @@ import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.TelephonyIntents;
@@ -470,16 +471,25 @@ public class ManageSimMessages extends Activity
         String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
         Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
         int subscription = cursor.getInt(cursor.getColumnIndexOrThrow("sub_id"));
+        Uri uri = null;
         try {
             if (isIncomingMessage(cursor)) {
-                Sms.Inbox.addMessage(mContentResolver, address, body, null,
+                uri = Sms.Inbox.addMessage(mContentResolver, address, body, null,
                         date, true /* read */, subscription);
             } else {
-                Sms.Sent.addMessage(mContentResolver, address, body, null, date, subscription);
+                uri = Sms.Sent.addMessage(
+                        mContentResolver, address, body, null, date, subscription);
             }
         } catch (SQLiteException e) {
             SqliteWrapper.checkSQLiteException(this, e);
         }
+        String toastMessage;
+        if (uri != null) {
+            toastMessage = getString(R.string.copy_to_phone_success);
+        } else {
+            toastMessage = getString(R.string.copy_to_phone_fail);
+        }
+        Toast.makeText(ManageSimMessages.this, toastMessage, Toast.LENGTH_SHORT).show();
     }
 
     private boolean isIncomingMessage(Cursor cursor) {
