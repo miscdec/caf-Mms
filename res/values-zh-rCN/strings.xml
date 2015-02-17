@@ -27,6 +27,7 @@
     <string name="menu_compose_new" msgid="3763437973691046238">"撰写"</string>
     <string name="menu_preferences" msgid="4693148116114749414">"设置"</string>
     <string name="menu_add_address_to_contacts" msgid="4491980950419914944">"将 <xliff:g id="CONTACTEMAILORNUMBER">%s</xliff:g> 添加到通讯录"</string>
+    <string name="menu_copy_url">"复制网址 <xliff:g id="extractedurl">%s</xliff:g>"</string>
     <string name="menu_call" msgid="5877123227307074690">"呼叫"</string>
     <string name="menu_search" msgid="2289469305728821360">"搜索"</string>
     <string name="menu_delete_all" msgid="808729454898114735">"删除所有会话"</string>
@@ -374,6 +375,12 @@
 
     <string name="sub">卡</string>
 
+    <string name="mail_to">发送邮件至:</string>
+    <!-- Menu item to connect the extract url in WwwContextMenuActivity  -->
+    <string name="menu_connect_url">连接</string>
+    <!-- Menu item to add the extract url to boomark in WwwContextMenuActivity  -->
+    <string name="menu_add_to_label">保存到书签</string>
+    <string name="loadurlinfo_str">加载此URL?</string>
     <string name="operate_success">"操作成功！"</string>
     <string name="operate_failure">"操作失败！"</string>
     <string name="menu_reply">"回复"</string>
@@ -391,6 +398,8 @@
     <string name="sms_validity_period_one_day">"1天"</string>
     <string name="sms_validity_period_maximum">"最长"</string>
 
+    <string name="open_wap_push_title">"浏览器信息"</string>
+    <string name="open_wap_push_body">"是否要访问网站？"</string>
     <string name="confirm_delete_selected_messages">选中的信息将被删除</string>
     <!-- menu item of mailboxmessagecontent -->
     <string name="menu_load_push">载入</string>
@@ -426,6 +435,7 @@
     <!-- add for showing slot type in MailBoxMessageContent -->
     <string name="slot_type">卡槽 : %s</string>
     <string name="download_dialog_title">确认下载信息？</string>
+    <string name="menu_email">发送邮件</string>
     <string name="copy_to_sim">"复制到SIM卡"</string>
     <string name="copy_to_sim_success">"信息已保存"</string>
     <string name="copy_to_sim_fail">"信息保存失败"</string>
@@ -441,4 +451,15 @@
     <string name="pref_sim_card_full_save_to_phone">SIM卡短信存储已满，自动保存到手机内存。</string>
     <string name="pref_sms_store_sim_unknown_fail">新短信接收失败，无法正确读取SIM卡</string>
     <string name="forward_size_over">禁止转发，新彩信内容超过300k。</string>
+
+    <string name="sim_capacity_title">"Sim卡容量"</string>
+    <string name="sim_capacity_used">"已使用:"</string>
+    <string name="sim_capacity">"总容量:"</string>
+    <!-- SMSC -->
+    <string name="pref_smsc_title">短消息中心设置</string>
+    <string name="pref_one_smcs">"设置短消息中心号码"</string>
+    <string name="pref_more_smcs">"设置SIM卡"<xliff:g id="slot_number">%d</xliff:g>"的短消息中心号码"</string>
+    <string name="set_smsc_error">设置短消息中心号码失败</string>
+    <string name="set_smsc_success">设置短消息中心号码成功</string>
+    <string name="set_smsc_confirm_message">修改短消息中心号码可能导致短信发送失败，确认修改吗？</string>
 </resources>
