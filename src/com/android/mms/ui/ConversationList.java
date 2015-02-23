@@ -459,14 +459,15 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         mListAdapter.setOnContentChangedListener(mContentChangedListener);
     }
+
     private void addPublicAccountEntranceIfAvailable() {
         mPublicAccountItemView = LayoutInflater.from(this).inflate(
                 R.layout.rcs_conversation_list_item_public_account, null);
-        if (!RcsApiManager.isRcsServiceInstalled()) {
+        if (!RcsApiManager.isRcsServiceInstalled()
+                || !RcsUtils.isPackageInstalled(this, RcsUtils.PUBLIC_ACCOUNT_PACKAGE_NAME)) {
             mPublicAccountItemView.setVisibility(View.GONE);
             return;
         }
-
         QuickContactBadge publicAccountPhotoView =
                 (QuickContactBadge) mPublicAccountItemView.findViewById(R.id.avatar);
         publicAccountPhotoView.assignContactUri(null);
@@ -482,7 +483,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     }
 
     private void addNotificationListEntranceIfAvailable() {
-        if (!RcsApiManager.isRcsServiceInstalled()) {
+        if (!RcsApiManager.isRcsServiceInstalled() ||
+                !RcsUtils.isPackageInstalled(this, RcsUtils.NATIVE_UI_PACKAGE_NAME)) {
             return;
         }
 

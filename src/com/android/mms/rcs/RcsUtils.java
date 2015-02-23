@@ -153,13 +153,16 @@ public class RcsUtils {
     public static final String GROUP_CHAT_NOTIFICATION_KEY_WORDS_POLICY = "policy";
     public static final String GROUP_CHAT_NOTIFICATION_KEY_WORDS_GONE = "gone";
 
+    public static final String PUBLIC_ACCOUNT_PACKAGE_NAME = "com.suntek.mway.rcs.publicaccount";
+    public static final String NATIVE_UI_PACKAGE_NAME = "com.suntek.mway.rcs.nativeui";
+
     public static final int MSG_RECEIVE =   SuntekMessageData.MSG_RECEIVE;
     public static final String IM_ONLY     = "1";
     public static final String SMS_ONLY     ="2";
     public static final String RCS_MMS_VCARD_PATH="sdcard/rcs/" + "mms.vcf";
     public static final String SMS_URI_ALL = "content://sms/";
     private static final int NEED_GET_PROFILE_PHOTO_CHAT_COUNT =1;
-    static  boolean mIsSupportRcs=true ;//true for test
+    static boolean mIsSupportRcs = true;
     static String contentType  = "text/x-vCard";
 
     // message status
@@ -1748,7 +1751,7 @@ public class RcsUtils {
     }
 
     private static Intent getVideoFileIntent(String param) {
-        Intent intent = new Intent("android.intent.action.VIEW");
+        Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.putExtra("oneshot", 0);
         intent.putExtra("configchange", 0);
@@ -1758,7 +1761,7 @@ public class RcsUtils {
     }
 
     private static Intent getAudioFileIntent(String param) {
-        Intent intent = new Intent("android.intent.action.VIEW");
+        Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.putExtra("oneshot", 0);
         intent.putExtra("configchange", 0);
@@ -1768,108 +1771,92 @@ public class RcsUtils {
     }
 
     private static Intent getImageFileIntent(String param) {
-        Intent intent = new Intent("android.intent.action.VIEW");
-        intent.addCategory("android.intent.category.DEFAULT");
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         Uri uri = Uri.fromFile(new File(param));
         intent.setDataAndType(uri, "image/*");
         return intent;
     }
 
-    public static Intent getAllIntent( String param ) {
-        Intent intent = new Intent();  
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);  
-        intent.setAction(android.content.Intent.ACTION_VIEW);  
-        Uri uri = Uri.fromFile(new File(param ));
-        intent.setDataAndType(uri,"*/*"); 
+    public static Intent getAllIntent( String param) {
+        Intent intent = new Intent();
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setAction(Intent.ACTION_VIEW);
+        Uri uri = Uri.fromFile(new File(param));
+        intent.setDataAndType(uri, "*/*");
         return intent;
     }
 
-    public static Intent getApkFileIntent( String param ) {
+    public static Intent getApkFileIntent( String param) {
 
-        Intent intent = new Intent();  
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);  
-        intent.setAction(android.content.Intent.ACTION_VIEW);  
-        Uri uri = Uri.fromFile(new File(param ));
-        intent.setDataAndType(uri,"application/vnd.android.package-archive"); 
+        Intent intent = new Intent();
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setAction(Intent.ACTION_VIEW);
+        Uri uri = Uri.fromFile(new File(param));
+        intent.setDataAndType(uri, "application/vnd.android.package-archive");
         return intent;
     }
 
-    public static Intent getHtmlFileIntent( String param ){
+    public static Intent getHtmlFileIntent( String param){
 
         Uri uri = Uri.parse(param ).buildUpon().
                 encodedAuthority("com.android.htmlfileprovider").
-                scheme("content").encodedPath(param ).build();
-        Intent intent = new Intent("android.intent.action.VIEW");
+                scheme("content").encodedPath(param).build();
+        Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(uri, "text/html");
         return intent;
     }
 
-    public static Intent getPptFileIntent( String param ){  
+    private static Intent getFileIntent( String param, String datatype){
 
-        Intent intent = new Intent("android.intent.action.VIEW");   
-        intent.addCategory("android.intent.category.DEFAULT");   
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);   
-        Uri uri = Uri.fromFile(new File(param ));   
-        intent.setDataAndType(uri, "application/vnd.ms-powerpoint");   
-        return intent;   
-    }   
-
-    public static Intent getExcelFileIntent( String param ){  
-
-        Intent intent = new Intent("android.intent.action.VIEW");   
-        intent.addCategory("android.intent.category.DEFAULT");   
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);   
-        Uri uri = Uri.fromFile(new File(param ));   
-        intent.setDataAndType(uri, "application/vnd.ms-excel");   
-        return intent;   
-    }   
-
-    public static Intent getWordFileIntent( String param ){  
-
-        Intent intent = new Intent("android.intent.action.VIEW");   
-        intent.addCategory("android.intent.category.DEFAULT");   
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);   
-        Uri uri = Uri.fromFile(new File(param ));   
-        intent.setDataAndType(uri, "application/msword");   
-        return intent;   
-    }   
-
-    public static Intent getChmFileIntent( String param ){   
-
-        Intent intent = new Intent("android.intent.action.VIEW");   
-        intent.addCategory("android.intent.category.DEFAULT");   
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);   
-        Uri uri = Uri.fromFile(new File(param ));   
-        intent.setDataAndType(uri, "application/x-chm");   
-        return intent;   
-    }   
-
-    public static Intent getTextFileIntent( String param, boolean paramBoolean){   
-
-        Intent intent = new Intent("android.intent.action.VIEW");   
-        intent.addCategory("android.intent.category.DEFAULT");   
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);   
-        if (paramBoolean){   
-            Uri uri1 = Uri.parse(param );   
-            intent.setDataAndType(uri1, "text/plain");   
-        }else{   
-            Uri uri2 = Uri.fromFile(new File(param ));   
-            intent.setDataAndType(uri2, "text/plain");   
-        }   
-        return intent;   
-    }  
-
-    public static Intent getPdfFileIntent( String param ){   
-
-        Intent intent = new Intent("android.intent.action.VIEW");   
-        intent.addCategory("android.intent.category.DEFAULT");   
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);   
-        Uri uri = Uri.fromFile(new File(param ));   
-        intent.setDataAndType(uri, "application/pdf");   
-        return intent;   
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Uri uri = Uri.fromFile(new File(param));
+        intent.setDataAndType(uri, datatype);
+        return intent;
     }
 
+    public static Intent getPptFileIntent( String param){
+
+        return getFileIntent(param, "application/vnd.ms-powerpoint");
+    }
+
+    public static Intent getExcelFileIntent( String param){
+
+        return getFileIntent(param, "application/vnd.ms-excel");
+    }
+
+    public static Intent getWordFileIntent( String param){
+
+        return getFileIntent(param, "application/msword");
+    }
+
+    public static Intent getChmFileIntent( String param){
+
+        return getFileIntent(param, "application/x-chm");
+    }
+
+    public static Intent getPdfFileIntent( String param){
+
+        return getFileIntent(param, "application/pdf");
+    }
+
+    public static Intent getTextFileIntent( String param, boolean paramBoolean){
+
+        if (paramBoolean){
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.addCategory(Intent.CATEGORY_DEFAULT);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            Uri uri = Uri.parse(param);
+            intent.setDataAndType(uri, "text/plain");
+            return intent;
+
+        }else{
+            return getFileIntent(param, "text/plain");
+        }
+    }
 
     public static String getRcsMessageStatusText(Context context, MessageItem mMessageItem) {
         String text;
