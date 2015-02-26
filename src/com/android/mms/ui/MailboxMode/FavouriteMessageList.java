@@ -190,7 +190,6 @@ public class FavouriteMessageList extends ListActivity implements
     private String mSearchDisplayStr = "";
     private int mMatchWhole = MessageUtils.MATCH_BY_ADDRESS;
     private int mMailboxId;
-    private boolean isChangeToConvasationMode = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -201,7 +200,6 @@ public class FavouriteMessageList extends ListActivity implements
         View spinners = (View) findViewById(R.id.spinners);
 
         spinners.setVisibility(View.GONE);
-        //initSpinner();
 
         mListView = getListView();
         getListView().setItemsCanFocus(true);
@@ -756,6 +754,7 @@ public class FavouriteMessageList extends ListActivity implements
                 Intent folderModeIntent = new Intent(this, ConversationList.class);
                 startActivityIfNeeded(folderModeIntent, -1);
                 MessageUtils.setMailboxMode(true);
+                finish();
                 break;
             case R.id.action_memory_status:
                 MessageUtils.showMemoryStatusDialog(this);

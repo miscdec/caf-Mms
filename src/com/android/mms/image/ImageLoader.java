@@ -38,6 +38,7 @@ import java.util.concurrent.Future;
 
 public class ImageLoader {
     private static final int MIN_MEMORY = 10 * 1024 * 1024;// at least 10m
+    private static final int DEFAULT_BITMAP_SIZE = 200;
     private LruCache<String, Bitmap> bitmapCache;
     private ExecutorService executor;
     private HashMap<String, Future> futureMap;
@@ -113,7 +114,8 @@ public class ImageLoader {
                     if (isNetImage) {
                         // save bitmap to sdcard
                         String savePath = NetImageUtil.saveBitmap(context, uri, bitmap);
-                        bitmap = ScaleBitmapDecoder.decodeFile(savePath, 200, 200);
+                        bitmap = ScaleBitmapDecoder.decodeFile(savePath, DEFAULT_BITMAP_SIZE,
+                                DEFAULT_BITMAP_SIZE);
                     }
                     bitmapCache.put(uri, bitmap);
                     resultBitmap = bitmap;

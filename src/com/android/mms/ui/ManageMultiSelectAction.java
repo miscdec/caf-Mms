@@ -121,6 +121,11 @@ public class ManageMultiSelectAction extends Activity {
     private static final int SHOW_TOAST = 1;
     private static final int FOWARD_DONE = 2;
 
+    public static final int BACKUP_ALL_MESSAGE_FAIL = -1;
+    public static final int BACKUP_ALL_MESSAGE_START = 0;
+    public static final int BACKUP_ALL_MESSAGE_SAVING = 1;
+    public static final int BACKUP_ALL_MESSAGE_SUCCESS = 2;
+
     private static boolean mIsDeleteLockChecked = false;
     private static final int MESSAGE_LOCKED = 1;
 
@@ -628,7 +633,7 @@ public class ManageMultiSelectAction extends Activity {
         mUiHandler.sendMessage(msg);
 
     }
-    
+
     private void backupMessage() {
 
         try {
@@ -683,37 +688,37 @@ public class ManageMultiSelectAction extends Activity {
                 Log.i("RCS_UI", "progress = " + progress + " total = " + total + " status = "
                         + status);
                 switch (status) {
-                    case 0:
+                    case BACKUP_ALL_MESSAGE_START:
                         showProgressDialog(ManageMultiSelectAction.this, 0,
                                 context.getString(R.string.message_is_begin), total);
-                        if (mSaveOrBackProgressDialog != null && !mSaveOrBackProgressDialog.isShowing()) {
+                        if (mSaveOrBackProgressDialog != null
+                                && !mSaveOrBackProgressDialog.isShowing()) {
                             mSaveOrBackProgressDialog.show();
                         }
                         break;
-                    case 1:
+                    case BACKUP_ALL_MESSAGE_SAVING:
                         if (total == 0) {
                             return;
                         }
                         showProgressDialog(ManageMultiSelectAction.this, progress,
                                 context.getString(R.string.message_is_saving), total);
-                        if (mSaveOrBackProgressDialog != null && !mSaveOrBackProgressDialog.isShowing()) {
+                        if (mSaveOrBackProgressDialog != null
+                                && !mSaveOrBackProgressDialog.isShowing()) {
                             mSaveOrBackProgressDialog.show();
                         }
                         break;
-                    case 2:
+                    case BACKUP_ALL_MESSAGE_SUCCESS:
                         if (mSaveOrBackProgressDialog != null) {
                             mSaveOrBackProgressDialog.dismiss();
                         }
-                        // Toast.makeText(ManageMultiSelectAction.this,
-                        // R.string.message_save_ok, 0).show();
                         clearSelect();
                         mSimpleMsgs.clear();
                         mSaveOrBackProgressDialog = null;
                         mActionButton.setEnabled(true);
                         unregisterReceiver(mBackupStateReceiver);
-                        Toast.makeText(context, R.string.message_save_ok, Toast.LENGTH_SHORT).show();
+                        makeToast(context, R.string.message_save_ok);
                         break;
-                    case -1:
+                    case BACKUP_ALL_MESSAGE_FAIL:
                         if (mSaveOrBackProgressDialog != null) {
                             mSaveOrBackProgressDialog.dismiss();
                         }
@@ -722,7 +727,7 @@ public class ManageMultiSelectAction extends Activity {
                         mSaveOrBackProgressDialog = null;
                         mActionButton.setEnabled(true);
                         unregisterReceiver(mBackupStateReceiver);
-                        Toast.makeText(context, R.string.message_save_fail, Toast.LENGTH_SHORT).show();
+                        makeToast(context, R.string.message_save_fail);
                         break;
                     default:
                         break;
@@ -745,13 +750,13 @@ public class ManageMultiSelectAction extends Activity {
                         public void onClick(DialogInterface dialog, int which) {
                             try {
                                 RcsApiManager.getMessageApi().cancelBackup();
+                            } catch (Exception e) {
+                                Log.e("RCS_UI", e.toString());
+                            } finally {
                                 mSaveOrBackProgressDialog.cancel();
                                 clearSelect();
                                 mSimpleMsgs.clear();
                                 mActionButton.setEnabled(true);
-                            } catch (Exception e) {
-                                Log.w("RCS_UI", e);
-                            } finally {
                                 unregisterReceiver(mBackupStateReceiver);
                             }
                         }
@@ -764,5 +769,9 @@ public class ManageMultiSelectAction extends Activity {
             mSaveOrBackProgressDialog.setMax(total);
             mSaveOrBackProgressDialog.setProgress(progress);
         }
+    }
+
+    private void  makeToast(Context context, int stringId) {
+        Toast.makeText(context, stringId, Toast.LENGTH_SHORT).show();
     }
 }

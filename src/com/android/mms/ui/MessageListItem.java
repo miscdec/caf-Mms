@@ -186,7 +186,7 @@ public class MessageListItem extends LinearLayout implements
     public String mRcsContentType = "";
     public static HashMap<String, Long> sFileTrasnfer;
 
-    public void setFileTrasnfer(HashMap<String, Long> fileTrasnfer){
+    public void setFileTrasnfer(HashMap<String, Long> fileTrasnfer) {
         this.sFileTrasnfer = fileTrasnfer;
     }
     public IMcloudOperationCtrl operation;

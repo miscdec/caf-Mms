@@ -24,7 +24,6 @@
 package com.android.mms.rcs;
 
 import com.android.mms.R;
-import com.android.mms.rcs.RcsMessageThread.MessageThreadOption;
 import com.android.mms.transaction.MessagingNotification;
 import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
@@ -164,7 +163,8 @@ public class RcsMessageStatusService extends IntentService {
                      }
                     }
                 } else if (BroadcastConstants.ACTION_INPUT_SMS_VERIFY_CODE.equals(intent.getAction())) {
-                    Intent intentCode = new Intent("com.suntek.mway.rcs.nativeui.ui.InputSMSVerifyCodeActivity");
+                    Intent intentCode = new Intent(
+                            "com.suntek.mway.rcs.nativeui.ACTION_LUNCHER_INPUT_SMS_VIRIFYCODE");
                     intentCode.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     RcsMessageStatusService.this.startActivity(intentCode);
                 }

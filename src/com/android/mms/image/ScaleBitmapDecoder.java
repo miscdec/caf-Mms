@@ -28,7 +28,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.BitmapFactory.Options;
 
 public class ScaleBitmapDecoder {
-    // 根据指定的bitmap路径加载，并定义好了目标的大小
+    // base on the routing to load the bitmap and definition it's size.
     public static Bitmap decodeFile(String path, int dstWidth, int dstHeight) {
         Options options = new Options();
         options.inJustDecodeBounds = true;
@@ -42,9 +42,10 @@ public class ScaleBitmapDecoder {
     }
 
     /**
-     * 计算Option的inSampleSize属性
+     * calculate the inSampleSize attribute in Option
      */
-    public static int calculateSampleSize(int srcWidth, int srcHeight, int dstWidth, int dstHeight) {
+    public static int calculateSampleSize(int srcWidth, int srcHeight,
+            int dstWidth, int dstHeight) {
         final float srcAspect = (float) srcWidth / (float) srcHeight;
         final float dstAspect = (float) dstWidth / (float) dstHeight;
 

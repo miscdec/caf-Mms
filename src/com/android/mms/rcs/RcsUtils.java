@@ -175,6 +175,11 @@ public class RcsUtils {
     public static final int MESSAGE_HAS_READ = 100;//displayed
     public static final int MESSAGE_HAS_SEND_SERVER = 0;//send to server
 
+    public static final String RCS_NATIVE_UI_ACTION_GROUP_CHAT_DETAIL =
+            "com.suntek.mway.rcs.nativeui.ACTION_LUNCH_RCS_GROUPCHATDETAIL";
+    public static final String RCS_NATIVE_UI_ACTION_NOTIFICATION_LIST =
+            "com.suntek.mway.rcs.nativeui.ACTION_LUNCHER_RCS_NOTIFICATION_LIST";
+
     private static final String LOG_TAG = "RCS_UI";
 
     public static boolean isSupportRcs() {
@@ -952,7 +957,7 @@ public class RcsUtils {
      * Launch the RCS group chat detail activity.
      */
     public static void startGroupChatDetailActivity(Context context, String groupId) {
-        Intent intent = new Intent("com.suntek.mway.rcs.nativeui.ui.RcsGroupChatDetailActivity");
+        Intent intent = new Intent(RCS_NATIVE_UI_ACTION_GROUP_CHAT_DETAIL);
         intent.putExtra("groupId", groupId);
         if (isActivityIntentAvailable(context, intent)) {
             context.startActivity(intent);
@@ -963,7 +968,7 @@ public class RcsUtils {
      * Launch the RCS notify list activity.
      */
     public static void startNotificationListActivity(Context context) {
-        Intent intent = new Intent("com.suntek.mway.rcs.nativeui.ui.RcsNotificationListActivity");
+        Intent intent = new Intent(RCS_NATIVE_UI_ACTION_NOTIFICATION_LIST);
         if (isActivityIntentAvailable(context, intent)) {
             context.startActivity(intent);
         }

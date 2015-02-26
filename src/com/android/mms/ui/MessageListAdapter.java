@@ -249,18 +249,17 @@ public class MessageListAdapter extends CursorAdapter {
     private boolean mMultiChoiceMode = false;
     // for multi delete sim messages or forward merged message
     private int mMultiManageMode = MessageUtils.INVALID_MODE;
-    private ImageLoader imageLoader;
+    private ImageLoader mImageLoader;
 
-
-    public HashMap<String, Long> sFileTrasnfer = new HashMap<String, Long>();
+    public HashMap<String, Long> mFileTrasnfer = new HashMap<String, Long>();
     private boolean mRcsIsStopDown = false;
 
     public void setsFileTrasnfer(HashMap<String, Long> sFileTrasnfer) {
-        this.sFileTrasnfer = sFileTrasnfer;
+        this.mFileTrasnfer = sFileTrasnfer;
     }
 
     public HashMap<String, Long> getFileTrasnferHashMap() {
-        return sFileTrasnfer;
+        return mFileTrasnfer;
     }
 
     public void setRcsIsStopDown(boolean rcsIsStopDown){
@@ -286,7 +285,7 @@ public class MessageListAdapter extends CursorAdapter {
             mColumnsMap = new ColumnsMap(c);
         }
 
-        imageLoader = new ImageLoader(context);
+        mImageLoader = new ImageLoader(context);
 
         listView.setRecyclerListener(new AbsListView.RecyclerListener() {
             @Override
@@ -326,9 +325,9 @@ public class MessageListAdapter extends CursorAdapter {
                     mli.setSimMessagesMode(true);
                 }
 
-                mli.setFileTrasnfer(sFileTrasnfer);
+                mli.setFileTrasnfer(mFileTrasnfer);
                 mli.setRcsIsStopDown(mRcsIsStopDown);
-                mli.bind(msgItem, mIsGroupConversation, position, mGroupId, imageLoader);
+                mli.bind(msgItem, mIsGroupConversation, position, mGroupId, mImageLoader);
                 mli.setMsgListItemHandler(mMsgListItemHandler);
 
                 if (mMultiChoiceMode) {
@@ -352,7 +351,7 @@ public class MessageListAdapter extends CursorAdapter {
     }
 
     public void destroy() {
-        imageLoader.destroy();
+        mImageLoader.destroy();
     }
 
     public interface OnDataSetChangedListener {
