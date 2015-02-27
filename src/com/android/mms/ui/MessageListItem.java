@@ -263,7 +263,7 @@ public class MessageListItem extends LinearLayout implements
         } else {
             mBodyTextView = mBodyButtomTextView;
         }
-        if (mMessageItem.mRcsId == RcsUtils.SMS_DEFAULT_RCS_ID || mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_MAP) {
+        if (!isRcsMessage() || mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_MAP) {
             mBodyTextView.setVisibility(View.VISIBLE);
         }
     }
@@ -1264,7 +1264,7 @@ public class MessageListItem extends LinearLayout implements
                 mMessageItem.isOutgoingMessage() &&
                 mMessageItem.isFailedMessage() ) {
             //if message is rcsMessage except text,return.
-            if( mMessageItem.mRcsId != RcsUtils.SMS_DEFAULT_RCS_ID && mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_TEXT ){
+            if (isRcsMessage() && mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_TEXT ){
                 return;
             }
             // Assuming the current message is a failed one, reload it into the compose view so
