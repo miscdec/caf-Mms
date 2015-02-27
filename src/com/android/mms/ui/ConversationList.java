@@ -393,8 +393,15 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         mListAdapter.setOnContentChangedListener(mContentChangedListener);
     }
     private void addPublicAccountEntranceIfAvailable() {
-        mPublicAccountItemView = LayoutInflater.from(this).inflate(R.layout.rcs_conversation_list_item_public_account, null);
-        QuickContactBadge publicAccountPhotoView = (QuickContactBadge) mPublicAccountItemView.findViewById(R.id.avatar);
+        mPublicAccountItemView = LayoutInflater.from(this).inflate(
+                R.layout.rcs_conversation_list_item_public_account, null);
+        if (!RcsApiManager.isRcsServiceInstalled()) {
+            mPublicAccountItemView.setVisibility(View.GONE);
+            return;
+        }
+
+        QuickContactBadge publicAccountPhotoView =
+                (QuickContactBadge) mPublicAccountItemView.findViewById(R.id.avatar);
         publicAccountPhotoView.assignContactUri(null);
         getListView().addHeaderView(mPublicAccountItemView);
         mPublicAccountItemView.setOnClickListener(new View.OnClickListener() {
@@ -412,8 +419,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             return;
         }
 
-        mNotificationListItemView = LayoutInflater.from(this).inflate(R.layout.rcs_conversation_list_item_notification_list, null);
-        QuickContactBadge notificationListPhotoView = (QuickContactBadge) mNotificationListItemView.findViewById(R.id.avatar);
+        mNotificationListItemView = LayoutInflater.from(this).inflate(
+                R.layout.rcs_conversation_list_item_notification_list, null);
+        QuickContactBadge notificationListPhotoView =
+                (QuickContactBadge) mNotificationListItemView.findViewById(R.id.avatar);
         notificationListPhotoView.assignContactUri(null);
         getListView().addHeaderView(mNotificationListItemView);
         mNotificationListItemView.setOnClickListener(new View.OnClickListener() {
