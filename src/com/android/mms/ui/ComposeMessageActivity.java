@@ -325,7 +325,6 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_IMPORT_TEMPLATE       = 34;
     private static final int MENU_RESEND                = 35;
     private static final int MENU_COPY_EXTRACT_URL      = 36;
-    private static final int MENU_SELECT_COPY_MESSAGE_TEXT     = 37;
     private static final int MENU_BATCH_DELETE          = 38;
     private static final int MENU_BATCH_FAVOURITE       = 39;
     private static final int MENU_BATCH_BACKUP          = 40;
@@ -1725,11 +1724,6 @@ public class ComposeMessageActivity extends Activity
                         .setOnMenuItemClickListener(l);
                 }
 
-                if (msgItem.isSms() || msgItem.isDownloaded()) {
-                    menu.add(0, MENU_SELECT_COPY_MESSAGE_TEXT, 0, R.string.select_copy_message_text)
-                            .setOnMenuItemClickListener(l);
-                }
-
                 // Only failed send message have resend function
                 if (msgItem.isFailedMessage()) {
                         menu.add(0, MENU_RESEND, 0, R.string.menu_resend)
@@ -2169,26 +2163,6 @@ public class ComposeMessageActivity extends Activity
                 case MENU_COPY_EXTRACT_URL:
                     String copyedUrl = item.getIntent().getStringExtra("copyurl");
                     copyToClipboard(copyedUrl);
-                    return true;
-
-                case MENU_SELECT_COPY_MESSAGE_TEXT:
-                    AdapterView.AdapterContextMenuInfo info;
-                    try {
-                         info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
-                    } catch (ClassCastException exception) {
-                        Log.e(TAG, "Bad menuInfo.", exception);
-                        return false;
-                    }
-
-                    final Cursor cursor = (Cursor) mMsgListAdapter.getItem(info.position);
-                    if (mMsgItem.isSms()) {
-                        MessageUtils.showSmsMessageContent(ComposeMessageActivity.this,
-                                mMsgItem.mMsgId);
-                    } else {
-                        MessageUtils.viewMmsMessageAttachment(ComposeMessageActivity.this,
-                                ContentUris.withAppendedId(Mms.CONTENT_URI, mMsgItem.mMsgId), null,
-                                getAsyncDialog());
-                    }
                     return true;
                 default:
                     return false;
