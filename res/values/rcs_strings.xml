@@ -62,7 +62,6 @@
     <string name="group_chat_quit">%1$s left the group chat.</string>
     <string name="group_chat_disbanded">Group chat is disbanded.</string>
     <string name="group_chat_policy">Message receiving policy has been changed.</string>
-    <string name="group_chat_gone">You are not in the group chat.</string>
     <string name="install_emoj_store">Please install emoticon store</string>
 
     <string name="file_is_too_larger">file is too larger</string>
@@ -137,7 +136,6 @@
     <string name="message_is_saving">消息备份中</string>
     <string name="message_save_ok">备份完成</string>
     <string name="message_save_fail">备份失败</string>
-    <string name="message_restore_fail">恢复失败</string>
     <string name="message_is_restore_begin">准备恢复</string>
     <string name="message_restoring">消息恢复中</string>
     <string name="message_restore_ok">恢复完成</string>
@@ -191,22 +189,7 @@
     <string name="batch_favourite">批量收藏会话</string>
     <string name="batch_backup">备份多条消息</string>
    <string name="vcard_name">姓名：</string>
-    <string name="vcard_number">手机：</string>
-    <string name="vcard_number_home">住宅：</string>
-    <string name="vcard_number_work">单位：</string>
-    <string name="vcard_number_fax_work">单位传真：</string>
-    <string name="vcard_number_fax_home">住宅传真：</string>
-    <string name="vcard_number_pager">寻呼机：</string>
-    <string name="vcard_number_other">其他：</string>
-    <string name="vcard_number_fax">其他传真：</string>
-    <string name="vcard_number_tlx">电报：</string>
-    <string name="vcard_number_msg">彩信：</string>
-    <string name="vcard_number_isdn">ISDN号：</string>
-    <string name="vcard_number_pref">总机：</string>
-    <string name="vcard_number_car">车载电话：</string>
-    <string name="vcard_number_pref_work">公司总机：</string>
-    <string name="vcard_number_call_work">单位手机：</string>
-    <string name="vcard_number_work_pager">单位寻呼机：</string>
+    <string name="vcard_number">手机号：</string>
     <string name="vcard_other_number">其他号码</string>
     <string name="vcard_compony_info">公司信息</string>
     <string name="vcard_compony_addre">地址</string>
@@ -217,6 +200,5 @@
     <string name="vcard_import">导入联系人</string>
     <string name="function_is_opering">功能正在开发中...</string>
     <string name="download_mcloud_file_fail">下载彩云文件失败：%1$s</string>
-    <string name="please_install_application">please install the application</string>
-    <string name="emotion_download_fail">download fail emotion.</string>
+
 </resources>
