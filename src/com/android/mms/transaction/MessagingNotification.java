@@ -56,7 +56,7 @@ import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.telephony.TelephonyManager;
 import android.telephony.SubscriptionManager;
-import android.telephony.SubInfoRecord;
+import android.telephony.SubscriptionInfo;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -1086,9 +1086,10 @@ public class MessagingNotification {
 
         if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
             //SMS/MMS is operating based of PhoneId which is 0, 1..
-            List<SubInfoRecord> sir = SubscriptionManager.getSubInfoUsingSlotId(phoneId);
+            SubscriptionInfo sir = SubscriptionManager.from(context).
+                    getActiveSubscriptionInfoForSimSlotIndex(phoneId);
 
-            String displayName = ((sir != null) && (sir.size() > 0)) ? sir.get(0).displayName : "";
+            String displayName = (sir != null)  ? sir.getDisplayName().toString() : "";
 
             Log.e(TAG, "PhoneID : " + phoneId + " displayName " + displayName);
             buf.append(displayName);

@@ -85,7 +85,7 @@ import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.telephony.PhoneNumberUtils;
-import android.telephony.SubInfoRecord;
+import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.SmsMessage;
 import android.telephony.TelephonyManager;
@@ -768,10 +768,10 @@ public class ComposeMessageActivity extends Activity
             final int phoneId = i;
             smsBtns[i] = (Button) layout.findViewById(smsBtnIds[i]);
             smsBtns[i].setVisibility(View.VISIBLE);
-            List<SubInfoRecord> sir = SubscriptionManager.getSubInfoUsingSlotId(phoneId);
+            SubscriptionInfo sir = SubscriptionManager.from(this).
+                    getActiveSubscriptionInfoForSimSlotIndex(phoneId);
 
-            String displayName = ((sir != null) && (sir.size() > 0)) ?
-                    sir.get(0).displayName : "SIM " + (i + 1);
+            String displayName = (sir != null) ? sir.getDisplayName().toString() : "SIM " + (i + 1);
 
             Log.e(TAG, "PhoneID : " + phoneId + " displayName " + displayName);
             smsBtns[i].setText(displayName);
@@ -790,7 +790,7 @@ public class ComposeMessageActivity extends Activity
         if (SubscriptionManager.isSMSPromptEnabled()) {
             LaunchMsimDialog(bCheckEcmMode);
         } else {
-            long subId = SubscriptionManager.getDefaultSmsSubId();
+            int subId = SubscriptionManager.getDefaultSmsSubId();
             int phoneId = SubscriptionManager.getPhoneId(subId);
             mWorkingMessage.setWorkingMessageSub(phoneId);
             sendMessage(bCheckEcmMode);
@@ -903,8 +903,7 @@ public class ComposeMessageActivity extends Activity
     };
 
     private void checkForTooManyRecipients() {
-        final int recipientLimit =
-                MmsConfig.getInt(mSelectedSubId, SmsManager.MMS_CONFIG_RECIPIENT_LIMIT);
+        final int recipientLimit =  MmsConfig.getRecipientLimit();
         if (recipientLimit != Integer.MAX_VALUE && recipientLimit > 0) {
             final int recipientCount = recipientCount();
             boolean tooMany = recipientCount > recipientLimit;
