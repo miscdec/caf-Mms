@@ -4952,10 +4952,12 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void addVideoAsync(final Uri uri, final boolean append) {
+        mInAsyncAddAttathProcess = true;
         getAsyncDialog().runAsync(new Runnable() {
             @Override
             public void run() {
                 addVideo(uri, append);
+                mInAsyncAddAttathProcess = false;
             }
         }, null, R.string.adding_attachments_title);
     }
