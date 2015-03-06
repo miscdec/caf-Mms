@@ -1255,7 +1255,6 @@ public class ComposeMessageActivity extends Activity
 
     private void confirmSendMessageIfNeeded() {
         if (mRcsShareVcard) {
-            RcsUtils.setIsSupportRcs(true);
             mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_VCARD);
             mRcsShareVcard = false;
         }
@@ -5772,8 +5771,6 @@ public class ComposeMessageActivity extends Activity
                     mRcsShareVcard = true;
                     rcsShareVcardAddNumber = true;
                     mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_VCARD);
-                    RcsUtils.setIsSupportRcs(true);
-
                     return false;
                 }
                 getAsyncDialog().runAsync(new Runnable() {
@@ -6044,7 +6041,6 @@ public class ComposeMessageActivity extends Activity
     public void onClick(View v) {
         boolean isRcsAvailable = RcsApiManager.isRcsServiceInstalled()
                 && RcsApiManager.isRcsOnline();
-        RcsUtils.setIsSupportRcs(isRcsAvailable);
         mWorkingMessage.setIsBurn(mIsBurnMessage);
 
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {

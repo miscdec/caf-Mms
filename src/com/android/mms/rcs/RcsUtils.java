@@ -162,7 +162,6 @@ public class RcsUtils {
     public static final String RCS_MMS_VCARD_PATH="sdcard/rcs/" + "mms.vcf";
     public static final String SMS_URI_ALL = "content://sms/";
     private static final int NEED_GET_PROFILE_PHOTO_CHAT_COUNT =1;
-    static boolean mIsSupportRcs = true;
     static String contentType  = "text/x-vCard";
 
     // message status
@@ -183,11 +182,8 @@ public class RcsUtils {
     private static final String LOG_TAG = "RCS_UI";
 
     public static boolean isSupportRcs() {
-        return mIsSupportRcs;
-    }
-
-    public  static  void setIsSupportRcs(boolean mIsSupportRcs) {
-        RcsUtils.mIsSupportRcs = mIsSupportRcs;
+        return RcsApiManager.isRcsServiceInstalled()
+                && RcsApiManager.isRcsOnline();
     }
 
     public static GeoLocation readMapXml(String filepath) {
