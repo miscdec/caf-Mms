@@ -87,6 +87,22 @@ public class RcsMessageStatusService extends IntentService {
     @Override
     protected void onHandleIntent(final Intent intent) {
         final int currentRunningId = ++runningId;
+
+        String action = intent.getAction();
+        if (BroadcastConstants.UI_MESSAGE_ADD_DATABASE.equals(action)) {
+            long rcs_id = intent.getLongExtra("id", 0);
+            RecvMessageQueue.getInstance().addReport(Integer.parseInt(String.valueOf(rcs_id)),
+                    intent);
+            return;
+        } else if (BroadcastConstants.UI_MESSAGE_STATUS_CHANGE_NOTIFY.equals(action)) {
+            String id = intent.getStringExtra("id");
+            RecvMessageQueue.getInstance().addReport(Integer.parseInt(id), intent);
+            return;
+        } else if (BroadcastConstants.UI_SHOW_RECV_REPORT_INFO.equals(action)) {
+            int id = intent.getIntExtra("id", 0);
+            RecvMessageQueue.getInstance().addReport(id, intent);
+            return;
+        }
         mTeleManager = (TelephonyManager) RcsMessageStatusService.this.getSystemService(TELEPHONY_SERVICE);
         pool.execute(new Runnable() {
             public void run() {
@@ -96,35 +112,7 @@ public class RcsMessageStatusService extends IntentService {
 
                 String action = intent.getAction();
                 RcsUtils.dumpIntent(intent);
-                if (BroadcastConstants.UI_MESSAGE_ADD_DATABASE.equals(action)) {
-                    final ChatMessage chatMessage = intent.getParcelableExtra("chatMessage");
-                    if(chatMessage.getChatType() == SuntekMessageData.CHAT_TYPE_PUBLIC)
-                        return;
-
-                    long threadId = copyRcsMsgToSmsProvider(
-                            RcsMessageStatusService.this, chatMessage);
-
-                    boolean notify;
-                    int chatType = chatMessage.getChatType();
-                    int sendReceive = chatMessage.getSendReceive();
-                    if (chatMessage == null) {
-                        notify = false;
-                    } else if (chatType == SuntekMessageData.CHAT_TYPE_PUBLIC) {
-                        notify = false;
-                    } else {
-                        notify = ((chatType != SuntekMessageData.CHAT_TYPE_GROUP) && (sendReceive == SuntekMessageData.MSG_RECEIVE));
-                    }
-                    if (notify) {
-                        MessagingNotification.blockingUpdateNewMessageIndicator(
-                                RcsMessageStatusService.this, threadId, true);
-                    }
-                    if((chatType == SuntekMessageData.CHAT_TYPE_GROUP) && (sendReceive == SuntekMessageData.MSG_RECEIVE)&&          chatMessage.getMsgType() != SuntekMessageData.MSG_TYPE_NOTIFICATION){
-                        Intent groupNotifyIntent = new Intent(ACTION_UI_SHOW_GROUP_MESSAGE_NOTIFY);
-                        groupNotifyIntent.putExtra("id", (long)chatMessage.getId());
-                        groupNotifyIntent.putExtra("threadId", chatMessage.getThreadId());
-                        sendBroadcast(groupNotifyIntent);
-                    }
-                } else if (ACTION_UI_SHOW_GROUP_MESSAGE_NOTIFY.equals(action)) {
+                if (ACTION_UI_SHOW_GROUP_MESSAGE_NOTIFY.equals(action)) {
                     long id = intent.getLongExtra("id", 0);
                     long rcsThreadId = intent.getLongExtra("threadId", -1);
                     MessageApi messageApi = RcsApiManager.getMessageApi();
@@ -148,14 +136,6 @@ public class RcsMessageStatusService extends IntentService {
                     } catch (ServiceDisconnectedException e) {
                         Log.i("RCS_UI", "GroupChatMessage" + e);
                     }
-                } else if (BroadcastConstants.UI_MESSAGE_STATUS_CHANGE_NOTIFY.equals(action)) {
-                    String id = intent.getStringExtra("id");
-                    int status = intent.getIntExtra("status", -11);
-                    Log.i("RCS_UI", "com.suntek.mway.rcs.ACTION_UI_MESSAGE_STATUS_CHANGE_NOTIFY"
-                            + id + status);
-                    RcsUtils.updateState(RcsMessageStatusService.this, id, status);
-                    RcsNotifyManager.sendMessageFailNotif(RcsMessageStatusService.this,
-                            status, id, true);
                 } else if (BroadcastConstants.UI_DOWNLOADING_FILE_CHANGE.equals(action)) {
                     String rcs_message_id = intent
                             .getStringExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_MESSAGE_ID);
@@ -166,20 +146,9 @@ public class RcsMessageStatusService extends IntentService {
                         RcsUtils.updateFileDownloadState(RcsMessageStatusService.this,
                                 rcs_message_id);
                     }
-                } else if (BroadcastConstants.UI_SHOW_RECV_REPORT_INFO.equals(action)) {
-                    String id = intent.getStringExtra("messageId");
-                    String statusString = intent.getStringExtra("status");
-                    int status = 99;
-                    if ("delivered".equals(statusString)) {
-                        status = 99;
-                    } else if ("displayed".equals(statusString)) {
-                        status = 100;
-                    }
-                    String number = intent.getStringExtra("original-recipient");
-                    RcsUtils.updateManyState(RcsMessageStatusService.this, id, number, status);
-                } else if("com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS".equals(action)){
-                    Log.i("RCS_UI","rcs message to sms="+action);
-                    long messageId = intent.getLongExtra("id",-1);
+                } else if ("com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS".equals(action)) {
+                    Log.i("RCS_UI", "rcs message to sms=" + action);
+                    long messageId = intent.getLongExtra("id", -1);
                     RcsUtils.deleteMessageById(RcsMessageStatusService.this, messageId);
                 } else if("android.intent.action.SIM_STATE_CHANGED".equals(action)){
                     if(TelephonyManager.SIM_STATE_ABSENT == mTeleManager.getSimState()){
@@ -194,7 +163,8 @@ public class RcsMessageStatusService extends IntentService {
                      }
                     }
                 } else if (BroadcastConstants.ACTION_INPUT_SMS_VERIFY_CODE.equals(intent.getAction())) {
-                    Intent intentCode = new Intent("com.suntek.mway.rcs.nativeui.ui.InputSMSVerifyCodeActivity");
+                    Intent intentCode = new Intent(
+                            "com.suntek.mway.rcs.nativeui.ACTION_LUNCHER_INPUT_SMS_VIRIFYCODE");
                     intentCode.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     RcsMessageStatusService.this.startActivity(intentCode);
                 }

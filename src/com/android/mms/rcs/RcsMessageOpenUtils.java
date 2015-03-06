@@ -23,9 +23,9 @@
 
 package com.android.mms.rcs;
 
-import com.android.mms.R;
 import com.android.mms.ui.MessageItem;
 import com.android.mms.ui.MessageListItem;
+import com.android.mms.R;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.emoticon.EmoticonConstant;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.mcloudfile.TransNode;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
@@ -34,6 +34,7 @@ import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
 import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
@@ -119,11 +120,11 @@ public class RcsMessageOpenUtils {
                 messageListItem.mDateView.setText(R.string.rcs_downloading);
                 MessageApi messageApi = RcsApiManager.getMessageApi();
                 ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
-                if (messageListItem.isDownloading() && !MessageListItem.mRcsIsStopDown) {
-                    MessageListItem.mRcsIsStopDown = true;
+                if (messageListItem.isDownloading() && !messageListItem.mRcsIsStopDown) {
+                    messageListItem.mRcsIsStopDown = true;
                     messageApi.interruptFile(message);
                 } else {
-                    MessageListItem.mRcsIsStopDown = false;
+                    messageListItem.mRcsIsStopDown = false;
                     messageApi.acceptFile(message);
                 }
             } catch (Exception e) {
@@ -142,6 +143,9 @@ public class RcsMessageOpenUtils {
             String[] body = messageItem.mBody.split(",");
             byte[] data = RcsApiManager.getEmoticonApi().decrypt2Bytes(body[0],
                     EmoticonConstant.EMO_DYNAMIC_FILE);
+            if(data == null || data.length <= 0){
+                return;
+            }
             RcsUtils.openPopupWindow(messageListItem.getContext(), messageListItem.mImageView, data);
         } catch (ServiceDisconnectedException e) {
             e.printStackTrace();
@@ -183,12 +187,12 @@ public class RcsMessageOpenUtils {
                 messageListItem.mDateView.setText(R.string.rcs_downloading);
                 MessageApi messageApi = RcsApiManager.getMessageApi();
                 ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
-                if (messageListItem.isDownloading() && !MessageListItem.mRcsIsStopDown) {
-                    MessageListItem.mRcsIsStopDown = true;
+                if (messageListItem.isDownloading() && !messageListItem.mRcsIsStopDown) {
+                    messageListItem.mRcsIsStopDown = true;
                     messageApi.interruptFile(message);
                     messageListItem.mDateView.setText(R.string.stop_down_load);
                 } else {
-                    MessageListItem.mRcsIsStopDown = false;
+                    messageListItem.mRcsIsStopDown = false;
                     messageApi.acceptFile(message);
                 }
             } catch (Exception e) {
@@ -225,12 +229,12 @@ public class RcsMessageOpenUtils {
                 MessageApi messageApi = RcsApiManager.getMessageApi();
                 ChatMessage message = messageApi.getMessageById(String
                         .valueOf(mMessageItem.mRcsId));
-                if (messageListItem.isDownloading() && !MessageListItem.mRcsIsStopDown) {
-                    MessageListItem.mRcsIsStopDown = true;
+                if (messageListItem.isDownloading() && !messageListItem.mRcsIsStopDown) {
+                    messageListItem.mRcsIsStopDown = true;
                     messageApi.interruptFile(message);
                     messageListItem.mDateView.setText(R.string.stop_down_load);
                 } else {
-                    MessageListItem.mRcsIsStopDown = false;
+                    messageListItem.mRcsIsStopDown = false;
                     messageApi.acceptFile(message);
                 }
             } catch (Exception e) {
@@ -269,26 +273,67 @@ public class RcsMessageOpenUtils {
         boolean isFileDownload = false;
         CloudFileMessage cMessage = null;
         McloudFileApi api = null;
+        TransNode.TransOper transOper = TransNode.TransOper.NEW;
+
         try {
             msg = RcsApiManager.getMessageApi().getMessageById(String.valueOf(messageItem.mRcsId));
             cMessage = msg.getCloudFileMessage();
             api = RcsApiManager.getMcloudFileApi();
-            String rootPath = "/sdcard/Android/data/com.suntek.mway.rcs.app.service/mcloud/";
             if (msg != null)
-                isFileDownload = RcsChatMessageUtils.isFileDownload(rootPath
-                        + cMessage.getFileName(), cMessage.getFileSize());
-            if (!isFileDownload ) {
-                // api.downloadFileFromUrl(cMessage.getShareUrl(), cMessage.getFileName(),
-                //        TransNode.TransOper.NEW, messageItem.mRcsId);
-                Toast.makeText(messageListItem.getContext(), R.string.rcs_service_is_not_available,
-                        Toast.LENGTH_LONG).show();
+                isFileDownload = RcsChatMessageUtils.isFileDownload(api.getLocalRootPath()
+                                    + cMessage.getFileName(), cMessage.getFileSize());
+            if(messageListItem.isDownloading()){
+                transOper = TransNode.TransOper.RESUME;
+            }
+
+            if (!isFileDownload) {
+                try {
+                    messageListItem.mDateView.setText(R.string.rcs_downloading);
+                    if (messageListItem.isDownloading() && messageListItem.getRcsIsStopDown()) {
+                        messageListItem.mRcsIsStopDown = true;
+                        if (messageListItem.operation != null) {
+                            messageListItem.operation.pause();
+                        }
+                        messageListItem.mDateView.setText(R.string.stop_down_load);
+                    } else {
+                        messageListItem.mRcsIsStopDown = false;
+                        messageListItem.operation = api.downloadFileFromUrl(cMessage.getShareUrl(),
+                                cMessage.getFileName(), transOper, messageItem.mRcsId);
+                    }
+                } catch (Exception e) {
+                    Log.w(LOG_TAG, e);
+                }
+                return;
             } else {
-                String path = rootPath + cMessage.getFileName();
+                String path = api.getLocalRootPath() + cMessage.getFileName();
                 Intent intent2 = RcsUtils.OpenFile(path);
                 messageListItem.getContext().startActivity(intent2);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            if(e instanceof ActivityNotFoundException){
+                Toast.makeText(messageListItem.getContext(), R.string.please_install_application,
+                        Toast.LENGTH_LONG).show();
+                Log.w(LOG_TAG, e);
+            }
         }
+    }
+
+    public static boolean isCaiYunFileDown(MessageItem messageItem){
+        ChatMessage msg = null;
+        boolean isFileDownload = false;
+        CloudFileMessage cMessage = null;
+        McloudFileApi api = null;
+        
+        try {
+            msg = RcsApiManager.getMessageApi().getMessageById(String.valueOf(messageItem.mRcsId));
+            cMessage = msg.getCloudFileMessage();
+            api = RcsApiManager.getMcloudFileApi();
+            if (msg != null)
+                isFileDownload = RcsChatMessageUtils.isFileDownload(api.getLocalRootPath()
+                                    + cMessage.getFileName(), cMessage.getFileSize());
+        } catch (Exception e) {
+            Log.w("RCS_UI",e);
+        }
+        return isFileDownload;
     }
 }

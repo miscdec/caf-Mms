@@ -24,23 +24,35 @@
 package com.android.mms.image;
 
 import android.graphics.Bitmap;
-import android.util.Log;
+import android.graphics.BitmapFactory;
+import android.graphics.BitmapFactory.Options;
 
-public class FileImageGetter extends ImageGetter {
+public class ScaleBitmapDecoder {
+    // base on the routing to load the bitmap and definition it's size.
+    public static Bitmap decodeFile(String path, int dstWidth, int dstHeight) {
+        Options options = new Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, options);
+        options.inJustDecodeBounds = false;
+        options.inSampleSize = calculateSampleSize(options.outWidth, options.outHeight, dstWidth,
+                dstHeight);
+        Bitmap unscaledBitmap = BitmapFactory.decodeFile(path, options);
 
-    public FileImageGetter(ImageTask imageTask, ImageLoaderListener listener) {
-        super(imageTask, listener);
+        return unscaledBitmap;
     }
 
-    @Override
-    public void loadImage(String path) {
-        Log.i("imageloader", "load file image:" + path);
-        imageTask.setLoading(true);
-        // load image from local file
-        Bitmap bitmap = ScaleBitmapDecoder.decodeFile(path, 200, 200);
-        listener.onLoaded(path, bitmap, imageTask.getImageView());
+    /**
+     * calculate the inSampleSize attribute in Option
+     */
+    public static int calculateSampleSize(int srcWidth, int srcHeight,
+            int dstWidth, int dstHeight) {
+        final float srcAspect = (float) srcWidth / (float) srcHeight;
+        final float dstAspect = (float) dstWidth / (float) dstHeight;
 
-        imageTask.setLoading(false);
+        if (srcAspect > dstAspect) {
+            return srcWidth / dstWidth;
+        } else {
+            return srcHeight / dstHeight;
+        }
     }
-
 }

@@ -21,26 +21,33 @@
  * IN THE SOFTWARE.
  */
 
-package com.android.mms.image;
+package com.android.mms.rcs;
 
-import android.graphics.Bitmap;
-import android.util.Log;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import android.content.Intent;
 
-public class FileImageGetter extends ImageGetter {
+public class RecvMessageQueue {
 
-    public FileImageGetter(ImageTask imageTask, ImageLoaderListener listener) {
-        super(imageTask, listener);
+    private static RecvMessageQueue sInstance = new RecvMessageQueue();
+
+    private RecvMessageQueue() {
+
     }
 
-    @Override
-    public void loadImage(String path) {
-        Log.i("imageloader", "load file image:" + path);
-        imageTask.setLoading(true);
-        // load image from local file
-        Bitmap bitmap = ScaleBitmapDecoder.decodeFile(path, 200, 200);
-        listener.onLoaded(path, bitmap, imageTask.getImageView());
+    public static RecvMessageQueue getInstance() {
+        return sInstance;
+    }
 
-        imageTask.setLoading(false);
+    public boolean addReport(int sessionId, Intent option) {
+        int mod = (int)(sessionId % RcsMessageThreadMng.HANDLER_SIZE);
+        RcsMessageThread reportHandler = RcsMessageThreadMng.getInstance().getRcsMessageThread(mod);
+
+        if (reportHandler == null) {
+            return false;
+        }
+
+        return reportHandler.addReport(option);
     }
 
 }

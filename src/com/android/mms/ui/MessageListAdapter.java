@@ -19,6 +19,7 @@
 
 package com.android.mms.ui;
 
+import java.util.HashMap;
 import java.util.regex.Pattern;
 
 import android.content.Context;
@@ -44,6 +45,7 @@ import android.widget.CursorAdapter;
 import android.widget.ListView;
 
 import com.android.mms.R;
+import com.android.mms.image.ImageLoader;
 import com.google.android.mms.MmsException;
 import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
 
@@ -247,6 +249,23 @@ public class MessageListAdapter extends CursorAdapter {
     private boolean mMultiChoiceMode = false;
     // for multi delete sim messages or forward merged message
     private int mMultiManageMode = MessageUtils.INVALID_MODE;
+    private ImageLoader mImageLoader;
+
+    public HashMap<String, Long> mFileTrasnfer = new HashMap<String, Long>();
+    private boolean mRcsIsStopDown = false;
+
+    public void setsFileTrasnfer(HashMap<String, Long> sFileTrasnfer) {
+        this.mFileTrasnfer = sFileTrasnfer;
+    }
+
+    public HashMap<String, Long> getFileTrasnferHashMap() {
+        return mFileTrasnfer;
+    }
+
+    public void setRcsIsStopDown(boolean rcsIsStopDown){
+        this.mRcsIsStopDown = rcsIsStopDown;
+    }
+
 
     public MessageListAdapter(
             Context context, Cursor c, ListView listView,
@@ -265,6 +284,8 @@ public class MessageListAdapter extends CursorAdapter {
         } else {
             mColumnsMap = new ColumnsMap(c);
         }
+
+        mImageLoader = new ImageLoader(context);
 
         listView.setRecyclerListener(new AbsListView.RecyclerListener() {
             @Override
@@ -303,7 +324,10 @@ public class MessageListAdapter extends CursorAdapter {
                     messageBlock.setOnCreateContextMenuListener((ManageSimMessages) mContext);
                     mli.setSimMessagesMode(true);
                 }
-                mli.bind(msgItem, mIsGroupConversation, position, mGroupId);
+
+                mli.setFileTrasnfer(mFileTrasnfer);
+                mli.setRcsIsStopDown(mRcsIsStopDown);
+                mli.bind(msgItem, mIsGroupConversation, position, mGroupId, mImageLoader);
                 mli.setMsgListItemHandler(mMsgListItemHandler);
 
                 if (mMultiChoiceMode) {
@@ -324,6 +348,10 @@ public class MessageListAdapter extends CursorAdapter {
             return position;
         }
         return 0;
+    }
+
+    public void destroy() {
+        mImageLoader.destroy();
     }
 
     public interface OnDataSetChangedListener {

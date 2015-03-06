@@ -68,6 +68,7 @@ import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.aidl.contacts.RCSContact;
 
 public class RcsContactsUtils {
+    public static final String NOTIFY_CONTACT_PHOTO_CHANGE = "com.suntek.mway.rcs.NOTIFY_CONTACT_PHOTO_CHANGE";
     public static final String LOCAL_PHOTO_SETTED = "local_photo_setted";
     public static final String MIMETYPE_RCS = "vnd.android.cursor.item/rcs";
     public static final String PHONE_PRE_CODE = "+86";
@@ -455,6 +456,8 @@ public class RcsContactsUtils {
                                                         setContactPhoto(mContext,
                                                                 contactPhoto, outputUri);
                                                     }
+                                                    //notify mms list
+                                                    mContext.sendBroadcast(new Intent(NOTIFY_CONTACT_PHOTO_CHANGE));
                                                 }
                                             } else {
                                             }
