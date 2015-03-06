@@ -344,7 +344,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_CANCEL_TOP_CONVERSATION     = 109;
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
-
+    private static final int RCS_MAX_SMS_LENGHTH = 900;
     private static final int MESSAGE_LIST_QUERY_TOKEN = 9527;
     private static final int MESSAGE_LIST_QUERY_AFTER_DELETE_TOKEN = 9528;
 
@@ -2061,23 +2061,29 @@ public class ComposeMessageActivity extends Activity
                         return false;
                     }
                     try {
-                        if (mIsRcsEnabled && mMsgItem.mRcsId != 0) {
+                        if (mIsRcsEnabled && mMsgItem.mRcsId > 0) {
                             if (mAccountApi.isOnline()) {
                                 rcsforwardid = mMsgItem.mRcsId;
                                 RcsChatMessageUtils.forwardContactOrConversation(
                                         ComposeMessageActivity.this, new ForwardClickListener());
                                 return true;
                             } else {
-                                if (mMsgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_TEXT
-                                        && mMsgItem.mBody.getBytes().length <= 900) {
-                                    rcsforwardid = mMsgItem.mRcsId;
-                                    RcsChatMessageUtils.forwardContactOrConversation(
-                                            ComposeMessageActivity.this, new ForwardClickListener());
-                                    return true;
-                                } else {
-                                    Toast.makeText(ComposeMessageActivity.this,
+                                if (mMsgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_TEXT){
+                                    if (mMsgItem.mBody.getBytes().length <= RCS_MAX_SMS_LENGHTH) {
+                                        rcsforwardid = mMsgItem.mRcsId;
+                                        RcsChatMessageUtils.forwardContactOrConversation(
+                                                ComposeMessageActivity.this,
+                                                new ForwardClickListener());
+                                        return true;
+                                    } else {
+                                        Toast.makeText(ComposeMessageActivity.this,
                                             R.string.not_online_message_too_big, Toast.LENGTH_SHORT)
                                             .show();
+                                        return false;
+                                    }
+                                } else {
+                                    Toast.makeText(ComposeMessageActivity.this,
+                                            R.string.rcs_offline, Toast.LENGTH_SHORT).show();
                                     return false;
                                 }
                             }
