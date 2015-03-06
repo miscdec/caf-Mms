@@ -699,6 +699,8 @@ public class TransactionService extends Service implements Observer {
             Log.d(TAG, "SubId from DB= "+subId);
             Log.d(TAG, "Destination Sub = "+destSub);
             Log.d(TAG, "Origin Sub = "+originSub);
+            int currentSub = MultiSimUtility.getCurrentDataSubscription
+                    (getApplicationContext());
 
             if (noNetwork) {
                 synchronized (mRef) {
@@ -711,8 +713,19 @@ public class TransactionService extends Service implements Observer {
                 return;
             }
 
-            addUnique(txnId, destSub, originSub);
+            if (subId != currentSub || currentSub != destSub) {
+                Log.e(TAG, "This MMS transaction can not be done"
+                        + "on current sub during MT operation. Retry! uri=" + uri);
+                decRefCount();
+                Intent silentIntent = new Intent(getApplicationContext(),
+                        com.android.mms.ui.SelectMmsSubscription.class);
+                silentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                silentIntent.putExtras(intent); // copy all extras
+                getApplicationContext().startService(silentIntent);
+                return;
+            }
 
+            addUnique(txnId, destSub, originSub);
             // For launching NotificationTransaction and test purpose.
             Bundle bundle = intent.getExtras();
             bundle.putInt(TransactionBundle.SUBSCRIPTION, destSub);
