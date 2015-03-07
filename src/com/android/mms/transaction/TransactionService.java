@@ -752,6 +752,21 @@ public class TransactionService extends Service implements Observer {
         }
     }
 
+    private void launchSelectMmsSubscription(int destSub, int type, Uri uri) {
+        Context context = getApplicationContext();
+        Intent svc = new Intent(context, TransactionService.class);
+        svc.putExtra(TransactionBundle.URI, uri.toString());
+        svc.putExtra(TransactionBundle.TRANSACTION_TYPE, type);
+        svc.putExtra(Mms.SUB_ID, destSub); //destination sub id
+        svc.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
+                MultiSimUtility.getCurrentDataSubscription(context));
+        Intent silentIntent = new Intent(context,
+                com.android.mms.ui.SelectMmsSubscription.class);
+        silentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        silentIntent.putExtras(svc); // copy all extras
+        context.startService(silentIntent);
+    }
+
     boolean getMobileDataEnabled(ConnectivityManager mConnMgr, int currentDds) {
         boolean isMobileDataEnabled = false;
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
@@ -1157,9 +1172,19 @@ public class TransactionService extends Service implements Observer {
         // Take a wake lock so we don't fall asleep before the message is downloaded.
         createWakeLock();
 
+        int currentSub = MultiSimUtility.getCurrentDataSubscription(getApplicationContext());
         if (subId == -1) {
             Log.d(TAG, "SubId unknown, trying on current temp DDS.");
-            subId = MultiSimUtility.getCurrentDataSubscription(getApplicationContext());
+            subId = currentSub;
+        } else if (subId != currentSub){
+            decRefCount();
+            // The connectivity of current is not the desired one,
+            // so trigger a subscription change and exit.
+            Log.d(TAG, "SubId different, trigger a change and exit directly.");
+            launchSelectMmsSubscription(subId, transaction.getType(),
+                    getTransactionUri(transaction));
+            // This exception can be handled in ServiceHandler.handleMessage().
+            throw new IOException("Cannot establish MMS on desired subscription");
         }
 
         synchronized(mMmsConnectivityLock) {
