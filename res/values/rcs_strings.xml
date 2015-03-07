@@ -165,7 +165,7 @@
     <string name="toast_install_map">未安装地图软件</string>
     <string name="rcs_downloading">正在下载</string>
     <string name="please_install_rcs_map">Please install RCS_MAP</string>
-
+    <string name="rcs_offline">RCS不在线</string>
     <string name="rcs_text_message">RCS消息</string>
     <string name="message_content_type">内容类型：</string>
     <string name="message_content_text">文本</string>
