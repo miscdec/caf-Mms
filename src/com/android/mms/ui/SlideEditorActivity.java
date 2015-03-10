@@ -791,6 +791,7 @@ public class SlideEditorActivity extends Activity {
                     Integer.valueOf(data.getAction()) * 1000);
                 break;
         }
+        invalidateOptionsMenu();
     }
 
     private final ResizeImageResultCallback mResizeImageCallback = new ResizeImageResultCallback() {
@@ -810,6 +811,7 @@ public class SlideEditorActivity extends Activity {
                 mSlideshowEditor.changeImage(mPosition, newUri);
 
                 setReplaceButtonText(R.string.replace_image);
+                invalidateOptionsMenu();
             } catch (MmsException e) {
                 notifyUser("add picture failed");
                 Toast.makeText(SlideEditorActivity.this,
