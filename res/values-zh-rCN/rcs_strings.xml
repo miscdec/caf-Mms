@@ -104,10 +104,10 @@
     <string name="cannot_send_video">不能发送时长小于1秒的视频。</string>
     <string name="cannot_send_audio">不能发送时长小于1秒的语音。</string>
 
-    <string name="del_image_action">图片操作</string>
-    <string name="input_quality">请输入压缩质量</string>
-    <string name="input_no_fit">请输入正确的数值</string>
-    <string name="send_comfirm_ok">确定</string>
+    <string name="del_image_action">图片处理</string>
+    <string name="input_quality">请输入缩放质量</string>
+    <string name="input_no_fit">输入不合法</string>
+    <string name="send_comfirm_ok">确认</string>
     <string name="send_comfirm_cancel">取消</string>
     <string name="top_conversation">置顶</string>
     <string name="cancel_top_conversation">取消置顶</string>
@@ -157,7 +157,7 @@
     <string name="firewall_add_blacklist_wring">加入黑名单你将不会再收到对方的消息和来电</string>
     <string name="toast_install_map">未安装地图软件</string>
     <string name="rcs_downloading">正在下载</string>
-    <string name="please_install_rcs_map">Please install RCS_MAP</string>
+    <string name="please_install_rcs_map">请安装RcsMap</string>
     <string name="rcs_offline">RCS不在线</string>
     <string name="rcs_text_message">RCS消息</string>
     <string name="message_content_type">内容类型：</string>
@@ -180,7 +180,7 @@
     <string name="groupchat_invalid">群聊已失效</string>
     <string name="batch_favourite">批量收藏会话</string>
     <string name="batch_backup">备份多条消息</string>
-   <string name="vcard_name">姓名：</string>
+    <string name="vcard_name">姓名：</string>
     <string name="vcard_number">手机：</string>
     <string name="vcard_number_home">住宅：</string>
     <string name="vcard_number_work">单位：</string>
@@ -209,4 +209,6 @@
     <string name="download_mcloud_file_fail">下载彩云文件失败</string>
     <string name="please_install_application">请安装应用程序</string>
     <string name="emotion_download_fail">下载表情失败</string>
+    <string name="save_message_not_support">不能保存该消息</string>
+    <string name="forward_message_not_support">不能转发该消息</string>
 </resources>
