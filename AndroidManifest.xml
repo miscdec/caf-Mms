@@ -58,6 +58,8 @@
     <uses-permission android:name="com.android.firewall.WRITE_GRAVITY"/>
     <!-- Needed for QuickMessage -->
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+    <!-- Needed for OMA Client Provisioning -->
+    <uses-permission android:name="org.codeaurora.omacp.permission.SHOW_CONFIGURATION_MESSAGE" />
 
     <application android:name="MmsApp"
             android:label="@string/app_label"
