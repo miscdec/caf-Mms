@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ /*
+ * Copyright (c) 2015 pci-suntektech Technologies, Inc.  All Rights Reserved.
+ * pci-suntektech Technologies Proprietary and Confidential.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+ -->
+<resources>
+
+    <string name="rcs_service_is_not_available">RCS服務不可用。</string>
+    <string name="creating_group_chat">正在創建群聊</string>
+    <string name="create_group_chat_successfully">成功創建群聊</string>
+    <string name="create_group_chat_failed">創建群聊失敗。</string>
+    <string name="rcs_group_chat_detail">群聊詳情</string>
+    <string name="send_message_failed">發送消息失敗</string>
+    <string name="public_account">公眾賬號</string>
+    <string name="notifications">通知</string>
+    <string name="group_chat_status_invalid">群聊狀態無效。</string>
+    <string name="group_chat_status_ok">群聊狀態良好。</string>
+    <string name="switch_to_group_chat">切換到群聊</string>
+
+    <!-- 發送群聊消息失敗 -->
+    <string name="group_chat_not_exist">找不到群聊。</string>
+    <string name="group_chat_not_active">群聊已創建，正在等待其他成員加入。</string>
+    <string name="group_chat_deleted">群聊已刪除。</string>
+
+    <!-- 群聊狀態 -->
+    <string name="group_chat_status_active">(已激活)</string>
+    <string name="group_chat_status_inactive">(未激活)</string>
+    <string name="group_chat_status_deleted">(已删除)</string>
+
+    <!-- 群聊通知 -->
+    <string name="group_chat_created">新群聊已創建。</string>
+    <string name="group_chat_active">群聊已激活。</string>
+    <string name="group_chat_update_chairman">%1$s 已成為群主。</string>
+    <string name="group_chat_join">%1$s 已加入群聊。</string>
+    <string name="group_chat_subject">群聊主題已更新為%1$s 。</string>
+    <string name="group_chat_remark">群聊備註已更新為%1$s。</string>
+    <string name="group_chat_alias">群聊別名從%1$s改為%2$s。</string>
+    <string name="group_chat_kick">%1$s已被踢出群聊。</string>
+    <string name="group_chat_quit">%1$s已離開群聊。</string>
+    <string name="group_chat_disbanded">群聊已經解散。</string>
+    <string name="group_chat_policy">已經修改消息接收策略。</string>
+    <string name="group_chat_gone">您已不在群聊中。</string>
+    <string name="install_emoj_store">請安裝表情商店</string>
+
+    <string name="file_is_too_larger">文件太大</string>
+    <string name="name_not_fix">文件名不合適</string>
+    <string name="attach_map">位置</string>
+    <string name="message_received">送達</string>
+    <string name="message_send_fail">發送失敗</string>
+    <string name="message_adapter_has_send">已發送</string>
+    <string name="message_adapte_sening">發送中</string>
+    <string name="message_has_been_burned">消息已焚</string>
+    <string name="message_download">點擊下載</string>
+    <string name="message_downloaded">下載完畢</string>
+    <string name="message_send_fail_resend">發送失敗，點擊重發</string>
+    <!-- RCS -->
+    <string name="image_downloading">下載中：%1$d %%</string>
+    <string name="audio_length">音頻時長:</string>
+    <string name="message_is_play_over">消息播放完了</string>
+    <string name="video_length">視頻長度:</string>
+    <string name="image_msg_load_fail_tip">加載失敗</string>
+    <string name="open_file_fail">打開文件失敗</string>
+    <string name="message_is_burnd">消息已焚</string>
+    <string name="downloading_percent">下載中：%1$d %%</string>
+    <string name="uploading_percent">發送中：%1$d %%</string>
+    <string name="downloading_finish">下載完成</string>
+    <string name="burn_message_flag">閱後即焚</string>
+    <!--
+         Command name to open a Compose screen; displays in conversation list.
+         Also used as accessibility text for widget's new group chat button
+    -->
+    <string name="new_group_chat">新群聊</string>
+    <string name="group_chat">群聊</string>
+    <string name="my_favorited">我的收藏</string>
+    <string name="favorited">收藏</string>
+    <string name="unfavorited">取消收藏</string>
+
+    <string name="file_suffix_vaild_tip">文件格式無效！</string>
+    <string name="file_size_over">文件大小超過系統限制，不能發送！</string>
+    <string name="not_intent">沒有應用程序可執行此操作。</string>
+    <string name="please_input_1_100_int">請輸入一個1~100的整數</string>
+    <string name="video_record_out_time">視頻錄製超出了限制時長，限制最大時長為%1$s秒</string>
+    <string name="audio_record_out_time">語音錄製超出了限制時長，限制最大時長為%1$s秒</string>
+    <string name="cannot_send_video">不能發送時長小於1秒的視頻。</string>
+    <string name="cannot_send_audio">不能發送時長小於1秒的語音。</string>
+
+    <string name="del_image_action">圖片處理</string>
+    <string name="input_quality">請輸入縮放質量</string>
+    <string name="input_no_fit">輸入不合法</string>
+    <string name="send_comfirm_ok">確認</string>
+    <string name="send_comfirm_cancel">取消</string>
+    <string name="top_conversation">置頂</string>
+    <string name="cancel_top_conversation">取消置頂</string>
+    <string name="im_only">只發即時消息</string>
+    <string name="sms_only">只發短消息</string>
+    <string name="im_sms">自動選擇</string>
+    <string name="im_sms_send">消息發送方式</string>
+    <string name="cannot_send_im">無法發送即時消息，請切換發送模式</string>
+    <string name="forward_message_success">已轉發</string>
+    <string name="forward_message_fail">轉發失敗</string>
+    <string name="conversation_forward">轉發</string>
+    <string name="forward_contact">聯繫人</string>
+    <string name="forward_conversation">會話</string>
+    <string name="forward_contact_group">群組</string>
+    <string name="my_vcard">我的名片</string>
+    <string name="select_contact_conversation">選擇聯繫人或會話</string>
+    <string name="file_share">彩雲文件分享</string>
+    <string name="save_back_message">消息備份/恢復</string>
+    <string name="cacel_back_message">取消</string>
+    <string name="cacel_restore_message">取消恢復</string>
+    <string name="message_save">消息備份</string>
+    <string name="message_back">消息恢復</string>
+    <string name="message_is_begin">準備備份</string>
+    <string name="message_is_saving">消息備份中</string>
+    <string name="message_save_ok">備份完成</string>
+    <string name="message_save_fail">備份失敗</string>
+    <string name="message_restore_fail">恢復失敗</string>
+    <string name="message_is_restore_begin">準備恢復</string>
+    <string name="message_restoring">消息恢復中</string>
+    <string name="message_restore_ok">恢復完成</string>
+    <string name="not_online_message_too_big">非在線狀態，文本過大</string>
+    <string name="on_airplain_mode">飛行模式無法轉發</string>
+    <string name="rcs_mcloud_share_file">彩雲文件分享</string>
+    <string name="please_set_my_profile">請先設置我的信息</string>
+    <string name="send_manage_fail">消息發送失敗</string>
+    <string name="send_manage_fail_count">您有%1$s條消息發送失敗</string>
+
+    <string name="confirm_complain_dialog_title">"要舉報該消息嗎？"</string>
+    <string name="confirm_complain_selected_messages">選中的信息將被舉報</string>
+    <string name="message_complain">信息舉報</string>
+    <string name="menuid_add_to_black_list">加入黑名單</string>
+    <string name="menuid_add_to_white_list">加入白名單</string>
+    <string name="firewall_number_len_not_valid">號碼錯誤</string>
+    <string name="firewall_number_in_black">"該號碼已在黑名單中"</string>
+    <string name="firewall_number_in_white">"該號碼已在白名單中"</string>
+    <string name="firewall_save_success">保存成功</string>
+    <string name="firewall_add_blacklist_wring">加入黑名單你將不會再收到對方的消息和來電</string>
+    <string name="toast_install_map">未安裝地圖軟件</string>
+    <string name="rcs_downloading">正在下載</string>
+    <string name="please_install_rcs_map">請安裝RCS_MAP</string>
+    <string name="rcs_offline">RCS不在線</string>
+    <string name="rcs_text_message">RCS消息</string>
+    <string name="message_content_type">內容類型：</string>
+    <string name="message_content_text">文本</string>
+    <string name="message_content_audio">語音</string>
+    <string name="message_content_video">視頻</string>
+    <string name="message_content_image">圖片</string>
+    <string name="message_content_map">位置</string>
+    <string name="message_content_vcard">vCard</string>
+    <string name="not_download_image">圖片未下載，請先下載圖片！</string>
+    <string name="not_download_video">視頻未下載，請先下載視頻！</string>
+    <string name="file_path_null">文件路徑為空！</string>
+    <string name="create_groupchat_name_toast">只能輸入三十個字節，超出部分將被丟棄。</string>
+    <string name="mcloud_share_file_befor">彩雲文件地址 \n</string>
+    <string name="mcloud_share_file_after"> \n 請點擊下載。</string>
+    <string name="mcloud_share_file_sms_temp">文件名稱：$FILE_NAME$，文件大小：$FILE_SIZE$，分享鏈接：$SHARE_URL$</string>
+    <string name="confirm_cancel_selected_fav_messages">確認取消選中收藏嗎？</string>
+    <string name="stop_down_load">暫停下載</string>
+    <string name="burn_all_message">拔卡焚掉所有</string>
+    <string name="groupchat_invalid">群聊已失效</string>
+    <string name="batch_favourite">批量收藏會話</string>
+    <string name="batch_backup">備份多條消息</string>
+    <string name="vcard_name">姓名：</string>
+    <string name="vcard_number">手機：</string>
+    <string name="vcard_number_home">住宅：</string>
+    <string name="vcard_number_work">單位：</string>
+    <string name="vcard_number_fax_work">單位傳真：</string>
+    <string name="vcard_number_fax_home">住宅傳真：</string>
+    <string name="vcard_number_pager">尋呼機：</string>
+    <string name="vcard_number_other">其他：</string>
+    <string name="vcard_number_fax">其他傳真：</string>
+    <string name="vcard_number_tlx">電報：</string>
+    <string name="vcard_number_msg">彩信：</string>
+    <string name="vcard_number_isdn">ISDN號：</string>
+    <string name="vcard_number_pref">總機：</string>
+    <string name="vcard_number_car">車載電話：</string>
+    <string name="vcard_number_pref_work">公司總機：</string>
+    <string name="vcard_number_call_work">單位手機：</string>
+    <string name="vcard_number_work_pager">單位尋呼機：</string>
+    <string name="vcard_other_number">其他號碼</string>
+    <string name="vcard_compony_info">公司信息</string>
+    <string name="vcard_compony_addre">地址</string>
+    <string name="vcard_compony_position">職位</string>
+    <string name="vcard_number_null">無設置</string>
+    <string name="vcard_compony_name">名稱</string>
+    <string name="vcard_detail_info">聯繫人詳情</string>
+    <string name="vcard_import">導入聯繫人</string>
+    <string name="function_is_opering">功能正在開發中...</string>
+    <string name="download_mcloud_file_fail">下載彩雲文件失敗</string>
+    <string name="please_install_application">請安裝應用程序</string>
+    <string name="emotion_download_fail">下載表情失敗</string>
+    <string name="save_message_not_support">不能保存該消息</string>
+    <string name="forward_message_not_support">不能轉發該消息 </string>
+</resources>
