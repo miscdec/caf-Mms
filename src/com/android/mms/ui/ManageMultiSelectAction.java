@@ -219,18 +219,12 @@ public class ManageMultiSelectAction extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mCursor != null) {
-            mCursor.close();
-        }
-    }
-
-
-    @Override
-    protected void onPause() {
-        super.onPause();
         if (mProgressDialog != null) {
             mProgressDialog.dismiss();
             mProgressDialog = null;
+        }
+        if (mCursor != null) {
+            mCursor.close();
         }
     }
 
