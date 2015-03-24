@@ -1639,7 +1639,12 @@ public class MessageUtils {
         ConnectivityManager mConnService = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         return !mConnService.getMobileDataEnabled();
-     }
+    }
+
+    public static boolean isAirplaneModeOn(Context context) {
+        return Settings.Global.getInt(context.getContentResolver(),
+                Settings.Global.AIRPLANE_MODE_ON, 0) == 1;
+    }
 
     /*
      * @return the SIM icon for the special subscription.

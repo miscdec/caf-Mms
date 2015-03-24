@@ -542,7 +542,8 @@ public class ComposeMessageActivity extends Activity
     // Whether or not the RCS Service is installed.
     private boolean mIsRcsEnabled;
 
-    private static int mIsAirplain = 0;
+    private boolean mIsAirplaneModeOn = false;
+
     private boolean isDisposeImage = false;
 
     private static final int CAPABILITY_RCS_ONLINE = 200;
@@ -2812,6 +2813,9 @@ public class ComposeMessageActivity extends Activity
         mBackgroundQueryHandler = new BackgroundQueryHandler(mContentResolver);
 
         initialize(savedInstanceState, 0);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        registerReceiver(mAirplaneModeBroadcastReceiver, intentFilter);
 
         if (TRACE) {
             android.os.Debug.startMethodTracing("compose");
@@ -3391,8 +3395,7 @@ public class ComposeMessageActivity extends Activity
         }
         updateThreadIdIfRunning();
         mConversation.markAsRead();
-        mIsAirplain = Settings.System.getInt(ComposeMessageActivity.this.getContentResolver(),
-                Settings.System.AIRPLANE_MODE_ON, 0) ;
+        mIsAirplaneModeOn = MessageUtils.isAirplaneModeOn(this);
     }
 
     @Override
@@ -3479,6 +3482,7 @@ public class ComposeMessageActivity extends Activity
 
         unregisterReceiver(mRcsServiceCallbackReceiver);
         unregisterReceiver(mPhotoUpdateReceiver);
+        unregisterReceiver(mAirplaneModeBroadcastReceiver);
         super.onDestroy();
     }
 
@@ -6608,6 +6612,10 @@ public class ComposeMessageActivity extends Activity
     private boolean isPreparedForSending() {
         int recipientCount = recipientCount();
 
+        if (mIsAirplaneModeOn) {
+            return false;
+        }
+
         if (mConversation.isGroupChat()) {
             return (!mSentMessage && mConversation.getGroupChat() == null && recipientCount > 0
                     && (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText()
@@ -6842,6 +6850,17 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onReceive(Context context, Intent intent) {
             mMsgListAdapter.notifyDataSetChanged();
+        }
+    };
+
+    private BroadcastReceiver mAirplaneModeBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
+                mIsAirplaneModeOn = intent.getBooleanExtra("state", false);
+                updateSendButtonState();
+            }
         }
     };
 
