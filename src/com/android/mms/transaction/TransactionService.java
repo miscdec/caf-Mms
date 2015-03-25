@@ -1198,6 +1198,8 @@ public class TransactionService extends Service implements Observer {
             switch (result) {
                 case PhoneConstants.APN_ALREADY_ACTIVE:
                     acquireWakeLock();
+                    // Reset the retry count once PDP active.
+                    mMmsConnecvivityRetryCount = 0;
                     return result;
                 case PhoneConstants.APN_REQUEST_STARTED:
                     acquireWakeLock();
