@@ -35,6 +35,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -158,6 +161,7 @@ public class MessageUtils {
 
     public static final int PREFER_SMS_STORE_TO_PHONE = 0;
     public static final int PREFER_SMS_STORE_TO_SIM = 1;
+    private static final Uri BOOKMARKS_URI = Uri.parse("content://browser/bookmarks");
 
     // add threshold for low memory
     private static final int THRESHOLD_LOW_MEM_PERCENTAGE = 5;
@@ -190,6 +194,17 @@ public class MessageUtils {
         '-', '.', ',', '(', ')', ' ', '/', '\\', '*', '#', '+'
     };
 
+    // Dialog item options for number
+    private static final int DIALOG_ITEM_CALL         = 0;
+    private static final int DIALOG_ITEM_SMS          = 1;
+    private static final int DIALOG_ITEM_ADD_CONTACTS = 2;
+
+    // Dialog item options for email
+    private static final int DIALOG_ITEM_EMAIL_TO = 0;
+    private static final int DIALOG_ITEM_EMAIL_ADD_CONTACTS = 1;
+
+    private static final String MAIL_TO_PREFIX = "mailto:";
+
     private static HashMap numericSugarMap = new HashMap (NUMERIC_CHARS_SUGAR.length);
 
     public static String WAPPUSH = "Browser Information"; // Wap push key
@@ -211,6 +226,11 @@ public class MessageUtils {
 
     // Save the thread id for same recipient forward mms
     public static ArrayList<Long> sSameRecipientList = new ArrayList<Long>();
+
+    protected static final int URL_OPTION_MENU_CONNECT = 0;
+    protected static final int URL_OPTION_MENU_ADD_TO_LABEL = 1;
+    protected static final int URL_OPTION_MENU_COPY_URL = 2;
+
     // add for obtaining all short message count
     public static final Uri MESSAGES_COUNT_URI = Uri.parse("content://mms-sms/messagescount");
 
@@ -832,7 +852,7 @@ public class MessageUtils {
 
     public static String getLocalNumber(long subId) {
         sLocalNumber = MmsApp.getApplication().getTelephonyManager()
-            .getLine1NumberForSubscriber(subId);
+            .getLine1NumberForSubscriber((int)subId);
         return sLocalNumber;
     }
 
@@ -1424,7 +1444,7 @@ public class MessageUtils {
 
     private static boolean isCdmaPhone(long subscription) {
         boolean isCdma = false;
-        int activePhone =  TelephonyManager.getDefault().getCurrentPhoneType(subscription);
+        int activePhone =  TelephonyManager.getDefault().getCurrentPhoneType((int)subscription);
         if (TelephonyManager.PHONE_TYPE_CDMA == activePhone) {
             isCdma = true;
         }
@@ -1432,7 +1452,7 @@ public class MessageUtils {
     }
 
     private static boolean isNetworkRoaming(long subscription) {
-        return TelephonyManager.getDefault().isNetworkRoaming(subscription);
+        return TelephonyManager.getDefault().isNetworkRoaming((int)subscription);
     }
 
     public static boolean isWebUrl(String url) {
@@ -1443,6 +1463,7 @@ public class MessageUtils {
         }
         return false;
     }
+
 
     public static boolean isCdmaInternationalRoaming(long subscription) {
         return isCdmaPhone(subscription) && isNetworkRoaming(subscription);
@@ -1497,7 +1518,7 @@ public class MessageUtils {
 
     private static boolean isCdmaPhone(int phoneId) {
         boolean isCdma = false;
-        long[] sub = SubscriptionManager.getSubId(phoneId);
+        int[] sub = SubscriptionManager.getSubId(phoneId);
         int activePhone = TelephonyManager.getDefault().getCurrentPhoneType(sub[0]);
         if (TelephonyManager.PHONE_TYPE_CDMA == activePhone) {
             isCdma = true;
@@ -1790,6 +1811,19 @@ public class MessageUtils {
                 Intent intent = new Intent(context, WwwContextMenuActivity.class);
                 intent.setData(Uri.parse(url));
                 context.startActivity(intent);
+            } else {
+                final String telPrefix = "tel:";
+                if (url.startsWith(telPrefix)) {
+                    url = url.substring(telPrefix.length());
+                    if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                        showNumberOptions(context, url);
+                    }
+                } else if (url.startsWith(MAIL_TO_PREFIX)) {
+                    url = url.substring(MAIL_TO_PREFIX.length());
+                    showEmailOptions(context, url);
+                } else {
+                    spans[0].onClick(contentText);
+                }
             }
         } else if (spans.length > 1) {
             ArrayAdapter<URLSpan> adapter = new ArrayAdapter<URLSpan>(context,
@@ -1810,7 +1844,14 @@ public class MessageUtils {
                             tv.setCompoundDrawablePadding(10);
                             tv.setCompoundDrawables(d, null, null, null);
                         }
-                        tv.setText(getUrlWithMailPrefix(context, url).replaceAll("tel:", ""));
+                        String tmpUrl = null;
+                        if (url != null) {
+                            if (url.startsWith(MAIL_TO_PREFIX)) {
+                                url = url.substring(MAIL_TO_PREFIX.length());
+                            }
+                            tmpUrl = url.replaceAll("tel:", "");
+                        }
+                        tv.setText(tmpUrl);
                     } catch (android.content.pm.PackageManager.NameNotFoundException ex) {
                         // it's ok if we're unable to set the drawable for this view - the user
                         // can still use it.
@@ -1830,6 +1871,19 @@ public class MessageUtils {
                                     WwwContextMenuActivity.class);
                             intent.setData(Uri.parse(url));
                             context.startActivity(intent);
+                        } else {
+                            final String telPrefix = "tel:";
+                            if (url.startsWith(telPrefix)) {
+                                url = url.substring(telPrefix.length());
+                                if (PhoneNumberUtils.isWellFormedSmsAddress(url)) {
+                                    showNumberOptions(context, url);
+                                }
+                            } else if (url.startsWith(MAIL_TO_PREFIX)) {
+                                url = url.substring(MAIL_TO_PREFIX.length());
+                                showEmailOptions(context, url);
+                            } else {
+                                spans[0].onClick(contentText);
+                            }
                         }
                     }
                     dialog.dismiss();
@@ -1933,5 +1987,164 @@ public class MessageUtils {
 
         Log.d(TAG, "getSmsMessageCount : msgCount = " + msgCount);
         return msgCount;
+    }
+
+    public static void copyToClipboard(Context context, String str) {
+        ClipboardManager clipboard = (ClipboardManager) context
+                .getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboard.setPrimaryClip(ClipData.newPlainText(null, str));
+    }
+
+    private static void showUrlOptions(final Context slideContext, final String messageUrl) {
+        final String[] texts = new String[] {
+                slideContext.getString(R.string.menu_connect_url),
+                slideContext.getString(R.string.menu_add_to_label),
+                slideContext.getString(R.string.menu_copy_url, messageUrl)
+        };
+        AlertDialog.Builder builder = new AlertDialog.Builder(slideContext);
+        builder.setTitle(slideContext.getString(R.string.message_options));
+        builder.setCancelable(true);
+        builder.setItems(texts, new DialogInterface.OnClickListener() {
+            @Override
+            public final void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case URL_OPTION_MENU_CONNECT:
+                        loadUrlDialog(slideContext, messageUrl);
+                        break;
+                    case URL_OPTION_MENU_ADD_TO_LABEL:
+                        addToLabel(slideContext, messageUrl);
+                        break;
+                    case URL_OPTION_MENU_COPY_URL:
+                        copyToClipboard(slideContext, messageUrl);
+                        break;
+                }
+            }
+        });
+        builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    private static void loadUrlDialog(final Context context, final String urlString) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(R.string.menu_connect_url);
+        builder.setMessage(context.getString(R.string.loadurlinfo_str));
+        builder.setCancelable(true);
+        builder.setPositiveButton(R.string.yes, new OnClickListener() {
+            @Override
+            final public void onClick(DialogInterface dialog, int which) {
+                loadUrl(context, urlString);
+            }
+        });
+        builder.setNegativeButton(R.string.no, new OnClickListener() {
+            @Override
+            final public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+
+    }
+
+    private static void loadUrl(Context context, String url) {
+        if (!url.regionMatches(true, 0, "http://", 0, 7)
+                && !url.regionMatches(true, 0, "https://", 0, 8)
+                && !url.regionMatches(true, 0, "rtsp://", 0, 7)) {
+            url = "http://" + url;
+        }
+        url = url.replace("Http://", "http://");
+        url = url.replace("Https://", "https://");
+        url = url.replace("HTTP://", "http://");
+        url = url.replace("HTTPS://", "https://");
+        url = url.replace("Rtsp://", "rtsp://");
+        url = url.replace("RTSP://", "rtsp://");
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        intent.addCategory(Intent.CATEGORY_BROWSABLE);
+
+        if ((url.substring(url.length() - 4).compareToIgnoreCase(".mp4") == 0)
+                || (url.substring(url.length() - 4).compareToIgnoreCase(".3gp") == 0)) {
+            intent.setDataAndType(Uri.parse(url), "video/*");
+        }
+        try {
+            context.startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            return;
+        }
+    }
+
+    private static void addToLabel(Context context, String urlString) {
+        Intent i = new Intent(Intent.ACTION_INSERT, BOOKMARKS_URI);
+        i.putExtra("title", "");
+        i.putExtra("url", urlString);
+        i.putExtra("extend", "outside");
+        context.startActivity(i);
+    }
+
+    public static void showEmailOptions(final Context context, final String address) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(address)
+                .setCancelable(true);
+        builder.setItems(R.array.email_options, new OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DIALOG_ITEM_EMAIL_TO:
+                        context.startActivity(new Intent(Intent.ACTION_VIEW, Uri
+                                .parse(MAIL_TO_PREFIX + address))
+                                .setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET));
+                        break;
+                    case DIALOG_ITEM_EMAIL_ADD_CONTACTS:
+                        context.startActivity(ConversationList.createAddContactIntent(address));
+                        break;
+                    default:
+                        break;
+                }
+                dialog.dismiss();
+            }
+        }).show();
+    }
+
+    public static void showNumberOptions(Context context, String number) {
+        final Context localContext = context;
+        final String extractNumber = number;
+        AlertDialog.Builder builder = new AlertDialog.Builder(localContext);
+        builder.setTitle(number);
+        builder.setCancelable(true);
+        builder.setItems(R.array.number_options,
+                new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DIALOG_ITEM_CALL:
+                        Intent dialIntent = new Intent(Intent.ACTION_CALL,
+                                Uri.parse("tel:" + extractNumber));
+                        localContext.startActivity(dialIntent);
+                        break;
+                    case DIALOG_ITEM_SMS:
+                        Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
+                                Uri.parse("smsto:" + extractNumber));
+                        localContext.startActivity(smsIntent);
+                        break;
+                    case DIALOG_ITEM_ADD_CONTACTS:
+                        Intent intent = ConversationList
+                                .createAddContactIntent(extractNumber);
+                        localContext.startActivity(intent);
+                        break;
+                    default:
+                        break;
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();
     }
 }
