@@ -24,6 +24,7 @@ import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ActivityNotFoundException;
 import android.app.DialogFragment;
+import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -73,7 +74,6 @@ import android.util.Log;
 import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.PhoneConstants;
-
 import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -136,6 +136,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     // Blacklist
     public static final String BLACKLIST                 = "pref_blacklist";
 
+    public static final String CELL_BROADCAST            = "pref_key_cell_broadcast";
+
     // Menu entries
     private static final int MENU_RESTORE_DEFAULTS    = 1;
 
@@ -165,6 +167,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private Preference mManageSim1Pref;
     private Preference mManageSim2Pref;
     private Preference mManageSdcardSMSPref;
+    private Preference mCBsettingPref;
     private Preference mClearHistoryPref;
     private Preference mConfigurationmessage;
     private CheckBoxPreference mVibratePref;
@@ -383,6 +386,10 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // SMS Sending Delay
         mMessageSendDelayPref = (ListPreference) findPreference(SEND_DELAY_DURATION);
         mMessageSendDelayPref.setSummary(mMessageSendDelayPref.getEntry());
+
+        if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
+            mCBsettingPref = findPreference(CELL_BROADCAST);
+        }
 
         // Blacklist screen - Needed for setting summary
         mBlacklist = (PreferenceScreen) findPreference(BLACKLIST);
@@ -981,6 +988,15 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 R.bool.def_custom_preferences_settings)
                 && preference == mShowEmailPref) {
             enableEmailAddress(mShowEmailPref.isChecked(), this);
+        } else if (getResources().getBoolean(
+                R.bool.def_custom_preferences_settings)
+                && preference == mCBsettingPref) {
+            try {
+                startActivity(MessageUtils.getCellBroadcastIntent());
+            } catch (ActivityNotFoundException e) {
+                Log.e(TAG,
+                        "ActivityNotFoundException for CellBroadcastListActivity");
+            }
         }
 
         return super.onPreferenceTreeClick(preferenceScreen, preference);
