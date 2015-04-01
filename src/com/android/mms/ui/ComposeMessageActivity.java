@@ -2279,7 +2279,6 @@ public class ComposeMessageActivity extends Activity
         for(int i = 0; i < partNum; i++) {
             PduPart part = body.getPart(i);
             String type = new String(part.getContentType());
-
             if (DrmUtils.isDrmType(type)) {
                 // All parts (but there's probably only a single one) have to be successful
                 // for a valid result.
@@ -2334,6 +2333,7 @@ public class ComposeMessageActivity extends Activity
     private boolean copyPart(PduPart part, String fallback) {
         Uri uri = part.getDataUri();
         String type = new String(part.getContentType());
+        type = MessageUtils.parseOctStreamContentType(part, type);
         boolean isDrm = DrmUtils.isDrmType(type);
         if (isDrm) {
             type = MmsApp.getApplication().getDrmManagerClient()

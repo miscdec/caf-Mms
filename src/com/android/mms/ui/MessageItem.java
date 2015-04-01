@@ -474,6 +474,7 @@ public class MessageItem {
                     for (int i = 0; i < partNum; i++) {
                         PduPart part = body.getPart(i);
                         String type = (new String(part.getContentType())).toLowerCase();
+                        type = MessageUtils.parseOctStreamContentType(part, type);
                         if (DrmUtils.isDrmType(type)) {
                             if (!DrmUtils.haveRightsForAction(part.getDataUri(),
                                     DrmStore.Action.TRANSFER)) {
@@ -490,7 +491,7 @@ public class MessageItem {
                         if (ContentType.isImageType(type) || ContentType.isVideoType(type)
                                 || ContentType.isAudioType(type) || DrmUtils.isDrmType(type)
                                 || type.equals(ContentType.AUDIO_OGG.toLowerCase())
-                                || type.equals(ContentType.TEXT_VCARD.toLowerCase())) {
+                                || type.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase())) {
                             mHaveSomethingToCopyToSDCard = true;
                         }
                     }

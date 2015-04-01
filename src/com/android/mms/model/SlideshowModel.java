@@ -53,6 +53,7 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.dom.smil.parser.SmilXmlSerializer;
 import com.android.mms.layout.LayoutManager;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.UriImage;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
@@ -67,10 +68,6 @@ import com.android.mms.UnsupportContentTypeException;
 public class SlideshowModel extends Model
         implements List<SlideModel>, IModelChangedObserver {
     private static final String TAG = "Mms/slideshow";
-    // Consider oct-strean as the content type of vCard
-    private static final String OCT_STREAM = "application/oct-stream";
-    private static final String VCARD = "vcf";
-
     private final LayoutModel mLayout;
     private final ArrayList<SlideModel> mSlides;
     private SMILDocument mDocumentCache;
@@ -245,9 +242,7 @@ public class SlideshowModel extends Model
                 for (int k = 0; k < partsNum; k++) {
                     PduPart part = pb.getPart(k);
                     String contentType = (new String(part.getContentType())).toLowerCase();
-                    if (OCT_STREAM.equals(contentType)) {
-                        contentType = getOctStreamContentType(part);
-                    }
+                    contentType = MessageUtils.parseOctStreamContentType(part, contentType);
                     if (ContentType.TEXT_VCARD.toLowerCase().equals(contentType)) {
                         byte[] data = part.getContentLocation();
                         if (data == null) {
@@ -275,24 +270,6 @@ public class SlideshowModel extends Model
         slideshow.mTotalMessageSize = totalMessageSize;
         slideshow.registerModelChangedObserver(slideshow);
         return slideshow;
-    }
-
-    private static String getOctStreamContentType(PduPart part) {
-        byte[] name = part.getName();
-        if (name == null) {
-            name = part.getContentLocation();
-        }
-        if (name != null) {
-            String src = new String(name);
-            int index = src.lastIndexOf('.');
-            if (index > 0) {
-                String extension = src.substring(index + 1, src.length());
-                if (extension.toLowerCase().equals(VCARD)) {
-                    return ContentType.TEXT_VCARD.toLowerCase();
-                }
-            }
-        }
-        return null;
     }
 
     private static boolean hasSmilPart(PduBody body) {
