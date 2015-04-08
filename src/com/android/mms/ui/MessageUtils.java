@@ -79,6 +79,7 @@ import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
+import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Mms.Part;
 import android.provider.Telephony.Sms;
@@ -1889,6 +1890,11 @@ public class MessageUtils {
         ConnectivityManager mConnService = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         return !mConnService.getMobileDataEnabled();
+    }
+
+    public static boolean isAirplaneModeOn(Context context) {
+        return Settings.Global.getInt(context.getContentResolver(),
+                Settings.Global.AIRPLANE_MODE_ON, 0) == 1;
     }
 
     public static float onFontSizeScale(ArrayList<TextView> list, float scale,
