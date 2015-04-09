@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -69,6 +70,7 @@ import com.android.mms.R;
 import com.android.mms.rcs.GeoLocation;
 import com.android.mms.rcs.PropertyNode;
 import com.android.mms.rcs.RcsApiManager;
+import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.rcs.RcsEmojiStoreUtil;
 import com.android.mms.rcs.RcsMessageOpenUtils;
 import com.android.mms.rcs.RcsUtils;
@@ -79,10 +81,13 @@ import com.android.mms.rcs.VNodeBuilder;
 import com.android.mms.ui.MessageItem;
 import com.android.mms.ui.MessageListItem;
 import com.android.mms.ui.MessageUtils;
+import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
+import com.suntek.mway.rcs.client.aidl.provider.model.CloudFileMessage;
 
 public class MessageDetailAdapter extends PagerAdapter {
 
+    private String LOG_TAG = "RCS_UI";
     private Context mContext;
     private Cursor mCursor;
     private LayoutInflater mInflater;
@@ -90,6 +95,7 @@ public class MessageDetailAdapter extends PagerAdapter {
     private ArrayList<TextView> mScaleTextList;
     private String mContentType = "";
     private int mMsgType = -1;
+    private int mRcsId;
 
     public MessageDetailAdapter(Context context, Cursor cursor) {
         mContext = context;
@@ -107,6 +113,7 @@ public class MessageDetailAdapter extends PagerAdapter {
         LinearLayout mLinearLayout = (LinearLayout)content.findViewById(R.id.other_type_layout);
 
         mMsgType = mCursor.getInt(mCursor.getColumnIndex("rcs_msg_type"));
+        mRcsId = mCursor.getInt(mCursor.getColumnIndex("rcs_id"));
         if (mMsgType == RcsUtils.RCS_MSG_TYPE_TEXT) {
             initTextMsgView(bodyText);
         } else {
@@ -114,7 +121,9 @@ public class MessageDetailAdapter extends PagerAdapter {
             mLinearLayout.setVisibility(View.VISIBLE);
             ImageView imageView = (ImageView)mLinearLayout.findViewById(R.id.image_view);
             TextView textView = (TextView)mLinearLayout.findViewById(R.id.type_text_view);
-            imageView.setOnClickListener(mOnClickListener);
+            if (mMsgType != RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
+                imageView.setOnClickListener(mOnClickListener);
+            }
             if (mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE) {
                 initImageMsgView(mLinearLayout);
                 showContentFileSize(textView);
@@ -132,8 +141,7 @@ public class MessageDetailAdapter extends PagerAdapter {
                 mContentType = "video/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_MAP) {
                 imageView.setImageResource(R.drawable.rcs_map);
-                String body = mCursor.getString(mCursor.getColumnIndexOrThrow(Sms.BODY));
-                textView.setText(body.substring(body.lastIndexOf("/") + 1, body.length()));
+                textView.setText(getMapMsgBody());
                 mContentType = "map/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_VCARD) {
                 textView.setVisibility(View.GONE);
@@ -144,6 +152,44 @@ public class MessageDetailAdapter extends PagerAdapter {
                 String[] body = messageBody.split(",");
                 RcsEmojiStoreUtil.getInstance().loadImageAsynById(imageView, body[0],
                         RcsEmojiStoreUtil.EMO_STATIC_FILE);
+            } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
+                imageView.setImageResource(R.drawable.rcs_ic_cloud);
+                ChatMessage msg = null;
+                try {
+                     msg = RcsApiManager.getMessageApi().getMessageById(String.valueOf(mRcsId));
+                    final CloudFileMessage cMessage = msg.getCloudFileMessage();
+                    final McloudFileApi api = RcsApiManager.getMcloudFileApi();
+                    if (cMessage != null) {
+                        textView.setText(cMessage.getFileName() + "(" + cMessage.getFileSize()
+                                + "K )");
+                       final boolean isFileDownload = RcsChatMessageUtils.isFileDownload(api.getLocalRootPath()
+                                    + cMessage.getFileName(), cMessage.getFileSize());
+                        imageView.setOnClickListener(new OnClickListener() {
+                            
+                            @Override
+                            public void onClick(View arg0) {
+                                try {
+                                    if (isFileDownload) {
+                                        String path = api.getLocalRootPath() + cMessage.getFileName();
+                                        Intent intent2 = RcsUtils.OpenFile(path);
+                                        mContext.startActivity(intent2);
+                                    } else {
+                                        Toast.makeText(mContext, R.string.not_download_cloudFile, Toast.LENGTH_SHORT)
+                                        .show();
+                                    }
+                                } catch (Exception e) {
+                                    Log.w(LOG_TAG,e);
+                                }
+                            }
+                        });
+                    }
+                } catch (Exception e) {
+                    if(e instanceof ActivityNotFoundException){
+                        Toast.makeText(mContext, R.string.please_install_application,
+                                Toast.LENGTH_LONG).show();
+                        Log.w(LOG_TAG, e);
+                    }
+                }
             } else {
                 bodyText.setVisibility(View.VISIBLE);
                 mLinearLayout.setVisibility(View.GONE);
@@ -220,10 +266,10 @@ public class MessageDetailAdapter extends PagerAdapter {
     private void initImageMsgView(LinearLayout linearLayout) {
         String thumbPath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_thumb_path"));
         String filePath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_path"));
-        if (thumbPath != null && new File(thumbPath).exists() && thumbPath.contains(".")) {
+        if (thumbPath != null && !new File(thumbPath).exists() && thumbPath.contains(".")) {
             thumbPath = thumbPath.substring(0, thumbPath.lastIndexOf("."));
         }
-        if (filePath != null && new File(filePath).exists() && filePath.contains(".")) {
+        if (filePath != null && !new File(filePath).exists() && filePath.contains(".")) {
             filePath = filePath.substring(0, filePath.lastIndexOf("."));
         }
         ImageView imageView = (ImageView)linearLayout.findViewById(R.id.image_view);
@@ -268,6 +314,12 @@ public class MessageDetailAdapter extends PagerAdapter {
         }
     }
 
+    private String getMapMsgBody(){
+        String body = mCursor.getString(mCursor.getColumnIndexOrThrow(Sms.BODY));
+        body = body.substring(body.lastIndexOf("/") + 1, body.length());
+        return body;
+    }
+
     private OnClickListener mOnClickListener = new OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -309,29 +361,36 @@ public class MessageDetailAdapter extends PagerAdapter {
                     intent.putExtra("SingleItemOnly", true);
                     mContext.startActivity(intent);
                     break;
-
                 case RcsUtils.RCS_MSG_TYPE_VCARD:
                     showOpenRcsVcardDialog();
                     break;
                 case RcsUtils.RCS_MSG_TYPE_MAP:
-                    Intent intent_map = new Intent();
-                    GeoLocation geo = RcsUtils.readMapXml(rcsPath);
-                    String geourl = "geo:" + geo.getLat() + "," + geo.getLng();
-                    try {
-                        Uri uri = Uri.parse(geourl);
-                        Intent it = new Intent(Intent.ACTION_VIEW, uri);
-                        mContext.startActivity(it);
-                    } catch (Exception e) {
-                        Toast.makeText(mContext, R.string.toast_install_map, Toast.LENGTH_SHORT)
-                                .show();
-                    }
-
+                    openMapMessage(filepath);
                     break;
                 default:
                     break;
             }
         }
     };
+
+    private void openMapMessage(String path){
+        try {
+            Intent intent_map = new Intent();
+            GeoLocation geo = RcsUtils.readMapXml(path);
+            String geourl = "geo:" + geo.getLat() + "," + geo.getLng() +
+                    "?q=" + getMapMsgBody();
+            Uri uri = Uri.parse(geourl);
+            Intent it = new Intent(Intent.ACTION_VIEW, uri);
+            mContext.startActivity(it);
+        } catch (NullPointerException e) {
+            Log.w("RCS_UI", e);
+        } catch (ActivityNotFoundException ae) {
+            Toast.makeText(mContext,
+                    R.string.toast_install_map, Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.w("RCS_UI", e);
+        }
+    }
 
     private void showOpenRcsVcardDialog(){
         int rcsId = mCursor.getInt(mCursor.getColumnIndexOrThrow("rcs_id"));

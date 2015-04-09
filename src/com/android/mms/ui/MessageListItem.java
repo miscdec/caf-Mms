@@ -380,6 +380,9 @@ public class MessageListItem extends ZoomMessageListItem implements
         mRcsContentType = "";
         mRcsShowMmsView = true;
         showMmsView(true);
+        if(mSlideShowButton != null){
+            mSlideShowButton.setVisibility(View.GONE);
+        }
         if (mMessageItem.mRcsIsBurn == 0) {
             mImageView.setImageDrawable(sRcsBurnFlagImage);
         } else {
@@ -900,6 +903,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                     }
                 } else if (mRcsIsStopDown && !RcsUtils.isFileDownLoadoK(mMessageItem)) {
                     mDateView.setText(getContext().getString(R.string.stop_down_load));
+                    toast(R.string.download_mcloud_file_fail);
                 } else if (mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOAD_OK) {
                     mDateView.setText(buildTimestampLine(mMessageItem.isSending() ? mContext
                             .getResources().getString(R.string.sending_message)

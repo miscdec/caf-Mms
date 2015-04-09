@@ -429,17 +429,17 @@ public class WorkingMessage {
                 sendRcsLocation(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_VCARD:
-                mStatusListener.onPreMessageSent();
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsVcard(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_PAID_EMO:
-                mStatusListener.onPreMessageSent();
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsPaidEmo(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_CAIYUNFILE:
                 mStatusListener.onPreRcsMessageSent();
                 sendRcsCloudFile(dests, threadId, mcloudFileApi);
-		break;
+                break;
             default:
                 break;
         }

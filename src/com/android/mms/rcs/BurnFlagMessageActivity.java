@@ -352,7 +352,20 @@ public class BurnFlagMessageActivity extends Activity {
             mMediaPlayer.release();
         }
         if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-            burnMessage(mSmsId, mRcsId);
+            if (mMsg.getMsgType() == SuntekMessageData.MSG_TYPE_IMAGE
+                    || mMsg.getMsgType() == SuntekMessageData.MSG_TYPE_VIDEO){
+                String filepath = null;
+                try {
+                    filepath = RcsChatMessageUtils.getFilePath(mMsg);
+                } catch (ServiceDisconnectedException e) {
+                    e.printStackTrace();
+                }
+                if (RcsChatMessageUtils.isFileDownload(filepath, mMsg.getFilesize())) {
+                    burnMessage(mSmsId, mRcsId);
+                }
+            }else{
+                burnMessage(mSmsId, mRcsId); 
+            }
             finish();
         }
     }
@@ -378,9 +391,9 @@ public class BurnFlagMessageActivity extends Activity {
                     + "\"");
             mVideo.setVideoURI(Uri.parse(filepath));
             mVideo.start();
-            if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-                burnMessage(mSmsId, mRcsId);
-            }
+//            if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
+//                burnMessage(mSmsId, mRcsId);
+//            }
             handler.sendEmptyMessage(VIDEO_TIME_REFRESH);
         } else {
             mVideo.setVisibility(View.GONE);
@@ -539,7 +552,7 @@ public class BurnFlagMessageActivity extends Activity {
     }
 
     private void burnMessage(long RcsId, long messageId) {
-        String smsId = String.valueOf(RcsId);
+        String smsId = String.valueOf(messageId);
         try {
             if (mMsg != null) {
                 RcsApiManager.getMessageApi().burnMessageAtOnce(smsId);

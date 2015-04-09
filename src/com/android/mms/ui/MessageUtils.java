@@ -580,6 +580,8 @@ public class MessageUtils {
                 details.append(res.getString(R.string.message_content_map));
             else if (msgType == RcsUtils.RCS_MSG_TYPE_VCARD)
                 details.append(res.getString(R.string.message_content_vcard));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE)
+                details.append(res.getString(R.string.msg_type_CaiYun));
             else
                 details.append(res.getString(R.string.message_content_text));
         }

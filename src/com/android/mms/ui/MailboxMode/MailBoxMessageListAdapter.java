@@ -53,6 +53,7 @@ import com.android.contacts.common.widget.CheckableQuickContactBadge;
 import com.android.mms.data.Contact;
 import com.android.mms.LogTag;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.ui.MessageUtils;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.PduPersister;
@@ -257,7 +258,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             addr = item.mAddress;
             isError = item.mSmsType == Sms.MESSAGE_TYPE_FAILED;
             isLocked = item.mLocked;
-            bodyStr = item.mBody;
+            bodyStr = RcsUtils.formatConversationSnippet(context, item.mBody);
             dateStr = item.mDateStr;
             nameContact = item.mName;
         } else if (type.equals("mms")) {
