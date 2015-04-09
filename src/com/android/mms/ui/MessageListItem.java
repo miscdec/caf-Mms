@@ -272,6 +272,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         addZoomableTextView(mDateView);
         addZoomableTextView(mSimMessageAddress);
         addZoomableTextView(mNameView);
+
     }
 
     private void updateBodyTextView() {
@@ -1386,5 +1387,12 @@ public class MessageListItem extends ZoomMessageListItem implements
 
     public void setDateViewText(int resId) {
         mDateView.setText(resId);
+    }
+
+    public void setBodyTextSize(float size) {
+        if (mBodyTextView != null
+                && mBodyTextView.getVisibility() == View.VISIBLE) {
+            mBodyTextView.setTextSize(size);
+        }
     }
 }
