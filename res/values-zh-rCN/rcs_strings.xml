@@ -115,6 +115,9 @@
     <string name="forward_message_success">已转发</string>
     <string name="forward_message_fail">转发失败</string>
     <string name="conversation_forward">转发</string>
+    <string name="forward_input_number_hint">多个号码请用";"隔开</string>
+    <string name="forward_input_number_title">请输入号码</string>
+    <string name="forward_input_number">输入号码</string>
     <string name="forward_contact">联系人</string>
     <string name="forward_conversation">会话</string>
     <string name="forward_contact_group">群组</string>
