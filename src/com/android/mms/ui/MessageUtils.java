@@ -824,14 +824,16 @@ public class MessageUtils {
         dialog.show();
     }
 
-    public static void recordSound(Activity activity, int requestCode, long sizeLimit) {
+    public static void recordSound(Activity activity, int requestCode, long sizeLimit,
+            boolean isMms) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType(ContentType.AUDIO_AMR);
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
         // add RCS recordSound time add size limit
-        if (RcsApiManager.getSupportApi().isOnline()) {
-            intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit*1024);
+        if (!isMms && RcsApiManager.getSupportApi().isOnline()) {
+            intent.putExtra(android.provider.MediaStore
+                    .Audio.Media.EXTRA_MAX_BYTES, sizeLimit*1024);
         } else {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
         }
@@ -839,9 +841,10 @@ public class MessageUtils {
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void recordVideo(Activity activity, int requestCode, long sizeLimit) {
+    public static void recordVideo(Activity activity, int requestCode,
+            long sizeLimit, boolean isMms) {
         // add RCS recordVideo time add size limit
-        if (RcsApiManager.getSupportApi().isOnline()) {
+        if (!isMms && RcsApiManager.getSupportApi().isOnline()) {
             Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
             intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 10.0);
             intent.putExtra("android.intent.extra.sizeLimit", sizeLimit*1024);
