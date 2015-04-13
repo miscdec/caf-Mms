@@ -255,6 +255,8 @@ public class MessageListAdapter extends CursorAdapter {
     private int mMultiManageMode = MessageUtils.INVALID_MODE;
     private int mAccentColor = 0;
 
+    private float mTextSize = 0;
+
     private HashMap<Integer, String> mBodyCache;
 
     public MessageListAdapter(
@@ -880,5 +882,9 @@ public class MessageListAdapter extends CursorAdapter {
                 MessageItem oldValue, MessageItem newValue) {
             oldValue.cancelPduLoading();
         }
+    }
+
+    public void setTextSize(float size) {
+        mTextSize = size;
     }
 }

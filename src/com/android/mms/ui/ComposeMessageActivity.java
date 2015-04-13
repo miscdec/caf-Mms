@@ -559,7 +559,7 @@ public class ComposeMessageActivity extends Activity
     // sure we notice if the user has changed the default SMS app.
     private boolean mIsSmsEnabled;
 
-    private static int mIsAirplain = 0;
+    private boolean mIsAirplaneModeOn = false;
     // Whether or not the RCS Service is installed.
     private boolean mIsRcsEnabled;
 
@@ -626,6 +626,8 @@ public class ComposeMessageActivity extends Activity
             });
 
     private Handler mHandler = new Handler();
+
+    private  boolean mIsRTL = false;
 
     // keys for extras and icicles
     public final static String THREAD_ID = "thread_id";
@@ -2294,6 +2296,9 @@ public class ComposeMessageActivity extends Activity
 
         updateAccentColorFromTheme(true);
         initialize(savedInstanceState, 0);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        registerReceiver(mAirplaneModeBroadcastReceiver, intentFilter);
 
         if (TRACE) {
             android.os.Debug.startMethodTracing("compose");
@@ -2865,11 +2870,11 @@ public class ComposeMessageActivity extends Activity
         mIsRunning = true;
         updateThreadIdIfRunning();
         mConversation.markAsRead(true);
-        mIsAirplain = Settings.System.getInt(ComposeMessageActivity.this.getContentResolver(),
-                Settings.System.AIRPLANE_MODE_ON, 0) ;
+        mIsAirplaneModeOn = MessageUtils.isAirplaneModeOn(this);
 
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
             setBackgroundWallpaper();
+            setTextFontsize();
         }
     }
 
@@ -2964,7 +2969,7 @@ public class ComposeMessageActivity extends Activity
             mZoomGestureOverlayView.removeZoomListener(this);
         }
 
-        unregisterReceiver(mRcsServiceCallbackReceiver);
+        unregisterReceiver(mAirplaneModeBroadcastReceiver);
         if (mMsgListAdapter != null) {
             mMsgListAdapter.changeCursor(null);
             mMsgListAdapter.cancelBackgroundLoading();
@@ -4068,7 +4073,7 @@ public class ComposeMessageActivity extends Activity
         });
         setAttachmentSelectorHeight();
         mAttachmentPager.setAdapter(mAttachmentPagerAdapter);
-        mAttachmentPager.setCurrentItem(0);
+        mAttachmentPager.setCurrentItem(((mIsRTL) ? 1 : 0));
         mAttachmentPager.setOnPageChangeListener(mAttachmentPagerChangeListener);
         mAttachmentSelector.setVisibility(View.VISIBLE);
         // Delay 200ms for drawing view completed.
@@ -4102,6 +4107,15 @@ public class ComposeMessageActivity extends Activity
                 R.id.pager_indicator_first);
         ImageView pagerIndicatorSecond = (ImageView) mAttachmentSelector.findViewById(
                 R.id.pager_indicator_second);
+
+        if (mIsRTL) {
+            pagerIndicatorSecond.setImageResource(pagerPosition == 0 ? R.drawable.dot_chosen
+                    : R.drawable.dot_unchosen);
+            pagerIndicatorFirst.setImageResource(pagerPosition == 0 ? R.drawable.dot_unchosen
+                    : R.drawable.dot_chosen);
+            return;
+        }
+
         pagerIndicatorFirst.setImageResource(pagerPosition == 0 ? R.drawable.dot_chosen
                 : R.drawable.dot_unchosen);
         pagerIndicatorSecond.setImageResource(pagerPosition == 0 ? R.drawable.dot_unchosen
@@ -4697,7 +4711,7 @@ public class ComposeMessageActivity extends Activity
         protected void onPreExecute() {
             super.onPreExecute();
             mPD = new ProgressDialog(ComposeMessageActivity.this);
-            mPD.setMessage("Adding contacts...");
+            mPD.setMessage(getString(R.string.adding_selected_recipients_dialog_text));
             mPD.show();
         }
 
@@ -5462,6 +5476,7 @@ public class ComposeMessageActivity extends Activity
 
         RcsUtils.setIsSupportRcs(isRcsAvailable);
         mWorkingMessage.setIsBurn(mIsBurnMessage);
+        mIsRTL = (v.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
             if (mShowTwoButtons) {
                 confirmSendMessageIfNeeded(PhoneConstants.SUB1);
@@ -6008,9 +6023,11 @@ public class ComposeMessageActivity extends Activity
     }
 
     private boolean isPreparedForSending() {
+        if (mIsAirplaneModeOn) {
+            return false;
+        }
+
         int recipientCount = recipientCount();
-
-
         if (mConversation.isGroupChat()) {
             return (!mSentMessage && mConversation.getGroupChat() == null && recipientCount > 0
                     && (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText()
@@ -6023,6 +6040,17 @@ public class ComposeMessageActivity extends Activity
                 (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText() ||
                     mWorkingMessage.hasSubject());
     }
+
+    private BroadcastReceiver mAirplaneModeBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
+                mIsAirplaneModeOn = intent.getBooleanExtra("state", false);
+                updateSendButtonState();
+            }
+        }
+    };
 
     private boolean isCdmaNVMode() {
         if (TelephonyManager.getDefault().isMultiSimEnabled()) {
@@ -6933,7 +6961,8 @@ public class ComposeMessageActivity extends Activity
                 // Rebuild the message list so each MessageItem will get the last contact info.
                 ComposeMessageActivity.this.mMsgListAdapter.notifyDataSetChanged();
 
-                if (mRecipientsEditor != null) {
+                if (mRecipientsEditor != null && (mAddNumbersTask == null ||
+                        mAddNumbersTask.getStatus() != AsyncTask.Status.RUNNING)) {
                     mRecipientsEditor.populate(recipients);
                 }
             }
@@ -7604,7 +7633,7 @@ public class ComposeMessageActivity extends Activity
                         return false;
                     }
                     forwardMessage();
-                } else if (mIsAirplain == 1) {
+                } else if (mIsAirplaneModeOn) {
                     toast(R.string.on_airplain_mode);
                 } else {
                     try {
@@ -8219,6 +8248,27 @@ public class ComposeMessageActivity extends Activity
                             MessagingPreferenceActivity.CHAT_WALLPAPER, null));
             if(bitmap != null) {
                 mMsgListView.setBackground(new BitmapDrawable(bitmap));
+            }
+        }
+    }
+    private void setTextFontsize() {
+        int size =  MessageUtils.getFontSize();
+        if (mTextEditor != null) {
+            mTextEditor.setTextSize(size);
+        }
+        if (mMsgListAdapter != null) {
+            mMsgListAdapter.setTextSize(size);
+        }
+
+        if (mMsgListView != null
+                && mMsgListView.getVisibility() == View.VISIBLE) {
+            int count = mMsgListView.getChildCount();
+            for (int i = 0; i < count; i++) {
+                MessageListItem item = (MessageListItem) mMsgListView
+                        .getChildAt(i);
+                if (item != null) {
+                    item.setBodyTextSize(size);
+                }
             }
         }
     }
