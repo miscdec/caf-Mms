@@ -272,6 +272,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         addZoomableTextView(mDateView);
         addZoomableTextView(mSimMessageAddress);
         addZoomableTextView(mNameView);
+
     }
 
     private void updateBodyTextView() {
@@ -560,7 +561,6 @@ public class MessageListItem extends ZoomMessageListItem implements
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        mDownloading.setVisibility(View.VISIBLE);
                         try {
                             NotificationInd nInd = (NotificationInd) PduPersister.getPduPersister(
                                     mContext).load(mMessageItem.mMessageUri);
@@ -1333,7 +1333,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         showMmsView(true);
 
         try {
-            mImageView.setImageResource(R.drawable.ic_attach_cal_event);
+            mImageView.setImageResource(R.drawable.ic_attach_event);
             mImageView.setVisibility(VISIBLE);
         } catch (java.lang.OutOfMemoryError e) {
             // shouldn't be here.
@@ -1386,5 +1386,12 @@ public class MessageListItem extends ZoomMessageListItem implements
 
     public void setDateViewText(int resId) {
         mDateView.setText(resId);
+    }
+
+    public void setBodyTextSize(float size) {
+        if (mBodyTextView != null
+                && mBodyTextView.getVisibility() == View.VISIBLE) {
+            mBodyTextView.setTextSize(size);
+        }
     }
 }
