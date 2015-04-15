@@ -1450,66 +1450,30 @@ public class RcsUtils {
         if (len > 11) {
             comparenNumber = number.substring(len - 11, len);
         }
-        Uri addToFirewallBlockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
+        Uri blockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
                 : RcsUtils.WHITELIST_CONTENT_URI;
         ContentResolver contentResolver = context.getContentResolver();
-        Uri checkUri = isBlacklist ? RcsUtils.WHITELIST_CONTENT_URI
-                : RcsUtils.BLACKLIST_CONTENT_URI;
-        Cursor checkCursor = contentResolver.query(checkUri, new String[] {
+        Cursor cu = contentResolver.query(blockUri, new String[] {
                 "_id", "number", "person_id", "name"
         }, "number" + " LIKE '%" + comparenNumber + "'", null, null);
-        try {
-            if (checkCursor != null && checkCursor.getCount() > 0) {
-                String Stoast = isBlacklist ? context.getString(R.string.firewall_number_in_white)
-                        : context.getString(R.string.firewall_number_in_black);
+        if (cu != null) {
+            if (cu.getCount() > 0) {
+                cu.close();
+                cu = null;
+                String Stoast = isBlacklist ? context.getString(R.string.firewall_number_in_black)
+                        : context.getString(R.string.firewall_number_in_white);
                 Toast.makeText(context, Stoast, Toast.LENGTH_SHORT).show();
                 return;
             }
-        } finally {
-            if (checkCursor != null) {
-                checkCursor.close();
-                checkCursor = null;
-            }
+            cu.close();
+            cu = null;
         }
 
         values.put("number", comparenNumber);
-        Uri mUri = contentResolver.insert(addToFirewallBlockUri, values);
+        Uri mUri = contentResolver.insert(blockUri, values);
 
         Toast.makeText(context, context.getString(R.string.firewall_save_success),
                 Toast.LENGTH_SHORT).show();
-    }
-
-    public static boolean showFirewallMenu(Context context, ContactList list,
-            boolean isBlacklist) {
-        String number = list.get(0).getNumber();
-        if (null == number || number.length() <= 0) {
-            return false;
-        }
-        number = number.replaceAll(" ", "");
-        number = number.replaceAll("-", "");
-        String comparenNumber = number;
-        int len = comparenNumber.length();
-        if (len > 11) {
-            comparenNumber = number.substring(len - 11, len);
-        }
-        Uri showFirewallBlockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
-                : RcsUtils.WHITELIST_CONTENT_URI;
-        ContentResolver contentResolver = context.getContentResolver();
-        Cursor cu = contentResolver.query(showFirewallBlockUri, new String[] {
-                "_id", "number", "person_id", "name"},
-                "number" + " LIKE '%" + comparenNumber + "'",
-                null, null);
-        try {
-            if (cu != null && cu.getCount() > 0) {
-                    return false;
-            }
-        } finally {
-            if (cu != null) {
-                cu.close();
-                cu = null;
-            }
-        }
-        return true;
     }
 
     public static boolean isFireWallInstalled(Context context) {
