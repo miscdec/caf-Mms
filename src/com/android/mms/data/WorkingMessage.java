@@ -440,7 +440,7 @@ public class WorkingMessage {
             case RcsUtils.RCS_MSG_TYPE_CAIYUNFILE:
                 mStatusListener.onPreRcsMessageSent();
                 sendRcsCloudFile(dests, threadId, mcloudFileApi);
-		break;
+                break;
             default:
                 break;
         }

@@ -91,6 +91,7 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.provider.BaseColumns;
+import android.provider.ContactsContract;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.Telephony;
@@ -132,6 +133,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.lang.ref.SoftReference;
+import java.io.ByteArrayOutputStream;
 
 public class RcsUtils {
     public static final int IS_RCS_TRUE = 1;
@@ -1437,7 +1439,6 @@ public class RcsUtils {
             // number length is not allowed 0-
             Toast.makeText(context, context.getString(R.string.firewall_number_len_not_valid),
                     Toast.LENGTH_SHORT).show();
-
             return;
         }
 
@@ -1450,30 +1451,65 @@ public class RcsUtils {
         if (len > 11) {
             comparenNumber = number.substring(len - 11, len);
         }
-        Uri blockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
+        Uri addNumToFirewallBlockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
                 : RcsUtils.WHITELIST_CONTENT_URI;
         ContentResolver contentResolver = context.getContentResolver();
-        Cursor cu = contentResolver.query(blockUri, new String[] {
+        Uri checkUri = isBlacklist ? RcsUtils.WHITELIST_CONTENT_URI
+                : RcsUtils.BLACKLIST_CONTENT_URI;
+        Cursor checkCursor = contentResolver.query(checkUri, new String[] {
                 "_id", "number", "person_id", "name"
         }, "number" + " LIKE '%" + comparenNumber + "'", null, null);
-        if (cu != null) {
-            if (cu.getCount() > 0) {
-                cu.close();
-                cu = null;
-                String Stoast = isBlacklist ? context.getString(R.string.firewall_number_in_black)
-                        : context.getString(R.string.firewall_number_in_white);
+        try {
+            if (checkCursor != null && checkCursor.getCount() > 0) {
+                String Stoast = isBlacklist ? context.getString(R.string.firewall_number_in_white)
+                        : context.getString(R.string.firewall_number_in_black);
                 Toast.makeText(context, Stoast, Toast.LENGTH_SHORT).show();
                 return;
             }
-            cu.close();
-            cu = null;
+        } finally {
+            if (checkCursor != null) {
+                checkCursor.close();
+                checkCursor = null;
+            }
         }
-
         values.put("number", comparenNumber);
-        Uri mUri = contentResolver.insert(blockUri, values);
+        Uri mUri = contentResolver.insert(addNumToFirewallBlockUri, values);
 
         Toast.makeText(context, context.getString(R.string.firewall_save_success),
                 Toast.LENGTH_SHORT).show();
+    }
+
+    public static boolean showFirewallMenu(Context context, ContactList list,
+            boolean isBlacklist) {
+        String number = list.get(0).getNumber();
+        if (null == number || number.length() <= 0) {
+            return false;
+        }
+        number = number.replaceAll(" ", "");
+        number = number.replaceAll("-", "");
+        String comparenNumber = number;
+        int len = comparenNumber.length();
+        if (len > 11) {
+            comparenNumber = number.substring(len - 11, len);
+        }
+        Uri showFirewallBlockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
+                : RcsUtils.WHITELIST_CONTENT_URI;
+        ContentResolver contentResolver = context.getContentResolver();
+        Cursor cu = contentResolver.query(showFirewallBlockUri, new String[] {
+                "_id", "number", "person_id", "name"},
+                "number" + " LIKE '%" + comparenNumber + "'",
+                null, null);
+        try {
+            if (cu != null && cu.getCount() > 0) {
+                    return false;
+            }
+        } finally {
+            if (cu != null) {
+                cu.close();
+                cu = null;
+            }
+        }
+        return true;
     }
 
     public static boolean isFireWallInstalled(Context context) {
@@ -1613,7 +1649,7 @@ public class RcsUtils {
         switch (messageItem.mRcsType) {
             case RcsUtils.RCS_MSG_TYPE_IMAGE: {
                 if (messageItem.mRcsThumbPath != null
-                        && new File(messageItem.mRcsThumbPath).exists()
+                        && !new File(messageItem.mRcsThumbPath).exists()
                         && messageItem.mRcsThumbPath.contains(".")) {
                     messageItem.mRcsThumbPath = messageItem.mRcsThumbPath.substring(0,
                             messageItem.mRcsThumbPath.lastIndexOf("."));
@@ -1672,9 +1708,8 @@ public class RcsUtils {
             case RcsUtils.RCS_MSG_TYPE_IMAGE: {
                 String imagePath = workingMessage.getRcsPath();
                 if (imagePath != null
-                        && new File(imagePath).exists() && imagePath.contains(".")) {
-                    imagePath = imagePath.substring(0,
-                            imagePath.lastIndexOf("."));
+                        && !new File(imagePath).exists() && imagePath.contains(".")) {
+                    imagePath = imagePath.substring(0, imagePath.lastIndexOf("."));
                 }
                 bitmap = decodeInSampleSizeBitmap(imagePath);
                 break;
@@ -2340,6 +2375,59 @@ public class RcsUtils {
         return numberTypeStr;
     }
 
+    public static int getVcardNumberType(PropertyNode propertyNode) {
+        if (null == propertyNode.paramMap_TYPE
+                || propertyNode.paramMap_TYPE.size() == 0) {
+            return 0;
+        }
+        if (propertyNode.paramMap_TYPE.size() == 2) {
+            if (propertyNode.paramMap_TYPE.contains("FAX")
+                    && propertyNode.paramMap_TYPE.contains("HOME")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_FAX_HOME;
+            } else if (propertyNode.paramMap_TYPE.contains("FAX")
+                    && propertyNode.paramMap_TYPE.contains("WORK")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_FAX_WORK;
+            } else if (propertyNode.paramMap_TYPE.contains("PREF")
+                    && propertyNode.paramMap_TYPE.contains("WORK")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_COMPANY_MAIN;
+            } else if (propertyNode.paramMap_TYPE.contains("CELL")
+                    && propertyNode.paramMap_TYPE.contains("WORK")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_WORK_MOBILE;
+            } else if (propertyNode.paramMap_TYPE.contains("WORK")
+                    && propertyNode.paramMap_TYPE.contains("PAGER")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_WORK_PAGER;
+            } else {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_OTHER;
+            }
+        } else {
+            if (propertyNode.paramMap_TYPE.contains("CELL")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE;
+            } else if (propertyNode.paramMap_TYPE.contains("HOME")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_HOME;
+            } else if (propertyNode.paramMap_TYPE.contains("WORK")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_WORK;
+            } else if (propertyNode.paramMap_TYPE.contains("PAGER")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_PAGER;
+            } else if (propertyNode.paramMap_TYPE.contains("VOICE")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_OTHER;
+            } else if (propertyNode.paramMap_TYPE.contains("CAR")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_CAR;
+            } else if (propertyNode.paramMap_TYPE.contains("ISDN")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_ISDN;
+            } else if (propertyNode.paramMap_TYPE.contains("PREF")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_OTHER;
+            } else if (propertyNode.paramMap_TYPE.contains("FAX")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_FAX_WORK;
+            } else if (propertyNode.paramMap_TYPE.contains("TLX")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_TELEX;
+            } else if (propertyNode.paramMap_TYPE.contains("MSG")) {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_MMS;
+            } else {
+                return ContactsContract.CommonDataKinds.Phone.TYPE_OTHER;
+            }
+        }
+    }
+
     public static void deleteRcsMessageByThreadId(final Context context,
             final Collection<Long> threadIds) {
         if(threadIds == null || threadIds.size() == 0){
@@ -2425,6 +2513,26 @@ public class RcsUtils {
         }
         return "[Vcard]\n" + context.getString(R.string.vcard_name)
                 + name + "\n" + number;
+    }
+
+    public static byte[] getBytesFromFile(File f) {
+        if (f == null) {
+            return null;
+        }
+        try {
+            FileInputStream stream = new FileInputStream(f);
+            ByteArrayOutputStream out = new ByteArrayOutputStream(1000);
+            byte[] b = new byte[1000];
+            int n;
+            while ((n = stream.read(b)) != -1) {
+                out.write(b, 0, n);
+               }
+            stream.close();
+            out.close();
+            return out.toByteArray();
+        } catch (IOException e) {
+        }
+        return null;
     }
 
 }
