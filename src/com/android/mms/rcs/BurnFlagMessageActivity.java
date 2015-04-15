@@ -39,7 +39,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.drawable.AnimationDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.net.Uri;
@@ -47,11 +49,15 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.telephony.TelephonyManager;
+import android.view.Gravity;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
@@ -102,6 +108,10 @@ public class BurnFlagMessageActivity extends Activity {
     private TextView mProgressText;
 
     private ImageView mAudioIcon;
+
+    private RelativeLayout mRootLayout;
+
+    private SurfaceView video_suf;
 
     private long mTempType;
 
@@ -399,13 +409,18 @@ public class BurnFlagMessageActivity extends Activity {
         }
         if (RcsChatMessageUtils.isFileDownload(mFilePath, mMsg.getFilesize())) {
 
-            if ("image/gif".equals(mMsg.getMimeType())
-                           || mMsg.getFilename() != null && mMsg.getFilename().endsWith("gif")) {
+            if (imageIsGif(mMsg)) {
                 File file = new File(mFilePath);
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.fromFile(file), "image/gif");
-                intent.setAction("com.android.gallery3d.VIEW_GIF");
-                startActivity(intent);
+                byte[] data = RcsUtils.getBytesFromFile(file);
+                LinearLayout.LayoutParams mGifParam = new LinearLayout.LayoutParams(
+                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+                ColorDrawable transparent = new ColorDrawable(Color.TRANSPARENT);
+                RcsEmojiGifView emojiGifView = new RcsEmojiGifView(BurnFlagMessageActivity.this);
+                emojiGifView.setLayoutParams(mGifParam);
+                emojiGifView.setBackground(transparent);
+                emojiGifView.setMonieByteData(data);
+                mRootLayout.setVisibility(View.VISIBLE);
+                mRootLayout.addView(emojiGifView);
             } else {
                 Bitmap imageBm = ImageUtils.getBitmap(mFilePath);
                 mImage.setImageBitmap(imageBm);
@@ -418,6 +433,17 @@ public class BurnFlagMessageActivity extends Activity {
         } else {
             acceptFile();
             mProgressText.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private boolean imageIsGif(ChatMessage msg){
+        if (mMsg.getMimeType() != null &&
+                mMsg.getMimeType().endsWith("image/gif")
+                    || mMsg.getFilename() != null &&
+                        mMsg.getFilename().endsWith("gif")) {
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -528,6 +554,8 @@ public class BurnFlagMessageActivity extends Activity {
         mTime = (TextView) findViewById(R.id.burn_time);
         mVideoLen = (TextView) findViewById(R.id.video_len);
         mAudioIcon = (ImageView) findViewById(R.id.audio_icon);
+        mRootLayout = (RelativeLayout) findViewById(R.id.gif_root_view);
+        video_suf = (SurfaceView) findViewById(R.id.video_suf);
     }
 
     public static int getVideoLength(String message) {
@@ -538,8 +566,8 @@ public class BurnFlagMessageActivity extends Activity {
         return 0;
     }
 
-    private void burnMessage(long RcsId, long messageId) {
-        String smsId = String.valueOf(RcsId);
+    private void burnMessage(long messageId, long rcsId) {
+        String smsId = String.valueOf(rcsId);
         try {
             if (mMsg != null) {
                 RcsApiManager.getMessageApi().burnMessageAtOnce(smsId);
@@ -551,7 +579,7 @@ public class BurnFlagMessageActivity extends Activity {
         values.put("rcs_is_burn", 1);
         values.put("rcs_burn_body", "");
         getContentResolver().update(Uri.parse("content://sms/"), values, "rcs_id = ? ", new String[] {
-            String.valueOf(messageId)
+            smsId
         });
     }
 

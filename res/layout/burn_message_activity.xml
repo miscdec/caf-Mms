@@ -95,4 +95,18 @@
         android:visibility="gone"
         android:src="@drawable/audio_1" />
 
+    <RelativeLayout
+        android:id="@+id/gif_root_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone"
+        />
+    <SurfaceView
+        android:id="@+id/video_suf"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone"
+        />
 </RelativeLayout>

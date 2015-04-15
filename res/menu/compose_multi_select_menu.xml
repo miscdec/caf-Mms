@@ -80,7 +80,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <item
         android:id="@+id/save_back"
         android:showAsAction="never|withText"
-        android:title="@string/save_back_message"/>
+        android:title="@string/message_save"/>
     <item
         android:id="@+id/favourite"
         android:showAsAction="never|withText"
