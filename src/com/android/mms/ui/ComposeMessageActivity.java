@@ -389,7 +389,7 @@ public class ComposeMessageActivity extends Activity
 
     // Forward message
     private static final int FORWARD_INPUT_NUMBER = 0;
-    private static final int FORWADR_CONTACTS = 1;
+    private static final int FORWARD_CONTACTS = 1;
     private static final int FORWARD_CONVERSATION = 2;
     private static final int FORWARD_CONTACT_GROUP = 3;
 
@@ -3971,7 +3971,8 @@ public class ComposeMessageActivity extends Activity
                 }
                 if (sizeLimit > 0) {
                     MessageUtils.recordVideo(this,
-                        getMakRequestCode(replace, REQUEST_CODE_TAKE_VIDEO), sizeLimit);
+                        getMakRequestCode(replace, REQUEST_CODE_TAKE_VIDEO), sizeLimit,
+                        mWorkingMessage.requiresMms());
                 } else {
                     Toast.makeText(this,
                             getString(R.string.message_too_big_for_video),
@@ -3988,7 +3989,8 @@ public class ComposeMessageActivity extends Activity
             case AttachmentPagerAdapter.RECORD_SOUND:
                 long sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 MessageUtils.recordSound(this,
-                        getMakRequestCode(replace, REQUEST_CODE_RECORD_SOUND), sizeLimit);
+                        getMakRequestCode(replace, REQUEST_CODE_RECORD_SOUND), sizeLimit,
+                        mWorkingMessage.requiresMms());
                 break;
 
             case AttachmentPagerAdapter.ADD_SLIDESHOW:
@@ -4300,7 +4302,8 @@ public class ComposeMessageActivity extends Activity
                 || (requestCode == REQUEST_CODE_VCARD_GROUP)
                 || (requestCode == REQUEST_CODE_SAIYUN)
                 || (requestCode == REQUEST_SELECT_LOCAL_AUDIO);
-        if (mIsRcsEnabled && mSupportApi.isOnline() && isRcsMessage) {
+        boolean isMms = mWorkingMessage.requiresMms();
+        if (!isMms && mIsRcsEnabled && mSupportApi.isOnline() && isRcsMessage) {
             switch (requestCode) {
                 case PHOTO_CROP:
                     if (data != null) {
