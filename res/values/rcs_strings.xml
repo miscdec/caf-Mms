@@ -239,5 +239,12 @@
     <string name="favorite_fail">Collection of failure</string>
     <string name="temp_group_chat">Temp group chat</string>
     <string name="rcs_offline_on_groupchat">You have been offline,group chat can not send multimedia messages.</string>
+    <string name="msg_type_audio">audio</string>
+    <string name="msg_type_image">image</string>
+    <string name="msg_type_video">video</string>
+    <string name="msg_type_contact">vCard</string>
+    <string name="msg_type_location">geolocation</string>
+    <string name="msg_type_CaiYun">Mcloud</string>
+    <string name="msg_type_burnMessage">Burn after Read</string>
     <string name="merge_contacts">Merge Contacts</string>
 </resources>

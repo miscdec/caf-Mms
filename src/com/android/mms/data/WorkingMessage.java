@@ -225,6 +225,8 @@ public class WorkingMessage {
 
     private String mCloudFileId;
 
+    private boolean mIsCacheRcsMessage;
+
     public String getCloudFileId() {
         return mCloudFileId;
     }
@@ -347,6 +349,26 @@ public class WorkingMessage {
 
     public void setRcsEmoName(String rcsEmoName) {
         this.mRcsEmoName = rcsEmoName;
+    }
+
+    public boolean getCacheRcsMessage() {
+        return mIsCacheRcsMessage;
+    }
+
+    public void setCacheRcsMessage(boolean isCacheRcsMessage) {
+        this.mIsCacheRcsMessage = isCacheRcsMessage;
+    }
+
+    public void clearCacheRcsMessage(){
+        setIsBurn(false);
+        setRcsType(RcsUtils.RCS_MSG_TYPE_TEXT);
+        setRcsPath("");
+        setDuration(0);
+        setIsRecord(false);
+        setLatitude(0);
+        setLongitude(0);
+        setLocation("");
+        setCloudFileId("");
     }
 
     private void preSendRcsSmsWorker(Conversation conv, String msgText, String recipientsInUI,
@@ -1827,7 +1849,7 @@ public class WorkingMessage {
             }, "WorkingMessage.send MMS").start();
         } else {
 
-            if (RcsApiManager.isRcsServiceInstalled()) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 String text = mText.toString();
                 final String msgText = text;
                 new Thread(new Runnable() {

@@ -48,6 +48,7 @@ import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
 import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
 import com.suntek.mway.rcs.client.api.specialnumber.impl.SpecialServiceNumApi;
+import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 import com.suntek.mway.rcs.client.api.util.FileDurationException;
 import com.suntek.mway.rcs.client.api.util.FileSuffixException;
 import com.suntek.mway.rcs.client.api.util.FileTransferException;
@@ -121,6 +122,7 @@ import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -133,7 +135,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.lang.ref.SoftReference;
-import java.io.ByteArrayOutputStream;
 
 public class RcsUtils {
     public static final int IS_RCS_TRUE = 1;
@@ -335,26 +336,6 @@ public class RcsUtils {
         builder.append(" ");
         builder.append(number.substring(7));
         return builder.toString();
-    }
-
-    public static void topSms(Context context, long smsId) {
-        ContentValues values = new ContentValues();
-        values.put("rcs_top_time", System.currentTimeMillis());
-        final Uri THREAD_ID_CONTENT_URI = Uri.parse("content://mms-sms/update-sms-top");
-        Uri uri = ContentUris.withAppendedId(THREAD_ID_CONTENT_URI, smsId);
-        context.getContentResolver().update(THREAD_ID_CONTENT_URI, values, "_id=?", new String[] {
-            String.valueOf(smsId)
-        });
-    }
-
-    public static void cancelTopSms(Context context, long smsId) {
-        ContentValues values = new ContentValues();
-        values.put("rcs_top_time", 0);
-        final Uri THREAD_ID_CONTENT_URI = Uri.parse("content://mms-sms/update-sms-top");
-        Uri uri = ContentUris.withAppendedId(THREAD_ID_CONTENT_URI, smsId);
-        context.getContentResolver().update(THREAD_ID_CONTENT_URI, values, "_id=?", new String[] {
-            String.valueOf(smsId)
-        });
     }
 
     public static void topConversion(Context context, long mThreadId) {
@@ -2213,7 +2194,8 @@ public class RcsUtils {
     }
 
     public static void addPublicAccountItem(final Context context, ListView listView) {
-        if (!isPackageInstalled(context, PUBLIC_ACCOUNT_PACKAGE_NAME)) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()
+                || !isPackageInstalled(context, PUBLIC_ACCOUNT_PACKAGE_NAME)) {
             return;
         }
         View view = LayoutInflater.from(context).inflate(
@@ -2237,7 +2219,8 @@ public class RcsUtils {
     }
 
     public static void addNotificationItem(final Context context, ListView listView) {
-        if (!isPackageInstalled(context, NATIVE_UI_PACKAGE_NAME)) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()
+                || !isPackageInstalled(context, NATIVE_UI_PACKAGE_NAME)) {
             return;
         }
         View view = LayoutInflater.from(context).inflate(
@@ -2533,6 +2516,25 @@ public class RcsUtils {
         } catch (IOException e) {
         }
         return null;
+    }
+
+    public static String formatConversationSnippet(Context context, String snippet){
+        if (snippet.startsWith("[image]")) {
+            snippet = context.getString(R.string.msg_type_image);
+        } else if (snippet.startsWith("[video]")) {
+            snippet = context.getString(R.string.msg_type_video);
+        } else if (snippet.startsWith("[audio]")) {
+            snippet = context.getString(R.string.msg_type_audio);
+        } else if (snippet.startsWith("[contact]")) {
+            snippet = context.getString(R.string.msg_type_contact);
+        } else if (snippet.startsWith("[map]")) {
+            snippet = context.getString(R.string.msg_type_location);
+        } else if (snippet.startsWith("<?xml")) {
+            snippet = context.getString(R.string.msg_type_CaiYun);
+        } else if (snippet.startsWith("burnMessage")) {
+            snippet = context.getString(R.string.msg_type_burnMessage);
+        }
+        return snippet;
     }
 
 }

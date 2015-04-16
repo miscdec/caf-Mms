@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -133,7 +134,7 @@ public class MessageDetailAdapter extends PagerAdapter {
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_MAP) {
                 imageView.setImageResource(R.drawable.rcs_map);
                 String body = mCursor.getString(mCursor.getColumnIndexOrThrow(Sms.BODY));
-                textView.setText(body.substring(body.lastIndexOf("/") + 1, body.length()));
+                textView.setText(body);
                 mContentType = "map/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_VCARD) {
                 textView.setVisibility(View.GONE);
@@ -220,10 +221,10 @@ public class MessageDetailAdapter extends PagerAdapter {
     private void initImageMsgView(LinearLayout linearLayout) {
         String thumbPath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_thumb_path"));
         String filePath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_path"));
-        if (thumbPath != null && new File(thumbPath).exists() && thumbPath.contains(".")) {
+        if (thumbPath != null && !new File(thumbPath).exists() && thumbPath.contains(".")) {
             thumbPath = thumbPath.substring(0, thumbPath.lastIndexOf("."));
         }
-        if (filePath != null && new File(filePath).exists() && filePath.contains(".")) {
+        if (filePath != null && !new File(filePath).exists() && filePath.contains(".")) {
             filePath = filePath.substring(0, filePath.lastIndexOf("."));
         }
         ImageView imageView = (ImageView)linearLayout.findViewById(R.id.image_view);
@@ -314,24 +315,32 @@ public class MessageDetailAdapter extends PagerAdapter {
                     showOpenRcsVcardDialog();
                     break;
                 case RcsUtils.RCS_MSG_TYPE_MAP:
-                    Intent intent_map = new Intent();
-                    GeoLocation geo = RcsUtils.readMapXml(rcsPath);
-                    String geourl = "geo:" + geo.getLat() + "," + geo.getLng();
-                    try {
-                        Uri uri = Uri.parse(geourl);
-                        Intent it = new Intent(Intent.ACTION_VIEW, uri);
-                        mContext.startActivity(it);
-                    } catch (Exception e) {
-                        Toast.makeText(mContext, R.string.toast_install_map, Toast.LENGTH_SHORT)
-                                .show();
-                    }
-
+                    openMapMessage(filepath);
                     break;
                 default:
                     break;
             }
         }
     };
+
+    private void openMapMessage(String path){
+        try {
+            Intent intent_map = new Intent();
+            GeoLocation geo = RcsUtils.readMapXml(path);
+            String geourl = "geo:" + geo.getLat() + "," + geo.getLng() +
+                    "?q=" +geo.getLabel();
+            Uri uri = Uri.parse(geourl);
+            Intent it = new Intent(Intent.ACTION_VIEW, uri);
+            mContext.startActivity(it);
+        } catch (NullPointerException e) {
+            Log.w("RCS_UI", e);
+        } catch (ActivityNotFoundException ae) {
+            Toast.makeText(mContext,
+                    R.string.toast_install_map, Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.w("RCS_UI", e);
+        }
+    }
 
     private void showOpenRcsVcardDialog(){
         int rcsId = mCursor.getInt(mCursor.getColumnIndexOrThrow("rcs_id"));

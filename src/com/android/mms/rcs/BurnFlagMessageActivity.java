@@ -48,6 +48,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.view.Gravity;
 import android.view.SurfaceView;
@@ -110,8 +111,6 @@ public class BurnFlagMessageActivity extends Activity {
     private ImageView mAudioIcon;
 
     private RelativeLayout mRootLayout;
-
-    private SurfaceView video_suf;
 
     private long mTempType;
 
@@ -314,6 +313,9 @@ public class BurnFlagMessageActivity extends Activity {
 
         WindowManager mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         mTelManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+        mTelManager.listen(new phoneStateListener(),
+                PhoneStateListener.LISTEN_CALL_STATE);
+
         IntentFilter filter = new IntentFilter();
         filter.addAction(BroadcastConstants.UI_DOWNLOADING_FILE_CHANGE);
         filter.addAction(ACTION_REGISTER_STATUS_CHANGED);
@@ -388,9 +390,7 @@ public class BurnFlagMessageActivity extends Activity {
                     + "\"");
             mVideo.setVideoURI(Uri.parse(filepath));
             mVideo.start();
-            if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-                burnMessage(mSmsId, mRcsId);
-            }
+
             handler.sendEmptyMessage(VIDEO_TIME_REFRESH);
         } else {
             mVideo.setVisibility(View.GONE);
@@ -555,7 +555,6 @@ public class BurnFlagMessageActivity extends Activity {
         mVideoLen = (TextView) findViewById(R.id.video_len);
         mAudioIcon = (ImageView) findViewById(R.id.audio_icon);
         mRootLayout = (RelativeLayout) findViewById(R.id.gif_root_view);
-        video_suf = (SurfaceView) findViewById(R.id.video_suf);
     }
 
     public static int getVideoLength(String message) {
@@ -583,4 +582,14 @@ public class BurnFlagMessageActivity extends Activity {
         });
     }
 
+    class phoneStateListener extends PhoneStateListener {
+        @Override
+        public void onCallStateChanged(int state, String incomingNumber) {
+            switch(state) {
+            case TelephonyManager.CALL_STATE_RINGING:
+                finish();
+                break;
+            }
+        }
+    }
 }

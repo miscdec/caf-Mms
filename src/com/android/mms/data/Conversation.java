@@ -184,6 +184,23 @@ public class Conversation {
     }
 
     /**
+     * Find the conversation matching the provided thread ID.
+     */
+    public static Conversation getNewConversation(Context context, long threadId, boolean allowQuery) {
+
+        Conversation conv = new Conversation(context, threadId, allowQuery);
+        try {
+            Cache.put(conv);
+        } catch (IllegalStateException e) {
+            LogTag.error("Tried to add duplicate Conversation to Cache (from threadId): " + conv);
+            if (!Cache.replace(conv)) {
+                LogTag.error("get by threadId cache.replace failed on " + conv);
+            }
+        }
+        return conv;
+    }
+
+    /**
      * Find the conversation matching the provided recipient set.
      * When called with an empty recipient list, equivalent to {@link #createNew}.
      */
@@ -988,8 +1005,6 @@ public class Conversation {
 
             handler.setDeleteToken(token);
             handler.startDelete(token, new Long(-1), Threads.CONTENT_URI, selection, null);
-            handler.startDelete(token, new Long(-1), SuntekMessageData.SUNTEK_MESSAGE_CONTENT_URI,
-                    null, null);
         }
     }
 

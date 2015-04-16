@@ -519,9 +519,7 @@ public class RcsMessageOpenUtils {
         String messageItemBody = messageItem.mBody;
         try {
             GeoLocation geo = RcsUtils.readMapXml(filePath);
-            String messageStr = messageItemBody.substring(messageItemBody.
-                    lastIndexOf("/") + 1, messageItemBody.length());
-            String geourl = "geo:" + geo.getLat() + "," + geo.getLng()+ "?q=" + messageStr;
+            String geourl = "geo:" + geo.getLat() + "," + geo.getLng()+ "?q=" + geo.getLabel();
             Uri uri = Uri.parse(geourl);
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(geourl));
             messageListItem.getContext().startActivity(intent);

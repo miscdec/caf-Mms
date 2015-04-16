@@ -25,7 +25,8 @@
     android:id="@+id/layout_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:alpha="50" >
+    android:theme="@android:style/Theme.Translucent"
+    android:background="#e0000000" >
 
     <ImageView
         android:id="@+id/image"
@@ -43,7 +44,7 @@
         android:layout_marginTop="200dp"
         android:layout_centerHorizontal="true"
         android:gravity="center"
-        android:textColor="@color/white"
+        android:textColor="@color/black"
         android:textSize="20sp"
         android:visibility="gone" />
 
@@ -102,11 +103,5 @@
         android:layout_centerInParent="true"
         android:visibility="gone"
         />
-    <SurfaceView
-        android:id="@+id/video_suf"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:visibility="gone"
-        />
+
 </RelativeLayout>

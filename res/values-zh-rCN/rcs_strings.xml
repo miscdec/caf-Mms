@@ -228,5 +228,12 @@
     <string name="favorite_fail">收藏失败</string>
     <string name="temp_group_chat">临时群聊</string>
     <string name="rcs_offline_on_groupchat">您已离线，群聊不能发送多媒体消息。</string>
+    <string name="msg_type_audio">语音消息</string>
+    <string name="msg_type_image">图片消息</string>
+    <string name="msg_type_video">视频消息</string>
+    <string name="msg_type_contact">电子名片消息</string>
+    <string name="msg_type_location">地理位置消息</string>
+    <string name="msg_type_CaiYun">彩云文件消息</string>
+    <string name="msg_type_burnMessage">阅后即焚消息</string>
     <string name="merge_contacts">合并联系人</string>
 </resources>
