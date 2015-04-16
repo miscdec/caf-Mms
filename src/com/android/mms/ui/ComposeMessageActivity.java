@@ -388,6 +388,12 @@ public class ComposeMessageActivity extends Activity
     private static final int BACKUP_MESSAGES = 0;
     private static final int RECOVER_MESSAGES = 1;
 
+    // Forward message
+    private static final int FORWARD_INPUT_NUMBER = 0;
+    private static final int FORWADR_CONTACTS = 1;
+    private static final int FORWARD_CONVERSATION = 2;
+    private static final int FORWARD_CONTACT_GROUP = 3;
+
     private static final int RECIPIENTS_MAX_LENGTH = 312;
     private static final int RCS_MAX_SMS_LENGHTH = 900;
     private static final int MESSAGE_LIST_QUERY_TOKEN = 9527;
@@ -2988,7 +2994,6 @@ public class ComposeMessageActivity extends Activity
             unregisterReceiver(mGroupReceiver);
             unregisterReceiver(mCloudFileReceiver);
             unregisterReceiver(mRcsServiceCallbackReceiver);
-            unregisterReceiver(mBackupStateReceiver);
             unregisterReceiver(mEmotionDownloadReceiver);
             unregisterReceiver(mPhotoUpdateReceiver);
         } catch (Exception e) {
@@ -4101,11 +4106,10 @@ public class ComposeMessageActivity extends Activity
 
     private void showAttachmentSelector(final boolean replace) {
         //close KB and emoji view.
-        if (mRcsEmojiInitialize != null)
+        if (mRcsEmojiInitialize != null) {
             mRcsEmojiInitialize.closeViewAndKB();
-        if(RcsApiManager.isRcsServiceInstalled()){
-            RcsUtils.closeKB(ComposeMessageActivity.this);
         }
+        RcsUtils.closeKB(ComposeMessageActivity.this);
         mAttachmentPager = (ViewPager) findViewById(R.id.attachments_selector_pager);
         mIsReplaceAttachment = replace;
         mCurrentAttachmentPager = DEFAULT_ATTACHMENT_PAGER;
@@ -4547,13 +4551,17 @@ public class ComposeMessageActivity extends Activity
 
             case REQUEST_SELECT_GROUP:
                 if (data != null) {
-                    forwardRcsMessage(data);
+                    ArrayList<String> numbers = data.getStringArrayListExtra(
+                            SelectRecipientsList.EXTRA_RECIPIENTS);
+                    forwardRcsMessage(numbers);
                 }
                 break;
 
             case REQUEST_CODE_RCS_PICK:
                 if (data != null) {
-                    forwardRcsMessage(data);
+                    ArrayList<String> numbers = data.getStringArrayListExtra(
+                            SelectRecipientsList.EXTRA_RECIPIENTS);
+                    forwardRcsMessage(numbers);
                 }
                 break;
 
@@ -4775,9 +4783,7 @@ public class ComposeMessageActivity extends Activity
         }
     };
 
-    private void forwardRcsMessage(Intent data) {
-        ArrayList<String> numbers = data.getStringArrayListExtra(
-                SelectRecipientsList.EXTRA_RECIPIENTS);
+    private void forwardRcsMessage(ArrayList<String> numbers) {
         ContactList list = ContactList.getByNumbers(numbers, true);
         long a = -1;
         boolean success = false;
@@ -6361,13 +6367,12 @@ public class ComposeMessageActivity extends Activity
 
     private void handleRcsGroupChatDeleted(Bundle extras) {
         String groupId = extras.getString(BroadcastConstants.BC_VAR_GROUP_ID);
-        if (groupId == null) {
+        if (TextUtils.isEmpty(groupId)) {
             return;
         }
 
         if (mConversation != null && mConversation.getGroupChat() != null
-                && !TextUtils.isEmpty(groupId)
-                && groupId.equals(mConversation.getGroupChat().getId())) {
+                && groupId.equals(mConversation.getGroupChat().getId() + "")) {
             try {
                 GroupChatModel groupChat = mMessageApi.getGroupChatById(groupId);
                 mConversation.setGroupChat(groupChat);
@@ -7913,36 +7918,11 @@ public class ComposeMessageActivity extends Activity
         }
 
         private void showSaveOrBackDialog(final Context context) {
-            String[] items = new String[] {
-                    context.getString(R.string.message_save),
-                    context.getString(R.string.message_back)
-            };
-            AlertDialog.Builder builder = new Builder(context);
-            builder.setTitle(getString(R.string.save_back_message));
-            builder.setItems(items, new DialogInterface.OnClickListener() {
-
-                @Override
-                public void onClick(DialogInterface arg0, int arg1) {
-                    switch (arg1) {
-                        case BACKUP_MESSAGES:
-                            IntentFilter backupFilter = new IntentFilter();
-                            backupFilter.addAction(ACTION_BACKUP_MESSAGES);
-                            registerReceiver(mBackupStateReceiver, backupFilter);
-                            toast(R.string.message_save);
-                            backupMessage();
-                            break;
-                        case RECOVER_MESSAGES:
-                            toast(R.string.message_back);
-                            showProgressDialog(context, 1,
-                                    context.getString(R.string.message_back), 10);
-                            break;
-                        default:
-                            break;
-                    }
-
-                }
-            });
-            builder.create().show();
+            IntentFilter backupFilter = new IntentFilter();
+            backupFilter.addAction(ACTION_BACKUP_MESSAGES);
+            registerReceiver(mBackupStateReceiver, backupFilter);
+            toast(R.string.message_save);
+            backupMessage();
         }
 
         private String getAllSMSBody() {
@@ -7986,20 +7966,53 @@ public class ComposeMessageActivity extends Activity
         private class ForwardClickListener implements OnClickListener{
             public void onClick(DialogInterface dialog, int whichButton) {
                 switch (whichButton) {
-                    case 0:
+                    case FORWARD_INPUT_NUMBER:
+                        inputNumberForwarMessage();
+                        break;
+                    case FORWARD_CONTACTS:
                        launchRcsPhonePicker();
                         break;
-                    case 1:
+                    case FORWARD_CONVERSATION:
                         Intent intent = new Intent(ComposeMessageActivity.this,ConversationList.class);
                         intent.putExtra(MULTI_SELECT_CONV, true);
                         startActivityForResult(intent, REQUEST_SELECT_CONV);
                         break;
-                    case 2:
+                    case FORWARD_CONTACT_GROUP:
                         launchRcsContactGroupPicker(REQUEST_SELECT_GROUP);
                     default:
                         break;
                 }
             }
+        }
+
+        private void inputNumberForwarMessage(){
+            final EditText editText = new EditText(ComposeMessageActivity.this);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            editText.setLayoutParams(lp);
+            editText.setHint(R.string.forward_input_number_hint);
+            new AlertDialog.Builder(ComposeMessageActivity.this)
+            .setTitle(R.string.forward_input_number_title)
+            .setView(editText)
+            .setPositiveButton(android.R.string.ok,  new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    String input = editText.getText().toString();
+                    if (TextUtils.isEmpty(input)) {
+                        toast(R.string.forward_input_number_title);
+                    } else {
+                        String[] numbers = input.split(";");
+                        if (numbers != null && numbers.length > 0) {
+                            ArrayList<String> numberList = new ArrayList<String>();
+                            for (int i = 0; i < numbers.length; i++) {
+                                numberList.add(numbers[i]);
+                            }
+                            forwardRcsMessage(numberList);
+                        }
+                    }
+                }
+            }).setNegativeButton(android.R.string.cancel, null)
+            .show();
         }
 
         private void forwardMessage() {
@@ -8229,7 +8242,7 @@ public class ComposeMessageActivity extends Activity
 
                 if (noRcsSelected) {
                     mode.getMenu().findItem(R.id.forward)
-                    .setVisible(isMessageForwardable(position));
+                            .setVisible(isMessageForwardable(position));
                 } else {
                     mode.getMenu().findItem(R.id.forward).setVisible(true);
                 }
@@ -8476,7 +8489,6 @@ public class ComposeMessageActivity extends Activity
         if (mProgressDialog == null) {
             mProgressDialog = new ProgressDialog(context);
             mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-            mProgressDialog.setMessage(title);
             mProgressDialog.setCancelable(false);
             mProgressDialog.setCanceledOnTouchOutside(false);
             mProgressDialog.setButton(
@@ -8493,15 +8505,14 @@ public class ComposeMessageActivity extends Activity
                             }
                         }
                     });
-            mProgressDialog.setMax(total);
-            mProgressDialog.setProgress(progress);
-            mProgressDialog.show();
-        } else {
-            mProgressDialog.setMessage(title);
-            mProgressDialog.setMax(total);
-            mProgressDialog.setProgress(progress);
-            mProgressDialog.show();
         }
+        if (total > 0) {
+            mProgressDialog.setMax(total);
+        }
+        mProgressDialog.setMessage(title);
+        mProgressDialog.setMax(total);
+        mProgressDialog.setProgress(progress);
+        mProgressDialog.show();
     }
 
     private final BroadcastReceiver mBackupStateReceiver = new BroadcastReceiver() {
@@ -8533,6 +8544,9 @@ public class ComposeMessageActivity extends Activity
                         mSimpleMsgs.clear();
                         mProgressDialog = null;
                         Toast.makeText(context, R.string.message_save_ok, Toast.LENGTH_SHORT).show();
+                        if (mBackupStateReceiver != null){
+                            unregisterReceiver(mBackupStateReceiver);
+                        }
                         break;
                     case BACKUP_ALL_MESSAGES_FAIL:
                         if (mProgressDialog != null && mProgressDialog.isShowing()) {
@@ -8542,6 +8556,9 @@ public class ComposeMessageActivity extends Activity
                         mProgressDialog = null;
                         Toast.makeText(context, R.string.message_save_fail,
                                 Toast.LENGTH_SHORT).show();
+                        if (mBackupStateReceiver != null){
+                            unregisterReceiver(mBackupStateReceiver);
+                        }
                         break;
                     default:
                         break;
