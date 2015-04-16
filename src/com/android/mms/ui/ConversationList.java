@@ -222,6 +222,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @Override
                 public void onBootMe(Bundle extras) {
                 }
+
+                @Override
+                public void onGroupGone(Bundle extras) {
+                }
             });
 
     private BroadcastReceiver backupAllMessageReceiver = new BroadcastReceiver() {

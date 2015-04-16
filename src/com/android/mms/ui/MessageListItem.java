@@ -774,14 +774,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         }
         if (!sameItem || haveLoadedPdu) {
             if (mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_VCARD) {
-                if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_MAP) {
-                    String body = formattedMessage.toString();
-                    String messageStr = body.substring(body.
-                            lastIndexOf("/") + 1, body.length());
-                    mBodyTextView.setText(messageStr);
-                } else {
-                    mBodyTextView.setText(formattedMessage);
-                }
+                mBodyTextView.setText(formattedMessage);
             }
         }
         updateSimIndicatorView(mMessageItem.mPhoneId);
