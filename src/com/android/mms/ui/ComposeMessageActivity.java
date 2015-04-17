@@ -2778,7 +2778,7 @@ public class ComposeMessageActivity extends Activity
         // the thread. Unblocking occurs when we're done querying for the conversation
         // items.
         mConversation.blockMarkAsRead(true);
-        mConversation.markAsRead(true);         // dismiss any notifications for this convo
+        mConversation.markAsRead(true, false);         // dismiss any notifications for this convo
         startMsgListQuery();
         updateSendFailedNotification();
     }
@@ -2872,7 +2872,7 @@ public class ComposeMessageActivity extends Activity
 
         mIsRunning = true;
         updateThreadIdIfRunning();
-        mConversation.markAsRead(true);
+        mConversation.markAsRead(true, false);
         mIsAirplaneModeOn = MessageUtils.isAirplaneModeOn(this);
 
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
@@ -2918,7 +2918,7 @@ public class ComposeMessageActivity extends Activity
             Log.v(TAG, "onPause: mSavedScrollPosition=" + mSavedScrollPosition);
         }
 
-        mConversation.markAsRead(true);
+        mConversation.markAsRead(true, false);
         mIsRunning = false;
     }
 
