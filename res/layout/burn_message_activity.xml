@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (c) 2014 pci-suntektech Technologies, Inc.  All Rights Reserved.
+<!--
+ Copyright (c) 2014 pci-suntektech Technologies, Inc.  All Rights Reserved.
  * pci-suntektech Technologies Proprietary and Confidential.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -39,10 +40,10 @@
         android:id="@+id/text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="20dp"
-        android:layout_marginTop="200dp"
         android:layout_centerHorizontal="true"
+        android:layout_marginTop="200dp"
         android:gravity="center"
+        android:padding="20dp"
         android:textColor="@color/white"
         android:textSize="20sp"
         android:visibility="gone" />
@@ -72,8 +73,8 @@
         android:id="@+id/audio"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:layout_centerInParent="true" />
+        android:layout_centerInParent="true"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/burn_time"
@@ -92,7 +93,14 @@
         android:layout_above="@+id/progress_text"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="35dp"
-        android:visibility="gone"
-        android:src="@drawable/audio_1" />
+        android:src="@drawable/audio_1"
+        android:visibility="gone" />
+
+    <RelativeLayout
+        android:id="@+id/gif_root_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone" />
 
 </RelativeLayout>
