@@ -20,10 +20,10 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
 package com.android.mms.image;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.util.Log;
 
 public class FileImageGetter extends ImageGetter {
@@ -37,7 +37,7 @@ public class FileImageGetter extends ImageGetter {
         Log.i("imageloader", "load file image:" + path);
         imageTask.setLoading(true);
         // load image from local file
-        Bitmap bitmap = BitmapFactory.decodeFile(path);
+        Bitmap bitmap = ScaleBitmapDecoder.decodeFile(path, 200, 200);
         listener.onLoaded(path, bitmap, imageTask.getImageView());
 
         imageTask.setLoading(false);

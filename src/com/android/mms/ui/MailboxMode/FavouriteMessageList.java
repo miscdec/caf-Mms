@@ -21,7 +21,6 @@
  * IN THE SOFTWARE.
  */
 
-
 package com.android.mms.ui;
 
 import java.util.ArrayList;
@@ -81,6 +80,7 @@ import android.view.ViewGroup;
 import com.android.mms.data.Contact;
 import com.android.mms.data.Conversation;
 import com.android.mms.LogTag;
+import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.ui.MessageListAdapter;
 import com.android.mms.rcs.RcsChatMessageUtils;
@@ -172,7 +172,6 @@ public class FavouriteMessageList extends ListActivity implements
     private ListView mListView;
     private TextView mCountTextView;
     private TextView mMessageTitle;
-    private View mSpinners;
     private Spinner mSlotSpinner = null;
     private Spinner mBoxSpinner;
     private ModeCallback mModeCallback = null;
@@ -198,8 +197,9 @@ public class FavouriteMessageList extends ListActivity implements
 
         mQueryHandler = new BoxMsgListQueryHandler(getContentResolver());
         setContentView(R.layout.mailbox_list_screen);
-        mSpinners = (View) findViewById(R.id.spinners);
-        initSpinner();
+        View spinners = (View) findViewById(R.id.spinners);
+
+        spinners.setVisibility(View.GONE);
 
         mListView = getListView();
         getListView().setItemsCanFocus(true);
@@ -210,14 +210,12 @@ public class FavouriteMessageList extends ListActivity implements
         setupActionBar();
         actionBar.setTitle("favourite");
         mHandler = new Handler();
-        handleIntent(getIntent());
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        handleIntent(intent);
     }
 
     @Override
@@ -421,7 +419,6 @@ public class FavouriteMessageList extends ListActivity implements
 
         if (isSearchMode() && mSearchTitle != null) {
             mMessageTitle.setText(mSearchTitle);
-            mSpinners.setVisibility(View.GONE);
         } else {
             mListView.setMultiChoiceModeListener(mModeCallback);
         }
@@ -601,6 +598,7 @@ public class FavouriteMessageList extends ListActivity implements
                     }
                     mCursor = cursor;
                     TextView emptyView = (TextView) findViewById(R.id.emptyview);
+                    mListView.setEmptyView(emptyView);
                     if (mListAdapter == null) {
                         mListAdapter = new MailBoxMessageListAdapter(FavouriteMessageList.this,
                                 FavouriteMessageList.this, cursor);
@@ -753,9 +751,9 @@ public class FavouriteMessageList extends ListActivity implements
                 startActivityIfNeeded(intent, -1);
                 break;
             case R.id.action_change_mode:
-                Intent modeIntent = new Intent(this, ConversationList.class);
-                MessageUtils.setMailboxMode(false);
-                startActivityIfNeeded(modeIntent, -1);
+                Intent folderModeIntent = new Intent(this, ConversationList.class);
+                startActivityIfNeeded(folderModeIntent, -1);
+                MessageUtils.setMailboxMode(true);
                 finish();
                 break;
             case R.id.action_memory_status:
@@ -782,7 +780,6 @@ public class FavouriteMessageList extends ListActivity implements
     @Override
     public void onDestroy() {
         super.onDestroy();
-
         mHasLockedMessage = false;
         mIsPause = true;
         if (mCursor != null) {
@@ -856,7 +853,7 @@ public class FavouriteMessageList extends ListActivity implements
         }
         mListAdapter.notifyDataSetChanged();
     }
-    
+
     private void deleteMessages(boolean deleteLocked) {
         String whereClause;
         String smsWhereDelete = mSmsWhereDelete;
@@ -1009,7 +1006,6 @@ public class FavouriteMessageList extends ListActivity implements
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
             // comes into MultiChoiceMode
             mMultiChoiceMode = true;
-            mSpinners.setVisibility(View.GONE);
             MenuInflater inflater = getMenuInflater();
             inflater.inflate(R.menu.conversation_multi_select_menu, menu);
 
@@ -1066,7 +1062,6 @@ public class FavouriteMessageList extends ListActivity implements
             mMultiChoiceMode = false;
             getListView().clearChoices();
             mListAdapter.notifyDataSetChanged();
-            mSpinners.setVisibility(View.VISIBLE);
             mSelectionMenu.dismiss();
 
         }
