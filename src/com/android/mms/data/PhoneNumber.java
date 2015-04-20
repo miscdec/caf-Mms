@@ -305,8 +305,10 @@ public class PhoneNumber implements Comparable<PhoneNumber> {
 
             emailAddress = getEmailAddress(context, contactsPreferences,
                     phoneNumbers);
-            for (int i = 0; i < emailAddress.size(); i++) {
-                phoneNumbers.add(emailAddress.get(i));
+            if (emailAddress != null) {
+                for (int i = 0; i < emailAddress.size(); i++) {
+                    phoneNumbers.add(emailAddress.get(i));
+                }
             }
             Collections.sort(phoneNumbers, PhoneNumber.PhoneNameComparator);
         }
