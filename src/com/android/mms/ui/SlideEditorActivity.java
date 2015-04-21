@@ -525,7 +525,7 @@ public class SlideEditorActivity extends Activity implements
                 int currentSlideSize = slide.getSlideSize();
                 long sizeLimit = ComposeMessageActivity.computeAttachmentSizeLimit(mSlideshowModel,
                         currentSlideSize);
-                MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, sizeLimit, true);
+                MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, sizeLimit);
                 break;
 
             case MENU_DEL_AUDIO:
@@ -545,7 +545,7 @@ public class SlideEditorActivity extends Activity implements
                 sizeLimit = ComposeMessageActivity.computeAttachmentSizeLimit(mSlideshowModel,
                         currentSlideSize);
                 if (sizeLimit > 0) {
-                    MessageUtils.recordVideo(this, REQUEST_CODE_TAKE_VIDEO, sizeLimit, true);
+                    MessageUtils.recordVideo(this, REQUEST_CODE_TAKE_VIDEO, sizeLimit);
                 } else {
                     Toast.makeText(this,
                             getString(R.string.message_too_big_for_video),

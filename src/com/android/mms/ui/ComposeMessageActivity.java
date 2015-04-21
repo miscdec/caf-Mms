@@ -3945,8 +3945,7 @@ public class ComposeMessageActivity extends Activity
                 }
                 if (sizeLimit > 0) {
                     MessageUtils.recordVideo(this,
-                        getMakRequestCode(replace, REQUEST_CODE_TAKE_VIDEO), sizeLimit,
-                        mWorkingMessage.requiresMms());
+                        getMakRequestCode(replace, REQUEST_CODE_TAKE_VIDEO), sizeLimit);
                 } else {
                     Toast.makeText(this,
                             getString(R.string.message_too_big_for_video),
@@ -3963,8 +3962,7 @@ public class ComposeMessageActivity extends Activity
             case AttachmentPagerAdapter.RECORD_SOUND:
                 long sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 MessageUtils.recordSound(this,
-                        getMakRequestCode(replace, REQUEST_CODE_RECORD_SOUND), sizeLimit,
-                        mWorkingMessage.requiresMms());
+                        getMakRequestCode(replace, REQUEST_CODE_RECORD_SOUND), sizeLimit);
                 break;
 
             case AttachmentPagerAdapter.ADD_SLIDESHOW:
@@ -4000,10 +3998,6 @@ public class ComposeMessageActivity extends Activity
                 }
                 break;
             case AttachmentPagerAdapter.ADD_MAP:
-                 if (mWorkingMessage.requiresMms()) {
-                     toast(R.string.rcs_service_is_not_available);
-                     break;
-                 }
                 try {
                     Intent intent = new Intent();
                     intent.setAction("com.suntek.mway.rcs.MAP_POSITION_SELECT");
@@ -4281,8 +4275,7 @@ public class ComposeMessageActivity extends Activity
                 || (requestCode == REQUEST_CODE_VCARD_GROUP)
                 || (requestCode == REQUEST_CODE_SAIYUN)
                 || (requestCode == REQUEST_SELECT_LOCAL_AUDIO);
-        boolean isMms = mWorkingMessage.requiresMms();
-        if (!isMms && mIsRcsEnabled && mSupportApi.isOnline() && isRcsMessage
+        if (mIsRcsEnabled && mSupportApi.isOnline() && isRcsMessage 
                 && (mSendButtonMms != null && mSendButtonMms.getVisibility() == View.GONE)) {
             switch (requestCode) {
                 case PHOTO_CROP:
