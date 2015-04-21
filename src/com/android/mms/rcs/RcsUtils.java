@@ -1526,6 +1526,8 @@ public class RcsUtils {
         }, "number" + " LIKE '%" + comparenNumber + "'", null, null);
         try {
             if (checkCursor != null && checkCursor.getCount() > 0) {
+                checkCursor.close();
+                checkCursor = null;
                 String Stoast = isBlacklist ? context.getString(R.string.firewall_number_in_white)
                         : context.getString(R.string.firewall_number_in_black);
                 Toast.makeText(context, Stoast, Toast.LENGTH_SHORT).show();
