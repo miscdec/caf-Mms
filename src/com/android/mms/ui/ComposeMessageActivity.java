@@ -3489,16 +3489,10 @@ public class ComposeMessageActivity extends Activity
         // ADD firewall menu
         if (!mConversation.isGroupChat() && 1 == getRecipients().size()
                 && RcsUtils.isFireWallInstalled(ComposeMessageActivity.this)) {
-            if (RcsUtils.showFirewallMenu(getContext(),
-                    mConversation.getRecipients(), true)) {
-                menu.add(0, MENU_FIERWALL_ADD_BLACKLIST, 0,
-                        getString(R.string.menuid_add_to_black_list));
-            }
-            if (RcsUtils.showFirewallMenu(getContext(),
-                    mConversation.getRecipients(), false)) {
-                menu.add(0, MENU_FIERWALL_ADD_WHITELIST, 0,
-                        getString(R.string.menuid_add_to_white_list));
-            }
+            menu.add(0, MENU_FIERWALL_ADD_BLACKLIST, 0,
+                    getString(R.string.menuid_add_to_black_list));
+            menu.add(0, MENU_FIERWALL_ADD_WHITELIST, 0,
+                    getString(R.string.menuid_add_to_white_list));
         }
 
         menu.add(0, MENU_PREFERENCES, 0, R.string.menu_preferences).setIcon(
@@ -4093,7 +4087,7 @@ public class ComposeMessageActivity extends Activity
         //close KB and emoji view.
         if (mRcsEmojiInitialize != null)
             mRcsEmojiInitialize.closeViewAndKB();
-        if(RcsApiManager.getSupportApi().isRcsSupported()){
+        if(RcsApiManager.isRcsServiceInstalled()){
             RcsUtils.closeKB(ComposeMessageActivity.this);
         }
         mAttachmentPager = (ViewPager) findViewById(R.id.attachments_selector_pager);
@@ -6924,7 +6918,7 @@ public class ComposeMessageActivity extends Activity
                             threadIds,
                             cursor != null && cursor.getCount() > 0,
                             ComposeMessageActivity.this);
-                    if(RcsApiManager.getSupportApi().isRcsSupported()){
+                    if(RcsApiManager.isRcsServiceInstalled()){
                         RcsUtils.deleteRcsMessageByThreadId(ComposeMessageActivity.this, threadIds);
                     }
                     if (cursor != null) {
@@ -7429,8 +7423,13 @@ public class ComposeMessageActivity extends Activity
                 SqliteWrapper.delete(getContext(), mContentResolver, uri, null,
                         null);
             }
+<<<<<<< HEAD
             if(RcsApiManager.getSupportApi().isRcsSupported()){
                 RcsUtils.deleteRcsMessageByMessageId(mSelectedRcsMsgId);
+=======
+            if(RcsApiManager.isRcsServiceInstalled()){
+                RcsUtils.deleteRcsMessageByMessageId(mSelectedRcsMsg);
+>>>>>>> parent of 5bc59c2... Mms: It still display "add to blacklist" after added
             }
             mDeleteLockedMessages = false;
         }
