@@ -378,6 +378,26 @@ public class RcsUtils {
         return builder.toString();
     }
 
+    public static void topSms(Context context, long smsId) {
+        ContentValues values = new ContentValues();
+        values.put("rcs_top_time", System.currentTimeMillis());
+        final Uri THREAD_ID_CONTENT_URI = Uri.parse("content://mms-sms/update-sms-top");
+        Uri uri = ContentUris.withAppendedId(THREAD_ID_CONTENT_URI, smsId);
+        context.getContentResolver().update(THREAD_ID_CONTENT_URI, values, "_id=?", new String[] {
+            String.valueOf(smsId)
+        });
+    }
+
+    public static void cancelTopSms(Context context, long smsId) {
+        ContentValues values = new ContentValues();
+        values.put("rcs_top_time", 0);
+        final Uri THREAD_ID_CONTENT_URI = Uri.parse("content://mms-sms/update-sms-top");
+        Uri uri = ContentUris.withAppendedId(THREAD_ID_CONTENT_URI, smsId);
+        context.getContentResolver().update(THREAD_ID_CONTENT_URI, values, "_id=?", new String[] {
+            String.valueOf(smsId)
+        });
+    }
+
     public static void topConversion(Context context, Conversation conversation) {
         ContentValues values = new ContentValues();
         conversation.setIsTop(1);
