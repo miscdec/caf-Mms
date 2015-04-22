@@ -8112,7 +8112,16 @@ public class ComposeMessageActivity extends Activity
             mCheckedCount = getListView().getCheckedItemCount();
             updateStatics(position, checked);
             customMenuVisibility(mode, mCheckedCount, position, checked);
-            mode.setTitle(getString(R.string.selected_count, mCheckedCount));
+            // Update the button's text in RcsSelectionMenu with the number of
+            // checked item count and update select all mode.
+            mSelectionMenu.setTitle(getString(R.string.selected_count,
+                    mCheckedCount));
+            if (getListView().getCount() == mCheckedCount) {
+                mHasSelectAll = true;
+            } else {
+                mHasSelectAll = false;
+            }
+            mSelectionMenu.updateSelectAllMode(mHasSelectAll);
 
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
