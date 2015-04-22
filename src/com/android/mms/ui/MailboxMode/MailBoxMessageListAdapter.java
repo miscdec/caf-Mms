@@ -287,7 +287,8 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
 
             // get address and name of MMS from recipientIds
             addr = recipientIds;
-            if (!TextUtils.isEmpty(recipientIds)) {
+            if (!TextUtils.isEmpty(recipientIds) &&
+                    Integer.parseInt(recipientIds) > 0) {
                 addr = MessageUtils.getRecipientsByIds(context, recipientIds, true);
                 nameContact = Contact.get(addr, true).getName();
             } else if (threadId > 0) {
