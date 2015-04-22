@@ -246,4 +246,6 @@
     <string name="msg_type_CaiYun">Mcloud</string>
     <string name="msg_type_burnMessage">Burn after Read</string>
     <string name="merge_contacts">Merge Contacts</string>
+    <string name="mms_does_not_support_location_sharing">MMS does not support location sharing, please re select</string>
+    <string name="mms_does_not_support_rcs_cachemessage_send">RCS cache message does not support sending via MMS, please reselect</string>
 </resources>

@@ -3029,7 +3029,7 @@ public class ComposeMessageActivity extends Activity
     private void onKeyboardStateChanged() {
         // If the keyboard is hidden, don't show focus highlights for
         // things that cannot receive input.
-        if (mWorkingMessage.getCacheRcsMessage()) {
+        if (mWorkingMessage.getCacheRcsMessage() && !mWorkingMessage.requiresMms()) {
             mTextEditor.setEnabled(false);
         } else {
             mTextEditor.setEnabled(mIsSmsEnabled);
@@ -3746,6 +3746,21 @@ public class ComposeMessageActivity extends Activity
         dialog.show();
     }
 
+    private void showNotSupportRcsCacheMessageDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.mms_does_not_support_rcs_cachemessage_send);
+        builder.setPositiveButton(android.R.string.ok, new OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                cancelRcsMessageCache();
+                mWorkingMessage.clearCacheRcsMessage();
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
     @Override
     protected Dialog onCreateDialog(int id) {
         switch (id) {
@@ -3945,7 +3960,8 @@ public class ComposeMessageActivity extends Activity
                 }
                 if (sizeLimit > 0) {
                     MessageUtils.recordVideo(this,
-                        getMakRequestCode(replace, REQUEST_CODE_TAKE_VIDEO), sizeLimit);
+                        getMakRequestCode(replace, REQUEST_CODE_TAKE_VIDEO), sizeLimit,
+                        mWorkingMessage.requiresMms());
                 } else {
                     Toast.makeText(this,
                             getString(R.string.message_too_big_for_video),
@@ -3962,7 +3978,8 @@ public class ComposeMessageActivity extends Activity
             case AttachmentPagerAdapter.RECORD_SOUND:
                 long sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 MessageUtils.recordSound(this,
-                        getMakRequestCode(replace, REQUEST_CODE_RECORD_SOUND), sizeLimit);
+                        getMakRequestCode(replace, REQUEST_CODE_RECORD_SOUND), sizeLimit,
+                        mWorkingMessage.requiresMms());
                 break;
 
             case AttachmentPagerAdapter.ADD_SLIDESHOW:
@@ -3998,6 +4015,10 @@ public class ComposeMessageActivity extends Activity
                 }
                 break;
             case AttachmentPagerAdapter.ADD_MAP:
+                 if (mWorkingMessage.requiresMms()) {
+                     toast(R.string.mms_does_not_support_location_sharing);
+                     break;
+                 }
                 try {
                     Intent intent = new Intent();
                     intent.setAction("com.suntek.mway.rcs.MAP_POSITION_SELECT");
@@ -4275,7 +4296,8 @@ public class ComposeMessageActivity extends Activity
                 || (requestCode == REQUEST_CODE_VCARD_GROUP)
                 || (requestCode == REQUEST_CODE_SAIYUN)
                 || (requestCode == REQUEST_SELECT_LOCAL_AUDIO);
-        if (mIsRcsEnabled && mSupportApi.isOnline() && isRcsMessage 
+        boolean isMms = mWorkingMessage.requiresMms();
+        if (!isMms && mIsRcsEnabled && mSupportApi.isOnline() && isRcsMessage
                 && (mSendButtonMms != null && mSendButtonMms.getVisibility() == View.GONE)) {
             switch (requestCode) {
                 case PHOTO_CROP:
@@ -5559,7 +5581,11 @@ public class ComposeMessageActivity extends Activity
                 confirmSendMessageIfNeeded(PhoneConstants.SUB1);
             } else {
                 if (mWorkingMessage.getCacheRcsMessage()) {
-                    rcsSend();
+                    if (mWorkingMessage.requiresMms()) {
+                        showNotSupportRcsCacheMessageDialog();
+                    } else {
+                        rcsSend();
+                    }
                     return;
                 }
                 confirmSendMessageIfNeeded();
@@ -6106,7 +6132,10 @@ public class ComposeMessageActivity extends Activity
     private boolean isPreparedForSending() {
         int recipientCount = recipientCount();
 
-
+        if (RcsApiManager.getSupportApi().isRcsSupported() && mAccountApi.isOnline()
+                && recipientCount > 0 && mWorkingMessage.getCacheRcsMessage()) {
+            return true;
+        }
         if (mConversation.isGroupChat()) {
             return (!mSentMessage && mConversation.getGroupChat() == null && recipientCount > 0
                     && (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText()
