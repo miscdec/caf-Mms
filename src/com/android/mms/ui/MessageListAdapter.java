@@ -197,7 +197,7 @@ public class MessageListAdapter extends CursorAdapter {
     static final int COLUMN_RCS_PATH            = 6; 
     static final int COLUMN_RCS_THUMB_PATH      = 7;
     static final int COLUMN_RCS_MSG_TYPE        = 8;
-    public static final int COLUMN_RCS_ID       = 9;
+    static final int COLUMN_RCS_ID              = 9;
     static final int COLUMN_RCS_BURN_FLAG       = 10;
     static final int COLUMN_RCS_IS_BURN         = 11;
     static final int COLUMN_RCS_IS_DOWNLOAD     = 12;

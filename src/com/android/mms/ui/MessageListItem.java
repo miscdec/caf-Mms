@@ -774,7 +774,14 @@ public class MessageListItem extends ZoomMessageListItem implements
         }
         if (!sameItem || haveLoadedPdu) {
             if (mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_VCARD) {
-                mBodyTextView.setText(formattedMessage);
+                if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_MAP) {
+                    String body = formattedMessage.toString();
+                    String messageStr = body.substring(body.
+                            lastIndexOf("/") + 1, body.length());
+                    mBodyTextView.setText(messageStr);
+                } else {
+                    mBodyTextView.setText(formattedMessage);
+                }
             }
         }
         updateSimIndicatorView(mMessageItem.mPhoneId);
@@ -1363,7 +1370,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         showMmsView(true);
 
         try {
-            mImageView.setImageResource(R.drawable.ic_attach_cal_event);
+            mImageView.setImageResource(R.drawable.ic_attach_event);
             mImageView.setVisibility(VISIBLE);
         } catch (java.lang.OutOfMemoryError e) {
             // shouldn't be here.

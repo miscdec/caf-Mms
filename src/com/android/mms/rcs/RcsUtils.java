@@ -537,7 +537,7 @@ public class RcsUtils {
                         chatMessage.getMessageId()
                     }, null);
         } else {
-            cursor = SqliteWrapper.query(context, resolver, Sms.CONTENT_URI, null, "rcs_id = ?",
+            cursor = SqliteWrapper.query(context, resolver, Sms.CONTENT_URI, null, "_id = ?",
                     new String[] {
                         String.valueOf(chatMessage.getId())
                     }, null);
@@ -1504,7 +1504,6 @@ public class RcsUtils {
             // number length is not allowed 0-
             Toast.makeText(context, context.getString(R.string.firewall_number_len_not_valid),
                     Toast.LENGTH_SHORT).show();
-
             return;
         }
 
