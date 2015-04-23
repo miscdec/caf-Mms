@@ -26,7 +26,8 @@
     android:id="@+id/layout_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:alpha="50" >
+    android:theme="@android:style/Theme.Translucent"
+    android:background="#e0000000" >
 
     <ImageView
         android:id="@+id/image"

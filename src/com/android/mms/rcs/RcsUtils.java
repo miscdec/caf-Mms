@@ -537,7 +537,7 @@ public class RcsUtils {
                         chatMessage.getMessageId()
                     }, null);
         } else {
-            cursor = SqliteWrapper.query(context, resolver, Sms.CONTENT_URI, null, "_id = ?",
+            cursor = SqliteWrapper.query(context, resolver, Sms.CONTENT_URI, null, "rcs_id = ?",
                     new String[] {
                         String.valueOf(chatMessage.getId())
                     }, null);
