@@ -48,7 +48,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
+import android.view.Gravity;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -310,6 +313,9 @@ public class BurnFlagMessageActivity extends Activity {
 
         WindowManager mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         mTelManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+        mTelManager.listen(new phoneStateListener(),
+                PhoneStateListener.LISTEN_CALL_STATE);
+
         IntentFilter filter = new IntentFilter();
         filter.addAction(BroadcastConstants.UI_DOWNLOADING_FILE_CHANGE);
         filter.addAction(ACTION_REGISTER_STATUS_CHANGED);
@@ -397,9 +403,7 @@ public class BurnFlagMessageActivity extends Activity {
                     + "\"");
             mVideo.setVideoURI(Uri.parse(filepath));
             mVideo.start();
-//            if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-//                burnMessage(mSmsId, mRcsId);
-//            }
+
             handler.sendEmptyMessage(VIDEO_TIME_REFRESH);
         } else {
             mVideo.setVisibility(View.GONE);
@@ -442,6 +446,17 @@ public class BurnFlagMessageActivity extends Activity {
         } else {
             acceptFile();
             mProgressText.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private boolean imageIsGif(ChatMessage msg){
+        if (mMsg.getMimeType() != null &&
+                mMsg.getMimeType().endsWith("image/gif")
+                    || mMsg.getFilename() != null &&
+                        mMsg.getFilename().endsWith("gif")) {
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -562,18 +577,9 @@ public class BurnFlagMessageActivity extends Activity {
         }
         return 0;
     }
-    private boolean imageIsGif(ChatMessage msg){
-        if (mMsg.getMimeType() != null &&
-                mMsg.getMimeType().endsWith("image/gif")
-                    || mMsg.getFilename() != null &&
-                        mMsg.getFilename().endsWith("gif")) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    private void burnMessage(long RcsId, long messageId) {
-        String smsId = String.valueOf(messageId);
+
+    private void burnMessage(long messageId, long rcsId) {
+        String smsId = String.valueOf(rcsId);
         try {
             if (mMsg != null) {
                 RcsApiManager.getMessageApi().burnMessageAtOnce(smsId);
@@ -585,8 +591,18 @@ public class BurnFlagMessageActivity extends Activity {
         values.put("rcs_is_burn", 1);
         values.put("rcs_burn_body", "");
         getContentResolver().update(Uri.parse("content://sms/"), values, "rcs_id = ? ", new String[] {
-            String.valueOf(messageId)
+            smsId
         });
     }
 
+    class phoneStateListener extends PhoneStateListener {
+        @Override
+        public void onCallStateChanged(int state, String incomingNumber) {
+            switch(state) {
+            case TelephonyManager.CALL_STATE_RINGING:
+                finish();
+                break;
+            }
+        }
+    }
 }
