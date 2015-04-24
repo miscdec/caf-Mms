@@ -97,5 +97,5 @@
     <bool name="config_mms_rcv_data">false</bool>
 
     <!-- configuration for error toast during retry -->
-    <bool name="config_mms_retry_toast">false</bool>
+    <bool name="config_mms_retry_toast">true</bool>
 </resources>

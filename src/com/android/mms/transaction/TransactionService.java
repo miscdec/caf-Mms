@@ -524,6 +524,9 @@ public class TransactionService extends Service implements Observer {
 
                         Log.d(TAG, "onNewIntent: msgType=" + msgType + " transactionType=" +
                                     transactionType);
+                        Uri uri = ContentUris.withAppendedId(
+                                Mms.CONTENT_URI,
+                                cursor.getLong(columnIndexOfMsgId));
                         if (noNetwork) {
                             // Because there is a MMS queue list including
                             // unsent and undownload MMS in database while data
@@ -538,9 +541,6 @@ public class TransactionService extends Service implements Observer {
                             cursor.moveToLast();
                             transactionType = getTransactionType(cursor
                                     .getInt(columnIndexOfMsgType));
-                            Uri uri = ContentUris.withAppendedId(
-                                    Mms.CONTENT_URI,
-                                    cursor.getLong(columnIndexOfMsgId));
                             boolean inRetry = ACTION_ONALARM.equals(intent.getAction());
                             onNetworkUnavailable(serviceId, transactionType, uri, inRetry);
                             Log.d(TAG, "No network during MO or retry operation");
@@ -601,14 +601,16 @@ public class TransactionService extends Service implements Observer {
                                     }
                                     break;
                                 }
+                                // If retry always is enabled, need mark state to downloading.
+                                if (getResources().getBoolean(R.bool.config_retry_always)) {
+                                    downloadManager.markState(
+                                            uri, DownloadManager.STATE_DOWNLOADING);
+                                }
                                 if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || DEBUG) {
                                     Log.v(TAG, "onNewIntent: falling through and processing");
                                 }
                                // fall-through
                             default:
-                                Uri uri = ContentUris.withAppendedId(
-                                        Mms.CONTENT_URI,
-                                        cursor.getLong(columnIndexOfMsgId));
                                 // Handle no net work failed case.
                                 // If the network is restored, then
                                 // show the MMS status as sending.
