@@ -4536,19 +4536,11 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case REQUEST_SELECT_GROUP:
-                if (data != null) {
-                    ArrayList<String> numbers = data.getStringArrayListExtra(
-                            SelectRecipientsList.EXTRA_RECIPIENTS);
-                    forwardRcsMessage(numbers);
-                }
+                forwardMessageForNumbers(data);
                 break;
 
             case REQUEST_CODE_RCS_PICK:
-                if (data != null) {
-                    ArrayList<String> numbers = data.getStringArrayListExtra(
-                            SelectRecipientsList.EXTRA_RECIPIENTS);
-                    forwardRcsMessage(numbers);
-                }
+                forwardMessageForNumbers(data);
                 break;
 
             case REQUEST_SELECT_CONV:
@@ -4605,6 +4597,14 @@ public class ComposeMessageActivity extends Activity
             default:
                 if (LogTag.VERBOSE) log("bail due to unknown requestCode=" + requestCode);
                 break;
+        }
+    }
+
+    private void forwardMessageForNumbers(Intent data){
+        if (data != null) {
+            ArrayList<String> numbers = data.getStringArrayListExtra(
+                    SelectRecipientsList.EXTRA_RECIPIENTS);
+            forwardRcsMessage(numbers);
         }
     }
 
@@ -7906,7 +7906,6 @@ public class ComposeMessageActivity extends Activity
             IntentFilter backupFilter = new IntentFilter();
             backupFilter.addAction(ACTION_BACKUP_MESSAGES);
             registerReceiver(mBackupStateReceiver, backupFilter);
-            toast(R.string.message_save);
             try {
                 mMessageApi.backupMessageList(mSimpleMsgs);
             } catch (Exception e) {
@@ -7991,18 +7990,22 @@ public class ComposeMessageActivity extends Activity
                     if (TextUtils.isEmpty(input)) {
                         toast(R.string.forward_input_number_title);
                     } else {
-                        String[] numbers = input.split(";");
-                        if (numbers != null && numbers.length > 0) {
-                            ArrayList<String> numberList = new ArrayList<String>();
-                            for (int i = 0; i < numbers.length; i++) {
-                                numberList.add(numbers[i]);
-                            }
-                            forwardRcsMessage(numberList);
-                        }
+                        forwardForInputNumber(input);
                     }
                 }
             }).setNegativeButton(android.R.string.cancel, null)
             .show();
+        }
+
+        private void forwardForInputNumber(String input){
+            String[] numbers = input.split(";");
+            if (numbers != null && numbers.length > 0) {
+                ArrayList<String> numberList = new ArrayList<String>();
+                for (int i = 0; i < numbers.length; i++) {
+                    numberList.add(numbers[i]);
+                }
+                forwardRcsMessage(numberList);
+            }
         }
 
         private void forwardMessage() {
@@ -8463,11 +8466,13 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void showProgressDialog(Context context, int progress, String title, int total) {
+        if (total <= 0) {
+            return;
+        }
         Log.i(RCS_TAG, "ComposeMessageActivty enter showProgressDialog");
         if (mProgressDialog == null) {
             mProgressDialog = new ProgressDialog(context);
             mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-            mProgressDialog.setMessage(title);
             mProgressDialog.setCancelable(false);
             mProgressDialog.setCanceledOnTouchOutside(false);
             mProgressDialog.setButton(
@@ -8484,13 +8489,9 @@ public class ComposeMessageActivity extends Activity
                             }
                         }
                     });
-        } else {
-            mProgressDialog.setMessage(title);
         }
-
-        if (total > 0) {
-            mProgressDialog.setMax(total);
-        }
+        mProgressDialog.setMax(total);
+        mProgressDialog.setMessage(title);
         mProgressDialog.setProgress(progress);
         mProgressDialog.show();
     }
@@ -8511,9 +8512,6 @@ public class ComposeMessageActivity extends Activity
                                 context.getString(R.string.message_is_begin), total);
                         break;
                     case BACKUP_ALL_MESSAGES_SAVING:
-                        if (total == 0) {
-                            return;
-                        }
                         showProgressDialog(context, progress,
                                 context.getString(R.string.message_is_saving), total);
                         break;
