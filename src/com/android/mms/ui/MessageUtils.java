@@ -52,6 +52,7 @@ import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.drawable.Drawable;
 import android.media.CamcorderProfile;
+import android.media.MediaFile;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
@@ -278,6 +279,9 @@ public class MessageUtils {
     private static final int OFFSET_ADDRESS_LENGTH = 0;
     private static final int OFFSET_TOA = 1;
     private static final int OFFSET_ADDRESS_VALUE = 2;
+
+    public static final String OCT_STREAM = "application/oct-stream";
+    private static final String VCARD = "vcf";
 
     private MessageUtils() {
         // Forbidden being instantiated.
@@ -2667,5 +2671,45 @@ public class MessageUtils {
             return true;
         }
         return false;
+    }
+
+    public static String parseOctStreamContentType(PduPart part, String type) {
+        if (part != null && OCT_STREAM.equals(type)) {
+            String path = getOctStreamFilePath(part.getName());
+            if (path == null) {
+                path = getOctStreamFilePath(part.getFilename());
+                if (path == null) {
+                    path = getOctStreamFilePath(part.getContentLocation());
+                }
+            }
+            if (path != null) {
+                int lastDot = path.lastIndexOf('.');
+                if (lastDot >= 0) {
+                    String extension = path.substring(lastDot + 1);
+                    if (VCARD.equals(extension.toLowerCase())) {
+                        type = ContentType.TEXT_VCARD;
+                    } else {
+                        MediaFile.MediaFileType mediaFileType = MediaFile.getFileType(path);
+                        if (mediaFileType != null) {
+                            type = mediaFileType.mimeType;
+                        }
+                    }
+                }
+            }
+        }
+
+        return type;
+    }
+
+    private static String getOctStreamFilePath(byte[] name) {
+        if (name != null) {
+            String path = new String(name);
+            int lastDot = path.lastIndexOf('.');
+            if (lastDot >= 0) {
+                return path;
+            }
+        }
+
+        return null;
     }
 }
