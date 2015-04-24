@@ -140,6 +140,10 @@ public class MailBoxMessageContent extends Activity {
     private static final int UPDATE_UI = 2;
     private static final int SHOW_TOAST = 3;
 
+    private static final int FORWARD_CONTACTS = 0;
+    private static final int FORWARD_CONVERSATION = 1;
+    private static final int FORWARD_GROUP = 2;
+
     public static final int REQUEST_CODE_PICK             = 109;
 
     private ContentResolver mContentResolver;
@@ -376,16 +380,16 @@ public class MailBoxMessageContent extends Activity {
     public class ForwardClickListener implements OnClickListener{
         public void onClick(DialogInterface dialog, int whichButton) {
             switch (whichButton) {
-                case 0:
+                case FORWARD_CONTACTS:
                    launchRcsPhonePicker();
                     break;
-                case 1:
+                case FORWARD_CONVERSATION:
                     Intent intent = new Intent(MailBoxMessageContent.this,ConversationList.class);
                     intent.putExtra("select_conversation",true);
                     MessageUtils.setMailboxMode(false);
                     startActivityForResult(intent, REQUEST_SELECT_CONV);
                     break;
-                case 2:
+                case FORWARD_GROUP:
                     launchRcsContactGroupPicker(REQUEST_SELECT_GROUP);
                     break;
                 default:

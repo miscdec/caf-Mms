@@ -306,7 +306,8 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         Contact.addListener(this);
 
         // Subject
-        String snippet = RcsUtils.formatConversationSnippet(getContext(), conversation.getSnippet());
+        String snippet = 
+                RcsUtils.formatConversationSnippet(getContext(), conversation.getSnippet());
         if (conversation.isGroupChat()) { // TODO judge the latest message is notification message.
             snippet = RcsUtils.getStringOfNotificationBody(context, snippet);
             mSubjectView.setText(snippet);

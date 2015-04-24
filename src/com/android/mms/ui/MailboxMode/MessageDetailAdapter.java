@@ -141,7 +141,8 @@ public class MessageDetailAdapter extends PagerAdapter {
                 mContentType = "video/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_MAP) {
                 imageView.setImageResource(R.drawable.rcs_map);
-                textView.setText(getMapMsgBody());
+                String body = mCursor.getString(mCursor.getColumnIndexOrThrow(Sms.BODY));
+                textView.setText(body);
                 mContentType = "map/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_VCARD) {
                 textView.setVisibility(View.GONE);
@@ -314,12 +315,6 @@ public class MessageDetailAdapter extends PagerAdapter {
         }
     }
 
-    private String getMapMsgBody(){
-        String body = mCursor.getString(mCursor.getColumnIndexOrThrow(Sms.BODY));
-        body = body.substring(body.lastIndexOf("/") + 1, body.length());
-        return body;
-    }
-
     private OnClickListener mOnClickListener = new OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -378,7 +373,7 @@ public class MessageDetailAdapter extends PagerAdapter {
             Intent intent_map = new Intent();
             GeoLocation geo = RcsUtils.readMapXml(path);
             String geourl = "geo:" + geo.getLat() + "," + geo.getLng() +
-                    "?q=" + getMapMsgBody();
+                    "?q=" + geo.getLabel();
             Uri uri = Uri.parse(geourl);
             Intent it = new Intent(Intent.ACTION_VIEW, uri);
             mContext.startActivity(it);
@@ -387,8 +382,6 @@ public class MessageDetailAdapter extends PagerAdapter {
         } catch (ActivityNotFoundException ae) {
             Toast.makeText(mContext,
                     R.string.toast_install_map, Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Log.w("RCS_UI", e);
         }
     }
 

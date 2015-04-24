@@ -159,6 +159,7 @@ public class FavouriteMessageList extends ListActivity implements
     private final static String COUNT_TEXT_DECOLLATOR_2 = "/";
     private final static String VIEW_MODE_STATE = "current_view_state";
 
+    private final int MESSAGE_IS_RCS_TYPE = 0;
     private boolean mIsPause = false;
     private boolean mQueryDone = true;
     private int mQueryBoxType = TYPE_INBOX;
@@ -280,9 +281,11 @@ public class FavouriteMessageList extends ListActivity implements
                 startActivity(ComposeMessageActivity.createIntent(this, threadId));
                 return;
             } else if ("sms".equals(type)) {
+                boolean isRcsMessage =
+                        c.getInt(MessageListAdapter.COLUMN_RCS_ID) > MESSAGE_IS_RCS_TYPE;
                 // If the message is a failed one, clicking it should reload it in the compose view,
                 // regardless of whether it has links in it
-                if (c.getInt(COLUMN_SMS_TYPE) == Sms.MESSAGE_TYPE_FAILED) {
+                if (c.getInt(COLUMN_SMS_TYPE) == Sms.MESSAGE_TYPE_FAILED && !isRcsMessage) {
                     Intent intent = new Intent(this, ComposeMessageActivity.class);
                     intent.putExtra(THREAD_ID, threadId);
                     intent.putExtra(MESSAGE_ID, msgId);
