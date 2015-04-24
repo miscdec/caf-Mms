@@ -3745,6 +3745,21 @@ public class ComposeMessageActivity extends Activity
         dialog.show();
     }
 
+    private void showNotSupportRcsCacheMessageDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.mms_does_not_support_rcs_cachemessage_send);
+        builder.setPositiveButton(android.R.string.ok, new OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                cancelRcsMessageCache();
+                mWorkingMessage.clearCacheRcsMessage();
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
     @Override
     protected Dialog onCreateDialog(int id) {
         switch (id) {
@@ -4000,7 +4015,7 @@ public class ComposeMessageActivity extends Activity
                 break;
             case AttachmentPagerAdapter.ADD_MAP:
                  if (mWorkingMessage.requiresMms()) {
-                     toast(R.string.rcs_service_is_not_available);
+                     toast(R.string.mms_does_not_support_location_sharing);
                      break;
                  }
                 try {
@@ -5568,7 +5583,11 @@ public class ComposeMessageActivity extends Activity
                 confirmSendMessageIfNeeded(PhoneConstants.SUB1);
             } else {
                 if (mWorkingMessage.getCacheRcsMessage()) {
-                    rcsSend();
+                    if (mWorkingMessage.requiresMms()) {
+                        showNotSupportRcsCacheMessageDialog();
+                    } else {
+                        rcsSend();
+                    }
                     return;
                 }
                 confirmSendMessageIfNeeded();

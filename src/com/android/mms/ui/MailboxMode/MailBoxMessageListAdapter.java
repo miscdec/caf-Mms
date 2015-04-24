@@ -218,7 +218,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         } else if (isUnread) {
             view.setBackgroundDrawable(mBgUnReadDrawable);
         } else {
-            view.setBackgroundDrawable(mBgReadDrawable);
+            view.setBackgroundDrawable(null);
         }
     }
 

@@ -235,4 +235,6 @@
     <string name="msg_type_CaiYun">彩云文件消息</string>
     <string name="msg_type_burnMessage">阅后即焚消息</string>
     <string name="merge_contacts">合并联系人</string>
+    <string name="mms_does_not_support_location_sharing">彩信不支持位置共享，请重新选择</string>
+    <string name="mms_does_not_support_rcs_cachemessage_send">RCS缓存消息，不支持通过彩信发送，请重新选择</string>
 </resources>
