@@ -101,6 +101,10 @@ public class SelectRecipientsList extends Activity implements
     private boolean mMobileOnly = true;
     private int mMode = MODE_DEFAULT;
     private boolean mDataLoaded;
+    private int mLayoutDirection = -1;
+    private int mPosition = 0;
+    private static final String KEY_LAYOUT_DIRECTION = "layoutDirection";
+    private static final String KEY_PAGER_POSITION = "pagerPosition";
 
     private ViewPager mTabPager;
     private ViewPagerTabs mViewPagerTabs;
@@ -112,6 +116,29 @@ public class SelectRecipientsList extends Activity implements
     private SelectRecipientsGroupListAdapter mGroupListAdapter;
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(KEY_LAYOUT_DIRECTION, TextUtils.getLayoutDirectionFromLocale(Locale.getDefault()));
+        outState.putInt(KEY_PAGER_POSITION, mPosition);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        if (mLayoutDirection != TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())){
+            int count = mMode == MODE_DEFAULT ? 2 : 1;
+            for (int i = 0; i < count; i++) {
+                mViewPagerTabs.setTextViewSelected(i, false);
+            }
+            if (TextUtils.getLayoutDirectionFromLocale(Locale.getDefault()) == View.LAYOUT_DIRECTION_RTL) {
+                mViewPagerTabs.setTextViewSelected(count - 1 - mPosition, true);
+            } else {
+                mViewPagerTabs.setTextViewSelected(mPosition, true);
+            }
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -119,6 +146,8 @@ public class SelectRecipientsList extends Activity implements
 
         if (savedInstanceState != null) {
             mMode = savedInstanceState.getInt(MODE);
+            mLayoutDirection = savedInstanceState.getInt(KEY_LAYOUT_DIRECTION);
+            mPosition = savedInstanceState.getInt(KEY_PAGER_POSITION);
         } else {
             mMode = getIntent().getIntExtra(MODE, MODE_INFO);
         }
@@ -132,6 +161,7 @@ public class SelectRecipientsList extends Activity implements
         mTabPager.setAdapter(new ListTabAdapter());
         mTabPager.setOnPageChangeListener(new TabPagerListener());
         mViewPagerTabs = (ViewPagerTabs) findViewById(R.id.lists_pager_header);
+        mTabPager.setCurrentItem(getRtlPosition(0));
         mViewPagerTabs.setViewPager(mTabPager);
         mViewPagerTabs.setVisibility(mMode == MODE_DEFAULT ? View.VISIBLE : View.GONE);
 
@@ -535,6 +565,15 @@ public class SelectRecipientsList extends Activity implements
         }
     }
 
+    private int getRtlPosition(int position) {
+        if (TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())
+                    == View.LAYOUT_DIRECTION_RTL) {
+            int count = mMode == MODE_DEFAULT ? 2 : 1;
+            return count - 1 - position;
+        }
+        return position;
+    }
+
     private class ListTabAdapter extends FragmentPagerAdapter {
         public ListTabAdapter() {
             super(getFragmentManager());
@@ -549,12 +588,8 @@ public class SelectRecipientsList extends Activity implements
         public Object instantiateItem(ViewGroup container, int position) {
             ItemListFragment result =
                     (ItemListFragment) super.instantiateItem(container, position);
-            boolean isRtl = TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())
-                    == View.LAYOUT_DIRECTION_RTL;
-            if (isRtl) {
-               position = getCount() - 1 - position;
-            }
 
+            position = getRtlPosition(position);
             if (position == 1) {
                 mGroupFragment = result;
             } else {
@@ -570,6 +605,7 @@ public class SelectRecipientsList extends Activity implements
         public Fragment getItem(int position) {
             Bundle args = new Bundle();
 
+            position = getRtlPosition(position);
             args.putBoolean(ItemListFragment.IS_GROUP, position == 1);
             args.putInt(ItemListFragment.MODE, mMode);
 
@@ -592,6 +628,7 @@ public class SelectRecipientsList extends Activity implements
         }
         @Override
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            mPosition = position;
             mViewPagerTabs.onPageScrolled(position, positionOffset, positionOffsetPixels);
         }
         @Override
