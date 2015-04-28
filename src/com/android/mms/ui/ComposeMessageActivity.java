@@ -688,6 +688,8 @@ public class ComposeMessageActivity extends Activity
 
     private AddNumbersTask mAddNumbersTask;
 
+    private boolean mSendMmsMobileDataOff = false;
+
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
         Thread current = Thread.currentThread();
@@ -1109,10 +1111,24 @@ public class ComposeMessageActivity extends Activity
     }
 
     private class SendIgnoreInvalidRecipientListener implements OnClickListener {
+        private int mSubscription = MessageUtils.SUB_INVALID;
+
+        public SendIgnoreInvalidRecipientListener(int subscription) {
+             mSubscription = subscription;
+        }
+
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
-            if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
-                sendMsimMessage(true);
+            boolean isMms = mWorkingMessage.requiresMms();
+            if (isMms && mSendMmsMobileDataOff &&
+                    MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                showMobileDataDisabledDialog(mSubscription);
+            } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
+                if (mSubscription == MessageUtils.SUB_INVALID) {
+                    sendMsimMessage(true);
+                } else {
+                    sendMsimMessage(true, mSubscription);
+                }
             } else {
                 sendMessage(true);
             }
@@ -1208,12 +1224,20 @@ public class ComposeMessageActivity extends Activity
         }
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            sendMsimMessage(true, subscription);
+            if (isMms && mSendMmsMobileDataOff &&
+                    MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                showMobileDataDisabledDialog(subscription);
+            } else {
+                sendMsimMessage(true, subscription);
+            }
             return;
         }
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
-            showInvalidRecipientDialog();
+            showInvalidRecipientDialog(subscription);
+        } else if (isMms && mSendMmsMobileDataOff &&
+                MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+            showMobileDataDisabledDialog(subscription);
         } else {
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
@@ -1238,8 +1262,13 @@ public class ComposeMessageActivity extends Activity
             showDisableLTEOnlyDialog(slot);
             return;
         }
+
+        boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
+            if (isMms && mSendMmsMobileDataOff &&
+                    MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                showMobileDataDisabledDialog();
+            } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
                 sendMsimMessage(true);
             } else {
                 sendMessage(true);
@@ -1247,9 +1276,11 @@ public class ComposeMessageActivity extends Activity
             return;
         }
 
-        boolean isMms = mWorkingMessage.requiresMms();
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
+        } else if (isMms && mSendMmsMobileDataOff &&
+                MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+            showMobileDataDisabledDialog();
         } else {
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
@@ -1264,6 +1295,10 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void showInvalidRecipientDialog() {
+        showInvalidRecipientDialog(MessageUtils.SUB_INVALID);
+    }
+
+    private void showInvalidRecipientDialog(int subscription) {
         boolean isMms = mWorkingMessage.requiresMms();
         if (mRecipientsEditor.getValidRecipientsCount(isMms)
                 > MessageUtils.ALL_RECIPIENTS_INVALID) {
@@ -1273,7 +1308,7 @@ public class ComposeMessageActivity extends Activity
                     .setTitle(title)
                     .setMessage(R.string.invalid_recipient_message)
                     .setPositiveButton(R.string.try_to_send,
-                            new SendIgnoreInvalidRecipientListener())
+                            new SendIgnoreInvalidRecipientListener(subscription))
                     .setNegativeButton(R.string.no, new CancelSendingListener())
                     .show();
         } else {
@@ -1283,6 +1318,32 @@ public class ComposeMessageActivity extends Activity
                     .setPositiveButton(R.string.yes, new CancelSendingListener())
                     .show();
         }
+    }
+
+    private void showMobileDataDisabledDialog() {
+        showMobileDataDisabledDialog(MessageUtils.SUB_INVALID);
+    }
+
+    private void showMobileDataDisabledDialog(final int subscription) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.send);
+        builder.setMessage(getString(R.string.mobile_data_disable));
+        builder.setPositiveButton(R.string.yes, new OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
+                    if (subscription == MessageUtils.SUB_INVALID) {
+                        sendMsimMessage(true);
+                    } else {
+                        sendMsimMessage(true, subscription);
+                    }
+                } else {
+                    sendMessage(true);
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.setNegativeButton(R.string.no, null);
+        builder.show();
     }
 
     private final TextWatcher mRecipientsWatcher = new TextWatcher() {
@@ -2438,6 +2499,9 @@ public class ComposeMessageActivity extends Activity
     public void initialize(Bundle savedInstanceState, long originalThreadId) {
         // Create a new empty working message.
         mWorkingMessage = WorkingMessage.createEmpty(this);
+
+        mSendMmsMobileDataOff = getResources().getBoolean(
+                com.android.internal.R.bool.config_enable_mms_with_mobile_data_off);
 
         // Read parameters or previously saved state of this activity. This will load a new
         // mConversation
