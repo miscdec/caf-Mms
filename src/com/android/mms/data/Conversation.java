@@ -184,25 +184,6 @@ public class Conversation {
     }
 
     /**
-     * Find the conversation matching the provided thread ID.
-     * Because the data database data update, Conversation.get() didn't update.
-     */
-    public static Conversation getNewConversation
-            (Context context, long threadId, boolean allowQuery) {
-
-        Conversation conv = new Conversation(context, threadId, allowQuery);
-        try {
-            Cache.put(conv);
-        } catch (IllegalStateException e) {
-            LogTag.error("Tried to add duplicate Conversation to Cache (from threadId): " + conv);
-            if (!Cache.replace(conv)) {
-                LogTag.error("get by threadId cache.replace failed on " + conv);
-            }
-        }
-        return conv;
-    }
-
-    /**
      * Find the conversation matching the provided recipient set.
      * When called with an empty recipient list, equivalent to {@link #createNew}.
      */
@@ -589,10 +570,6 @@ public class Conversation {
 
     public int getIsTop() {
         return mIsTop;
-    }
-
-    public void setIsTop(int isTop) {
-        mIsTop = isTop;
     }
 
     public synchronized void clearThreadId() {

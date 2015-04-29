@@ -187,35 +187,6 @@ public class RcsChatMessageUtils {
             groupChatModel = intent.getParcelableExtra("groupChatModel");
         }
         try {
-            if (intent.hasExtra("smsMsgBody")) {
-                String smsMsgBody = intent.getStringExtra("smsMsgBody");
-                if (smsMsgBody != null) {
-                    MessageApi messageApi = RcsApiManager.getMessageApi();
-                    if (groupChatModel != null) {
-                        messageApi.sendGroupMessage(threadId, groupChatModel.getConversationId(), -1,
-                                smsMsgBody, String.valueOf(groupChatModel.getId()));
-                    } else {
-                        List<String> numberList = Arrays.asList(numbers);
-                        if (numberList != null) {
-                            if (numberList.size() == 1) {
-                                    messageApi.sendTextMessage(threadId, numberList.get(0),
-                                            smsMsgBody,
-                                            SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0);
-                            } else {
-                                messageApi.sendOne2ManyTextMessage(threadId, numberList,
-                                        smsMsgBody,
-                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0);
-                            }
-                        }
-                    }
-                }
-                return;
-            }
-        } catch (Exception e) {
-            RcsUtils.disposeRcsSendMessageException(context, e, 0);;
-        }
-
-        try {
             boolean success = false;
             ChatMessage message = RcsApiManager.getMessageApi().getMessageById(rcsForwardId + "");
             if (groupChatModel != null) {
@@ -277,17 +248,17 @@ public class RcsChatMessageUtils {
     }
 
     public static boolean forwardToGroupMessage(long threadId, List<String> numberList,
-            ChatMessage chatMessage, GroupChatModel groupChatModel) {
+            ChatMessage chatMessage, GroupChatModel groupChatModel)
+            throws ServiceDisconnectedException, FileSuffixException, FileTransferException,
+            FileDurationException {
         if (chatMessage == null) {
             return false;
         }
         if (groupChatModel == null) {
             return false;
         }
-     try {
         threadId = groupChatModel.getThreadId();
         MessageApi messageApi = RcsApiManager.getMessageApi();
-        String filePath = getFilePath(chatMessage);
         int msgType = chatMessage.getMsgType();
         switch (msgType) {
             case SuntekMessageData.MSG_TYPE_TEXT: {
@@ -302,14 +273,28 @@ public class RcsChatMessageUtils {
                 break;
             }
             case SuntekMessageData.MSG_TYPE_VIDEO: {
+                String newFilePath = getForwordFileName(chatMessage);
+                String path = messageApi.getFilepath(chatMessage);
+                boolean success = renameFile(path, newFilePath);
+                if (success) {
                     messageApi.sendGroupVideoFile(threadId, groupChatModel.getConversationId(), -1,
-                            filePath, getAudioLength(chatMessage),
+                            newFilePath, getAudioLength(chatMessage),
                             String.valueOf(groupChatModel.getId()), false);
+                } else {
+                    return false;
+                }
                 break;
             }
             case SuntekMessageData.MSG_TYPE_IMAGE: {
+                String newFilePath = getForwordFileName(chatMessage);
+                String path = messageApi.getFilepath(chatMessage);
+                boolean success = renameFile(path, newFilePath);
+                if (success) {
                     messageApi.sendGroupImageFile(threadId, groupChatModel.getConversationId(), -1,
-                            filePath, String.valueOf(groupChatModel.getId()), 100);
+                            newFilePath, String.valueOf(groupChatModel.getId()), 100);
+                } else {
+                    return false;
+                }
                 break;
             }
             case SuntekMessageData.MSG_TYPE_CONTACT: {
@@ -327,23 +312,6 @@ public class RcsChatMessageUtils {
             default:
                 break;
         }
-     } catch (ServiceDisconnectedException e) {
-         e.printStackTrace();
-         Log.i(LOG_TAG, "serviceDisconnectedException");
-         return false;
-     } catch (FileSuffixException e) {
-         e.printStackTrace();
-         Log.i(LOG_TAG, "FileSuffixException");
-         return false;
-     } catch (FileTransferException e) {
-         e.printStackTrace();
-         Log.i(LOG_TAG, "FileTransferException");
-         return false;
-     } catch (FileDurationException e) {
-         e.printStackTrace();
-         Log.i(LOG_TAG, "FileDurationException");
-         return false;
-     }
         return true;
     }
 
@@ -441,18 +409,30 @@ public class RcsChatMessageUtils {
                         case SuntekMessageData.MSG_TYPE_AUDIO: {
                             messageApi.sendAudioFile(threadId, -1, number, filePath,
                                     getAudioLength(chatMessage),
-                                    SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                                    SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, true);
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_VIDEO: {
-                                messageApi.sendVideoFile(threadId, -1, number, filePath,
+                            String newFilePath = getForwordFileName(chatMessage);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendVideoFile(threadId, -1, number, newFilePath,
                                         getAudioLength(chatMessage),
-                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, true);
+                            } else {
+                                return false;
+                            }
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_IMAGE: {
-                                messageApi.sendImageFile(threadId, -1, number, filePath,
+                            String newFilePath = getForwordFileName(chatMessage);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendImageFile(threadId, -1, number, newFilePath,
                                         SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, 100);
+                            } else {
+                                return false;
+                            }
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_CONTACT: {
@@ -502,14 +482,26 @@ public class RcsChatMessageUtils {
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_VIDEO: {
-                                messageApi.sendOne2ManyVideoFile(threadId, -1, array, filePath,
+                            String newFilePath = getForwordFileName(chatMessage);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendOne2ManyVideoFile(threadId, -1, array, newFilePath,
                                         getAudioLength(chatMessage),
                                         SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                            } else {
+                                return false;
+                            }
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_IMAGE: {
-                            messageApi.sendOne2ManyImageFile(threadId, -1, array, filePath,
+                            String newFilePath = getForwordFileName(chatMessage);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if(success){
+                            messageApi.sendOne2ManyImageFile(threadId, -1, array, newFilePath,
                                     SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, 100);
+                            }else{
+                                return false;
+                            }
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_CONTACT: {
@@ -555,7 +547,7 @@ public class RcsChatMessageUtils {
         MessageApi messageApi = RcsApiManager.getMessageApi();
         String path = messageApi.getFilepath(cMsg);
         if (path != null && path.lastIndexOf("/") != -1) {
-            path = path.substring(0, path.lastIndexOf("/"));
+            path = path.substring(0, path.lastIndexOf("/") + 1);
             return path + cMsg.getFilename();
         } else {
             return null;
@@ -569,7 +561,7 @@ public class RcsChatMessageUtils {
         int len = 0;
         try {
             String lens = cMsg.getData();
-            String length = lens.substring(7, lens.indexOf("-"));
+            String length = lens.substring(7, lens.lastIndexOf("-"));
             len = Integer.parseInt(length);
         } catch (Exception e) {
             Log.w(LOG_TAG, e);

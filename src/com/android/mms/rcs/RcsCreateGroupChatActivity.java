@@ -251,10 +251,6 @@ public class RcsCreateGroupChatActivity extends Activity implements
                 @Override
                 public void onBootMe(Bundle extras) {
                 }
-
-                @Override
-                public void onGroupGone(Bundle extras) {
-                }
             });
 
     private void handleRcsGroupChatCreateNotActive(final Bundle extras) {

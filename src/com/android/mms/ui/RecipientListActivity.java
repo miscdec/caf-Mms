@@ -49,7 +49,7 @@ import com.android.mms.data.Conversation;
  * Display a list of recipients for a group conversation. This activity expects to receive a
  * threadId in the intent's extras.
  */
-public class RecipientListActivity extends ListActivity implements Contact.UpdateListener{
+public class RecipientListActivity extends ListActivity {
     private final static String TAG = LogTag.TAG;
 
     private long mThreadId;
@@ -85,15 +85,6 @@ public class RecipientListActivity extends ListActivity implements Contact.Updat
         int cnt = contacts.size();
         actionBar.setSubtitle(getResources().getQuantityString(R.plurals.recipient_count,
                 cnt, cnt));
-    }
-
-    @Override
-    protected void onResume() {
-        Conversation conv = Conversation.getNewConversation(this, mThreadId, true);
-        final ContactList contacts = conv.getRecipients();
-        getListView().setAdapter(new RecipientListAdapter(this, R.layout.recipient_list_item,
-                contacts));
-        super.onResume();
     }
 
     @Override
@@ -171,10 +162,4 @@ public class RecipientListActivity extends ListActivity implements Contact.Updat
             return listItemView;
         }
     }
-
-    @Override
-    public void onUpdate(Contact updated) {
-        onResume();
-    }
-
 }

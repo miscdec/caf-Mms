@@ -159,7 +159,6 @@ public class FavouriteMessageList extends ListActivity implements
     private final static String COUNT_TEXT_DECOLLATOR_2 = "/";
     private final static String VIEW_MODE_STATE = "current_view_state";
 
-    private final int MESSAGE_IS_RCS_TYPE = 0;
     private boolean mIsPause = false;
     private boolean mQueryDone = true;
     private int mQueryBoxType = TYPE_INBOX;
@@ -216,10 +215,7 @@ public class FavouriteMessageList extends ListActivity implements
         setupActionBar();
         actionBar.setTitle(getString(R.string.my_favorited));
         mHandler = new Handler();
-        View actionButton = findViewById(R.id.floating_action_button);
-        if (actionButton != null) {
-            actionButton.setVisibility(View.GONE);
-         }
+
     }
 
     @Override
@@ -281,11 +277,9 @@ public class FavouriteMessageList extends ListActivity implements
                 startActivity(ComposeMessageActivity.createIntent(this, threadId));
                 return;
             } else if ("sms".equals(type)) {
-                boolean isRcsMessage =
-                        c.getInt(MessageListAdapter.COLUMN_RCS_ID) > MESSAGE_IS_RCS_TYPE;
                 // If the message is a failed one, clicking it should reload it in the compose view,
                 // regardless of whether it has links in it
-                if (c.getInt(COLUMN_SMS_TYPE) == Sms.MESSAGE_TYPE_FAILED && !isRcsMessage) {
+                if (c.getInt(COLUMN_SMS_TYPE) == Sms.MESSAGE_TYPE_FAILED) {
                     Intent intent = new Intent(this, ComposeMessageActivity.class);
                     intent.putExtra(THREAD_ID, threadId);
                     intent.putExtra(MESSAGE_ID, msgId);
@@ -756,6 +750,9 @@ public class FavouriteMessageList extends ListActivity implements
                     break;
                 }
                 return true;
+            case R.id.action_compose_new:
+                startActivity(ComposeMessageActivity.createIntent(this, 0));
+                break;
             case R.id.action_settings:
                 Intent intent = new Intent(this, MessagingPreferenceActivity.class);
                 startActivityIfNeeded(intent, -1);

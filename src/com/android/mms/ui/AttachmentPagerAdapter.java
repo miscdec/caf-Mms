@@ -74,7 +74,6 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     private static final int SLIDESHOW_ITEM_POSITION    = 0;
     private static final int CONTACT_INFO_ITEM_POSITION = 1;
     private static final int VCARD_ITEM_POSITION        = 2;
-    private static final int VCAL_ITEM_POSITION         = 3;
 
     private HashMap<Integer, Integer> mIndexOfAttachmentTypes = new HashMap<Integer, Integer>();
 
@@ -85,7 +84,6 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     private Context mContext;
     private ArrayList<GridView> mPagerGridViewViews;
     private OnItemClickListener mGridItemClickListener;
-    private boolean mIsRTL = false;
 
     public AttachmentPagerAdapter(Context context) {
         mContext = context;
@@ -95,7 +93,6 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     public Object instantiateItem(ViewGroup view, int position) {
         View pagerContent = LayoutInflater.from(mContext).inflate(
                 R.layout.attachment_selector_pager, view, false);
-        mIsRTL = (view.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         bindPagerView(pagerContent, position);
         view.addView(pagerContent);
         return pagerContent;
@@ -119,27 +116,6 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     private ArrayList<HashMap<String, Object>> getGridData(int pagerPosition) {
         List<IconListItem> attachmentDataList = getAttachmentData();
         ArrayList<HashMap<String, Object>> gridData = new ArrayList<HashMap<String, Object>>();
-        if (mIsRTL) {
-            if (pagerPosition == 0) {
-                for (int i = PAGE_GRID_COUNT; i < attachmentDataList.size(); i++) {
-                    IconListItem item = (IconListItem) attachmentDataList.get(i);
-                       HashMap<String, Object> map = new HashMap<String, Object>();
-                    map.put(GRID_ITEM_IMAGE, item.getResource());
-                    map.put(GRID_ITEM_TEXT, item.getTitle());
-                    gridData.add(map);
-                }
-            } else {
-                for (int i = 0; i < PAGE_GRID_COUNT; i++) {
-                    IconListItem item = (IconListItem) attachmentDataList.get(i);
-                    HashMap<String, Object> map = new HashMap<String, Object>();
-                    map.put(GRID_ITEM_IMAGE, item.getResource());
-                    map.put(GRID_ITEM_TEXT, item.getTitle());
-                    gridData.add(map);
-                }
-            }
-            return gridData;
-        }
-
         if (pagerPosition == 0) {
             for (int i = 0; i < PAGE_GRID_COUNT; i++) {
                 IconListItem item = (IconListItem) attachmentDataList.get(i);
@@ -205,7 +181,6 @@ public class AttachmentPagerAdapter extends PagerAdapter {
             list.add(new IconListItem(mContext.getString(R.string.attach_add_contact_as_vcard),
                     (!mIsReplace && mHasAttachment) ? R.drawable.ic_attach_vcard_disable
                             : R.drawable.ic_attach_vcard_holo_light));
-            mIndexOfAttachmentTypes.put(index++, ADD_CONTACT_AS_VCARD);
         } else if (isRcsSupported) {
             list.add(new IconListItem(mContext.getString(R.string.attach_add_contact_as_vcard),
                     (!mIsReplace && mHasAttachment) ? R.drawable.ic_attach_vcard_disable
@@ -312,8 +287,7 @@ public class AttachmentPagerAdapter extends PagerAdapter {
             } else {
                 if (!mIsReplace && ((mHasVcard && position == SLIDESHOW_ITEM_POSITION)
                         || (mHasSlideshow && position == CONTACT_INFO_ITEM_POSITION)
-                        || (mHasAttachment && position == VCARD_ITEM_POSITION)
-                        || (mHasAttachment && position == VCAL_ITEM_POSITION))) {
+                        || (mHasAttachment && position == VCARD_ITEM_POSITION))) {
                     return false;
                 }
             }

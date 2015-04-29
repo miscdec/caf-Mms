@@ -115,9 +115,6 @@
     <string name="forward_message_success">已转发</string>
     <string name="forward_message_fail">转发失败</string>
     <string name="conversation_forward">转发</string>
-    <string name="forward_input_number_hint">多个号码请用";"隔开</string>
-    <string name="forward_input_number_title">请输入号码</string>
-    <string name="forward_input_number">输入号码</string>
     <string name="forward_contact">联系人</string>
     <string name="forward_conversation">会话</string>
     <string name="forward_contact_group">群组</string>
@@ -170,10 +167,9 @@
     <string name="message_content_video">视频</string>
     <string name="message_content_image">图片</string>
     <string name="message_content_map">位置</string>
-    <string name="message_content_vcard">电子名片</string>
+    <string name="message_content_vcard">vCard</string>
     <string name="not_download_image">图片未下载，请先下载图片！</string>
     <string name="not_download_video">视频未下载，请先下载视频！</string>
-    <string name="not_download_cloudFile">彩云未下载，请先下载彩云文件！</string>
     <string name="file_path_null">文件路径为空！</string>
     <string name="create_groupchat_name_toast">只能输入三十个字节，超出部分将被丢弃。</string>
     <string name="mcloud_share_file_befor">彩云文件地址 \n</string>
@@ -223,18 +219,10 @@
     <string name="message_restore_fail">还原失败</string>
     <string name="forward_message_not_support">该消息不能转发</string>
     <string name="save_message_not_support">该消息不能保存</string>
+    <string name="cloud_file_name">文件名:</string>
+    <string name="cloud_file_size">,文件大小:</string>
     <string name="favorite_success">收藏成功</string>
     <string name="favorite_fail">收藏失败</string>
     <string name="temp_group_chat">临时群聊</string>
     <string name="rcs_offline_on_groupchat">您已离线，群聊不能发送多媒体消息。</string>
-    <string name="msg_type_audio">语音消息</string>
-    <string name="msg_type_image">图片消息</string>
-    <string name="msg_type_video">视频消息</string>
-    <string name="msg_type_contact">电子名片消息</string>
-    <string name="msg_type_location">地理位置消息</string>
-    <string name="msg_type_CaiYun">彩云文件消息</string>
-    <string name="msg_type_burnMessage">阅后即焚消息</string>
-    <string name="merge_contacts">合并联系人</string>
-    <string name="mms_does_not_support_location_sharing">彩信不支持位置共享，请重新选择</string>
-    <string name="mms_does_not_support_rcs_cachemessage_send">RCS缓存消息，不支持通过彩信发送，请重新选择</string>
 </resources>
