@@ -119,6 +119,14 @@ public class RcsMessageThread extends Thread {
                 MessagingNotification.blockingUpdateNewMessageIndicator(MmsApp.getApplication(),
                         threadId, true);
             }
+            if ((chatType == SuntekMessageData.CHAT_TYPE_GROUP)
+                    && (sendReceive == SuntekMessageData.MSG_RECEIVE)
+                    && chatMessage.getMsgType() != SuntekMessageData.MSG_TYPE_NOTIFICATION) {
+                Intent groupNotifyIntent = new Intent(ACTION_UI_SHOW_GROUP_MESSAGE_NOTIFY);
+                groupNotifyIntent.putExtra("id", (long)chatMessage.getId());
+                groupNotifyIntent.putExtra("threadId", chatMessage.getThreadId());
+                MmsApp.getApplication().sendBroadcast(groupNotifyIntent);
+            }
         } else if (BroadcastConstants.UI_MESSAGE_STATUS_CHANGE_NOTIFY.equals(action)) {
             String id = intent.getStringExtra("id");
             int status = intent.getIntExtra("status", -11);

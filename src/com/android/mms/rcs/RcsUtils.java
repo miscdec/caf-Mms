@@ -92,7 +92,6 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.provider.BaseColumns;
-import android.provider.ContactsContract;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.Telephony;
@@ -122,7 +121,6 @@ import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -336,6 +334,26 @@ public class RcsUtils {
         builder.append(" ");
         builder.append(number.substring(7));
         return builder.toString();
+    }
+
+    public static void topSms(Context context, long smsId) {
+        ContentValues values = new ContentValues();
+        values.put("rcs_top_time", System.currentTimeMillis());
+        final Uri THREAD_ID_CONTENT_URI = Uri.parse("content://mms-sms/update-sms-top");
+        Uri uri = ContentUris.withAppendedId(THREAD_ID_CONTENT_URI, smsId);
+        context.getContentResolver().update(THREAD_ID_CONTENT_URI, values, "_id=?", new String[] {
+            String.valueOf(smsId)
+        });
+    }
+
+    public static void cancelTopSms(Context context, long smsId) {
+        ContentValues values = new ContentValues();
+        values.put("rcs_top_time", 0);
+        final Uri THREAD_ID_CONTENT_URI = Uri.parse("content://mms-sms/update-sms-top");
+        Uri uri = ContentUris.withAppendedId(THREAD_ID_CONTENT_URI, smsId);
+        context.getContentResolver().update(THREAD_ID_CONTENT_URI, values, "_id=?", new String[] {
+            String.valueOf(smsId)
+        });
     }
 
     public static void topConversion(Context context, long mThreadId) {
@@ -1420,6 +1438,7 @@ public class RcsUtils {
             // number length is not allowed 0-
             Toast.makeText(context, context.getString(R.string.firewall_number_len_not_valid),
                     Toast.LENGTH_SHORT).show();
+
             return;
         }
 
@@ -1432,65 +1451,30 @@ public class RcsUtils {
         if (len > 11) {
             comparenNumber = number.substring(len - 11, len);
         }
-        Uri addNumToFirewallBlockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
+        Uri blockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
                 : RcsUtils.WHITELIST_CONTENT_URI;
         ContentResolver contentResolver = context.getContentResolver();
-        Uri checkUri = isBlacklist ? RcsUtils.WHITELIST_CONTENT_URI
-                : RcsUtils.BLACKLIST_CONTENT_URI;
-        Cursor checkCursor = contentResolver.query(checkUri, new String[] {
+        Cursor cu = contentResolver.query(blockUri, new String[] {
                 "_id", "number", "person_id", "name"
         }, "number" + " LIKE '%" + comparenNumber + "'", null, null);
-        try {
-            if (checkCursor != null && checkCursor.getCount() > 0) {
-                String Stoast = isBlacklist ? context.getString(R.string.firewall_number_in_white)
-                        : context.getString(R.string.firewall_number_in_black);
+        if (cu != null) {
+            if (cu.getCount() > 0) {
+                cu.close();
+                cu = null;
+                String Stoast = isBlacklist ? context.getString(R.string.firewall_number_in_black)
+                        : context.getString(R.string.firewall_number_in_white);
                 Toast.makeText(context, Stoast, Toast.LENGTH_SHORT).show();
                 return;
             }
-        } finally {
-            if (checkCursor != null) {
-                checkCursor.close();
-                checkCursor = null;
-            }
+            cu.close();
+            cu = null;
         }
+
         values.put("number", comparenNumber);
-        Uri mUri = contentResolver.insert(addNumToFirewallBlockUri, values);
+        Uri mUri = contentResolver.insert(blockUri, values);
 
         Toast.makeText(context, context.getString(R.string.firewall_save_success),
                 Toast.LENGTH_SHORT).show();
-    }
-
-    public static boolean showFirewallMenu(Context context, ContactList list,
-            boolean isBlacklist) {
-        String number = list.get(0).getNumber();
-        if (null == number || number.length() <= 0) {
-            return false;
-        }
-        number = number.replaceAll(" ", "");
-        number = number.replaceAll("-", "");
-        String comparenNumber = number;
-        int len = comparenNumber.length();
-        if (len > 11) {
-            comparenNumber = number.substring(len - 11, len);
-        }
-        Uri showFirewallBlockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
-                : RcsUtils.WHITELIST_CONTENT_URI;
-        ContentResolver contentResolver = context.getContentResolver();
-        Cursor cu = contentResolver.query(showFirewallBlockUri, new String[] {
-                "_id", "number", "person_id", "name"},
-                "number" + " LIKE '%" + comparenNumber + "'",
-                null, null);
-        try {
-            if (cu != null && cu.getCount() > 0) {
-                    return false;
-            }
-        } finally {
-            if (cu != null) {
-                cu.close();
-                cu = null;
-            }
-        }
-        return true;
     }
 
     public static boolean isFireWallInstalled(Context context) {
@@ -1630,7 +1614,7 @@ public class RcsUtils {
         switch (messageItem.mRcsType) {
             case RcsUtils.RCS_MSG_TYPE_IMAGE: {
                 if (messageItem.mRcsThumbPath != null
-                        && !new File(messageItem.mRcsThumbPath).exists()
+                        && new File(messageItem.mRcsThumbPath).exists()
                         && messageItem.mRcsThumbPath.contains(".")) {
                     messageItem.mRcsThumbPath = messageItem.mRcsThumbPath.substring(0,
                             messageItem.mRcsThumbPath.lastIndexOf("."));
@@ -1689,8 +1673,9 @@ public class RcsUtils {
             case RcsUtils.RCS_MSG_TYPE_IMAGE: {
                 String imagePath = workingMessage.getRcsPath();
                 if (imagePath != null
-                        && !new File(imagePath).exists() && imagePath.contains(".")) {
-                    imagePath = imagePath.substring(0, imagePath.lastIndexOf("."));
+                        && new File(imagePath).exists() && imagePath.contains(".")) {
+                    imagePath = imagePath.substring(0,
+                            imagePath.lastIndexOf("."));
                 }
                 bitmap = decodeInSampleSizeBitmap(imagePath);
                 break;
@@ -2219,8 +2204,8 @@ public class RcsUtils {
     }
 
     public static void addNotificationItem(final Context context, ListView listView) {
-        if (!RcsApiManager.getSupportApi().isRcsSupported()
-                || !isPackageInstalled(context, NATIVE_UI_PACKAGE_NAME)) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported() ||
+                !isPackageInstalled(context, NATIVE_UI_PACKAGE_NAME)) {
             return;
         }
         View view = LayoutInflater.from(context).inflate(
@@ -2358,59 +2343,6 @@ public class RcsUtils {
         return numberTypeStr;
     }
 
-    public static int getVcardNumberType(PropertyNode propertyNode) {
-        if (null == propertyNode.paramMap_TYPE
-                || propertyNode.paramMap_TYPE.size() == 0) {
-            return 0;
-        }
-        if (propertyNode.paramMap_TYPE.size() == 2) {
-            if (propertyNode.paramMap_TYPE.contains("FAX")
-                    && propertyNode.paramMap_TYPE.contains("HOME")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_FAX_HOME;
-            } else if (propertyNode.paramMap_TYPE.contains("FAX")
-                    && propertyNode.paramMap_TYPE.contains("WORK")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_FAX_WORK;
-            } else if (propertyNode.paramMap_TYPE.contains("PREF")
-                    && propertyNode.paramMap_TYPE.contains("WORK")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_COMPANY_MAIN;
-            } else if (propertyNode.paramMap_TYPE.contains("CELL")
-                    && propertyNode.paramMap_TYPE.contains("WORK")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_WORK_MOBILE;
-            } else if (propertyNode.paramMap_TYPE.contains("WORK")
-                    && propertyNode.paramMap_TYPE.contains("PAGER")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_WORK_PAGER;
-            } else {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_OTHER;
-            }
-        } else {
-            if (propertyNode.paramMap_TYPE.contains("CELL")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE;
-            } else if (propertyNode.paramMap_TYPE.contains("HOME")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_HOME;
-            } else if (propertyNode.paramMap_TYPE.contains("WORK")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_WORK;
-            } else if (propertyNode.paramMap_TYPE.contains("PAGER")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_PAGER;
-            } else if (propertyNode.paramMap_TYPE.contains("VOICE")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_OTHER;
-            } else if (propertyNode.paramMap_TYPE.contains("CAR")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_CAR;
-            } else if (propertyNode.paramMap_TYPE.contains("ISDN")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_ISDN;
-            } else if (propertyNode.paramMap_TYPE.contains("PREF")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_OTHER;
-            } else if (propertyNode.paramMap_TYPE.contains("FAX")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_FAX_WORK;
-            } else if (propertyNode.paramMap_TYPE.contains("TLX")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_TELEX;
-            } else if (propertyNode.paramMap_TYPE.contains("MSG")) {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_MMS;
-            } else {
-                return ContactsContract.CommonDataKinds.Phone.TYPE_OTHER;
-            }
-        }
-    }
-
     public static void deleteRcsMessageByThreadId(final Context context,
             final Collection<Long> threadIds) {
         if(threadIds == null || threadIds.size() == 0){
@@ -2496,45 +2428,6 @@ public class RcsUtils {
         }
         return "[Vcard]\n" + context.getString(R.string.vcard_name)
                 + name + "\n" + number;
-    }
-
-    public static byte[] getBytesFromFile(File f) {
-        if (f == null) {
-            return null;
-        }
-        try {
-            FileInputStream stream = new FileInputStream(f);
-            ByteArrayOutputStream out = new ByteArrayOutputStream(1000);
-            byte[] b = new byte[1000];
-            int n;
-            while ((n = stream.read(b)) != -1) {
-                out.write(b, 0, n);
-               }
-            stream.close();
-            out.close();
-            return out.toByteArray();
-        } catch (IOException e) {
-        }
-        return null;
-    }
-
-    public static String formatConversationSnippet(Context context, String snippet){
-        if (snippet.startsWith("[image]")) {
-            snippet = context.getString(R.string.msg_type_image);
-        } else if (snippet.startsWith("[video]")) {
-            snippet = context.getString(R.string.msg_type_video);
-        } else if (snippet.startsWith("[audio]")) {
-            snippet = context.getString(R.string.msg_type_audio);
-        } else if (snippet.startsWith("[contact]")) {
-            snippet = context.getString(R.string.msg_type_contact);
-        } else if (snippet.startsWith("[map]")) {
-            snippet = context.getString(R.string.msg_type_location);
-        } else if (snippet.startsWith("<?xml")) {
-            snippet = context.getString(R.string.msg_type_CaiYun);
-        } else if (snippet.startsWith("burnMessage")) {
-            snippet = context.getString(R.string.msg_type_burnMessage);
-        }
-        return snippet;
     }
 
 }

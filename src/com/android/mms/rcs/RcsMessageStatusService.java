@@ -121,10 +121,16 @@ public class RcsMessageStatusService extends IntentService {
                             int rcsId = model.getId();
                             long threadId = RcsUtils.getThreadIdByGroupId(
                                     RcsMessageStatusService.this, String.valueOf(rcsId));
-                            if (msgNotifyType == 0 && threadId != MessagingNotification
-                                    .getCurrentlyDisplayedThreadId()) {
+                            if (msgNotifyType == 0) {
+                                // not in group chat
+                                if (threadId != MessagingNotification
+                                        .getCurrentlyDisplayedThreadId()) {
                                     MessagingNotification.blockingUpdateNewMessageIndicator(
                                             RcsMessageStatusService.this, threadId, true);
+                                }
+                            } else {
+                                MessagingNotification.blockingUpdateNewMessageIndicator(
+                                        RcsMessageStatusService.this, threadId, false);
                             }
                         }
                     } catch (ServiceDisconnectedException e) {

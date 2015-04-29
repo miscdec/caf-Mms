@@ -275,6 +275,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         addZoomableTextView(mDateView);
         addZoomableTextView(mSimMessageAddress);
         addZoomableTextView(mNameView);
+
     }
 
     private void updateBodyTextView() {
@@ -380,9 +381,6 @@ public class MessageListItem extends ZoomMessageListItem implements
         mRcsContentType = "";
         mRcsShowMmsView = true;
         showMmsView(true);
-        if (mSlideShowButton != null) {
-            mSlideShowButton.setVisibility(View.GONE);
-        }
         if (mMessageItem.mRcsIsBurn == 0) {
             mImageView.setImageDrawable(sRcsBurnFlagImage);
         } else {
@@ -582,7 +580,6 @@ public class MessageListItem extends ZoomMessageListItem implements
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        mDownloading.setVisibility(View.VISIBLE);
                         try {
                             NotificationInd nInd = (NotificationInd) PduPersister.getPduPersister(
                                     mContext).load(mMessageItem.mMessageUri);
@@ -692,8 +689,6 @@ public class MessageListItem extends ZoomMessageListItem implements
                 } else if(mRcsGroupId != RcsUtils.SMS_DEFAULT_RCS_GROUP_ID){
                     GroupMemberPhotoCache.loadGroupMemberPhoto(String.valueOf(mRcsGroupId),
                             addr, mAvatar, sDefaultContactImage);
-                    mAvatar.assignContactFromPhone(
-                            MessageUtils.getWapPushNumber(contact.getNumber()), true);
                 } else {
                     mAvatar.assignContactFromPhone(contact.getNumber(), true);
                 }
@@ -776,7 +771,14 @@ public class MessageListItem extends ZoomMessageListItem implements
         }
         if (!sameItem || haveLoadedPdu) {
             if (mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_VCARD) {
-                mBodyTextView.setText(formattedMessage);
+                if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_MAP) {
+                    String body = formattedMessage.toString();
+                    String messageStr = body.substring(body.
+                            lastIndexOf("/") + 1, body.length());
+                    mBodyTextView.setText(messageStr);
+                } else {
+                    mBodyTextView.setText(formattedMessage);
+                }
             }
         }
         updateSimIndicatorView(mMessageItem.mPhoneId);
@@ -1365,7 +1367,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         showMmsView(true);
 
         try {
-            mImageView.setImageResource(R.drawable.ic_attach_cal_event);
+            mImageView.setImageResource(R.drawable.ic_attach_event);
             mImageView.setVisibility(VISIBLE);
         } catch (java.lang.OutOfMemoryError e) {
             // shouldn't be here.
@@ -1425,4 +1427,10 @@ public class MessageListItem extends ZoomMessageListItem implements
         return percent;
     }
 
+    public void setBodyTextSize(float size) {
+        if (mBodyTextView != null
+                && mBodyTextView.getVisibility() == View.VISIBLE) {
+            mBodyTextView.setTextSize(size);
+        }
+    }
 }

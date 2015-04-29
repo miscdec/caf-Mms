@@ -25,8 +25,7 @@
     android:id="@+id/layout_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:theme="@android:style/Theme.Translucent"
-    android:background="#e0000000" >
+    android:alpha="50" >
 
     <ImageView
         android:id="@+id/image"
@@ -44,7 +43,7 @@
         android:layout_marginTop="200dp"
         android:layout_centerHorizontal="true"
         android:gravity="center"
-        android:textColor="@color/black"
+        android:textColor="@color/white"
         android:textSize="20sp"
         android:visibility="gone" />
 
@@ -95,13 +94,5 @@
         android:layout_marginBottom="35dp"
         android:visibility="gone"
         android:src="@drawable/audio_1" />
-
-    <RelativeLayout
-        android:id="@+id/gif_root_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:visibility="gone"
-        />
 
 </RelativeLayout>

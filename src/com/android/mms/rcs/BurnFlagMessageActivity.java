@@ -39,26 +39,19 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.drawable.AnimationDrawable;
-import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
-import android.view.Gravity;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
@@ -109,8 +102,6 @@ public class BurnFlagMessageActivity extends Activity {
     private TextView mProgressText;
 
     private ImageView mAudioIcon;
-
-    private RelativeLayout mRootLayout;
 
     private long mTempType;
 
@@ -313,9 +304,6 @@ public class BurnFlagMessageActivity extends Activity {
 
         WindowManager mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         mTelManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-        mTelManager.listen(new phoneStateListener(),
-                PhoneStateListener.LISTEN_CALL_STATE);
-
         IntentFilter filter = new IntentFilter();
         filter.addAction(BroadcastConstants.UI_DOWNLOADING_FILE_CHANGE);
         filter.addAction(ACTION_REGISTER_STATUS_CHANGED);
@@ -390,7 +378,9 @@ public class BurnFlagMessageActivity extends Activity {
                     + "\"");
             mVideo.setVideoURI(Uri.parse(filepath));
             mVideo.start();
-
+            if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
+                burnMessage(mSmsId, mRcsId);
+            }
             handler.sendEmptyMessage(VIDEO_TIME_REFRESH);
         } else {
             mVideo.setVisibility(View.GONE);
@@ -409,18 +399,13 @@ public class BurnFlagMessageActivity extends Activity {
         }
         if (RcsChatMessageUtils.isFileDownload(mFilePath, mMsg.getFilesize())) {
 
-            if (imageIsGif(mMsg)) {
+            if ("image/gif".equals(mMsg.getMimeType())
+                           || mMsg.getFilename() != null && mMsg.getFilename().endsWith("gif")) {
                 File file = new File(mFilePath);
-                byte[] data = RcsUtils.getBytesFromFile(file);
-                LinearLayout.LayoutParams mGifParam = new LinearLayout.LayoutParams(
-                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                ColorDrawable transparent = new ColorDrawable(Color.TRANSPARENT);
-                RcsEmojiGifView emojiGifView = new RcsEmojiGifView(BurnFlagMessageActivity.this);
-                emojiGifView.setLayoutParams(mGifParam);
-                emojiGifView.setBackground(transparent);
-                emojiGifView.setMonieByteData(data);
-                mRootLayout.setVisibility(View.VISIBLE);
-                mRootLayout.addView(emojiGifView);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.fromFile(file), "image/gif");
+                intent.setAction("com.android.gallery3d.VIEW_GIF");
+                startActivity(intent);
             } else {
                 Bitmap imageBm = ImageUtils.getBitmap(mFilePath);
                 mImage.setImageBitmap(imageBm);
@@ -433,17 +418,6 @@ public class BurnFlagMessageActivity extends Activity {
         } else {
             acceptFile();
             mProgressText.setVisibility(View.VISIBLE);
-        }
-    }
-
-    private boolean imageIsGif(ChatMessage msg){
-        if (mMsg.getMimeType() != null &&
-                mMsg.getMimeType().endsWith("image/gif")
-                    || mMsg.getFilename() != null &&
-                        mMsg.getFilename().endsWith("gif")) {
-            return true;
-        } else {
-            return false;
         }
     }
 
@@ -554,7 +528,6 @@ public class BurnFlagMessageActivity extends Activity {
         mTime = (TextView) findViewById(R.id.burn_time);
         mVideoLen = (TextView) findViewById(R.id.video_len);
         mAudioIcon = (ImageView) findViewById(R.id.audio_icon);
-        mRootLayout = (RelativeLayout) findViewById(R.id.gif_root_view);
     }
 
     public static int getVideoLength(String message) {
@@ -565,8 +538,8 @@ public class BurnFlagMessageActivity extends Activity {
         return 0;
     }
 
-    private void burnMessage(long messageId, long rcsId) {
-        String smsId = String.valueOf(rcsId);
+    private void burnMessage(long RcsId, long messageId) {
+        String smsId = String.valueOf(RcsId);
         try {
             if (mMsg != null) {
                 RcsApiManager.getMessageApi().burnMessageAtOnce(smsId);
@@ -578,18 +551,8 @@ public class BurnFlagMessageActivity extends Activity {
         values.put("rcs_is_burn", 1);
         values.put("rcs_burn_body", "");
         getContentResolver().update(Uri.parse("content://sms/"), values, "rcs_id = ? ", new String[] {
-            smsId
+            String.valueOf(messageId)
         });
     }
 
-    class phoneStateListener extends PhoneStateListener {
-        @Override
-        public void onCallStateChanged(int state, String incomingNumber) {
-            switch(state) {
-            case TelephonyManager.CALL_STATE_RINGING:
-                finish();
-                break;
-            }
-        }
-    }
 }
