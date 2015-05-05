@@ -770,9 +770,6 @@ public class MailBoxMessageList extends ListActivity implements
                     break;
                 }
                 return true;
-            case R.id.action_compose_new:
-                startActivity(ComposeMessageActivity.createIntent(this, 0));
-                break;
             case R.id.action_settings:
                 Intent intent = new Intent(this, MessagingPreferenceActivity.class);
                 startActivityIfNeeded(intent, -1);
@@ -1122,14 +1119,22 @@ public class MailBoxMessageList extends ListActivity implements
         }
 
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            mode.setTitle(getString(R.string.selected_count,
-                    getListView().getCheckedItemCount()));
+            MenuItem topItem = menu.findItem(R.id.topConversation);
+            MenuItem unTopItem = menu.findItem(R.id.cancelTopConversation);
+            if (topItem != null) {
+                topItem.setVisible(false);
+            }
+            if (unTopItem != null) {
+                unTopItem.setVisible(false);
+            }
             return true;
         }
 
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             ListView listView = getListView();
             final int checkedCount = listView.getCheckedItemCount();
+            mode.setTitle(getString(R.string.selected_count,
+                    checkedCount));
             switch (item.getItemId()) {
                 case R.id.delete:
                     confirmDeleteMessages();
@@ -1144,7 +1149,7 @@ public class MailBoxMessageList extends ListActivity implements
                 default:
                     break;
             }
-            mode.finish();
+            //mode.finish();
             return true;
         }
 

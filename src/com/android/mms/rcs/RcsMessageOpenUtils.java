@@ -38,10 +38,12 @@ import com.suntek.mway.rcs.client.aidl.plugin.entity.mcloudfile.TransNode;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.aidl.plugin.callback.IMcloudOperationCtrl;
+import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
 
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.content.ActivityNotFoundException;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.DialogInterface;
@@ -51,6 +53,11 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.Data;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.Intents.Insert;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
@@ -71,6 +78,12 @@ import java.util.List;
 
 public class RcsMessageOpenUtils {
     private static final String LOG_TAG = "RCS_UI";
+    private static final int VIEW_VCARD_DETAIL = 0;
+    private static final int IMPORT_VCARD = 1;
+    private static final int MERGE_VCARD_CONTACTS = 2;
+    // RCS Account API
+    private static RcsAccountApi mAccountApi = RcsApiManager.getRcsAccountApi();
+
 
     public static void openRcsSlideShowMessage(MessageListItem messageListItem) {
         MessageItem messageItem = messageListItem.getMessageItem();
@@ -85,25 +98,29 @@ public class RcsMessageOpenUtils {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(Uri.fromFile(File),
                 messageListItem.getRcsContentType().toLowerCase());
-        if (!messageItem.isMe() && messageItem.mRcsIsDownload == 0) {
+        if (!messageItem.isMe() && !RcsUtils.isFileDownLoadoK(messageItem)) {
             try {
-                MessageApi messageApi = RcsApiManager.getMessageApi();
-                ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
-                if (messageListItem.isDownloading() && !messageListItem.getRcsIsStopDown()) {
-                    messageListItem.setRcsIsStopDown(true);
-                    messageApi.interruptFile(message);
-                    messageListItem.setDateViewText(R.string.stop_down_load);
-                    Log.i(LOG_TAG, "STOP LOAD");
+                if (mAccountApi.isOnline()) {
+                    MessageApi messageApi = RcsApiManager.getMessageApi();
+                    ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
+                    if (messageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOADING) {
+                        RcsUtils.updateFileDownloadState(messageListItem.getContext(),
+                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
+                        messageApi.interruptFile(message);
+                    } else {
+                        RcsUtils.updateFileDownloadState(messageListItem.getContext(),
+                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
+                        messageApi.acceptFile(message);
+                    }
                 } else {
-                    messageListItem.setRcsIsStopDown(false);
-                    messageApi.acceptFile(message);
-                    messageListItem.setDateViewText(R.string.rcs_downloading);
+                    Toast.makeText(messageListItem.getContext(), R.string.rcs_network_unavailable,
+                        Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
                 Log.w(LOG_TAG, e);
             }
-        } else {
-            messageListItem.getContext().startActivity(intent);
+        } else if (messageItem.isMe() || RcsUtils.isFileDownLoadoK(messageItem)){
+            startSafeActivity(messageListItem.getContext(), intent);
         }
     }
 
@@ -255,11 +272,11 @@ public class RcsMessageOpenUtils {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         if (messageItem.mRcsMimeType != null && messageItem.mRcsMimeType.endsWith("image/bmp")) {
             intent.setDataAndType(Uri.fromFile(file), "image/bmp");
+        } else if (messageItem.mRcsMimeType != null && messageItem.mRcsMimeType.endsWith("image/gif")) {
+            intent.setAction("com.android.gallery3d.VIEW_GIF");
+            intent.setDataAndType(Uri.fromFile(file), "image/gif");
         } else {
             intent.setDataAndType(Uri.fromFile(file), "image/*");
-        }
-        if (messageItem.mRcsMimeType != null && messageItem.mRcsMimeType.endsWith("image/gif")) {
-            intent.setAction("com.android.gallery3d.VIEW_GIF");
         }
         ChatMessage msg = null;
         boolean isFileDownload = false;
@@ -272,17 +289,21 @@ public class RcsMessageOpenUtils {
             isFileDownload = RcsChatMessageUtils.isFileDownload(filePath, msg.getFilesize());
         if (!messageItem.isMe() && !isFileDownload) {
             try {
-                MessageApi messageApi = RcsApiManager.getMessageApi();
-                ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
-                if (messageListItem.isDownloading() && !messageListItem.getRcsIsStopDown()) {
-                    messageListItem.setRcsIsStopDown(true);
-                    messageApi.interruptFile(message);
-                    messageListItem.setDateViewText(R.string.stop_down_load);
-                    Log.i(LOG_TAG, "STOP LOAD");
+                if (mAccountApi.isOnline()) {
+                    MessageApi messageApi = RcsApiManager.getMessageApi();
+                    ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
+                    if (messageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOADING) {
+                        RcsUtils.updateFileDownloadState(messageListItem.getContext(),
+                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
+                        messageApi.interruptFile(message);
+                    } else {
+                        RcsUtils.updateFileDownloadState(messageListItem.getContext(),
+                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
+                        messageApi.acceptFile(message);
+                    }
                 } else {
-                    messageListItem.setRcsIsStopDown(false);
-                    messageApi.acceptFile(message);
-                    messageListItem.setDateViewText(R.string.rcs_downloading);
+                    Toast.makeText(messageListItem.getContext(), R.string.rcs_network_unavailable,
+                            Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
                 Log.w(LOG_TAG, e);
@@ -290,7 +311,7 @@ public class RcsMessageOpenUtils {
             return;
         }
         if (messageItem.isMe() || isFileDownload) {
-            messageListItem.getContext().startActivity(intent);
+            startSafeActivity(messageListItem.getContext(), intent);
         }
     }
 
@@ -302,19 +323,20 @@ public class RcsMessageOpenUtils {
     private static void showOpenRcsVcardDialog(final Context context,final MessageListItem messageListItem){
         final String[] openVcardItems = new String[] {
                 context.getString(R.string.vcard_detail_info),
-                context.getString(R.string.vcard_import)
+                context.getString(R.string.vcard_import),
+                context.getString(R.string.merge_contacts)
         };
        final MessageItem messageItem = messageListItem.getMessageItem();
         AlertDialog.Builder builder = new AlertDialog.Builder(messageListItem.getContext());
         builder.setItems(openVcardItems, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
-                    case 0:
+                    case VIEW_VCARD_DETAIL:
                         String vcardFilePath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
                         ArrayList<PropertyNode> propList = openRcsVcardDetail(context,vcardFilePath);
-                        showDetailVcard(context,propList);
+                        showDetailVcard(context, propList);
                         break;
-                    case 1:
+                    case IMPORT_VCARD:
                         try {
                           String filePath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
                           File file = new File(filePath);
@@ -327,12 +349,64 @@ public class RcsMessageOpenUtils {
                           Log.w(LOG_TAG, e);
                       }
                         break;
+                    case MERGE_VCARD_CONTACTS:
+                        String mergeVcardFilePath = RcsUtils.getFilePath(
+                                messageItem.mRcsId, messageItem.mRcsPath);
+                        ArrayList<PropertyNode> mergePropList
+                                = openRcsVcardDetail(context,mergeVcardFilePath);
+                        mergeVcardDetail(context, mergePropList);
+                        break;
                     default:
                         break;
                 }
             }
         });
         builder.create().show();
+    }
+
+    private static void mergeVcardDetail(Context context,
+            ArrayList<PropertyNode> propList) {
+        Intent intent = new Intent(Intent.ACTION_INSERT_OR_EDIT);
+        intent.setType(Contacts.CONTENT_ITEM_TYPE);
+        ArrayList<ContentValues> phoneValue = new ArrayList<ContentValues>();
+        for (PropertyNode propertyNode : propList) {
+            if ("FN".equals(propertyNode.propName)) {
+                if (!TextUtils.isEmpty(propertyNode.propValue)) {
+                    intent.putExtra(ContactsContract.Intents.Insert.NAME,
+                            propertyNode.propValue);
+                }
+            } else if ("TEL".equals(propertyNode.propName)) {
+                if (!TextUtils.isEmpty(propertyNode.propValue)) {
+                    ContentValues value = new ContentValues();
+                    value.put(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE);
+                    value.put(Phone.TYPE, RcsUtils.getVcardNumberType(propertyNode));
+                    value.put(Phone.NUMBER, propertyNode.propValue);
+                    phoneValue.add(value);
+                }
+            } else if ("ADR".equals(propertyNode.propName)) {
+                if (!TextUtils.isEmpty(propertyNode.propValue)) {
+                    intent.putExtra(ContactsContract.Intents.Insert.POSTAL,
+                            propertyNode.propValue);
+                    intent.putExtra(ContactsContract.Intents.Insert.POSTAL_TYPE,
+                            ContactsContract.CommonDataKinds.StructuredPostal.TYPE_WORK);
+                }
+            } else if ("ORG".equals(propertyNode.propName)) {
+                if (!TextUtils.isEmpty(propertyNode.propValue)) {
+                    intent.putExtra(ContactsContract.Intents.Insert.COMPANY,
+                            propertyNode.propValue);
+                }
+            } else if ("TITLE".equals(propertyNode.propName)) {
+                if (!TextUtils.isEmpty(propertyNode.propValue)) {
+                        intent.putExtra(ContactsContract.Intents.Insert.JOB_TITLE,
+                                propertyNode.propValue);
+                }
+            }
+        }
+        if (phoneValue.size() > 0) {
+            intent.putParcelableArrayListExtra(Insert.DATA, phoneValue);
+        }
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        startSafeActivity(context, intent);
     }
 
     public static ArrayList<PropertyNode> openRcsVcardDetail(Context context,String filePath){
@@ -450,14 +524,14 @@ public class RcsMessageOpenUtils {
         String messageItemBody = messageItem.mBody;
         try {
             GeoLocation geo = RcsUtils.readMapXml(filePath);
-            String messageStr = messageItemBody.substring(messageItemBody.
-                    lastIndexOf("/") + 1, messageItemBody.length());
-            String geourl = "geo:" + geo.getLat() + "," + geo.getLng()+ "?q=" + messageStr;
-            Uri uri = Uri.parse(geourl);
+            String geourl = "geo:" + geo.getLat() + "," + geo.getLng()+ "?q=" + geo.getLabel();
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(geourl));
             messageListItem.getContext().startActivity(intent);
         } catch (NullPointerException e) {
             Log.w(LOG_TAG, e);
+        } catch (ActivityNotFoundException ae) {
+            Toast.makeText(messageListItem.getContext(),
+                    R.string.toast_install_map, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Log.w(LOG_TAG, e);
         }
@@ -480,5 +554,15 @@ public class RcsMessageOpenUtils {
             Log.w("RCS_UI",e);
         }
         return isFileDownload;
+    }
+
+    private static void startSafeActivity(Context context, Intent intent) {
+        try {
+            context.startActivity(intent);
+        } catch(ActivityNotFoundException e) {
+            Toast.makeText(context, R.string.please_install_application,
+                    Toast.LENGTH_LONG).show();
+            Log.w(LOG_TAG, e);
+        }
     }
 }

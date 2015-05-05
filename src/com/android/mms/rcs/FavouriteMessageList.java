@@ -159,6 +159,7 @@ public class FavouriteMessageList extends ListActivity implements
     private final static String COUNT_TEXT_DECOLLATOR_2 = "/";
     private final static String VIEW_MODE_STATE = "current_view_state";
 
+    private final int MESSAGE_IS_RCS_TYPE = 0;
     private boolean mIsPause = false;
     private boolean mQueryDone = true;
     private int mQueryBoxType = TYPE_INBOX;
@@ -215,7 +216,10 @@ public class FavouriteMessageList extends ListActivity implements
         setupActionBar();
         actionBar.setTitle(getString(R.string.my_favorited));
         mHandler = new Handler();
-
+        View actionButton = findViewById(R.id.floating_action_button);
+        if (actionButton != null) {
+            actionButton.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -277,9 +281,11 @@ public class FavouriteMessageList extends ListActivity implements
                 startActivity(ComposeMessageActivity.createIntent(this, threadId));
                 return;
             } else if ("sms".equals(type)) {
+                boolean isRcsMessage =
+                        c.getInt(MessageListAdapter.COLUMN_RCS_ID) > MESSAGE_IS_RCS_TYPE;
                 // If the message is a failed one, clicking it should reload it in the compose view,
                 // regardless of whether it has links in it
-                if (c.getInt(COLUMN_SMS_TYPE) == Sms.MESSAGE_TYPE_FAILED) {
+                if (c.getInt(COLUMN_SMS_TYPE) == Sms.MESSAGE_TYPE_FAILED && !isRcsMessage) {
                     Intent intent = new Intent(this, ComposeMessageActivity.class);
                     intent.putExtra(THREAD_ID, threadId);
                     intent.putExtra(MESSAGE_ID, msgId);
@@ -610,7 +616,7 @@ public class FavouriteMessageList extends ListActivity implements
                          } else if (cursor.getCount() == 0) {
                              mListView.setEmptyView(emptyView);
                          } else if (needShowCountNum(cursor)) {
-                            showMessageCount(cursor);
+                            //showMessageCount(cursor);
                          }
                      } else {
                         mListAdapter.changeCursor(mCursor);
@@ -691,92 +697,22 @@ public class FavouriteMessageList extends ListActivity implements
             return true;
         }
 
-        getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
-        mSearchItem = menu.findItem(R.id.search);
-        mSearchView = (SearchView) mSearchItem.getActionView();
-        if (mSearchView != null) {
-            mSearchView.setOnQueryTextListener(mQueryTextListener);
-            mSearchView.setQueryHint(getString(R.string.search_hint));
-            mSearchView.setIconifiedByDefault(true);
-            SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-
-            if (searchManager != null) {
-                SearchableInfo info = searchManager.getSearchableInfo(getComponentName());
-                mSearchView.setSearchableInfo(info);
-            }
+        getMenuInflater().inflate(R.menu.fav_conversation_multi_select_menu, menu);
+        MenuItem unFavItem = menu.findItem(R.id.delete);
+        if (unFavItem != null) {
+            unFavItem.setVisible(false);
         }
-
-            MenuItem item = menu.findItem(R.id.action_change_to_folder_mode);
-            if (item != null) {
-                item.setVisible(false);
-            }
-
-            MenuItem itemConversation = menu.findItem(R.id.action_change_to_conversation_mode);
-            if (itemConversation != null) {
-                itemConversation.setVisible(false);
-            }
 
         return true;
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem item = menu.findItem(R.id.action_delete_all);
-        if (item != null) {
-            item.setVisible(false);
-        }
-
-        // if mQueryText is not null,so restore it.
-        if (mQueryText != null && mSearchView != null) {
-            mSearchView.setQuery(mQueryText, false);
-        }
-
-        if (!LogTag.DEBUG_DUMP) {
-            item = menu.findItem(R.id.action_debug_dump);
-            if (item != null) {
-                item.setVisible(false);
-            }
-        }
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.search:
-                if (getResources().getBoolean(R.bool.config_classify_search)) {
-                    Intent searchintent = new Intent(this, SearchActivityExtend.class);
-                    startActivityIfNeeded(searchintent, -1);
-                    break;
-                }
-                return true;
-            case R.id.action_compose_new:
-                startActivity(ComposeMessageActivity.createIntent(this, 0));
-                break;
-            case R.id.action_settings:
-                Intent intent = new Intent(this, MessagingPreferenceActivity.class);
-                startActivityIfNeeded(intent, -1);
-                break;
-            case R.id.action_change_to_conversation_mode:
-                Intent modeIntent = new Intent(this, ConversationList.class);
-                MessageUtils.setMailboxMode(false);
-                isChangeToConvasationMode = true;
-                startActivityIfNeeded(modeIntent, -1);
-                finish();
-                break;
-            case R.id.action_change_to_folder_mode:
-                Intent folderModeIntent = new Intent(this, ConversationList.class);
-                MessageUtils.setMailboxMode(true);
-                isChangeToConvasationMode = false;
-                startActivityIfNeeded(folderModeIntent, -1);
-                finish();
-                break;
-            case R.id.action_memory_status:
-                MessageUtils.showMemoryStatusDialog(this);
-                break;
-            default:
-                return true;
-        }
         return true;
     }
 
@@ -833,7 +769,7 @@ public class FavouriteMessageList extends ListActivity implements
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.confirm_dialog_title);
+        builder.setTitle(R.string.confirm_cancel_selected_fav_messages);
         builder.setIconAttribute(android.R.attr.alertDialogIcon);
         builder.setCancelable(true);
         builder.setView(contents);
@@ -1004,7 +940,7 @@ public class FavouriteMessageList extends ListActivity implements
             // comes into MultiChoiceMode
             mMultiChoiceMode = true;
             MenuInflater inflater = getMenuInflater();
-            inflater.inflate(R.menu.conversation_multi_select_menu, menu);
+            inflater.inflate(R.menu.fav_conversation_multi_select_menu, menu);
 
             if (mMultiSelectActionBarView == null) {
                 mMultiSelectActionBarView = (ViewGroup) LayoutInflater

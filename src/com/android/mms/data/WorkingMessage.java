@@ -225,6 +225,8 @@ public class WorkingMessage {
 
     private String mCloudFileId;
 
+    private boolean mIsCacheRcsMessage;
+
     public String getCloudFileId() {
         return mCloudFileId;
     }
@@ -349,6 +351,26 @@ public class WorkingMessage {
         this.mRcsEmoName = rcsEmoName;
     }
 
+    public boolean getCacheRcsMessage() {
+        return mIsCacheRcsMessage;
+    }
+
+    public void setCacheRcsMessage(boolean isCacheRcsMessage) {
+        this.mIsCacheRcsMessage = isCacheRcsMessage;
+    }
+
+    public void clearCacheRcsMessage(){
+        setIsBurn(false);
+        setRcsType(RcsUtils.RCS_MSG_TYPE_TEXT);
+        setRcsPath("");
+        setDuration(0);
+        setIsRecord(false);
+        setLatitude(0);
+        setLongitude(0);
+        setLocation("");
+        setCloudFileId("");
+    }
+
     private void preSendRcsSmsWorker(Conversation conv, String msgText, String recipientsInUI,
             boolean isGroupChat) throws ServiceDisconnectedException, FileSuffixException,
             FileTransferException, FileDurationException, NumberFormatException {
@@ -426,21 +448,21 @@ public class WorkingMessage {
                 sendRcsAudio(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_MAP:
-                mStatusListener.onPreMessageSent();
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsLocation(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_VCARD:
-                mStatusListener.onPreMessageSent();
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsVcard(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_PAID_EMO:
-                mStatusListener.onPreMessageSent();
+                mStatusListener.onPreRcsMessageSent();
                 sendRcsPaidEmo(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_CAIYUNFILE:
                 mStatusListener.onPreRcsMessageSent();
                 sendRcsCloudFile(dests, threadId, mcloudFileApi);
-		break;
+                break;
             default:
                 break;
         }

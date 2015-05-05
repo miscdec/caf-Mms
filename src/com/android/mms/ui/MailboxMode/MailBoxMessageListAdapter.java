@@ -53,6 +53,7 @@ import com.android.contacts.common.widget.CheckableQuickContactBadge;
 import com.android.mms.data.Contact;
 import com.android.mms.LogTag;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.ui.MessageUtils;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.PduPersister;
@@ -217,7 +218,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         } else if (isUnread) {
             view.setBackgroundDrawable(mBgUnReadDrawable);
         } else {
-            view.setBackgroundDrawable(mBgReadDrawable);
+            view.setBackgroundDrawable(null);
         }
     }
 
@@ -257,7 +258,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             addr = item.mAddress;
             isError = item.mSmsType == Sms.MESSAGE_TYPE_FAILED;
             isLocked = item.mLocked;
-            bodyStr = item.mBody;
+            bodyStr = RcsUtils.formatConversationSnippet(context, item.mBody);
             dateStr = item.mDateStr;
             nameContact = item.mName;
         } else if (type.equals("mms")) {
@@ -286,7 +287,8 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
 
             // get address and name of MMS from recipientIds
             addr = recipientIds;
-            if (!TextUtils.isEmpty(recipientIds)) {
+            if (!TextUtils.isEmpty(recipientIds) &&
+                Integer.parseInt(recipientIds) > 0) {
                 addr = MessageUtils.getRecipientsByIds(context, recipientIds, true);
                 nameContact = Contact.get(addr, true).getName();
             } else if (threadId > 0) {
@@ -303,7 +305,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         } else if (isUnread) {
             view.setBackgroundDrawable(mBgUnReadDrawable);
         } else {
-            view.setBackgroundDrawable(mBgReadDrawable);
+            view.setBackgroundDrawable(null);
         }
 
         mBodyView = (TextView) view.findViewById(R.id.msgBody);
