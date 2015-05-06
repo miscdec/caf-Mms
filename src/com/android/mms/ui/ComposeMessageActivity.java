@@ -4124,6 +4124,10 @@ public class ComposeMessageActivity extends Activity
                 if (view != null) {
                     int index = mCurrentAttachmentPager > DEFAULT_ATTACHMENT_PAGER ? position
                             + mAttachmentPagerAdapter.PAGE_GRID_COUNT : position;
+                    if (mIsRTL) {
+                        index = mCurrentAttachmentPager > DEFAULT_ATTACHMENT_PAGER ? position
+                                : mAttachmentPagerAdapter.PAGE_GRID_COUNT + position;
+                    }
                     int type = mAttachmentPagerAdapter.getAttachmentTypeByIndex(index);
                     addAttachment(type, replace);
                     mAttachmentSelector.setVisibility(View.GONE);
@@ -4133,7 +4137,7 @@ public class ComposeMessageActivity extends Activity
         setAttachmentSelectorHeight();
         mAttachmentPager.setAdapter(mAttachmentPagerAdapter);
         mAttachmentPager.setCurrentItem(((mIsRTL) ? 1 : 0));
-        mCurrentAttachmentPager = 0;
+        mCurrentAttachmentPager = ((mIsRTL) ? 1 : 0);
         mAttachmentPager.setOnPageChangeListener(mAttachmentPagerChangeListener);
         mAttachmentSelector.setVisibility(View.VISIBLE);
         // Delay 200ms for drawing view completed.
