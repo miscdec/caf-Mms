@@ -31,10 +31,8 @@ import android.content.Intent;
 import com.android.mms.MmsApp;
 
 import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
-import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
 import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
-import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import android.content.Context;
 import com.android.mms.transaction.MessagingNotification;
@@ -42,13 +40,11 @@ import android.util.Log;
 
 public class RcsMessageThread extends Thread {
 
+    private static final String RCS_TAG = "RCS_UI";
     private static final int WAITING_TIME_TO_GET_FIRST_RECORD = 3;
     private static final int MESSAGE_STATUS_DELIVERED = 99;
     private static final int MESSAGE_STATUS_DISPLAYED = 100;
     private static final long COPY_RCS_MESSAGE_FAIL = 0;
-
-    private static final String ACTION_UI_SHOW_GROUP_MESSAGE_NOTIFY =
-            "com.suntek.mway.rcs.ACTION_UI_SHOW_GROUP_MESSAGE_NOTIFY";
 
     private volatile boolean mIsExit = false;
 
@@ -119,18 +115,10 @@ public class RcsMessageThread extends Thread {
                 MessagingNotification.blockingUpdateNewMessageIndicator(MmsApp.getApplication(),
                         threadId, true);
             }
-            if ((chatType == SuntekMessageData.CHAT_TYPE_GROUP)
-                    && (sendReceive == SuntekMessageData.MSG_RECEIVE)
-                    && chatMessage.getMsgType() != SuntekMessageData.MSG_TYPE_NOTIFICATION) {
-                Intent groupNotifyIntent = new Intent(ACTION_UI_SHOW_GROUP_MESSAGE_NOTIFY);
-                groupNotifyIntent.putExtra("id", (long)chatMessage.getId());
-                groupNotifyIntent.putExtra("threadId", chatMessage.getThreadId());
-                MmsApp.getApplication().sendBroadcast(groupNotifyIntent);
-            }
         } else if (BroadcastConstants.UI_MESSAGE_STATUS_CHANGE_NOTIFY.equals(action)) {
             String id = intent.getStringExtra("id");
             int status = intent.getIntExtra("status", -11);
-            Log.i("RCS_UI", "com.suntek.mway.rcs.ACTION_UI_MESSAGE_STATUS_CHANGE_NOTIFY" + id
+            Log.i(RCS_TAG, "com.suntek.mway.rcs.ACTION_UI_MESSAGE_STATUS_CHANGE_NOTIFY" + id
                     + status);
             RcsUtils.updateState(MmsApp.getApplication(), id, status);
             RcsNotifyManager.sendMessageFailNotif(MmsApp.getApplication(), status, id, true);

@@ -93,7 +93,7 @@ public class Conversation {
     private static final int IS_GROUP_CHAT  = 9;
     private static final int IS_CONV_T0P    = 10;
 
-    private final Context mContext;
+    private static Context mContext;
 
     // The thread ID of this conversation.  Can be zero in the case of a
     // new conversation where the recipient set is changing as the user
@@ -572,6 +572,10 @@ public class Conversation {
         return mIsTop;
     }
 
+    public void setIsTop(int isTop) {
+        mIsTop = isTop;
+    }
+
     public synchronized void clearThreadId() {
         // remove ourself from the cache
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
@@ -956,7 +960,11 @@ public class Conversation {
 
                 handler.setDeleteToken(token);
                 handler.startDelete(token, new Long(threadId), uri, selection, null);
-
+                if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                Conversation delConv = get(mContext, threadId, true);
+                    RcsUtils.deleteRcsMessageByThreadId(mContext, threadIds, deleteAll,
+                            delConv.mIsGroupChat);
+                }
                 DraftCache.getInstance().setDraftState(threadId, false);
             }
         }
@@ -988,6 +996,18 @@ public class Conversation {
 
             handler.setDeleteToken(token);
             handler.startDelete(token, new Long(-1), Threads.CONTENT_URI, selection, null);
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                try {
+                    if (deleteAll) {
+                        RcsApiManager.getMessageApi().removeAllMessage();
+                    } else {
+                        RcsApiManager.getMessageApi().removeAllButRemainLockMessage();
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

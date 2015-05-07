@@ -567,7 +567,7 @@
     <string name="omacp_configuration">OMACP配置</string>
     <string name="configuration_message_key">配置短信</string>
     <string name="configuration_message_key_activity">触摸即可配置您的OMACP短信</string>
-    
+
     <string name="manage_sdcard_messages">管理sd卡上消息</string>
     <string name="perform_backup_title">备份</string>
     <string name="prefs_title_export_sms_messages">导出SMS</string>

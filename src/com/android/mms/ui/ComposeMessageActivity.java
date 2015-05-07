@@ -306,6 +306,7 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_ADD_RECIPIENTS   = 121;
     public static final int REQUEST_SELECT_LOCAL_AUDIO    = 122;
     public static final int REQUEST_CODE_EMOJI_STORE      = 123;
+    public static final int REQUEST_CODE_ADD_CONVERSATION = 124;
 
     private static final String TAG = LogTag.TAG;
     private static final String RCS_TAG = "RCS_UI";
@@ -361,8 +362,6 @@ public class ComposeMessageActivity extends Activity
 
     private static final int MENU_FIERWALL_ADD_BLACKLIST    = 50;
     private static final int MENU_FIERWALL_ADD_WHITELIST    = 51;
-    private static final int MENU_TOP_SMS                   = 52;
-    private static final int MENU_CANCEL_TOP_SMS            = 53;
 
     private static final int DIALOG_TEMPLATE_SELECT     = 1;
     private static final int DIALOG_TEMPLATE_NOT_AVAILABLE = 2;
@@ -383,6 +382,12 @@ public class ComposeMessageActivity extends Activity
 
     private static final int BACKUP_MESSAGES = 0;
     private static final int RECOVER_MESSAGES = 1;
+
+    // Forward message
+    private static final int FORWARD_INPUT_NUMBER = 0;
+    private static final int FORWARD_CONTACTS = 1;
+    private static final int FORWARD_CONVERSATION = 2;
+    private static final int FORWARD_CONTACT_GROUP = 3;
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
     private static final int RCS_MAX_SMS_LENGHTH = 900;
@@ -491,8 +496,6 @@ public class ComposeMessageActivity extends Activity
     private ImageView mIndicatorForSimMmsSec, mIndicatorForSimSmsSec;
     private ZoomGestureOverlayView mZoomGestureOverlayView; // overlay for handling zoom
     private View mRcsThumbnailLayout;
-    private ImageButton mRcsThumbnailSendButton;
-    private ImageView mRcsThumbnailView;
 
     private AttachmentEditor mAttachmentEditor;
     private View mAttachmentEditorScrollView;
@@ -616,13 +619,12 @@ public class ComposeMessageActivity extends Activity
 
     private int mRcsForwardId = 0;
 
-    private List<Long> mTopThread = new ArrayList<Long>();
-    private List<Long> mTopSms = new ArrayList<Long>();
-
     private Handler mHandler = new Handler();
 
     ArrayList<SimpleMsg> mSimpleMsgs = new ArrayList<SimpleMsg>();
     private ProgressDialog mProgressDialog;
+
+    private  boolean mIsRTL = false;
 
     // keys for extras and icicles
     public final static String THREAD_ID = "thread_id";
@@ -677,7 +679,8 @@ public class ComposeMessageActivity extends Activity
     private boolean mConvsertionSelect = false;
 
     private final static String MULTI_SELECT_CONV = "select_conversation";
-
+    //rcs forward messageitems
+    private List<MessageItem> mMsgListItems = new ArrayList<MessageItem>();
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
         Thread current = Thread.currentThread();
@@ -1301,9 +1304,6 @@ public class ComposeMessageActivity extends Activity
             mWorkingMessage.setWorkingRecipients(mRecipientsEditor.getNumbers());
             mWorkingMessage.setHasEmail(mRecipientsEditor.containsEmail(), true);
 
-            if (mRecipientsEditor.getNumbers().size() > 0) {
-                mRcsThumbnailSendButton.setEnabled(true);
-            }
             checkForTooManyRecipients();
             // If pick recipients from Contacts,
             // then only update title once when process finished
@@ -2043,7 +2043,6 @@ public class ComposeMessageActivity extends Activity
                     title = list.get(0).getName();      // get name returns the number if there's
                                                         // no name available.
                     String number = list.get(0).getNumber();
-                    checkCapability(number);
                     if (MessageUtils.isWapPushNumber(number)) {
                         String[] mTitleNumber = number.split(":");
                         number = mTitleNumber[getResources().getInteger(
@@ -2301,6 +2300,10 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void sendRcsOption() {
+        if (!mIsRcsEnabled) {
+            return;
+        }
+
         ContactList recipients = getRecipients();
         if (recipients.size() == 1) {
             Contact data = recipients.get(0);
@@ -2325,7 +2328,9 @@ public class ComposeMessageActivity extends Activity
         mCapabilityApi = RcsApiManager.getCapabilityApi();
         mSupportApi = RcsApiManager.getSupportApi();
         mIsRcsEnabled = mSupportApi.isRcsSupported();
-
+        if(mButtonEmoj != null){
+            mButtonEmoj.setVisibility(mIsRcsEnabled ? View.VISIBLE : View.GONE);
+        }
         initGroupChat(intent);
     }
 
@@ -2617,7 +2622,10 @@ public class ComposeMessageActivity extends Activity
             }
             saveDraft(false);    // if we've got a draft, save it first
             resetEditorText();
-            initialize(null, originalThreadId);
+            // add attachment vcard return will create new Conversation.
+            Bundle bundle = new Bundle();
+            bundle.putString(RECIPIENTS, getRecipients().serialize());
+            initialize(bundle, originalThreadId);
         }
         loadMessagesAndDraft(0);
     }
@@ -2969,7 +2977,6 @@ public class ComposeMessageActivity extends Activity
             unregisterReceiver(mGroupReceiver);
             unregisterReceiver(mCloudFileReceiver);
             unregisterReceiver(mRcsServiceCallbackReceiver);
-            unregisterReceiver(mBackupStateReceiver);
             unregisterReceiver(mEmotionDownloadReceiver);
             unregisterReceiver(mPhotoUpdateReceiver);
         } catch (Exception e) {
@@ -3026,7 +3033,11 @@ public class ComposeMessageActivity extends Activity
     private void onKeyboardStateChanged() {
         // If the keyboard is hidden, don't show focus highlights for
         // things that cannot receive input.
-        mTextEditor.setEnabled(mIsSmsEnabled);
+        if (mWorkingMessage.getCacheRcsMessage()) {
+            mTextEditor.setEnabled(false);
+        } else {
+            mTextEditor.setEnabled(mIsSmsEnabled);
+        }
         if (!mIsSmsEnabled) {
             if (mRecipientsEditor != null) {
                 mRecipientsEditor.setFocusableInTouchMode(false);
@@ -3436,16 +3447,14 @@ public class ComposeMessageActivity extends Activity
                 mAddAttachmentButton.setVisibility(View.VISIBLE);
             }
         }
-        if (mConversation.getThreadId() != 0) {
-            if (mConversation.getIsTop() == 0 &&
-                    !mTopThread.contains(mConversation.getThreadId())) {
-                menu.add(0, MENU_TOP_CONVERSATION, 0, R.string.top_conversation).setIcon(
-                        R.drawable.ic_menu_edit);
-            } else {
-                menu.add(0, MENU_CANCEL_TOP_CONVERSATION, 0, R.string.cancel_top_conversation)
-                        .setIcon(R.drawable.ic_menu_edit);
-            }
+        if (mConversation.getIsTop() == 0) {
+            menu.add(0, MENU_TOP_CONVERSATION, 0, R.string.top_conversation).setIcon(
+                    R.drawable.ic_menu_edit);
+        } else{
+            menu.add(0,MENU_CANCEL_TOP_CONVERSATION,0,R.string.cancel_top_conversation).setIcon(
+                    R.drawable.ic_menu_edit);
         }
+
         if (isPreparedForSending() && mIsSmsEnabled) {
             if (mShowTwoButtons) {
                 menu.add(0, MENU_SEND_BY_SLOT1, 0, R.string.send_by_slot1)
@@ -3484,10 +3493,16 @@ public class ComposeMessageActivity extends Activity
         // ADD firewall menu
         if (!mConversation.isGroupChat() && 1 == getRecipients().size()
                 && RcsUtils.isFireWallInstalled(ComposeMessageActivity.this)) {
-            menu.add(0, MENU_FIERWALL_ADD_BLACKLIST, 0,
-                    getString(R.string.menuid_add_to_black_list));
-            menu.add(0, MENU_FIERWALL_ADD_WHITELIST, 0,
-                    getString(R.string.menuid_add_to_white_list));
+            if (RcsUtils.showFirewallMenu(getContext(),
+                    mConversation.getRecipients(), true)) {
+                menu.add(0, MENU_FIERWALL_ADD_BLACKLIST, 0,
+                        getString(R.string.menuid_add_to_black_list));
+            }
+            if (RcsUtils.showFirewallMenu(getContext(),
+                    mConversation.getRecipients(), false)) {
+                menu.add(0, MENU_FIERWALL_ADD_WHITELIST, 0,
+                        getString(R.string.menuid_add_to_white_list));
+            }
         }
 
         menu.add(0, MENU_PREFERENCES, 0, R.string.menu_preferences).setIcon(
@@ -3643,12 +3658,10 @@ public class ComposeMessageActivity extends Activity
                 confirmDeleteThread(mConversation.getThreadId());
                 break;
             case MENU_TOP_CONVERSATION:
-                mTopThread.add(mConversation.getThreadId());
-                RcsUtils.topConversion(this,mConversation.getThreadId());
+                RcsUtils.topConversion(this,mConversation);
                 break;
             case MENU_CANCEL_TOP_CONVERSATION:
-                mTopThread.remove(mConversation.getThreadId());
-                RcsUtils.cancelTopConversion(this, mConversation.getThreadId());
+                RcsUtils.cancelTopConversion(this, mConversation);
                 break;
             case android.R.id.home:
             case MENU_CONVERSATION_LIST:
@@ -3936,7 +3949,8 @@ public class ComposeMessageActivity extends Activity
                 }
                 if (sizeLimit > 0) {
                     MessageUtils.recordVideo(this,
-                        getMakRequestCode(replace, REQUEST_CODE_TAKE_VIDEO), sizeLimit);
+                        getMakRequestCode(replace, REQUEST_CODE_TAKE_VIDEO), sizeLimit,
+                        mWorkingMessage.requiresMms());
                 } else {
                     Toast.makeText(this,
                             getString(R.string.message_too_big_for_video),
@@ -3953,7 +3967,8 @@ public class ComposeMessageActivity extends Activity
             case AttachmentPagerAdapter.RECORD_SOUND:
                 long sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 MessageUtils.recordSound(this,
-                        getMakRequestCode(replace, REQUEST_CODE_RECORD_SOUND), sizeLimit);
+                        getMakRequestCode(replace, REQUEST_CODE_RECORD_SOUND), sizeLimit,
+                        mWorkingMessage.requiresMms());
                 break;
 
             case AttachmentPagerAdapter.ADD_SLIDESHOW:
@@ -3990,14 +4005,22 @@ public class ComposeMessageActivity extends Activity
                 break;
             case AttachmentPagerAdapter.ADD_MAP:
                 try {
-                    Intent intent = new Intent();
-                    intent.setAction("com.suntek.mway.rcs.MAP_POSITION_SELECT");
-                    startActivityForResult(intent, REQUEST_CODE_ATTACH_MAP);
-                    mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_MAP);
+                    if (mAccountApi.isOnline()) {
+
+                    } else {
+                        Toast.makeText(this, getString(R.string.unable_to_locate),
+                                Toast.LENGTH_LONG).show();
+                    }
+                        Intent intent = new Intent();
+                        intent.setAction("com.suntek.mway.rcs.MAP_POSITION_SELECT");
+                        startActivityForResult(intent, REQUEST_CODE_ATTACH_MAP);
+                        mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_MAP);
                 } catch (ActivityNotFoundException e) {
                     e.printStackTrace();
                     Toast.makeText(this, getString(R.string.please_install_rcs_map),
                             Toast.LENGTH_LONG).show();
+                } catch (ServiceDisconnectedException e) {
+                    e.printStackTrace();
                 }
                 break;
             case AttachmentTypeSelectorAdapter.ADD_CALENDAR_EVENTS:
@@ -4105,7 +4128,7 @@ public class ComposeMessageActivity extends Activity
         });
         setAttachmentSelectorHeight();
         mAttachmentPager.setAdapter(mAttachmentPagerAdapter);
-        mAttachmentPager.setCurrentItem(0);
+        mAttachmentPager.setCurrentItem(((mIsRTL) ? 1 : 0));
         mCurrentAttachmentPager = 0;
         mAttachmentPager.setOnPageChangeListener(mAttachmentPagerChangeListener);
         mAttachmentSelector.setVisibility(View.VISIBLE);
@@ -4140,6 +4163,15 @@ public class ComposeMessageActivity extends Activity
                 R.id.pager_indicator_first);
         ImageView pagerIndicatorSecond = (ImageView) mAttachmentSelector.findViewById(
                 R.id.pager_indicator_second);
+
+        if (mIsRTL) {
+            pagerIndicatorSecond.setImageResource(pagerPosition == 0 ? R.drawable.dot_chosen
+                    : R.drawable.dot_unchosen);
+            pagerIndicatorFirst.setImageResource(pagerPosition == 0 ? R.drawable.dot_unchosen
+                    : R.drawable.dot_chosen);
+            return;
+        }
+
         pagerIndicatorFirst.setImageResource(pagerPosition == 0 ? R.drawable.dot_chosen
                 : R.drawable.dot_unchosen);
         pagerIndicatorSecond.setImageResource(pagerPosition == 0 ? R.drawable.dot_unchosen
@@ -4173,6 +4205,9 @@ public class ComposeMessageActivity extends Activity
                 RcsUserProfileInfo userProfile = mAccountApi.getRcsUserProfileInfo();
                 if (userProfile == null || Integer.valueOf(userProfile.getVersion()) > 0) {
                     confirmSendMessageIfNeeded();
+                    if(mWorkingMessage.getCacheRcsMessage()){
+                        cancelRcsMessageCache();
+                    }
                 }
             }
         } catch (ServiceDisconnectedException e) {
@@ -4254,7 +4289,9 @@ public class ComposeMessageActivity extends Activity
                 || (requestCode == REQUEST_CODE_VCARD_GROUP)
                 || (requestCode == REQUEST_CODE_SAIYUN)
                 || (requestCode == REQUEST_SELECT_LOCAL_AUDIO);
-        if (mIsRcsEnabled && mSupportApi.isOnline() && isRcsMessage) {
+        boolean isMms = mWorkingMessage.requiresMms();
+        if (!isMms && mIsRcsEnabled && mSupportApi.isOnline() && isRcsMessage
+                && (mSendButtonMms != null && mSendButtonMms.getVisibility() == View.GONE)) {
             switch (requestCode) {
                 case PHOTO_CROP:
                     if (data != null) {
@@ -4513,18 +4550,26 @@ public class ComposeMessageActivity extends Activity
 
             case REQUEST_SELECT_GROUP:
                 if (data != null) {
-                    forwardRcsMessage(data);
+                    ArrayList<String> numbers = data.getStringArrayListExtra(
+                            SelectRecipientsList.EXTRA_RECIPIENTS);
+                    forwardRcsMessage(numbers);
                 }
                 break;
 
             case REQUEST_CODE_RCS_PICK:
                 if (data != null) {
-                    forwardRcsMessage(data);
+                    ArrayList<String> numbers = data.getStringArrayListExtra(
+                            SelectRecipientsList.EXTRA_RECIPIENTS);
+                    forwardRcsMessage(numbers);
                 }
                 break;
 
             case REQUEST_SELECT_CONV:
                 if (data != null) {
+                    MessageItem smsMsgItem = mMsgListItems.get(0);
+                    if (smsMsgItem != null && smsMsgItem.mRcsId == -1) {
+                        data.putExtra("smsMsgBody", smsMsgItem.mBody);
+                    }
                     RcsChatMessageUtils.sendRcsFavoritedMessage(ComposeMessageActivity.this, data,
                             mRcsForwardId);
                 }
@@ -4559,6 +4604,16 @@ public class ComposeMessageActivity extends Activity
                 insertNumbersIntoRecipientsEditor(
                         data.getStringArrayListExtra(SelectRecipientsList.EXTRA_RECIPIENTS));
                 break;
+            case REQUEST_CODE_ADD_CONVERSATION:
+                long threadId = data.getLongExtra("selectThreadId", -1);
+                Conversation conv = Conversation.get(ComposeMessageActivity.this, threadId, false);
+                ContactList recipients = conv.getRecipients();
+                ContactList existing = mRecipientsEditor.constructContactsFromInput(false);
+                for (Contact contact : existing) {
+                        recipients.add(contact);
+                }
+                mRecipientsEditor.populate(recipients);
+                break;
             case REQUEST_CODE_ADD_CALENDAR_EVENTS:
                 if (data != null) {
                     // get shared event files (.vcs)
@@ -4578,23 +4633,34 @@ public class ComposeMessageActivity extends Activity
 
     private boolean cacheWorkingMessage() {
         if (mConversation.getRecipients().size() == 0) {
+            mWorkingMessage.setCacheRcsMessage(true);
             mRcsThumbnailLayout.setVisibility(View.VISIBLE);
-            mRcsThumbnailSendButton.setOnClickListener(
+            mWorkingMessage.setIsBurn(mIsBurnMessage);
+            ImageView imageView = (ImageView) findViewById(R.id.image_view_thumbnail);
+            RcsUtils.setThumbnailForMessageItem(this, imageView, mWorkingMessage);
+            mButtonEmoj.setEnabled(false);
+            mTextEditor.setEnabled(false);
+            findViewById(R.id.remove_attachment_button).setOnClickListener(
                     new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     if (!isDisposeImage) {
-                        mWorkingMessage.setIsBurn(mIsBurnMessage);
-                        rcsSend();
-                        mRcsThumbnailLayout.setVisibility(View.GONE);
+                        cancelRcsMessageCache();
+                        mWorkingMessage.clearCacheRcsMessage();
                     }
                 }
             });
-            mRcsThumbnailSendButton.setEnabled(false);
-            RcsUtils.setThumbnailForMessageItem(this, mRcsThumbnailView, mWorkingMessage);
             return true;
         }
         return false;
+    }
+
+    private void cancelRcsMessageCache(){
+        mWorkingMessage.setCacheRcsMessage(false);
+        mRcsThumbnailLayout.setVisibility(View.GONE);
+        mButtonEmoj.setEnabled(true);
+        mTextEditor.setEnabled(true);
+        mTextEditor.requestFocus();
     }
 
     private void imageDispose(final String photoPath){
@@ -4741,14 +4807,23 @@ public class ComposeMessageActivity extends Activity
         }
     };
 
-    private void forwardRcsMessage(Intent data) {
-        ArrayList<String> numbers = data.getStringArrayListExtra(
-                SelectRecipientsList.EXTRA_RECIPIENTS);
+    private void forwardRcsMessage(ArrayList<String> numbers) {
         ContactList list = ContactList.getByNumbers(numbers, true);
         long a = -1;
         boolean success = false;
         try {
             ChatMessage message = mMessageApi.getMessageById(mRcsForwardId + "");
+            MessageItem msgItem = mMsgListItems.get(0);
+            if(msgItem != null && msgItem.mIsRcs == -1){
+                if(numbers.size() == 1) {
+                    mMessageApi.sendTextMessage(a, numbers.get(0), msgItem.mBody,
+                            SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0);
+                } else {
+                    mMessageApi.sendOne2ManyTextMessage(a, numbers, msgItem.mBody,
+                            SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0);
+                }
+                return;
+            }
             success = RcsChatMessageUtils.forwardMessage(a, Arrays.asList(list.getNumbers()),
                     message);
             if (success) {
@@ -5499,21 +5574,52 @@ public class ComposeMessageActivity extends Activity
     // Interface methods
     //==========================================================
 
+    public void addGrouChatWayOrConversation(OnClickListener listener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
+        builder.setCancelable(true);
+        builder.setTitle(R.string.select_contact_conversation);
+        builder.setItems(new String[] {
+                getContext().getString(R.string.forward_contact),
+                getContext().getString(R.string.forward_conversation),
+        },listener);
+        builder.show();
+    }
 
+    private class addGrouChatWayClickListener implements OnClickListener{
+        public void onClick(DialogInterface dialog, int whichButton) {
+            switch (whichButton) {
+                case 0:
+                    pickContacts(SelectRecipientsList.MODE_DEFAULT, REQUEST_CODE_ADD_RECIPIENTS);
+                    break;
+                case 1:
+                    Intent intent = new Intent(ComposeMessageActivity.this,ConversationList.class);
+                    intent.putExtra(MULTI_SELECT_CONV, true);
+                    startActivityForResult(intent, REQUEST_CODE_ADD_CONVERSATION);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
     @Override
     public void onClick(View v) {
         mWorkingMessage.setIsBurn(mIsBurnMessage);
+        mIsRTL = (v.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
             if (mShowTwoButtons) {
                 confirmSendMessageIfNeeded(PhoneConstants.SUB1);
             } else {
+                if (mWorkingMessage.getCacheRcsMessage()) {
+                    rcsSend();
+                    return;
+                }
                 confirmSendMessageIfNeeded();
             }
         } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
             mShowTwoButtons && isPreparedForSending()) {
             confirmSendMessageIfNeeded(PhoneConstants.SUB2);
         } else if (v == mRecipientsSelector) {
-            pickContacts(SelectRecipientsList.MODE_DEFAULT, REQUEST_CODE_ADD_RECIPIENTS);
+              addGrouChatWayOrConversation(new addGrouChatWayClickListener());
         } else if ((v == mAddAttachmentButton)) {
             if (mAttachmentSelector.getVisibility() == View.VISIBLE && !mIsReplaceAttachment) {
                 mAttachmentSelector.setVisibility(View.GONE);
@@ -5525,6 +5631,9 @@ public class ComposeMessageActivity extends Activity
                 }
             }
         } else if (v == mButtonEmoj) {
+            if (mAttachmentSelector.getVisibility() == View.VISIBLE) {
+                mAttachmentSelector.setVisibility(View.GONE);
+            }
             ViewStub viewStub = (ViewStub) findViewById(R.id.view_stub);
             showEmojiView(viewStub);
         }
@@ -5787,7 +5896,8 @@ public class ComposeMessageActivity extends Activity
                 smoothScrollToEnd(false, height - oldHeight);
             }
         });
-
+        //Let listView scroll to bottom
+        mMsgListView.setSelection(mMsgListView.getBottom());
         if (mShowTwoButtons) {
             initTwoSendButton();
         } else {
@@ -5820,15 +5930,20 @@ public class ComposeMessageActivity extends Activity
             mTextEditor.setFilters(new InputFilter[] {
                     new LengthFilter(getResources().getInteger(R.integer.slide_text_limit_size))});
         }
-        mTextEditor.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+
+        mTextEditor.setOnTouchListener(new OnTouchListener() {
             @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus && mAttachmentSelector.getVisibility() == View.VISIBLE) {
-                    mAttachmentSelector.setVisibility(View.GONE);
-                    if (mRcsEmojiInitialize != null) {
+            public boolean onTouch(View arg0, MotionEvent arg1) {
+                if (arg1.getAction() == MotionEvent.ACTION_DOWN) {
+                    if ( mAttachmentSelector.getVisibility() == View.VISIBLE) {
+                        mAttachmentSelector.setVisibility(View.GONE);
+                    }
+                    if(mRcsEmojiInitialize != null 
+                            && mRcsEmojiInitialize.getEmojiView().getVisibility() == View.VISIBLE){
                         mRcsEmojiInitialize.closeViewAndKB();
                     }
                 }
+                return false;
             }
         });
 
@@ -5838,18 +5953,7 @@ public class ComposeMessageActivity extends Activity
         mAttachmentEditor.setHandler(mAttachmentEditorHandler);
         mAttachmentEditorScrollView = findViewById(R.id.attachment_editor_scroll_view);
         mAttachmentSelector = findViewById(R.id.attachments_selector);
-
-        mRcsThumbnailLayout = findViewById(R.id.layout_thumbnail);
-        mRcsThumbnailSendButton = (ImageButton) findViewById(R.id.ib_thumbnail_send);
-        mRcsThumbnailView = (ImageView) findViewById(R.id.image_view_thumbnail);
-        setEmojBtnGone();
-    }
-
-    private void setEmojBtnGone(){
-        boolean isRcsAvailable = mIsRcsEnabled && mSupportApi.isOnline();
-        if (!isRcsAvailable) {
-            mButtonEmoj.setVisibility(View.GONE);
-        }
+        mRcsThumbnailLayout = findViewById(R.id.rcs_cache_view);
     }
 
     private void initTwoSendButton() {
@@ -6305,6 +6409,11 @@ public class ComposeMessageActivity extends Activity
                 public void onBootMe(Bundle extras) {
                     handleRcsGroupChatBooted(extras);
                 }
+
+                @Override
+                public void onGroupGone(Bundle extras) {
+                    handleRcsGroupChatDeleted(extras);
+                }
             });
 
     private void handleRcsGroupChatDeparted(Bundle extras) {
@@ -6320,18 +6429,17 @@ public class ComposeMessageActivity extends Activity
 
     private void handleRcsGroupChatDeleted(Bundle extras) {
         String groupId = extras.getString(BroadcastConstants.BC_VAR_GROUP_ID);
-        if (groupId == null) {
+        if (TextUtils.isEmpty(groupId)) {
             return;
         }
 
         if (mConversation != null && mConversation.getGroupChat() != null
-                && !TextUtils.isEmpty(groupId)
-                && groupId.equals(mConversation.getGroupChat().getId())) {
+                 && groupId.equals(mConversation.getGroupChat().getId() + "")) {
             try {
                 GroupChatModel groupChat = mMessageApi.getGroupChatById(groupId);
                 mConversation.setGroupChat(groupChat);
-                runOnUiThread(mResetMessageRunnable);
                 updateTitle(new ContactList());
+                runOnUiThread(mResetMessageRunnable);
             } catch (ServiceDisconnectedException e) {
                 Log.e(RCS_TAG, "Exception onDisband()" + e);
             }
@@ -6860,9 +6968,7 @@ public class ComposeMessageActivity extends Activity
                             threadIds,
                             cursor != null && cursor.getCount() > 0,
                             ComposeMessageActivity.this);
-                    if(RcsApiManager.getSupportApi().isRcsSupported()){
-                        RcsUtils.deleteRcsMessageByThreadId(ComposeMessageActivity.this, threadIds);
-                    }
+
                     if (cursor != null) {
                         cursor.close();
                     }
@@ -7244,7 +7350,6 @@ public class ComposeMessageActivity extends Activity
         public final static int WORK_TOKEN_COMPLAIN = 5;
         ArrayList<Integer> mSelectedPos = new ArrayList<Integer>();
         ArrayList<Uri> mSelectedMsg = new ArrayList<Uri>();
-        ArrayList<String> mSelectedRcsMsg = new ArrayList<String>();
         ArrayList<String> mSelectedRcsMsgId = new ArrayList<String>();
         ArrayList<MessageItem> mMessageItems = new ArrayList<MessageItem>();
         ArrayList<Uri> mSelectedLockedMsg = new ArrayList<Uri>();
@@ -7316,6 +7421,21 @@ public class ComposeMessageActivity extends Activity
             for (Uri uri : mSelectedMsg) {
                 getContentResolver().update(uri, values, null, null);
             }
+            if (mIsRcsEnabled) {
+                try {
+                    if (mSelectedRcsMsgId != null && mSelectedRcsMsgId.size() > 0) {
+                        for (int i = 0; i < mSelectedRcsMsgId.size(); i++) {
+                            if (lock) {
+                                mMessageApi.lockMessageById(mSelectedRcsMsgId.get(i));
+                            } else {
+                                mMessageApi.unlockMessageById(mSelectedRcsMsgId.get(i));
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                   Log.w(RCS_TAG,e);
+                }
+            }
         }
 
        private void favouriteMessage(boolean lock) {
@@ -7354,24 +7474,6 @@ public class ComposeMessageActivity extends Activity
             }
         }
 
-        private void topSms() {
-            for (Integer pos : mSelectedPos) {
-                Cursor c = (Cursor) getListView().getAdapter().getItem(pos);
-                long smsId = c.getLong(COLUMN_ID);
-                RcsUtils.topSms(ComposeMessageActivity.this, smsId);
-            }
-            startMsgListQuery();
-        }
-
-        private void cancelTopSms() {
-            for (Integer pos : mSelectedPos) {
-                Cursor c = (Cursor) getListView().getAdapter().getItem(pos);
-                long smsId = c.getLong(COLUMN_ID);
-                RcsUtils.cancelTopSms(ComposeMessageActivity.this, smsId);
-            }
-            startMsgListQuery();
-        }
-
         private void deleteMessages() {
             getWorkThread().startWork(WORK_TOKEN_DELETE);
         }
@@ -7384,15 +7486,14 @@ public class ComposeMessageActivity extends Activity
                 SqliteWrapper.delete(getContext(), mContentResolver, uri, null,
                         null);
             }
-            if(RcsApiManager.getSupportApi().isRcsSupported()){
-                RcsUtils.deleteRcsMessageByMessageId(mSelectedRcsMsg);
+            if(RcsApiManager.getSupportApi().isRcsSupported() && mDeleteLockedMessages){
+                RcsUtils.deleteRcsMessageByMessageId(mSelectedRcsMsgId);
             }
             mDeleteLockedMessages = false;
         }
 
         private void calculateSelectedMsgUri() {
             mSelectedMsg.clear();
-            mSelectedRcsMsg.clear();
             mSelectedRcsMsgId.clear();
             mSelectedLockedMsg.clear();
             for (Integer pos : mSelectedPos) {
@@ -7420,9 +7521,6 @@ public class ComposeMessageActivity extends Activity
                         MessageItem msgItem = mMsgListAdapter.getCachedMessageItem(type, msgId, c);
                         if (msgItem == null) {
                             continue;
-                        }
-                        if (msgItem.mRcsId > 0) {
-                            mSelectedRcsMsg.add(msgItem.mRcsMessageId);
                         }
                         String rowId = String.valueOf(msgItem.mRcsId);
                         mSelectedRcsMsgId.add(rowId);
@@ -7454,7 +7552,6 @@ public class ComposeMessageActivity extends Activity
             SparseBooleanArray booleanArray = getListView()
                     .getCheckedItemPositions();
             mSelectedPos.clear();
-            mTopSms.clear();
             mSimpleMsgs.clear();
             logMultiChoice("booleanArray = " + booleanArray);
             for (int i = 0; i < booleanArray.size(); i++) {
@@ -7463,16 +7560,6 @@ public class ComposeMessageActivity extends Activity
                 logMultiChoice("pos=" + pos + ",checked=" + checked);
                 if (checked) {
                     mSelectedPos.add(pos);
-
-                    Cursor c = (Cursor) getListView().getAdapter().getItem(pos);
-                    long rcsTopTime = c.getLong(c.getColumnIndex("rcs_top_time"));
-                    android.util.Log.d(RCS_TAG, "recordAllSelectedItems: pos=" + pos + ", rcsTopTime="
-                            + rcsTopTime);
-                    if (rcsTopTime > 0) {
-                        mTopSms.add(Long.valueOf(pos));
-                    } else {
-                        mTopSms.remove(Long.valueOf(pos));
-                    }
                 }
             }
             calculateSelectedMsgUri();
@@ -7520,7 +7607,6 @@ public class ComposeMessageActivity extends Activity
                             return true;
                         }
                     });
-            mTopSms.clear();
             return true;
         }
 
@@ -7543,18 +7629,19 @@ public class ComposeMessageActivity extends Activity
                     item.setVisible(false);
                 }
             }
-            if (mIsRcsEnabled) {
-                if (mSelectedPos.size() > 0 && mSelectedPos.size() == mTopSms.size()) {
-                    menu.findItem(R.id.top_sms).setVisible(false);
-                    menu.findItem(R.id.cancel_top_sms).setVisible(true);
-                } else {
-                    menu.findItem(R.id.top_sms).setVisible(true);
-                    menu.findItem(R.id.cancel_top_sms).setVisible(false);
-                }
-            } else {
-                menu.findItem(R.id.top_sms).setVisible(false);
-                menu.findItem(R.id.cancel_top_sms).setVisible(false);
+            MenuItem complainItem = menu.findItem(R.id.complain);
+            if (complainItem != null) {
+                complainItem.setVisible(mIsRcsEnabled);
             }
+            MenuItem saveBackItem = menu.findItem(R.id.save_back);
+            if (saveBackItem != null) {
+                saveBackItem.setVisible(mIsRcsEnabled);
+            }
+            MenuItem favouriteItem = menu.findItem(R.id.favourite);
+            if (favouriteItem != null) {
+                favouriteItem.setVisible(mIsRcsEnabled);
+            }
+
             return true;
         }
 
@@ -7750,6 +7837,7 @@ public class ComposeMessageActivity extends Activity
                 break;
             case R.id.complain:
                 confirmComplainDialog(new ComplainMessageListener());
+                break;
             case R.id.copy_to_sim:
                 copySmsToSim();
                 break;
@@ -7766,24 +7854,26 @@ public class ComposeMessageActivity extends Activity
                     MessageItem messageItem = mMsgListAdapter.getCachedMessageItem(
                             cursor.getString(COLUMN_MSG_TYPE),
                             cursor.getLong(COLUMN_ID), cursor);
-                    message = mMessageApi.getMessageById(messageItem.mMsgId + "");
+                    message = mMessageApi.getMessageById(messageItem.mRcsId + "");
                 } catch (Exception e) {
                     e.printStackTrace();
                     return false;
                 }
-                if (message.getMsgType() == SuntekMessageData.MSG_TYPE_PAID_EMO) {
-                    emotItemCheck(message, new EmotCheck() {
-                        @Override
-                        public void check(boolean canSend) {
-                            if (canSend) {
-                                toast(R.string.save_message_not_support);
-                            } else {
-                                saveMessage();
-                            }
-                        }
-                    });
+                if (message != null
+                        && message.getMsgType() == SuntekMessageData.MSG_TYPE_PAID_EMO) {
+                    if (emotItemCheck(message)) {
+                        saveMessage();
+                    } else {
+                        toast(R.string.save_message_not_support);
+                    }
                 } else {
-                    saveMessage();
+                    if (message != null
+                            && (message.getMsgType() == RcsUtils.RCS_MSG_TYPE_TEXT || message
+                            .getMsgType() == RcsUtils.RCS_MSG_TYPE_NOTIFICATION)) {
+                        toast(R.string.save_message_not_support);
+                    } else {
+                        saveMessage();
+                    }
                 }
                 break;
             case R.id.report:
@@ -7791,12 +7881,6 @@ public class ComposeMessageActivity extends Activity
                 break;
             case R.id.save_back:
                 showSaveOrBackDialog(ComposeMessageActivity.this);
-                break;
-            case R.id.top_sms:
-                topSms();
-                break;
-            case R.id.cancel_top_sms:
-                cancelTopSms();
                 break;
             default:
                 break;
@@ -7822,12 +7906,22 @@ public class ComposeMessageActivity extends Activity
                 toast(R.string.on_airplain_mode);
             } else {
                 try {
+                    int position = mSelectedPos.get(0).intValue();
+                    MessageItem msgItem = getMessageItemByPos(position);
+                    if (msgItem != null && msgItem.isMms()
+                            && !isAllowForwardMessage(msgItem)) {
+                        Toast.makeText(ComposeMessageActivity.this,
+                                R.string.forward_size_over,
+                                Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
                     forwardMessage();
-                    MessageItem msgItem = mMessageItems.get(0);
-                    if (msgItem.mType.equals("mms") || msgItem.mRcsId == -1) {
+                    boolean isRcsOnline = mAccountApi.isOnline();
+                    if (!isRcsOnline && msgItem != null && msgItem.mIsRcs == -1) {
                         return true;
                     }
-                    if (msgItem.mType == String.valueOf(SuntekMessageData.MSG_TYPE_PAID_EMO)) {
+                    if (msgItem != null
+                            && msgItem.mRcsType == SuntekMessageData.MSG_TYPE_PAID_EMO) {
                         ChatMessage message = null;
                         try {
                             if (mSelectedRcsMsgId.size() > 0) {
@@ -7837,19 +7931,16 @@ public class ComposeMessageActivity extends Activity
                             e1.printStackTrace();
                             return false;
                         }
-                        emotItemCheck(message, new EmotCheck() {
-                            @Override
-                            public void check(boolean canSend) {
-                                if (canSend) {
-                                    forwardContactOrConversation(new ForwardClickListener());
-                                } else {
-                                    toast(R.string.forward_message_not_support);
-                                }
-                            }
-                        });
+                        if (emotItemCheck(message)) {
+                            forwardContactOrConversation(new ForwardClickListener());
+                            return true;
+                        } else {
+                            toast(R.string.forward_message_not_support);
+                            return true;
+                        }
                     }
-                    boolean isRcsOnline = mAccountApi.isOnline();
-                    if (!isRcsOnline && msgItem.mRcsType == SuntekMessageData.MSG_TYPE_TEXT) {
+                    if (!isRcsOnline && msgItem != null && 
+                            msgItem.mRcsType == SuntekMessageData.MSG_TYPE_TEXT) {
                         if (msgItem.mBody.getBytes().length <= 900) {
                             Log.i("RCS_UI", " NO  ISONLINE" + msgItem.mMessageType + "=="
                                     + SuntekMessageData.MSG_TYPE_TEXT);
@@ -7858,7 +7949,21 @@ public class ComposeMessageActivity extends Activity
                             toast(R.string.not_online_message_too_big);
                         }
                     } else if (isRcsOnline) {
-                        forwardContactOrConversation(new ForwardClickListener());
+                        if (msgItem.mRcsType==SuntekMessageData.MSG_TYPE_IMAGE) {
+                            if (RcsUtils.isFileDownLoadoK(msgItem)) {
+                                forwardContactOrConversation(new ForwardClickListener());
+                            } else {
+                                toast(R.string.forward_message_image_not_download);
+                            }
+                        } else if (msgItem.mRcsType==SuntekMessageData.MSG_TYPE_VIDEO) {
+                            if (RcsUtils.isFileDownLoadoK(msgItem)) {
+                                forwardContactOrConversation(new ForwardClickListener());
+                            } else {
+                                toast(R.string.forward_message_video_not_download);
+                            }
+                        } else {
+                            forwardContactOrConversation(new ForwardClickListener());
+                        }
                     } else {
                         toast(R.string.not_online_message_too_big);
                     }
@@ -7885,36 +7990,11 @@ public class ComposeMessageActivity extends Activity
         }
 
         private void showSaveOrBackDialog(final Context context) {
-            String[] items = new String[] {
-                    context.getString(R.string.message_save),
-                    context.getString(R.string.message_back)
-            };
-            AlertDialog.Builder builder = new Builder(context);
-            builder.setTitle(getString(R.string.save_back_message));
-            builder.setItems(items, new DialogInterface.OnClickListener() {
-
-                @Override
-                public void onClick(DialogInterface arg0, int arg1) {
-                    switch (arg1) {
-                        case BACKUP_MESSAGES:
-                            IntentFilter backupFilter = new IntentFilter();
-                            backupFilter.addAction(ACTION_BACKUP_MESSAGES);
-                            registerReceiver(mBackupStateReceiver, backupFilter);
-                            toast(R.string.message_save);
-                            backupMessage();
-                            break;
-                        case RECOVER_MESSAGES:
-                            toast(R.string.message_back);
-                            showProgressDialog(context, 1,
-                                    context.getString(R.string.message_back), 10);
-                            break;
-                        default:
-                            break;
-                    }
-
-                }
-            });
-            builder.create().show();
+            IntentFilter backupFilter = new IntentFilter();
+            backupFilter.addAction(ACTION_BACKUP_MESSAGES);
+            registerReceiver(mBackupStateReceiver, backupFilter);
+            toast(R.string.message_save);
+            backupMessage();
         }
 
         private String getAllSMSBody() {
@@ -7948,6 +8028,7 @@ public class ComposeMessageActivity extends Activity
             builder.setCancelable(true);
             builder.setTitle(R.string.select_contact_conversation);
             builder.setItems(new String[] {
+                    getContext().getString(R.string.forward_input_number),
                     getContext().getString(R.string.forward_contact),
                     getContext().getString(R.string.forward_conversation),
                     getContext().getString(R.string.forward_contact_group)
@@ -7958,15 +8039,18 @@ public class ComposeMessageActivity extends Activity
         private class ForwardClickListener implements OnClickListener{
             public void onClick(DialogInterface dialog, int whichButton) {
                 switch (whichButton) {
-                    case 0:
+                    case FORWARD_INPUT_NUMBER:
+                        inputNumberForwarMessage();
+                        break;
+                    case FORWARD_CONTACTS:
                        launchRcsPhonePicker();
                         break;
-                    case 1:
+                    case FORWARD_CONVERSATION:
                         Intent intent = new Intent(ComposeMessageActivity.this,ConversationList.class);
                         intent.putExtra(MULTI_SELECT_CONV, true);
                         startActivityForResult(intent, REQUEST_SELECT_CONV);
                         break;
-                    case 2:
+                    case FORWARD_CONTACT_GROUP:
                         launchRcsContactGroupPicker(REQUEST_SELECT_GROUP);
                     default:
                         break;
@@ -7974,17 +8058,54 @@ public class ComposeMessageActivity extends Activity
             }
         }
 
+        private void inputNumberForwarMessage(){
+            final EditText editText = new EditText(ComposeMessageActivity.this);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            editText.setLayoutParams(lp);
+            editText.setInputType(InputType.TYPE_CLASS_PHONE);
+            editText.setHint(R.string.forward_input_number_hint);
+            new AlertDialog.Builder(ComposeMessageActivity.this)
+            .setTitle(R.string.forward_input_number_title)
+            .setView(editText)
+            .setPositiveButton(android.R.string.ok,  new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    String input = editText.getText().toString();
+                    if (TextUtils.isEmpty(input)) {
+                        toast(R.string.forward_input_number_title);
+                    } else {
+                        String[] numbers = input.split(";");
+                        if (numbers != null && numbers.length > 0) {
+                            ArrayList<String> numberList = new ArrayList<String>();
+                            for (int i = 0; i < numbers.length; i++) {
+                                numberList.add(numbers[i]);
+                            }
+                            forwardRcsMessage(numberList);
+                        }
+                    }
+                }
+            }).setNegativeButton(android.R.string.cancel, null)
+            .show();
+        }
+
         private void forwardMessage() {
             mMessageItems.clear();
+            mMsgListItems.clear();
             for (Integer pos : mSelectedPos) {
                 Cursor c = (Cursor) mMsgListAdapter.getItem(pos);
                 mMessageItems.add(mMsgListAdapter.getCachedMessageItem(
                         c.getString(COLUMN_MSG_TYPE), c.getLong(COLUMN_ID), c));
+                if(mMessageItems.size() > 0){
+                    mMsgListItems.addAll(mMessageItems);
+                }
             }
 
             final MessageItem msgItem = mMessageItems.get(0);
-            if (mIsRcsEnabled && msgItem.mRcsId > 0) {
-                mRcsForwardId = msgItem.mRcsId;
+            if (mIsRcsEnabled && !msgItem.mType.equals("mms")) {
+                if (msgItem.mRcsId > 0) {
+                    mRcsForwardId = msgItem.mRcsId;
+                }
                 return;
             }
 
@@ -8275,18 +8396,6 @@ public class ComposeMessageActivity extends Activity
 
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
-
-            if (checked) {
-                Cursor c = (Cursor) getListView().getAdapter().getItem(position);
-                long rcsTopTime = c.getLong(c.getColumnIndex("rcs_top_time"));
-                if (rcsTopTime > 0) {
-                    mTopSms.add(Long.valueOf(position));
-                } else {
-                    mTopSms.remove(Long.valueOf(position));
-                }
-            } else {
-                mTopSms.remove(Long.valueOf(position));
-            }
         }
 
         private boolean allItemsSelected() {
@@ -8324,30 +8433,12 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
-    private void emotItemCheck(ChatMessage chatMessage, final EmotCheck emotCheck) {
+    private boolean emotItemCheck(ChatMessage chatMessage) {
         try {
-            RcsApiManager.getEmoticonApi().isCanSend(chatMessage.getData(), "",
-                    new IEmoticonCanSendCallback() {
-                        @Override
-                        public IBinder asBinder() {
-                            return null;
-                        }
-
-                        @Override
-                        public void canSend(final boolean arg0, String arg1, String arg2)
-                                throws RemoteException {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (emotCheck != null) {
-                                        emotCheck.check(arg0);
-                                    }
-                                }
-                            });
-                        }
-                    });
+           return RcsApiManager.getEmoticonApi().isCanSend(chatMessage.getData());
         } catch (ServiceDisconnectedException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -8467,15 +8558,15 @@ public class ComposeMessageActivity extends Activity
                             }
                         }
                     });
-            mProgressDialog.setMax(total);
-            mProgressDialog.setProgress(progress);
-            mProgressDialog.show();
         } else {
             mProgressDialog.setMessage(title);
-            mProgressDialog.setMax(total);
-            mProgressDialog.setProgress(progress);
-            mProgressDialog.show();
         }
+
+        if (total > 0) {
+            mProgressDialog.setMax(total);
+        }
+        mProgressDialog.setProgress(progress);
+        mProgressDialog.show();
     }
 
     private final BroadcastReceiver mBackupStateReceiver = new BroadcastReceiver() {
@@ -8507,6 +8598,9 @@ public class ComposeMessageActivity extends Activity
                         mSimpleMsgs.clear();
                         mProgressDialog = null;
                         Toast.makeText(context, R.string.message_save_ok, Toast.LENGTH_SHORT).show();
+                        if (mBackupStateReceiver != null) {
+                            unregisterReceiver(mBackupStateReceiver);
+                        }
                         break;
                     case BACKUP_ALL_MESSAGES_FAIL:
                         if (mProgressDialog != null && mProgressDialog.isShowing()) {
@@ -8516,6 +8610,9 @@ public class ComposeMessageActivity extends Activity
                         mProgressDialog = null;
                         Toast.makeText(context, R.string.message_save_fail,
                                 Toast.LENGTH_SHORT).show();
+                        if (mBackupStateReceiver != null) {
+                            unregisterReceiver(mBackupStateReceiver);
+                        }
                         break;
                     default:
                         break;

@@ -21,6 +21,7 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.ListFragment;
 import android.app.LoaderManager;
+import android.content.ContentUris;
 import android.content.Intent;
 import android.content.Loader;
 import android.content.SharedPreferences;
@@ -29,6 +30,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.Contacts;
 import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.text.TextUtils;
@@ -46,12 +49,16 @@ import android.widget.Toolbar;
 import com.android.contacts.common.list.ViewPagerTabs;
 import com.android.contacts.common.preference.ContactsPreferences;
 import com.android.mms.R;
+import com.android.mms.data.Contact;
+import com.android.mms.data.ContactList;
 import com.android.mms.data.Group;
 import com.android.mms.data.PhoneNumber;
 import com.android.mms.data.RecipientsListLoader;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 public class SelectRecipientsList extends Activity implements
         LoaderManager.LoaderCallbacks<RecipientsListLoader.Result> {
@@ -67,6 +74,7 @@ public class SelectRecipientsList extends Activity implements
     public static final String EXTRA_INFO = "info";
     public static final String EXTRA_VCARD = "vcard";
     public static final String EXTRA_RECIPIENTS = "recipients";
+    public static final String EXTRA_NUMBERS = "numbers";
     public static final String PREF_MOBILE_NUMBERS_ONLY = "pref_key_mobile_numbers_only";
     public static final String PREF_SHOW_GROUPS = "pref_key_show_groups";
 
@@ -403,6 +411,7 @@ public class SelectRecipientsList extends Activity implements
             }
 
             intent.putExtra(EXTRA_RECIPIENTS, numbers);
+            intent.putExtra(EXTRA_NUMBERS, getContactString(numbers));
         } else if (mMode == MODE_INFO) {
             intent.putExtra(EXTRA_INFO, getCheckedNumbersAsText());
         } else if (mMode == MODE_VCARD) {
@@ -411,6 +420,22 @@ public class SelectRecipientsList extends Activity implements
             }
         }
     }
+
+    private String getContactString (ArrayList<String> numbers) {
+        ContactList list = ContactList.getByNumbers(numbers, true);
+        StringBuffer buffer = new StringBuffer();
+        for (Contact contact : list) {
+            Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI,
+                    contact.getPersonId());
+            String lookup = Uri.encode(Contacts.getLookupUri(
+                    this.getContentResolver(), contactUri).
+                    getPathSegments().get(2));
+            buffer.append(lookup+":");
+        }
+        String buffer2 = buffer.substring(0, buffer.lastIndexOf(":"));
+        return buffer2;
+    }
+
 
     private String getCheckedNumbersAsText() {
         StringBuilder result = new StringBuilder();
