@@ -1735,7 +1735,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     //  2. the feature is enabled in the mms settings page
     //  3. the SIM knows its own phone number
     public static boolean getIsGroupMmsEnabled(Context context) {
-        if (RcsApiManager.getSupportApi().isOnline()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()
+                && RcsApiManager.getSupportApi().isOnline()) {
             return false;
         }
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);

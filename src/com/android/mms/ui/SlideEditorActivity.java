@@ -529,7 +529,8 @@ public class SlideEditorActivity extends Activity implements
             case MENU_RECORD_SOUND:
                 long soundSizeLimit = ComposeMessageActivity.computeAttachmentSizeLimit(
                     mSlideshowModel, 0);
-                MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, soundSizeLimit);
+                MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, soundSizeLimit,
+                        true);
                 break;
 
             case MENU_DEL_AUDIO:
@@ -547,7 +548,8 @@ public class SlideEditorActivity extends Activity implements
                 long videoSizeLimit = ComposeMessageActivity.computeAttachmentSizeLimit(
                     mSlideshowModel, 0);
                 if (videoSizeLimit > 0) {
-                    MessageUtils.recordVideo(this, REQUEST_CODE_TAKE_VIDEO, videoSizeLimit);
+                    MessageUtils.recordVideo(this, REQUEST_CODE_TAKE_VIDEO, videoSizeLimit,
+                            true);
                 } else {
                     Toast.makeText(this,
                             getString(R.string.message_too_big_for_video),

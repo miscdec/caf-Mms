@@ -63,7 +63,8 @@ public class RcsNotificationMessageListItem extends RelativeLayout {
         if (!isCursorValid(cursor)) {
             return;
         }
-
+        setLongClickable(true);
+        setClickable(true);
         String body = cursor.getString(columnsMap.mColumnSmsBody);
 
         body = RcsUtils.getStringOfNotificationBody(mContext, body);

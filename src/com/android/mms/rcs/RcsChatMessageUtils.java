@@ -309,6 +309,11 @@ public class RcsChatMessageUtils {
                         String.valueOf(groupChatModel.getId()));
                 break;
             }
+            case SuntekMessageData.MSG_TYPE_PAID_EMO: {
+                messageApi.sendGroupPaidEmo(threadId, groupChatModel.getConversationId(), -1, chatMessage.getData(),
+                        chatMessage.getFilename(), String.valueOf(groupChatModel.getId()));
+                break;
+            }
             default:
                 break;
         }
@@ -360,6 +365,7 @@ public class RcsChatMessageUtils {
         builder.setCancelable(true);
         builder.setTitle(R.string.select_contact_conversation);
         builder.setItems(new String[] {
+                context.getString(R.string.forward_input_number),
                 context.getString(R.string.forward_contact),
                 context.getString(R.string.forward_conversation),
                 context.getString(R.string.forward_contact_group)
@@ -445,6 +451,11 @@ public class RcsChatMessageUtils {
                                     geo.getLng(), geo.getLabel());
                             break;
                         }
+                        case SuntekMessageData.MSG_TYPE_PAID_EMO: {
+                            messageApi.sendPaidEmo(threadId, -1, number, chatMessage.getData(),
+                                    chatMessage.getFilename());
+                            break;
+                        }
                         default:
                             break;
                     }
@@ -513,6 +524,11 @@ public class RcsChatMessageUtils {
                             GeoLocation geo = RcsUtils.readMapXml(filePath);
                             messageApi.sendOne2ManyLocation(threadId, -1, array, geo.getLat(),
                                     geo.getLng(), geo.getLabel());
+                            break;
+                        }
+                        case SuntekMessageData.MSG_TYPE_PAID_EMO: {
+                            messageApi.sendOne2ManyPaidEmoMessage(threadId, -1, array, chatMessage.getData(),
+                                    chatMessage.getFilename());
                             break;
                         }
                         default:
