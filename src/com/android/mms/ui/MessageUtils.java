@@ -161,6 +161,7 @@ public class MessageUtils {
 
     private static final int SELECT_SYSTEM = 0;
     private static final int SELECT_EXTERNAL = 1;
+    private static final int SELECT_LOCAL = 2;
     private static final boolean DEBUG = false;
     public static final int SUB_INVALID = -1;  //  for single card product
     public static final int SUB1 = 0;  // for DSDS product of slot one
@@ -564,7 +565,7 @@ public class MessageUtils {
         // Message Type: Text message.
         details.append(res.getString(R.string.message_type_label));
         int rcsId = cursor.getInt(cursor.getColumnIndexOrThrow("rcs_id"));
-        if (rcsId != 0)
+        if (rcsId > 0)
             details.append(res.getString(R.string.rcs_text_message));
         else
             details.append(res.getString(R.string.text_message));
@@ -772,7 +773,13 @@ public class MessageUtils {
         // We are not only displaying default RingtonePicker to add, we could have
         // other choices like external audio and system audio. Allow user to select
         // an audio from particular storage (Internal or External) and return it.
-        String[] items = new String[2];
+        String[] items = null;
+        if (RcsApiManager.getSupportApi().isOnline()) {
+            items = new String[3];
+            items[SELECT_LOCAL] = activity.getString(R.string.local_audio_item);
+        } else {
+            items = new String[2];
+        }
         items[SELECT_SYSTEM] = activity.getString(R.string.system_audio_item);
         items[SELECT_EXTERNAL] = activity.getString(R.string.external_audio_item);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity,
@@ -800,6 +807,11 @@ public class MessageUtils {
                                 audioIntent.setAction(Intent.ACTION_PICK);
                                 audioIntent.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
                                 break;
+                            case SELECT_LOCAL:
+                                audioIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                                audioIntent.setAction(Intent.ACTION_GET_CONTENT);
+                                audioIntent.setType("audio/*");
+                                break;
                         }
                         // Add try here is to avoid monkey test failure.
                         try {
@@ -814,13 +826,14 @@ public class MessageUtils {
         dialog.show();
     }
 
-    public static void recordSound(Activity activity, int requestCode, long sizeLimit) {
+    public static void recordSound(Activity activity, int requestCode, long sizeLimit,
+            boolean isMms) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType(ContentType.AUDIO_AMR);
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
         // add RCS recordSound time add size limit
-        if (RcsUtils.isSupportRcs() && RcsApiManager.isRcsOnline()) {
+        if (!isMms && RcsApiManager.getSupportApi().isOnline()) {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit*1024);
         } else {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
@@ -829,9 +842,10 @@ public class MessageUtils {
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void recordVideo(Activity activity, int requestCode, long sizeLimit) {
+    public static void recordVideo(Activity activity, int requestCode, long sizeLimit,
+            boolean isMms) {
         // add RCS recordVideo time add size limit
-        if(RcsUtils.isSupportRcs() && RcsApiManager.isRcsOnline()){
+        if (!isMms && RcsApiManager.getSupportApi().isOnline()) {
             Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
             intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 10.0);
             intent.putExtra("android.intent.extra.sizeLimit", sizeLimit*1024);
@@ -852,11 +866,7 @@ public class MessageUtils {
         }
 
         Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-        if(RcsUtils.isSupportRcs()){
-            intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 10.0);
-        }else{
-            intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
-        }
+        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
         intent.putExtra("android.intent.extra.sizeLimit", sizeLimit);
         intent.putExtra("android.intent.extra.durationLimit", durationLimit);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, TempFileProvider.SCRAP_CONTENT_URI);
@@ -1535,7 +1545,11 @@ public class MessageUtils {
         String[] number = address.split(":");
         int index = MmsApp.getApplication().getResources()
                 .getInteger(R.integer.wap_push_address_index);
-        return number[index];
+        if(number.length < index){
+            return number[0];
+        } else {
+            return number[index];
+        }
     }
 
     /**
