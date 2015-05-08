@@ -123,19 +123,14 @@
     <string name="cannot_send_im">Unable to send IM, please switch the sending mode</string>
     <string name="forward_message_success">Successfully forwarded</string>
     <string name="forward_message_fail">Failed to be forwarded</string>
-    <string name="forward_message_video_not_download">please download before forwarding</string> 
-    <string name="forward_message_image_not_download">please download before forwarding</string> 
     <string name="conversation_forward">Forward</string>
-    <string name="forward_input_number_hint">if there are multiple numbers, please separate them with ";"</string>
-    <string name="forward_input_number_title">Please input number</string>
-    <string name="forward_input_number">Input number</string>
     <string name="forward_contact">Contact</string>
     <string name="forward_conversation">Conversation</string>
     <string name="forward_contact_group">Contact group</string>
     <string name="my_vcard">My vCard</string>
     <string name="select_contact_conversation">Select contact or conversation</string>
     <string name="file_share">mCloud file share</string>
-    <string name="download_mcloud_file_fail">Failed to download, please download again</string>
+    <string name="download_mcloud_file_fail">mColud dowload fail</string>
     <string name="save_back_message">Message backup/restore</string>
     <string name="cacel_back_message">Cancel</string>
     <string name="message_save">Message backup</string>
@@ -173,7 +168,6 @@
     <string name="toast_install_map">No map has been installed</string>
     <string name="rcs_downloading">Downloading</string>
     <string name="please_install_rcs_map">Please install RCS_MAP</string>
-    <string name="unable_to_locate">The network link, failed to get the position</string>
 
     <string name="rcs_text_message">RCS message</string>
     <string name="message_content_type">Message type: </string>
@@ -190,8 +184,7 @@
     <string name="mcloud_share_file_befor">mCloud file location \n</string>
     <string name="mcloud_share_file_after"> \n Please click to download. </string>
     <string name="confirm_cancel_selected_fav_messages">Confirm to delete the selected items from the Favourites? </string>
-    <string name="stop_down_load">Stop download</string>
-    <string name="rcs_network_unavailable">Network unavailable</string>
+    <string name="stop_down_load">Pause download</string>
     <string name="local_audio_item">Local audio file</string>
     <string name="audio_file_error">Please select 3gp、mp3、aac、amr、m4a format the audio file.</string>
     <string name="input_group_chat_title">Please input group chat title.</string>
@@ -243,14 +236,4 @@
     <string name="favorite_fail">Collection of failure</string>
     <string name="temp_group_chat">Temp group chat</string>
     <string name="rcs_offline_on_groupchat">You have been offline,group chat can not send multimedia messages.</string>
-    <string name="msg_type_audio">audio</string>
-    <string name="msg_type_image">image</string>
-    <string name="msg_type_video">video</string>
-    <string name="msg_type_contact">vCard</string>
-    <string name="msg_type_location">geolocation</string>
-    <string name="msg_type_CaiYun">Mcloud</string>
-    <string name="msg_type_burnMessage">Burn after Read</string>
-    <string name="merge_contacts">Merge Contacts</string>
-    <string name="Group_name_not_fit">Group name not fit</string>
-    <string name="download_fail_please_download_again">Dowanload fail,please click download again</string>
 </resources>

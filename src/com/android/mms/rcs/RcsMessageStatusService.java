@@ -121,10 +121,16 @@ public class RcsMessageStatusService extends IntentService {
                             int rcsId = model.getId();
                             long threadId = RcsUtils.getThreadIdByGroupId(
                                     RcsMessageStatusService.this, String.valueOf(rcsId));
-                            if (msgNotifyType == 0 && threadId != MessagingNotification
-                                    .getCurrentlyDisplayedThreadId()) {
+                            if (msgNotifyType == 0) {
+                                // not in group chat
+                                if (threadId != MessagingNotification
+                                        .getCurrentlyDisplayedThreadId()) {
                                     MessagingNotification.blockingUpdateNewMessageIndicator(
                                             RcsMessageStatusService.this, threadId, true);
+                                }
+                            } else {
+                                MessagingNotification.blockingUpdateNewMessageIndicator(
+                                        RcsMessageStatusService.this, threadId, false);
                             }
                         }
                     } catch (ServiceDisconnectedException e) {
@@ -138,7 +144,7 @@ public class RcsMessageStatusService extends IntentService {
                     long end = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_END, -1);
                     if (start == end) {
                         RcsUtils.updateFileDownloadState(RcsMessageStatusService.this,
-                                rcs_message_id,RcsUtils.RCS_IS_DOWNLOAD_OK);
+                                rcs_message_id);
                     }
                 }  else if("com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS".equals(action)){
                     Log.i(LOG_TAG,"rcs message to sms="+action);

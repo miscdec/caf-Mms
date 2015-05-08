@@ -825,14 +825,13 @@ public class MessageUtils {
         dialog.show();
     }
 
-    public static void recordSound(Activity activity, int requestCode, long sizeLimit,
-            boolean isMms) {
+    public static void recordSound(Activity activity, int requestCode, long sizeLimit) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType(ContentType.AUDIO_AMR);
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
         // add RCS recordSound time add size limit
-        if (!isMms && RcsApiManager.getSupportApi().isOnline()) {
+        if (RcsApiManager.getSupportApi().isOnline()) {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit*1024);
         } else {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
@@ -841,10 +840,9 @@ public class MessageUtils {
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void recordVideo(Activity activity, int requestCode, long sizeLimit,
-            boolean isMms) {
+    public static void recordVideo(Activity activity, int requestCode, long sizeLimit) {
         // add RCS recordVideo time add size limit
-        if (!isMms && RcsApiManager.getSupportApi().isOnline()) {
+        if (RcsApiManager.getSupportApi().isOnline()) {
             Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
             intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 10.0);
             intent.putExtra("android.intent.extra.sizeLimit", sizeLimit*1024);
@@ -1544,11 +1542,7 @@ public class MessageUtils {
         String[] number = address.split(":");
         int index = MmsApp.getApplication().getResources()
                 .getInteger(R.integer.wap_push_address_index);
-        if(number.length < index){
-            return number[0];
-        } else {
-            return number[index];
-        }
+        return number[index];
     }
 
     /**

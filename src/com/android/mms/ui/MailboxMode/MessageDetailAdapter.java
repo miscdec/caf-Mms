@@ -35,28 +35,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.app.AlertDialog;
-import android.content.ActivityNotFoundException;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.NinePatch;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.NinePatchDrawable;
 import android.net.Uri;
 import android.os.Looper;
 import android.os.Parcelable;
-import android.provider.ContactsContract;
-import android.provider.ContactsContract.Contacts;
-import android.provider.ContactsContract.Data;
-import android.provider.ContactsContract.CommonDataKinds.Phone;
-import android.provider.ContactsContract.Intents.Insert;
 import android.provider.Telephony.Sms;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -68,7 +59,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.View.OnClickListener;
-import android.view.WindowManager.LayoutParams;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -76,26 +66,20 @@ import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.android.mms.R;
-import com.android.mms.rcs.BurnFlagMessageActivity;
 import com.android.mms.rcs.GeoLocation;
 import com.android.mms.rcs.PropertyNode;
 import com.android.mms.rcs.RcsApiManager;
-import com.android.mms.rcs.RcsEmojiGifView;
-import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.rcs.RcsEmojiStoreUtil;
 import com.android.mms.rcs.RcsMessageOpenUtils;
 import com.android.mms.rcs.RcsUtils;
 import com.android.vcard.VCardParser;
 import com.android.vcard.VCardParser_V21;
-import com.android.vcard.exception.VCardException;
 import com.android.mms.rcs.VNode;
 import com.android.mms.rcs.VNodeBuilder;
 import com.android.mms.ui.MessageItem;
 import com.android.mms.ui.MessageListItem;
 import com.android.mms.ui.MessageUtils;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.emoticon.EmoticonConstant;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 
 public class MessageDetailAdapter extends PagerAdapter {
 
@@ -106,7 +90,6 @@ public class MessageDetailAdapter extends PagerAdapter {
     private ArrayList<TextView> mScaleTextList;
     private String mContentType = "";
     private int mMsgType = -1;
-    private LinearLayout mLinearLayout;
 
     public MessageDetailAdapter(Context context, Cursor cursor) {
         mContext = context;
@@ -121,7 +104,7 @@ public class MessageDetailAdapter extends PagerAdapter {
         View content = mInflater.inflate(R.layout.message_detail_content, view, false);
 
         TextView bodyText = (TextView) content.findViewById(R.id.textViewBody);
-        mLinearLayout = (LinearLayout)content.findViewById(R.id.other_type_layout);
+        LinearLayout mLinearLayout = (LinearLayout)content.findViewById(R.id.other_type_layout);
 
         mMsgType = mCursor.getInt(mCursor.getColumnIndex("rcs_msg_type"));
         if (mMsgType == RcsUtils.RCS_MSG_TYPE_TEXT) {
@@ -150,7 +133,7 @@ public class MessageDetailAdapter extends PagerAdapter {
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_MAP) {
                 imageView.setImageResource(R.drawable.rcs_map);
                 String body = mCursor.getString(mCursor.getColumnIndexOrThrow(Sms.BODY));
-                textView.setText(body);
+                textView.setText(body.substring(body.lastIndexOf("/") + 1, body.length()));
                 mContentType = "map/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_VCARD) {
                 textView.setVisibility(View.GONE);
@@ -159,27 +142,8 @@ public class MessageDetailAdapter extends PagerAdapter {
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_PAID_EMO) {
                 String messageBody = mCursor.getString(mCursor.getColumnIndex(Sms.BODY));
                 String[] body = messageBody.split(",");
-                if(imageView != null){
-                    imageView.setVisibility(View.GONE);
-                }
-                byte[] data = null;
-                try {
-                    data = RcsApiManager
-                            .getEmoticonApi()
-                            .decrypt2Bytes(body[0],
-                                    EmoticonConstant.EMO_DYNAMIC_FILE);
-                } catch (ServiceDisconnectedException e) {
-                    e.printStackTrace();
-                }
-                LinearLayout.LayoutParams mGifParam = new LinearLayout.LayoutParams(
-                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                ColorDrawable transparent = new ColorDrawable(Color.TRANSPARENT);
-                RcsEmojiGifView emojiGifView = new RcsEmojiGifView(mContext);
-                emojiGifView.setLayoutParams(mGifParam);
-                emojiGifView.setBackground(transparent);
-                emojiGifView.setMonieByteData(data);
-                mLinearLayout.setVisibility(View.VISIBLE);
-                mLinearLayout.addView(emojiGifView);
+                RcsEmojiStoreUtil.getInstance().loadImageAsynById(imageView, body[0],
+                        RcsEmojiStoreUtil.EMO_STATIC_FILE);
             } else {
                 bodyText.setVisibility(View.VISIBLE);
                 mLinearLayout.setVisibility(View.GONE);
@@ -256,10 +220,10 @@ public class MessageDetailAdapter extends PagerAdapter {
     private void initImageMsgView(LinearLayout linearLayout) {
         String thumbPath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_thumb_path"));
         String filePath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_path"));
-        if (thumbPath != null && !new File(thumbPath).exists() && thumbPath.contains(".")) {
+        if (thumbPath != null && new File(thumbPath).exists() && thumbPath.contains(".")) {
             thumbPath = thumbPath.substring(0, thumbPath.lastIndexOf("."));
         }
-        if (filePath != null && !new File(filePath).exists() && filePath.contains(".")) {
+        if (filePath != null && new File(filePath).exists() && filePath.contains(".")) {
             filePath = filePath.substring(0, filePath.lastIndexOf("."));
         }
         ImageView imageView = (ImageView)linearLayout.findViewById(R.id.image_view);
@@ -308,26 +272,18 @@ public class MessageDetailAdapter extends PagerAdapter {
         @Override
         public void onClick(View v) {
             String rcsPath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_path"));
-            long filesize= mCursor.getInt(mCursor.getColumnIndexOrThrow("rcs_file_size"));
-            if (rcsPath.indexOf(".") != -1) {
-                int idx = rcsPath.indexOf(".");
-                rcsPath = rcsPath.substring(0, idx);
-            }
-            boolean  isFileDownload = RcsChatMessageUtils.isFileDownload(rcsPath, filesize);
-            if (mMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO||mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE) {
-                if (!isFileDownload) {
-                   if(mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE){
-                        Toast.makeText(mContext, R.string.not_download_image, Toast.LENGTH_SHORT)
-                        .show();
-                    } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO){
-                        Toast.makeText(mContext, R.string.not_download_video, Toast.LENGTH_SHORT)
-                        .show();
-                    } else {
-                        Toast.makeText(mContext, R.string.file_path_null, Toast.LENGTH_SHORT)
-                        .show();
-                    }
-                    return;
+            if(TextUtils.isEmpty(rcsPath)){
+                if(mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE){
+                    Toast.makeText(mContext, R.string.not_download_image, Toast.LENGTH_SHORT)
+                    .show();
+                }else if(mMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO){
+                    Toast.makeText(mContext, R.string.not_download_video, Toast.LENGTH_SHORT)
+                    .show();
+                }else{
+                    Toast.makeText(mContext, R.string.file_path_null, Toast.LENGTH_SHORT)
+                    .show();
                 }
+                return;
             }
             int rcsId = mCursor.getInt(mCursor.getColumnIndexOrThrow("rcs_id"));
             String filepath = RcsUtils.getFilePath(rcsId, rcsPath);
@@ -342,6 +298,7 @@ public class MessageDetailAdapter extends PagerAdapter {
             switch (mMsgType) {
                 case RcsUtils.RCS_MSG_TYPE_AUDIO:
                     try {
+                        intent.setDataAndType(Uri.parse("file://" + rcsPath), "audio/*");
                         mContext.startActivity(intent);
                     } catch (Exception e) {
                     }
@@ -352,11 +309,23 @@ public class MessageDetailAdapter extends PagerAdapter {
                     intent.putExtra("SingleItemOnly", true);
                     mContext.startActivity(intent);
                     break;
+
                 case RcsUtils.RCS_MSG_TYPE_VCARD:
                     showOpenRcsVcardDialog();
                     break;
                 case RcsUtils.RCS_MSG_TYPE_MAP:
-                    openMapMessage(filepath);
+                    Intent intent_map = new Intent();
+                    GeoLocation geo = RcsUtils.readMapXml(rcsPath);
+                    String geourl = "geo:" + geo.getLat() + "," + geo.getLng();
+                    try {
+                        Uri uri = Uri.parse(geourl);
+                        Intent it = new Intent(Intent.ACTION_VIEW, uri);
+                        mContext.startActivity(it);
+                    } catch (Exception e) {
+                        Toast.makeText(mContext, R.string.toast_install_map, Toast.LENGTH_SHORT)
+                                .show();
+                    }
+
                     break;
                 default:
                     break;
@@ -364,33 +333,13 @@ public class MessageDetailAdapter extends PagerAdapter {
         }
     };
 
-    private void openMapMessage(String path){
-        try {
-            Intent intent_map = new Intent();
-            GeoLocation geo = RcsUtils.readMapXml(path);
-            String geourl = "geo:" + geo.getLat() + "," + geo.getLng() +
-                    "?q=" + geo.getLabel();
-            Uri uri = Uri.parse(geourl);
-            Intent it = new Intent(Intent.ACTION_VIEW, uri);
-            mContext.startActivity(it);
-        } catch (NullPointerException e) {
-            Log.w("RCS_UI", e);
-        } catch (ActivityNotFoundException ae) {
-            Toast.makeText(mContext,
-                    R.string.toast_install_map, Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Log.w("RCS_UI", e);
-        }
-    }
-
     private void showOpenRcsVcardDialog(){
         int rcsId = mCursor.getInt(mCursor.getColumnIndexOrThrow("rcs_id"));
         String filePath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_path"));
         final String vcardFilePath = RcsUtils.getFilePath(rcsId, filePath);
         final String[] openVcardItems = new String[] {
                 mContext.getString(R.string.vcard_detail_info),
-                mContext.getString(R.string.vcard_import),
-                mContext.getString(R.string.merge_contacts)
+                mContext.getString(R.string.vcard_import)
         };
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
         builder.setItems(openVcardItems, new DialogInterface.OnClickListener() {
@@ -410,13 +359,7 @@ public class MessageDetailAdapter extends PagerAdapter {
                           intent.putExtra("VIEW_VCARD_FROM_MMS", true);
                           mContext.startActivity(intent);
                       } catch (Exception e) {
-                          Log.w("RCS_UI",e);
                       }
-                        break;
-                    case 2:
-                         ArrayList<PropertyNode> mergePropList
-                                 = openRcsVcardDetail(mContext,vcardFilePath);
-                                 mergeVcardDetail(mContext, mergePropList);
                         break;
                     default:
                         break;
@@ -424,78 +367,6 @@ public class MessageDetailAdapter extends PagerAdapter {
             }
         });
         builder.create().show();
-    }
-
-    public static ArrayList<PropertyNode> openRcsVcardDetail(Context context,String filePath){
-        if (TextUtils.isEmpty(filePath)){
-            return null;
-        }
-        try {
-            File file = new File(filePath);
-            FileInputStream fis = new FileInputStream(file);
-            VNodeBuilder builder = new VNodeBuilder();
-            VCardParser parser = new VCardParser_V21();
-            parser.addInterpreter(builder);
-            parser.parse(fis);
-            List<VNode> vNodeList = builder.getVNodeList();
-            ArrayList<PropertyNode> propList = vNodeList.get(0).propList;
-            return propList;
-        } catch (Exception e) {
-            Log.w("RCS_UI",e);
-            return null;
-        }
-    }
-
-    private static void mergeVcardDetail(Context context,
-            ArrayList<PropertyNode> propList) {
-        Intent intent = new Intent(Intent.ACTION_INSERT_OR_EDIT);
-        intent.setType(Contacts.CONTENT_ITEM_TYPE);
-        ArrayList<ContentValues> phoneValue = new ArrayList<ContentValues>();
-        for (PropertyNode propertyNode : propList) {
-            if ("FN".equals(propertyNode.propName)) {
-                if (!TextUtils.isEmpty(propertyNode.propValue)) {
-                    intent.putExtra(ContactsContract.Intents.Insert.NAME,
-                            propertyNode.propValue);
-                }
-            } else if ("TEL".equals(propertyNode.propName)) {
-                if (!TextUtils.isEmpty(propertyNode.propValue)) {
-                    ContentValues value = new ContentValues();
-                    value.put(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE);
-                    value.put(Phone.TYPE, RcsUtils.getVcardNumberType(propertyNode));
-                    value.put(Phone.NUMBER, propertyNode.propValue);
-                    phoneValue.add(value);
-                }
-            } else if ("ADR".equals(propertyNode.propName)) {
-                if (!TextUtils.isEmpty(propertyNode.propValue)) {
-                    intent.putExtra(ContactsContract.Intents.Insert.POSTAL,
-                            propertyNode.propValue);
-                    intent.putExtra(ContactsContract.Intents.Insert.POSTAL_TYPE,
-                            ContactsContract.CommonDataKinds.StructuredPostal.TYPE_WORK);
-                }
-            } else if ("ORG".equals(propertyNode.propName)) {
-                if (!TextUtils.isEmpty(propertyNode.propValue)) {
-                    intent.putExtra(ContactsContract.Intents.Insert.COMPANY,
-                            propertyNode.propValue);
-                }
-            } else if ("TITLE".equals(propertyNode.propName)) {
-                if (!TextUtils.isEmpty(propertyNode.propValue)) {
-                        intent.putExtra(ContactsContract.Intents.Insert.JOB_TITLE,
-                                propertyNode.propValue);
-                }
-//            } else if ("PHOTO".equals(propertyNode.propName)) {
-//                if (propertyNode.propValue_bytes != null) {
-//                    byte[] bytes = propertyNode.propValue_bytes;
-//                    final Bitmap vcardBitmap = BitmapFactory.decodeByteArray(
-//                            bytes, 0, bytes.length);
-//                    intent.putExtra(ContactsContract.Intents.ATTACH_IMAGE, vcardBitmap);
-//                }
-            }
-        }
-        if (phoneValue.size() > 0) {
-            intent.putParcelableArrayListExtra(Insert.DATA, phoneValue);
-        }
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        context.startActivity(intent);
     }
 
 }
