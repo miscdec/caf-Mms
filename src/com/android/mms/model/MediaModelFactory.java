@@ -31,6 +31,7 @@ import android.util.Log;
 
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
+import com.android.mms.ui.MessageUtils;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.PduBody;
@@ -38,9 +39,6 @@ import com.google.android.mms.pdu.PduPart;
 
 public class MediaModelFactory {
     private static final String TAG = "Mms:media";
-    // Consider oct-strean as the content type of vCard
-    private static final String OCT_STREAM = "application/oct-stream";
-    private static final String VCARD = "vcf";
 
     public static MediaModel getMediaModel(Context context,
             SMILMediaElement sme, LayoutModel layouts, PduBody pb, int index)
@@ -150,6 +148,7 @@ public class MediaModelFactory {
         }
 
         String contentType = new String(bytes);
+        contentType = MessageUtils.parseOctStreamContentType(part, contentType);
         MediaModel media = null;
         if (tag.equals(SmilHelper.ELEMENT_TAG_TEXT)) {
             media = new TextModel(context, contentType, src,
@@ -175,16 +174,6 @@ public class MediaModelFactory {
                 ((AudioModel) media).getExtras().put("album", unescapeXML(album));
             }
         } else if (tag.equals(SmilHelper.ELEMENT_TAG_REF)) {
-            if (OCT_STREAM.equals(contentType.toLowerCase())) {
-                int index = src.lastIndexOf('.');
-                if (index > 0) {
-                    String extension = src.substring(index + 1, src.length());
-                    if (VCARD.equals(extension.toLowerCase())) {
-                        contentType = ContentType.TEXT_VCARD;
-                    }
-                }
-            }
-
             if (ContentType.isTextType(contentType)
                     && !contentType.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase())) {
                 media = new TextModel(context, contentType, src,
