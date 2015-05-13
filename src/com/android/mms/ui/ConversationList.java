@@ -99,14 +99,17 @@ import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.pdu.PduHeaders;
+import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -462,7 +465,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             invalidateOptionsMenu();
         }
         // Check if the RCS service is installed.
-        mIsRcsEnabled = RcsApiManager.isRcsServiceInstalled();
+        mIsRcsEnabled = RcsApiManager.getSupportApi().isRcsSupported();
 
         // Multi-select is used to delete conversations. It is disabled if we are not the sms app.
         ListView listView = getListView();
@@ -486,8 +489,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private void addPublicAccountEntranceIfAvailable() {
         mPublicAccountItemView = LayoutInflater.from(this).inflate(
                 R.layout.rcs_conversation_list_item_public_account, null);
-        if (!RcsApiManager.isRcsServiceInstalled()
-                || !RcsUtils.isPackageInstalled(this, RcsUtils.PUBLIC_ACCOUNT_PACKAGE_NAME)) {
+        RcsSupportApi supportApi = RcsApiManager.getSupportApi();
+        if (!supportApi.isRcsSupported() || !RcsSupportApi.isPublicAccountInstalled(this)) {
             mPublicAccountItemView.setVisibility(View.GONE);
             return;
         }
@@ -506,8 +509,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     }
 
     private void addNotificationListEntranceIfAvailable() {
-        if (!RcsApiManager.isRcsServiceInstalled() ||
-                !RcsUtils.isPackageInstalled(this, RcsUtils.NATIVE_UI_PACKAGE_NAME)) {
+        RcsSupportApi supportApi = RcsApiManager.getSupportApi();
+        if (!supportApi.isRcsSupported() || !RcsSupportApi.isNativeUIInstalled(this)) {
             return;
         }
 
@@ -967,6 +970,16 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 item.setVisible(false);
             }
         }
+
+        boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+        MenuItem myFavoriteItem = menu.findItem(R.id.my_favorited);
+        if (myFavoriteItem != null) {
+            myFavoriteItem.setVisible(isRcsSupported);
+        }
+        MenuItem backupOrRestoreMessageItem = menu.findItem(R.id.backup_or_restore_message);
+        if (backupOrRestoreMessageItem != null) {
+            backupOrRestoreMessageItem.setVisible(isRcsSupported);
+        }
         return true;
     }
 
@@ -1068,7 +1081,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 favouriteIntent.putExtra("favorited", true);
                 startActivityIfNeeded(favouriteIntent, -1);
                 break;
-            case R.id.saveorbackmessage:
+            case R.id.backup_or_restore_message:
                 showSaveOrBackDialog(ConversationList.this);
                 break;
             default:

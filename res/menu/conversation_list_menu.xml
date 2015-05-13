@@ -49,6 +49,6 @@
     <item android:id="@+id/my_favorited"
         android:title="@string/my_favorited" />
 
-    <item android:id="@+id/saveorbackmessage"
+    <item android:id="@+id/backup_or_restore_message"
         android:title="@string/save_back_message" />
 </menu>

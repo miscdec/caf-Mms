@@ -90,6 +90,7 @@ import com.google.android.mms.pdu.SendReq;
 import com.suntek.mway.rcs.client.aidl.contacts.RCSContact;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 import com.suntek.mway.rcs.client.api.util.FileSuffixException;
 import com.suntek.mway.rcs.client.api.util.FileTransferException;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
@@ -1759,7 +1760,7 @@ public class WorkingMessage {
             }, "WorkingMessage.send MMS").start();
         } else {
 
-            if (RcsUtils.isSupportRcs()) {
+            if (RcsApiManager.getSupportApi().isOnline()) {
                 String text = mText.toString();
                 final String msgText = text;
                 new Thread(new Runnable() {

@@ -61,6 +61,7 @@ import com.android.internal.telephony.MSimConstants;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.Recycler;
@@ -1006,7 +1007,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     //  2. the feature is enabled in the mms settings page
     //  3. the SIM knows its own phone number
     public static boolean getIsGroupMmsEnabled(Context context) {
-        if (RcsUtils.isSupportRcs()){
+        if (RcsApiManager.getSupportApi().isOnline()){
             return false;
         }
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);

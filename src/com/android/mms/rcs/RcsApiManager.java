@@ -49,11 +49,12 @@ public class RcsApiManager {
     private static McloudFileApi mMcloudFileApi = new McloudFileApi();
     private static ProfileApi mProfileApi = new ProfileApi();
     private static EmoticonApi mEmoticonApi = new EmoticonApi();
+    private static RcsSupportApi mSupportApi = new RcsSupportApi();
     private static SpecialServiceNumApi mSpecialServiceNumApi = new SpecialServiceNumApi();
 
     public static void init(Context context) {
-        mIsRcsServiceInstalled = RcsSupportApi.isRcsServiceInstalled(context);
-        if (!mIsRcsServiceInstalled) {
+        mSupportApi.init(context);
+        if (!mSupportApi.isRcsServiceInstalled(context)) {
             return;
         }
 
@@ -130,10 +131,6 @@ public class RcsApiManager {
         return mConfApi;
     }
 
-    public static boolean isRcsServiceInstalled() {
-        return mIsRcsServiceInstalled;
-    }
-
     public static boolean isRcsOnline() {
         try {
             return mRcsAccountApi.isOnline();
@@ -152,6 +149,10 @@ public class RcsApiManager {
 
     public static EmoticonApi getEmoticonApi() {
         return mEmoticonApi;
+    }
+
+    public static RcsSupportApi getSupportApi() {
+        return mSupportApi;
     }
 
     public static SpecialServiceNumApi getSpecialServiceNumApi() {
