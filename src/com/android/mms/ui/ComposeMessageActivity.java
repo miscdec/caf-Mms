@@ -198,6 +198,7 @@ import com.suntek.mway.rcs.client.api.impl.groupchat.ConfApi;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.emoticon.EmoticonBO;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
+import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.util.FileSuffixException;
 import com.suntek.mway.rcs.client.api.util.FileTransferException;
@@ -207,20 +208,27 @@ import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
 import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.rcs.RcsEmojiInitialize;
 import com.suntek.mway.rcs.client.api.util.FileDurationException;
+
 import android.media.MediaFile;
 import android.content.SharedPreferences;
+
 import java.util.regex.Matcher;
 import java.util.Arrays;
+
 import static com.android.mms.ui.MessageListAdapter.COLUMN_FAVOURITE;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_RCS_ID;
+
 import com.android.mms.rcs.GroupChatManagerReceiver;
 import com.android.mms.rcs.GroupChatManagerReceiver.GroupChatNotifyCallback;
 import com.android.mms.rcs.RcsEmojiInitialize.ViewOnClickListener;
 import com.android.mms.rcs.RcsContactsUtils;
 import com.suntek.mway.rcs.client.aidl.contacts.RCSContact;
 import com.android.mms.rcs.RcsUtils;
+
 import android.view.MenuItem.OnMenuItemClickListener;
+
 import com.android.mms.rcs.RcsApiManager;
+
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
@@ -539,7 +547,7 @@ public class ComposeMessageActivity extends Activity
     // sure we notice if the user has changed the default SMS app.
     private boolean mIsSmsEnabled;
 
-    // Whether or not the RCS Service is installed.
+    // Whether or not the RCS Service is installed and the Sim is supported RCS.
     private boolean mIsRcsEnabled;
 
     private boolean mIsAirplaneModeOn = false;
@@ -555,7 +563,6 @@ public class ComposeMessageActivity extends Activity
 
     public int rcsforwardid = 0;
 
-    private static boolean mRcsSendSupport = false;
     private static boolean mRcsShareVcard = false;
 
     private static boolean rcsShareVcardAddNumber = false;
@@ -568,6 +575,9 @@ public class ComposeMessageActivity extends Activity
 
     // RCS Account API
     private RcsAccountApi mAccountApi;
+
+    // RCS Support API
+    private RcsSupportApi mSupportApi;
 
     private List<RCSContact> mRcsContactList = new ArrayList<RCSContact>();
 
@@ -971,7 +981,7 @@ public class ComposeMessageActivity extends Activity
              */
         int msgCount = params[0];
         int remainingInCurrentMessage = params[2];
-        if (!mRcsSendSupport) {
+        if (!mSupportApi.isOnline()) {
             if (!MmsConfig.getMultipartSmsEnabled()) {
                 // The provider doesn't support multi-part sms's so as soon as
                 // the user types
@@ -2794,7 +2804,6 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        setRcsSendSupport();
         mIsSmsEnabled = MmsConfig.isSmsEnabled(this);
         super.onCreate(savedInstanceState);
 
@@ -2831,12 +2840,6 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
-    public void setRcsSendSupport() {
-        boolean isRcsAvailable = RcsApiManager.isRcsServiceInstalled()
-                && RcsApiManager.isRcsOnline();
-       mRcsSendSupport=isRcsAvailable;
-    }
-
     private void initRcsComponents() {
         Intent intent = getIntent();
 
@@ -2846,10 +2849,11 @@ public class ComposeMessageActivity extends Activity
             mConversation.setIsGroupChat(isGroupChat);
         }
 
-        mIsRcsEnabled = RcsApiManager.isRcsServiceInstalled();
         mConfApi = RcsApiManager.getConfApi();
         mMessageApi = RcsApiManager.getMessageApi();
         mAccountApi = RcsApiManager.getRcsAccountApi();
+        mSupportApi = RcsApiManager.getSupportApi();
+        mIsRcsEnabled = mSupportApi.isRcsSupported();
 
         if (mConversation.isGroupChat()) {
             String groupId = intent.getStringExtra("groupId");
@@ -3970,8 +3974,7 @@ public class ComposeMessageActivity extends Activity
                     dialConferenceCall();
                 } else if (size == 1) {
                     String number = getRecipients().get(0).getNumber();
-                    if (mIsRcsEnabled &&
-                            RcsUtils.isDeletePrefixSpecailNumberAvailable(this)) {
+                    if (mIsRcsEnabled && RcsUtils.isDeletePrefixSpecailNumberAvailable(this)) {
                         try {
                             number = RcsApiManager.getSpecialServiceNumApi()
                                     .delSpecialPreNum(number);
@@ -4199,8 +4202,8 @@ public class ComposeMessageActivity extends Activity
                 }
             }
         }
-        if(mIsRcsEnabled){
-            menu.add(0,MENU_RCS_MCLOUD_SHARE,0,R.string.rcs_mcloud_share_file);
+       if (RcsSupportApi.isRcsPluginInstalled(this)) {
+                menu.add(0, MENU_RCS_MCLOUD_SHARE, 0, R.string.rcs_mcloud_share_file);
         }
         return true;
     }
@@ -4735,7 +4738,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     public static long computeAttachmentSizeLimit(SlideshowModel slideShow, int currentSlideSize) {
-        if (RcsUtils.isSupportRcs()) {
+        if (RcsApiManager.getSupportApi().isOnline()) {
             return RcsUtils.getVideoFtMaxSize();
         }
         // Computer attachment size limit. Subtract 1K for some text.
@@ -4839,7 +4842,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     public void rcsSend() {
-        if (isPreparedForSending()||mRcsSendSupport) {
+        if (isPreparedForSending() || mSupportApi.isOnline()) {
             confirmSendMessageIfNeeded();
         }
     }
@@ -4917,7 +4920,7 @@ public class ComposeMessageActivity extends Activity
                 || (requestCode == REQUEST_CODE_ATTACH_MAP)
                 || (requestCode == REQUEST_CODE_VCARD_GROUP)
                 || (requestCode == REQUEST_CODE_SAIYUN);
-        if (RcsUtils.isSupportRcs() && is_rcs_message) {
+        if (RcsApiManager.getSupportApi().isOnline() && is_rcs_message) {
             switch (requestCode) {
                 case PHOTO_CROP:
                     mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_IMAGE);
@@ -5783,7 +5786,7 @@ public class ComposeMessageActivity extends Activity
             if (extras.containsKey(Intent.EXTRA_STREAM)) {
                 final Uri uri = (Uri)extras.getParcelable(Intent.EXTRA_STREAM);
 
-                boolean isRcsAvailable = RcsApiManager.isRcsServiceInstalled()
+                boolean isRcsAvailable = RcsApiManager.getSupportApi().isRcsSupported()
                         && RcsApiManager.isRcsOnline();
                 if (isRcsAvailable && uri.toString().contains("as_vcard")) {
                     RcsUtils.setVcard(this, uri);
@@ -6058,7 +6061,7 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     public void onClick(View v) {
-        boolean isRcsAvailable = RcsApiManager.isRcsServiceInstalled()
+        boolean isRcsAvailable = RcsApiManager.getSupportApi().isRcsSupported()
                 && RcsApiManager.isRcsOnline();
         mWorkingMessage.setIsBurn(mIsBurnMessage);
 
@@ -6413,7 +6416,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void setEmojBtnGone(){
-        boolean isRcsAvailable = RcsApiManager.isRcsServiceInstalled()
+        boolean isRcsAvailable = RcsApiManager.getSupportApi().isRcsSupported()
                 && RcsApiManager.isRcsOnline();
         if (!isRcsAvailable) {
             mButtonEmoj.setVisibility(View.GONE);
@@ -6779,7 +6782,7 @@ public class ComposeMessageActivity extends Activity
         try {
             Log.d(RCS_TAG, "sendMessage(): isGroupChat=" + mConversation.isGroupChat()
                     + ", isRcsEnabled=" + mIsRcsEnabled + ", isOnline=" + mAccountApi.isOnline());
-            if (mIsRcsEnabled) {
+            if (mIsRcsEnabled && mSupportApi.isOnline()) {
                 // create group chat if needed.
                 GroupChatModel groupChat = mConversation.getGroupChat();
                 if (groupChat == null) {
@@ -6788,9 +6791,7 @@ public class ComposeMessageActivity extends Activity
                         List<String> users = Arrays.asList(dests);
                         String subject = mWorkingMessage.getText().toString();
                         if (subject.getBytes().length > 30) {
-                            Toast.makeText(ComposeMessageActivity.this,
-                                    R.string.create_groupchat_name_toast, Toast.LENGTH_SHORT)
-                                    .show();
+                            toast(R.string.create_groupchat_name_toast);
                         }
                         // Make sure the subject is less than 30 bytes length.
                         subject = RcsUtils.trimToSpecificBytesLength(subject, 30);

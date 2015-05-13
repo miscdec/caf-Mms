@@ -40,6 +40,7 @@ import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
 import com.suntek.mway.rcs.client.api.specialnumber.impl.SpecialServiceNumApi;
+import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.util.log.LogHelper;
 
@@ -153,12 +154,13 @@ public class RcsUtils {
     public static final String GROUP_CHAT_NOTIFICATION_KEY_WORDS_POLICY = "policy";
     public static final String GROUP_CHAT_NOTIFICATION_KEY_WORDS_GONE = "gone";
 
-    public static final String PUBLIC_ACCOUNT_PACKAGE_NAME = "com.suntek.mway.rcs.publicaccount";
-    public static final String NATIVE_UI_PACKAGE_NAME = "com.suntek.mway.rcs.nativeui";
+    private static final String EMOJI_STORE_PACKAGE_NAME = "com.temobi.dm.emoji.store";
+    private static final String EMOJI_ACTIVITY_NAME
+            = "com.temobi.dm.emoji.store.activity.EmojiActivity";
 
-    public static final int MSG_RECEIVE =   SuntekMessageData.MSG_RECEIVE;
-    public static final String IM_ONLY     = "1";
-    public static final String SMS_ONLY     ="2";
+    public static final int MSG_RECEIVE     = SuntekMessageData.MSG_RECEIVE;
+    public static final String IM_ONLY      = "1";
+    public static final String SMS_ONLY     = "2";
     public static final String RCS_MMS_VCARD_PATH="sdcard/rcs/" + "mms.vcf";
     public static final String SMS_URI_ALL = "content://sms/";
     private static final int NEED_GET_PROFILE_PHOTO_CHAT_COUNT =1;
@@ -180,11 +182,6 @@ public class RcsUtils {
             "com.suntek.mway.rcs.nativeui.ACTION_LUNCHER_RCS_NOTIFICATION_LIST";
 
     private static final String LOG_TAG = "RCS_UI";
-
-    public static boolean isSupportRcs() {
-        return RcsApiManager.isRcsServiceInstalled()
-                && RcsApiManager.isRcsOnline();
-    }
 
     public static GeoLocation readMapXml(String filepath) {
         GeoLocation geo = null;
@@ -1386,9 +1383,9 @@ public class RcsUtils {
         HashMap<String, Integer> groupChatCount = new HashMap<String, Integer>();
         int count = 0;
         GroupChatModel groupModel = null;
-        try{
+        try {
             groupModel = RcsApiManager.getMessageApi().getGroupChatById(groupId);
-        }catch(ServiceDisconnectedException ex){
+        } catch (ServiceDisconnectedException ex){
             ex.printStackTrace();
         }
         if (groupModel != null) {
@@ -1410,23 +1407,10 @@ public class RcsUtils {
         return groupChatCount;
     }
 
-    public static boolean isPackageInstalled(Context context, String packageName) {
-        PackageManager pm = context.getPackageManager();
-        List<ApplicationInfo> installedApps = pm
-                .getInstalledApplications(PackageManager.GET_UNINSTALLED_PACKAGES);
-        for (ApplicationInfo info : installedApps) {
-            if (packageName.equals(info.packageName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public static void startEmojiStore(Activity activity, int requestCode) {
-        if (RcsUtils.isPackageInstalled(activity, "com.temobi.dm.emoji.store")) {
+        if (RcsSupportApi.isPackageInstalled(activity, EMOJI_STORE_PACKAGE_NAME)) {
             Intent intent = new Intent();
-            ComponentName comp = new ComponentName("com.temobi.dm.emoji.store",
-                    "com.temobi.dm.emoji.store.activity.EmojiActivity");
+            ComponentName comp = new ComponentName(EMOJI_STORE_PACKAGE_NAME, EMOJI_ACTIVITY_NAME);
             intent.setComponent(comp);
             activity.startActivityForResult(intent, requestCode);
         } else {
@@ -1439,14 +1423,14 @@ public class RcsUtils {
         if (activity.getCurrentFocus() != null) {
             ((InputMethodManager)activity.getSystemService(activity.INPUT_METHOD_SERVICE))
                     .hideSoftInputFromWindow(activity.getCurrentFocus().getWindowToken(),
-                            InputMethodManager.HIDE_NOT_ALWAYS);
+                    InputMethodManager.HIDE_NOT_ALWAYS);
         }
     }
 
     public static void openKB(Context context) {
         InputMethodManager inputMethodManager = (InputMethodManager)context
                 .getSystemService(Context.INPUT_METHOD_SERVICE);
-        inputMethodManager.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+                inputMethodManager.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
     }
 
     public static int dip2px(Context context, float dipValue) {

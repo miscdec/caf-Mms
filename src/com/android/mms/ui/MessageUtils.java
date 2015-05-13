@@ -125,6 +125,7 @@ import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
+import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 
 import static android.telephony.SmsMessage.ENCODING_7BIT;
 import static android.telephony.SmsMessage.ENCODING_8BIT;
@@ -133,7 +134,10 @@ import static android.telephony.SmsMessage.ENCODING_UNKNOWN;
 import static android.telephony.SmsMessage.MAX_USER_DATA_BYTES;
 import static android.telephony.SmsMessage.MAX_USER_DATA_BYTES_WITH_HEADER;
 import static android.telephony.SmsMessage.MAX_USER_DATA_SEPTETS;
+
+import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.rcs.RcsUtils;
+
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 /**
@@ -730,7 +734,7 @@ public class MessageUtils {
         intent.setType(ContentType.AUDIO_AMR);
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
-        if (RcsUtils.isSupportRcs()) {
+        if (RcsApiManager.getSupportApi().isOnline()) {
             sizeLimit = 12800/8*RcsUtils.getAudioMaxTime(); //the audio maxSize of rcs auido. 
             sizeLimit/=0.992F;
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES,sizeLimit);
@@ -754,9 +758,10 @@ public class MessageUtils {
         }
 
         Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-        if(RcsUtils.isSupportRcs()){
+        if(RcsApiManager.getSupportApi().isOnline()){
             intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, CamcorderProfile.QUALITY_HIGH);
-            intent.putExtra("android.intent.extra.sizeLimit",getVideoCaptureSizeLimit( RcsUtils.getVideoMaxTime()));
+            intent.putExtra("android.intent.extra.sizeLimit",
+                    getVideoCaptureSizeLimit( RcsUtils.getVideoMaxTime()));
             intent.putExtra("android.intent.extra.durationLimit", RcsUtils.getVideoMaxTime());
         } else {
             intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);

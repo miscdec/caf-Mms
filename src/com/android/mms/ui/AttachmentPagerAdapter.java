@@ -168,9 +168,7 @@ public class AttachmentPagerAdapter extends PagerAdapter {
                     (!mIsReplace && mHasAttachment) ? R.drawable.ic_attach_capture_contact_vcard_disable
                             : R.drawable.ic_attach_capture_contact_vcard_holo_light));
         }
-        boolean isRcsAvailable = RcsApiManager.isRcsServiceInstalled()
-                && RcsApiManager.isRcsOnline();
-        if (isRcsAvailable) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             list.add(new IconListItem(
                     mContext.getString(R.string.attach_map),
                     (!mIsReplace && mHasAttachment) ? R.drawable.ic_attach_capture_contact_vcard_disable

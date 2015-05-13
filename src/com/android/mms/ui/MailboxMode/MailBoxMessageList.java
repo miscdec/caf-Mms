@@ -78,6 +78,7 @@ import com.android.mms.data.Conversation;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.ui.MessageListAdapter;
+import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
@@ -704,6 +705,16 @@ public class MailBoxMessageList extends ListActivity implements
                 mSearchView.setSearchableInfo(info);
             }
         }
+
+        MenuItem myFavoriteItem = menu.findItem(R.id.my_favorited);
+        if (myFavoriteItem != null) {
+            myFavoriteItem.setVisible(false);
+        }
+        MenuItem backupOrRestoreMessageItem = menu.findItem(R.id.backup_or_restore_message);
+        if (backupOrRestoreMessageItem != null) {
+            backupOrRestoreMessageItem.setVisible(false);
+        }
+
         return true;
     }
 
