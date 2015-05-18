@@ -220,7 +220,8 @@ public class MessagingNotification {
     private static PduPersister sPduPersister;
     private static final int MAX_BITMAP_DIMEN_DP = 360;
     private static float sScreenDensity;
-
+    private static boolean includeEmergencySMS;
+    private static String emergentcyAddress = "911";
     private static final int MAX_MESSAGES_TO_SHOW = 8;  // the maximum number of new messages to
                                                         // show in a single notification.
     private static int mPhoneState;
@@ -458,11 +459,13 @@ public class MessagingNotification {
         }
         String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                 null);
-        if (isInCall()) {
-            noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
-                    AUDIO_ATTRIBUTES_ALARM);
-        } else {
-            noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
+        if (!includeEmergencySMS) {
+            if (isInCall()) {
+                noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
+                        AUDIO_ATTRIBUTES_ALARM);
+            } else {
+                noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
+            }
         }
         Log.d(TAG, "blockingUpdateNewIccMessageIndicator: adding sound to the notification");
 
@@ -959,7 +962,7 @@ public class MessagingNotification {
         if (cursor == null) {
             return;
         }
-
+        includeEmergencySMS = false;
         try {
             while (cursor.moveToNext()) {
                 String address = cursor.getString(COLUMN_SMS_ADDRESS);
@@ -968,7 +971,12 @@ public class MessagingNotification {
                     address = mAddresses[context.getResources().getInteger(
                             R.integer.wap_push_address_index)];
                 }
-
+                if (context.getResources().getBoolean(
+                        com.android.internal.R.bool.config_regional_sms_notification_from_911_disable)) {
+                     if (TextUtils.equals(address,emergentcyAddress)) {
+                         includeEmergencySMS = true;
+                     }
+                }
                 Contact contact = Contact.get(address, false);
                 if (contact.getSendToVoicemail()) {
                     // don't notify, skip this one
@@ -1241,11 +1249,13 @@ public class MessagingNotification {
 
             String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                     null);
-            if (isInCall()) {
-                noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
-                        AUDIO_ATTRIBUTES_ALARM);
-            } else {
-                noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
+            if (!includeEmergencySMS) {
+                if (isInCall()) {
+                    noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
+                            AUDIO_ATTRIBUTES_ALARM);
+                } else {
+                    noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
+                }
             }
             Log.d(TAG, "updateNotification: new message, adding sound to the notification");
         }
