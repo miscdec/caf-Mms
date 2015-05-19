@@ -93,7 +93,6 @@ import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
-import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.Recycler;
 import com.android.mms.QTIBackupMMS;
@@ -258,9 +257,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 }
             } else if (Intent.ACTION_AIRPLANE_MODE_CHANGED.equals(action)) {
                 updateSMSCPref();
-                if (smsCategory != null) {
-                    updateSIMSMSPref();
-                }
             }
         }
     };
@@ -696,19 +692,19 @@ public class MessagingPreferenceActivity extends PreferenceActivity
 
     private void updateSIMSMSPref() {
         if (MessageUtils.isMultiSimEnabledMms()) {
-            if (isAirPlaneModeOn() || !MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
+            if (!MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
                 mSmsPrefCategory.removePreference(mManageSim1Pref);
             } else {
                 mSmsPrefCategory.addPreference(mManageSim1Pref);
             }
-            if (isAirPlaneModeOn() || !MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
+            if (!MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
                 mSmsPrefCategory.removePreference(mManageSim2Pref);
             } else {
                 mSmsPrefCategory.addPreference(mManageSim2Pref);
             }
             mSmsPrefCategory.removePreference(mManageSimPref);
         } else {
-            if (isAirPlaneModeOn() || !MessageUtils.hasIccCard()) {
+            if (!MessageUtils.hasIccCard()) {
                 mSmsPrefCategory.removePreference(mManageSimPref);
             } else {
                 mSmsPrefCategory.addPreference(mManageSimPref);
@@ -1736,10 +1732,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     //  2. the feature is enabled in the mms settings page
     //  3. the SIM knows its own phone number
     public static boolean getIsGroupMmsEnabled(Context context) {
-        if (RcsApiManager.getSupportApi().isRcsSupported()
-                && RcsApiManager.getSupportApi().isOnline()) {
-            return false;
-        }
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         boolean groupMmsPrefOn = prefs.getBoolean(
                 MessagingPreferenceActivity.GROUP_MMS_MODE, true);

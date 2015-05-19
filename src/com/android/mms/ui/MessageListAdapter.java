@@ -103,9 +103,7 @@ public class MessageListAdapter extends CursorAdapter {
         Mms.LOCKED,
         Mms.STATUS,
         Mms.TEXT_ONLY,
-        Threads.RECIPIENT_IDS,  // add for obtaining address of MMS
-        "rcs_top_time",
-        "is_rcs",
+        "rcs_top_time"
     };
 
     public static final String[] MAILBOX_PROJECTION = new String[] {
@@ -198,7 +196,7 @@ public class MessageListAdapter extends CursorAdapter {
     static final int COLUMN_RCS_PATH            = 6; 
     static final int COLUMN_RCS_THUMB_PATH      = 7;
     static final int COLUMN_RCS_MSG_TYPE        = 8;
-    public static final int COLUMN_RCS_ID       = 9;
+    static final int COLUMN_RCS_ID              = 9;
     static final int COLUMN_RCS_BURN_FLAG       = 10;
     static final int COLUMN_RCS_IS_BURN         = 11;
     static final int COLUMN_RCS_IS_DOWNLOAD     = 12;
@@ -261,21 +259,6 @@ public class MessageListAdapter extends CursorAdapter {
 
     private HashMap<Integer, String> mBodyCache;
 
-    public HashMap<String, Long> mFileTrasnfer = new HashMap<String, Long>();
-    private boolean mRcsIsStopDown = false;
-
-    public void setsFileTrasnfer(HashMap<String, Long> sFileTrasnfer) {
-        this.mFileTrasnfer = sFileTrasnfer;
-    }
-
-    public HashMap<String, Long> getFileTrasnferHashMap() {
-        return mFileTrasnfer;
-    }
-
-    public void setRcsIsStopDown(boolean rcsIsStopDown){
-        this.mRcsIsStopDown = rcsIsStopDown;
-    }
-
     public MessageListAdapter(
             Context context, Cursor c, ListView listView,
             boolean useDefaultColumnsMap, Pattern highlight) {
@@ -332,7 +315,7 @@ public class MessageListAdapter extends CursorAdapter {
                 } else {
                     accentColor = res.getColor(R.color.incoming_message_bg_default);
                 }
-                mli.setFileTrasnfer(mFileTrasnfer);
+
                 mli.bind(msgItem, accentColor, mIsGroupConversation, position,
                         mListView.isItemChecked(position), mGroupId);
                 mli.setMsgListItemHandler(mMsgListItemHandler);
@@ -610,8 +593,6 @@ public class MessageListAdapter extends CursorAdapter {
         public int mColumnRcsChatType;
         public int mColumnRcsMessageId;
         public int mColumnTopTime;
-        public int mColumnIsRcs;
-
         public ColumnsMap() {
             mColumnMsgType            = COLUMN_MSG_TYPE;
             mColumnMsgId              = COLUMN_ID;
@@ -651,7 +632,6 @@ public class MessageListAdapter extends CursorAdapter {
             mColumnRcsChatType        = COLUMN_CHAT_TYPE;
             mColumnRcsMessageId       = COLUMN_RCS_MESSAGE_ID;
             mColumnTopTime            = COLUMN_TOP_TIME;
-            mColumnIsRcs              = COLUMN_IS_RCS;
         }
 
         public ColumnsMap(Cursor cursor) {
@@ -778,12 +758,6 @@ public class MessageListAdapter extends CursorAdapter {
 
             try {
                 mColumnTopTime = cursor.getColumnIndexOrThrow("rcs_top_time");
-            } catch (IllegalArgumentException e) {
-                Log.w("colsMap", e.getMessage());
-            }
-
-            try {
-                mColumnIsRcs= cursor.getColumnIndexOrThrow("is_rcs");
             } catch (IllegalArgumentException e) {
                 Log.w("colsMap", e.getMessage());
             }

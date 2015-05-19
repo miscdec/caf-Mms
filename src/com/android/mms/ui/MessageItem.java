@@ -83,7 +83,7 @@ public class MessageItem {
     boolean mReadReport;
     boolean mLocked;            // locked to prevent auto-deletion
 
-    public String mTimestamp;
+    String mTimestamp;
     String mAddress;
     String mContact;
     public String mBody; // Body of SMS, first text of MMS.
@@ -118,7 +118,7 @@ public class MessageItem {
     private PduLoadedCallback mPduLoadedCallback;
     private ItemLoadedFuture mItemLoadedFuture;
     int mLayoutType = LayoutModel.DEFAULT_LAYOUT_TYPE;
-    public long mDate;
+    long mDate;
     boolean mIsForwardable = true;
     boolean mHasAttachmentToSave = false;
     boolean mIsDrmRingtoneWithRights = false;
@@ -130,14 +130,13 @@ public class MessageItem {
     public int mRcsId;
     public int mRcsBurnFlag;
     public int mRcsIsBurn;
-    public int mRcsIsDownload;
+    public static int mRcsIsDownload;
     public int mRcsMsgState;
     public int mRcsPlayTime;
     public int mRcsFileSize;
     public String mRcsMimeType;
     public int mRcsChatType;
     public String mRcsMessageId;
-    public int mIsRcs;
 
     public int getCountDown() {
         return mCountDown;
@@ -204,7 +203,6 @@ public class MessageItem {
             mRcsFileSize= cursor.getInt(columnsMap.mColumnRcsFileSize);
             mRcsChatType = cursor.getInt(columnsMap.mColumnRcsChatType);
             mRcsMessageId = cursor.getString(columnsMap.mColumnRcsMessageId);
-            mIsRcs = cursor.getInt(columnsMap.mColumnIsRcs);
             mBody = cursor.getString(columnsMap.mColumnSmsBody);
 
             mPhoneId = cursor.getInt(columnsMap.mColumnPhoneId);
@@ -351,6 +349,10 @@ public class MessageItem {
                                                     // to show "Sending..." or the sent date.
         }
         return mCachedFormattedMessage;
+    }
+
+    public static void setRcsIsDownload(int mRcsIsDownload) {
+        MessageItem.mRcsIsDownload = mRcsIsDownload;
     }
 
     public int getBoxId() {

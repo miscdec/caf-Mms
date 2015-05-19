@@ -28,7 +28,6 @@ import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 
 public class GroupChatManagerReceiver extends BroadcastReceiver {
 
@@ -41,66 +40,32 @@ public class GroupChatManagerReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (BroadcastConstants.UI_GROUP_MANAGE_NOTIFY.equals(intent.getAction())) {
-            Bundle extras = intent.getExtras();
+            String groupId = intent
+                    .getStringExtra(BroadcastConstants.BC_VAR_MSG_GROUP_ID);
             String actionType = intent.getStringExtra(BroadcastConstants.BC_VAR_MSG_ACTION_TYPE);
             if (BroadcastConstants.ACTION_TYPE_CREATE.equals(actionType)) {
+                String newSubject = intent.getStringExtra(BroadcastConstants.BC_VAR_GROUP_SUBJECT);
                 if (mCallback != null) {
-                    mCallback.onNewSubject(extras);
+                    mCallback.onNewSubject(groupId, newSubject);
                 }
             } else if (BroadcastConstants.ACTION_TYPE_UPDATE_ALIAS.equals(actionType)) {
                 if (mCallback != null) {
-                    mCallback.onMemberAliasChange(extras);
+                    mCallback.onMemberAliasChange(groupId);
                 }
             } else if (BroadcastConstants.ACTION_TYPE_DELETED.equals(actionType)) {
                 if (mCallback != null) {
-                    mCallback.onDisband(extras);
-                }
-            } else if (BroadcastConstants.ACTION_TYPE_DEPARTED.equals(actionType)) {
-                if (mCallback != null) {
-                    mCallback.onDeparted(extras);
-                }
-            } else if (BroadcastConstants.ACTION_TYPE_UPDATE_SUBJECT.equals(actionType)) {
-                if (mCallback != null) {
-                    mCallback.onUpdateSubject(extras);
-                }
-            } else if (BroadcastConstants.ACTION_TYPE_UPDATE_REMARK.equals(actionType)) {
-                if (mCallback != null) {
-                    mCallback.onUpdateRemark(extras);
-                }
-            } else if (BroadcastConstants.ACTION_TYPE_CREATE_NOT_ACTIVE.equals(actionType)) {
-                if (mCallback != null) {
-                    mCallback.onCreateNotActive(extras);
-                }
-            } else if (BroadcastConstants.ACTION_TYPE_BOOTED.equals(actionType)) {
-                if (mCallback != null) {
-                    mCallback.onBootMe(extras);
-                }
-            } else if (BroadcastConstants.ACTION_TYPE_GONE.equals(actionType)) {
-                if (mCallback != null) {
-                    mCallback.onGroupGone(extras);
+                    mCallback.onDisband(groupId);
                 }
             }
         }
     }
 
     public interface GroupChatNotifyCallback {
-        void onNewSubject(Bundle extras);
+        void onNewSubject(String groupId, String subject);
 
-        void onMemberAliasChange(Bundle extras);
+        void onMemberAliasChange(String groupId);
 
-        void onDisband(Bundle extras);
-
-        void onDeparted(Bundle extras);
-
-        void onUpdateSubject(Bundle extras);
-
-        void onUpdateRemark(Bundle extras);
-
-        void onCreateNotActive(Bundle extras);
-
-        void onBootMe(Bundle extras);
-
-        void onGroupGone(Bundle extras);
+        void onDisband(String groupId);
     }
 
 }

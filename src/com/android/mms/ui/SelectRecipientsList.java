@@ -588,12 +588,8 @@ public class SelectRecipientsList extends Activity implements
         public Object instantiateItem(ViewGroup container, int position) {
             ItemListFragment result =
                     (ItemListFragment) super.instantiateItem(container, position);
-            boolean isRtl = TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())
-                    == View.LAYOUT_DIRECTION_RTL;
-            if (isRtl) {
-               position = getCount() - 1 - position;
-            }
 
+            position = getRtlPosition(position);
             if (position == 1) {
                 mGroupFragment = result;
             } else {

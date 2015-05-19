@@ -41,8 +41,6 @@
     <uses-permission android:name="android.permission.WRITE_APN_SETTINGS" />
     <uses-permission android:name="android.permission.CHANGE_PHONE_BLACKLIST" />
     <uses-permission android:name="android.permission.READ_PHONE_BLACKLIST" />
-    <uses-permission android:name="com.suntek.mway.rcs.app.service.message.READ_DATABASE" />
-    <uses-permission android:name="com.suntek.mway.rcs.app.service.message.WRITE_DATABASE" />
 
     <!-- System apps can access the  receiver through intent-->
     <permission android:name="android.permission.MMS_SEND_OUTBOX_MSG"
@@ -523,18 +521,6 @@
             android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name="com.android.mms.rcs.RcsCreateGroupChatActivity"
-            android:theme="@style/MmsTheme.NoActionBar"
-            android:label="@string/new_group_chat"
-            android:exported="true"
-            android:screenOrientation="portrait">
-            <intent-filter>
-                <action android:name="com.android.mms.rcs.CREATR_GROUP_CHAT" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
