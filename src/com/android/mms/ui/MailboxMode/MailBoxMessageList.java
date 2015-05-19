@@ -113,6 +113,7 @@ import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_DELIVERY_REPORT;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_SMS_LOCKED;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_LOCKED;
 import com.android.mms.rcs.FavouriteMessageList;
+import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.rcs.RcsSelectionMenu;
 
 import com.android.mms.data.Conversation;
@@ -719,10 +720,22 @@ public class MailBoxMessageList extends ListActivity implements
                 mSearchView.setSearchableInfo(info);
             }
         }
+
         MenuItem item = menu.findItem(R.id.action_change_to_folder_mode);
         if (item != null) {
             item.setVisible(false);
         }
+
+        boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+        MenuItem myFavoriteItem = menu.findItem(R.id.my_favorited);
+        if (myFavoriteItem != null) {
+            myFavoriteItem.setVisible(isRcsSupported);
+        }
+        MenuItem saveOrBackItem = menu.findItem(R.id.saveorbackmessage);
+        if (saveOrBackItem != null) {
+            saveOrBackItem.setVisible(isRcsSupported);
+        }
+
         return true;
     }
 
@@ -732,7 +745,10 @@ public class MailBoxMessageList extends ListActivity implements
         if (item != null) {
             item.setVisible(false);
         }
-
+        MenuItem saveOrBackItem = menu.findItem(R.id.saveorbackmessage);
+        if (saveOrBackItem != null) {
+                saveOrBackItem.setVisible(false);
+        }
         // if mQueryText is not null,so restore it.
         if (mQueryText != null && mSearchView != null) {
             mSearchView.setQuery(mQueryText, false);
@@ -757,9 +773,6 @@ public class MailBoxMessageList extends ListActivity implements
                     break;
                 }
                 return true;
-            case R.id.action_compose_new:
-                startActivity(ComposeMessageActivity.createIntent(this, 0));
-                break;
             case R.id.action_settings:
                 Intent intent = new Intent(this, MessagingPreferenceActivity.class);
                 startActivityIfNeeded(intent, -1);
@@ -1220,6 +1233,14 @@ public class MailBoxMessageList extends ListActivity implements
         }
 
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            MenuItem topItem = menu.findItem(R.id.topConversation);
+            MenuItem unTopItem = menu.findItem(R.id.cancelTopConversation);
+            if (topItem != null) {
+                topItem.setVisible(false);
+            }
+            if (unTopItem != null) {
+                unTopItem.setVisible(false);
+            }
             mode.setTitle(getString(R.string.selected_count,
                     getListView().getCheckedItemCount()));
             mActionMode = mode;
