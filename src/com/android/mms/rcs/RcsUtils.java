@@ -2047,6 +2047,10 @@ public class RcsUtils {
             // that a media file has been added to the sd card
             context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
                     Uri.fromFile(file)));
+            Looper.prepare();
+            Toast.makeText(context,context.getString(R.string.copy_to_sdcard_success,
+                    file.toString()), Toast.LENGTH_LONG).show();
+            Looper.loop();
         } catch (IOException e) {
             // Ignore
             Log.e(LOG_TAG, "IOException caught while opening or reading stream", e);
@@ -2726,4 +2730,18 @@ public class RcsUtils {
 
         return 0;
     }
+
+    public static boolean isRcsMediaMsg(MessageItem msgItem) {
+        if (msgItem == null) {
+            return false;
+        }
+        if (msgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_IMAGE
+                || msgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_AUDIO
+                || msgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 }
