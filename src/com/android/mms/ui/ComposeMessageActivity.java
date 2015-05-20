@@ -4071,6 +4071,10 @@ public class ComposeMessageActivity extends Activity
                 if (view != null) {
                     addAttachment((mCurrentAttachmentPager > DEFAULT_ATTACHMENT_PAGER ? position
                             + mAttachmentPagerAdapter.PAGE_GRID_COUNT : position), replace);
+                    if (mIsRTL) {
+                        addAttachment((mCurrentAttachmentPager > DEFAULT_ATTACHMENT_PAGER ? position
+                                : mAttachmentPagerAdapter.PAGE_GRID_COUNT + position), replace);
+                    }
                     mAttachmentSelector.setVisibility(View.GONE);
                 }
             }
@@ -4078,6 +4082,7 @@ public class ComposeMessageActivity extends Activity
         setAttachmentSelectorHeight();
         mAttachmentPager.setAdapter(mAttachmentPagerAdapter);
         mAttachmentPager.setCurrentItem(((mIsRTL) ? 1 : 0));
+        mCurrentAttachmentPager = ((mIsRTL) ? 1 : 0);
         mAttachmentPager.setOnPageChangeListener(mAttachmentPagerChangeListener);
         mAttachmentSelector.setVisibility(View.VISIBLE);
         // Delay 200ms for drawing view completed.
@@ -6040,11 +6045,19 @@ public class ComposeMessageActivity extends Activity
                     || mWorkingMessage.hasSubject())) || mConversation.isGroupChatActive();
         }
 
-        return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&
-                recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
-                mIsSmsEnabled &&
-                (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText() ||
-                    mWorkingMessage.hasSubject());
+        if (getContext().getResources().getBoolean(R.bool.enable_send_blank_message)) {
+            Log.d(TAG, "Blank SMS");
+            return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&
+                    recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
+                    mIsSmsEnabled;
+        } else {
+            return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&
+                    recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
+                    mIsSmsEnabled &&
+                    (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText() ||
+                        mWorkingMessage.hasSubject());
+
+        }
     }
 
     private BroadcastReceiver mAirplaneModeBroadcastReceiver = new BroadcastReceiver() {
@@ -8065,11 +8078,16 @@ public class ComposeMessageActivity extends Activity
         }
 
         private MessageItem getMessageItemByPos(int position) {
-            MessageListItem msglistItem = (MessageListItem) mMsgListView.getChildAt(position);
-            if (msglistItem == null) {
-                return null;
+            if (mMsgListAdapter.getItemViewType(position)
+                    != MessageListAdapter.GROUP_CHAT_ITEM_TYPE) {
+                Cursor cursor = (Cursor) mMsgListAdapter.getItem(position);
+                if (cursor != null) {
+                    return mMsgListAdapter.getCachedMessageItem(
+                            cursor.getString(COLUMN_MSG_TYPE),
+                            cursor.getLong(COLUMN_ID), cursor);
+                }
             }
-            return  msglistItem.getMessageItem();
+            return null;
         }
 
         private boolean isDeliveryReportMsg(int position) {
