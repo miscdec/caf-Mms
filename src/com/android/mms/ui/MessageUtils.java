@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -65,6 +66,7 @@ import android.graphics.drawable.Drawable;
 import android.media.CamcorderProfile;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
@@ -152,7 +154,6 @@ import com.android.mms.rcs.RcsUtils;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-
 /**
  * An utility class for managing messages.
  */
@@ -2753,5 +2754,49 @@ public class MessageUtils {
         }
 
         return path;
+    }
+
+    public static boolean isCarrierSimCard(Context ctx) {
+        boolean isCarrierSimCard = false;
+        String[] carrierMccMncs = ctx.getResources().getStringArray(
+                com.android.internal.R.array.
+                config_regional_carrier_operator_list);
+        TelephonyManager tm = (TelephonyManager)ctx.getSystemService(
+        Context.TELEPHONY_SERVICE);
+        String simOperator = tm.getSimOperator();
+        if (DEBUG) Log.d(TAG,
+            "carrier sim card check: sim operator is " + simOperator);
+        if (simOperator != null) {
+            if (Arrays.asList(carrierMccMncs).contains(simOperator)) {
+                isCarrierSimCard = true;
+            }
+            else {
+                for(String s: Arrays.asList(carrierMccMncs)) {
+                    if (simOperator.indexOf(s) >= 0) {
+                        isCarrierSimCard = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (DEBUG) {
+            Log.d(TAG,"is home Carrier SIM Card? " + isCarrierSimCard);
+        }
+        return isCarrierSimCard;
+    }
+
+    public static boolean shouldHandleMmsViaWifi(Context ctx) {
+        if (!isCarrierSimCard(ctx)) {
+            //Not all carriers mmsc support send MMS via wifi and so
+            //this feature is only for home carrier
+            return false;
+        }
+        boolean wifiActive = false;
+        ConnectivityManager connMgr = (ConnectivityManager) ctx.getSystemService(
+                Context.CONNECTIVITY_SERVICE);
+        NetworkInfo info = connMgr == null ? null : connMgr.getNetworkInfo(
+                ConnectivityManager.TYPE_WIFI);
+        wifiActive = (info != null && info.isConnected());
+        return wifiActive;
     }
 }
