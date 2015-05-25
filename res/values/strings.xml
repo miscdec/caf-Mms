@@ -1124,4 +1124,5 @@
     <string name="font_medium">Medium</string>
     <string name="font_large">Large</string>
     <string name="font_extra_large">Extra large</string>
+    <string name="default_sms_validity_period">-1</string>
 </resources>
