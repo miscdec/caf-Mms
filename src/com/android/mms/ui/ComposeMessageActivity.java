@@ -7836,18 +7836,19 @@ public class ComposeMessageActivity extends Activity
                     return false;
                 }
                 if (message.getMsgType() == SuntekMessageData.MSG_TYPE_PAID_EMO) {
-                    emotItemCheck(message, new EmotCheck() {
-                        @Override
-                        public void check(boolean canSend) {
-                            if (canSend) {
-                                toast(R.string.save_message_not_support);
-                            } else {
-                                saveMessage();
-                            }
-                        }
-                    });
+                    if (emotItemCheck(message)) {
+                        saveMessage();
+                    } else {
+                        toast(R.string.save_message_not_support);
+                    }
                 } else {
-                    saveMessage();
+                    if (message != null
+                            && (message.getMsgType() == RcsUtils.RCS_MSG_TYPE_TEXT || message
+                            .getMsgType() == RcsUtils.RCS_MSG_TYPE_NOTIFICATION)) {
+                        toast(R.string.save_message_not_support);
+                    } else {
+                        saveMessage();
+                    }
                 }
                 break;
             case R.id.report:
@@ -7901,16 +7902,13 @@ public class ComposeMessageActivity extends Activity
                             e1.printStackTrace();
                             return false;
                         }
-                        emotItemCheck(message, new EmotCheck() {
-                            @Override
-                            public void check(boolean canSend) {
-                                if (canSend) {
-                                    forwardContactOrConversation(new ForwardClickListener());
-                                } else {
-                                    toast(R.string.forward_message_not_support);
-                                }
-                            }
-                        });
+                        if (emotItemCheck(message)) {
+                            forwardContactOrConversation(new ForwardClickListener());
+                            return true;
+                        } else {
+                            toast(R.string.forward_message_not_support);
+                            return true;
+                        }
                     }
                     boolean isRcsOnline = mAccountApi.isOnline();
                     if (!isRcsOnline && msgItem.mRcsType == SuntekMessageData.MSG_TYPE_TEXT) {
@@ -8388,30 +8386,12 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
-    private void emotItemCheck(ChatMessage chatMessage, final EmotCheck emotCheck) {
+    private boolean emotItemCheck(ChatMessage chatMessage) {
         try {
-            RcsApiManager.getEmoticonApi().isCanSend(chatMessage.getData(), "",
-                    new IEmoticonCanSendCallback() {
-                        @Override
-                        public IBinder asBinder() {
-                            return null;
-                        }
-
-                        @Override
-                        public void canSend(final boolean arg0, String arg1, String arg2)
-                                throws RemoteException {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (emotCheck != null) {
-                                        emotCheck.check(arg0);
-                                    }
-                                }
-                            });
-                        }
-                    });
+           return RcsApiManager.getEmoticonApi().isCanSend(chatMessage.getData());
         } catch (ServiceDisconnectedException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
