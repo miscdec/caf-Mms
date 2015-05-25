@@ -1229,6 +1229,12 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
         } else {
+            if (getResources().getBoolean(com.android.internal.R.bool.config_regional_mms_via_wifi_enable)
+                    && !TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
+                    && isMms
+                    && checkForMmsRecipients(getString(R.string.mms_recipient_Limit), true)) {
+                return;
+            }
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
             ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
@@ -1264,6 +1270,12 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
         } else {
+            if (getResources().getBoolean(com.android.internal.R.bool.config_regional_mms_via_wifi_enable)
+                    && !TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
+                    && isMms
+                    && checkForMmsRecipients(getString(R.string.mms_recipient_Limit), true)) {
+                return;
+            }
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
             ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
@@ -1382,7 +1394,32 @@ public class ComposeMessageActivity extends Activity
         updateTitle(contacts);
     }
 
+    private boolean checkForMmsRecipients(String strLimit, boolean isMmsSend) {
+        if (mWorkingMessage.requiresMms()) {
+            int recipientLimit = Integer.parseInt(strLimit);
+            final int currentRecipients = recipientCount();
+            if (recipientLimit < currentRecipients) {
+                if (currentRecipients != mLastRecipientCount || isMmsSend) {
+                    mLastRecipientCount = currentRecipients;
+                    String tooManyMsg = getString(R.string.too_many_recipients, currentRecipients,
+                            recipientLimit);
+                    Toast.makeText(ComposeMessageActivity.this,
+                             tooManyMsg, Toast.LENGTH_LONG).show();
+                }
+                return true;
+            } else {
+                mLastRecipientCount = currentRecipients;
+            }
+        }
+        return false;
+    }
+
     private void checkForTooManyRecipients() {
+        if (getResources().getBoolean(com.android.internal.R.bool.config_regional_mms_via_wifi_enable)
+                && !TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
+                && checkForMmsRecipients(getString(R.string.mms_recipient_Limit), false)) {
+            return;
+        }
         final int recipientLimit = MmsConfig.getRecipientLimit();
         if (recipientLimit != Integer.MAX_VALUE && recipientLimit > 0) {
             final int recipientCount = recipientCount();
