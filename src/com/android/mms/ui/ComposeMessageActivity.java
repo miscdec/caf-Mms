@@ -7720,11 +7720,13 @@ public class ComposeMessageActivity extends Activity
              new Thread() {
                  @Override
                  public void run() {
-                     int resId = RcsUtils.saveRcsMassage(ComposeMessageActivity.this, rcs_id) ?
-                             R.string.copy_to_sdcard_success : R.string.copy_to_sdcard_fail;
-                     Looper.prepare();
-                     Toast.makeText(ComposeMessageActivity.this, resId, Toast.LENGTH_SHORT).show();
-                     Looper.loop();
+                     boolean res = RcsUtils.saveRcsMassage(ComposeMessageActivity.this, rcs_id);
+                     if (!res) {
+                         Looper.prepare();
+                         Toast.makeText(ComposeMessageActivity.this, R.string.copy_to_sdcard_fail,
+                                 Toast.LENGTH_SHORT).show();
+                         Looper.loop();
+                     }
                 }
             }.start();
         }
@@ -7823,24 +7825,26 @@ public class ComposeMessageActivity extends Activity
                     MessageItem messageItem = mMsgListAdapter.getCachedMessageItem(
                             cursor.getString(COLUMN_MSG_TYPE),
                             cursor.getLong(COLUMN_ID), cursor);
-                    message = mMessageApi.getMessageById(messageItem.mMsgId + "");
+                    message = mMessageApi.getMessageById(messageItem.mRcsId + "");
                 } catch (Exception e) {
                     e.printStackTrace();
                     return false;
                 }
-                if (message.getMsgType() == SuntekMessageData.MSG_TYPE_PAID_EMO) {
-                    emotItemCheck(message, new EmotCheck() {
-                        @Override
-                        public void check(boolean canSend) {
-                            if (canSend) {
-                                toast(R.string.save_message_not_support);
-                            } else {
-                                saveMessage();
-                            }
-                        }
-                    });
+                if (message != null
+                        && message.getMsgType() == SuntekMessageData.MSG_TYPE_PAID_EMO) {
+                    if (emotItemCheck(message)) {
+                        saveMessage();
+                    } else {
+                        toast(R.string.save_message_not_support);
+                    }
                 } else {
-                    saveMessage();
+                    if (message != null
+                            && (message.getMsgType() == RcsUtils.RCS_MSG_TYPE_TEXT || message
+                            .getMsgType() == RcsUtils.RCS_MSG_TYPE_NOTIFICATION)) {
+                        toast(R.string.save_message_not_support);
+                    } else {
+                        saveMessage();
+                    }
                 }
                 break;
             case R.id.report:
@@ -7894,16 +7898,13 @@ public class ComposeMessageActivity extends Activity
                             e1.printStackTrace();
                             return false;
                         }
-                        emotItemCheck(message, new EmotCheck() {
-                            @Override
-                            public void check(boolean canSend) {
-                                if (canSend) {
-                                    forwardContactOrConversation(new ForwardClickListener());
-                                } else {
-                                    toast(R.string.forward_message_not_support);
-                                }
-                            }
-                        });
+                        if (emotItemCheck(message)) {
+                            forwardContactOrConversation(new ForwardClickListener());
+                            return true;
+                        } else {
+                            toast(R.string.forward_message_not_support);
+                            return true;
+                        }
                     }
                     boolean isRcsOnline = mAccountApi.isOnline();
                     if (!isRcsOnline && msgItem.mRcsType == SuntekMessageData.MSG_TYPE_TEXT) {
@@ -7927,17 +7928,17 @@ public class ComposeMessageActivity extends Activity
         }
 
         private void saveMessage() {
-            if (!mIsRcsEnabled) {
-                Cursor cursor = (Cursor) mMsgListAdapter.getItem(mSelectedPos.get(0));
-                if (cursor != null && isAttachmentSaveable(cursor)) {
+            Cursor cursor = (Cursor)mMsgListAdapter.getItem(mSelectedPos.get(0));
+            if (cursor != null && isAttachmentSaveable(cursor)) {
+                if (cursor.getLong(COLUMN_RCS_ID) <= 0) {
                     saveAttachment(cursor.getLong(COLUMN_ID));
-                } else {
-                    Toast.makeText(ComposeMessageActivity.this,
-                            R.string.copy_to_sdcard_fail, Toast.LENGTH_SHORT)
-                            .show();
                 }
-            } else {
+            } else if (mIsRcsEnabled && cursor != null
+                    && cursor.getLong(COLUMN_RCS_ID) > 0) {
                 saveRcsAttachment();
+            } else {
+                Toast.makeText(ComposeMessageActivity.this, R.string.copy_to_sdcard_fail,
+                        Toast.LENGTH_SHORT).show();
             }
         }
 
@@ -8236,7 +8237,8 @@ public class ComposeMessageActivity extends Activity
                 }
             } else {
                 menu.findItem(R.id.detail).setVisible(true);
-                menu.findItem(R.id.save_attachment).setVisible(!noMmsSelected);
+                menu.findItem(R.id.save_attachment).setVisible(
+                        !noMmsSelected || RcsUtils.isRcsMediaMsg(getMessageItemByPos(position)));
 
                 Intent shareIntent = getShareMessageIntent("");
                 int numShareTargets = IntentUtils.getTargetActivityCount(getContext(),
@@ -8379,30 +8381,13 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
-    private void emotItemCheck(ChatMessage chatMessage, final EmotCheck emotCheck) {
+    private boolean emotItemCheck(ChatMessage chatMessage) {
         try {
-            RcsApiManager.getEmoticonApi().isCanSend(chatMessage.getData(), "",
-                    new IEmoticonCanSendCallback() {
-                        @Override
-                        public IBinder asBinder() {
-                            return null;
-                        }
 
-                        @Override
-                        public void canSend(final boolean arg0, String arg1, String arg2)
-                                throws RemoteException {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (emotCheck != null) {
-                                        emotCheck.check(arg0);
-                                    }
-                                }
-                            });
-                        }
-                    });
+           return RcsApiManager.getEmoticonApi().isCanSend(chatMessage.getData());
         } catch (ServiceDisconnectedException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
