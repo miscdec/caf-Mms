@@ -31,13 +31,9 @@ import java.util.List;
 import android.R.array;
 import android.app.ActionBar;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnCancelListener;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -53,6 +49,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -65,9 +62,7 @@ import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
-import com.android.mms.data.Conversation;
 import com.android.mms.ui.ComposeMessageActivity;
-import com.android.mms.ui.ConversationList;
 import com.android.mms.ui.RecipientsEditor;
 import com.android.mms.ui.SelectRecipientsList;
 import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
@@ -75,13 +70,11 @@ import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 
 public class RcsCreateGroupChatActivity extends Activity implements
-        View.OnClickListener {
+        OnClickListener {
 
     public static final String EXTRA_RECIPIENTS = "recipients";
-    private final static String MULTI_SELECT_CONV = "select_conversation";
     private static final int MENU_DONE = 0;
     public static final int REQUEST_CODE_CONTACTS_PICK = 100;
-    public static final int REQUEST_CODE_ADD_CONVERSATION = 124;
     private EditText mSubjectEdit;
     private RecipientsEditor mRecipientsEditor;
     private ContactList mRecipientList = new ContactList();
@@ -139,6 +132,7 @@ public class RcsCreateGroupChatActivity extends Activity implements
                     RcsUtils.removeDuplicateNumber(numbers);
             insertNumbersIntoRecipientsEditor(recipientsNumbers);
             break;
+
         default:
             break;
         }
@@ -205,12 +199,6 @@ public class RcsCreateGroupChatActivity extends Activity implements
         List<String> list = mRecipientsEditor.getNumbers();
         if (list != null && list.size() > 0) {
             String subject = mSubjectEdit.getText().toString();
-            if (!TextUtils.isEmpty(subject) && subject.length() > 0
-                    && subject.replaceAll(" ", "").length() == 0) {
-                Toast.makeText(RcsCreateGroupChatActivity.this, R.string.Group_name_not_fit,
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
             if (TextUtils.isEmpty(subject)) {
                 subject = getString(R.string.temp_group_chat);
             }
@@ -262,10 +250,6 @@ public class RcsCreateGroupChatActivity extends Activity implements
 
                 @Override
                 public void onBootMe(Bundle extras) {
-                }
-
-                @Override
-                public void onGroupGone(Bundle extras) {
                 }
             });
 

@@ -194,20 +194,20 @@ public class MessageListAdapter extends CursorAdapter {
     public static final int COLUMN_SMS_BODY            = 4;
     public static final int COLUMN_PHONE_ID            = 5;
 
-    public static final int COLUMN_RCS_PATH            = 6; 
-    public static final int COLUMN_RCS_THUMB_PATH      = 7;
-    public static final int COLUMN_RCS_MSG_TYPE        = 8;
-    public static final int COLUMN_RCS_ID       = 9;
-    public static final int COLUMN_RCS_BURN_FLAG       = 10;
-    public static final int COLUMN_RCS_IS_BURN         = 11;
-    public static final int COLUMN_RCS_IS_DOWNLOAD     = 12;
-    public static final int COLUMN_RCS_MSG_STATE       = 13;
-    public static final int COLUMN_RCS_MIME_TYPE       = 14;
-    public static final int COLUMN_FAVOURITE           = 15;
-    public static final int COLUMN_RCS_FILESIZE        = 16;
-    public static final int COLUMN_RCS_PLAY_TIME       = 17;
-    public static final int COLUMN_RCS_MESSAGE_ID      = 18;
-    public static final int COLUMN_CHAT_TYPE           = 19;
+    static final int COLUMN_RCS_PATH            = 6; 
+    static final int COLUMN_RCS_THUMB_PATH      = 7;
+    static final int COLUMN_RCS_MSG_TYPE        = 8;
+    static final int COLUMN_RCS_ID              = 9;
+    static final int COLUMN_RCS_BURN_FLAG       = 10;
+    static final int COLUMN_RCS_IS_BURN         = 11;
+    static final int COLUMN_RCS_IS_DOWNLOAD     = 12;
+    static final int COLUMN_RCS_MSG_STATE       = 13;
+    static final int COLUMN_RCS_MIME_TYPE       = 14;
+    static final int COLUMN_FAVOURITE           = 15 ;
+    static final int COLUMN_RCS_FILESIZE        = 16 ;
+    static final int COLUMN_RCS_PLAY_TIME       = 17 ;
+    static final int COLUMN_RCS_MESSAGE_ID = 18;
+    static final int COLUMN_CHAT_TYPE = 19;
 
     public static final int COLUMN_SMS_DATE     = 20;
     public static final int COLUMN_SMS_DATE_SENT = 21;
@@ -332,6 +332,7 @@ public class MessageListAdapter extends CursorAdapter {
                     accentColor = res.getColor(R.color.incoming_message_bg_default);
                 }
                 mli.setFileTrasnfer(mFileTrasnfer);
+                mli.setRcsIsStopDown(mRcsIsStopDown);
                 mli.bind(msgItem, accentColor, mIsGroupConversation, position,
                         mListView.isItemChecked(position), mGroupId);
                 mli.setMsgListItemHandler(mMsgListItemHandler);

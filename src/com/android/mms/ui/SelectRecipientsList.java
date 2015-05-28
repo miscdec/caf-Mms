@@ -21,7 +21,6 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.ListFragment;
 import android.app.LoaderManager;
-import android.content.ContentUris;
 import android.content.Intent;
 import android.content.Loader;
 import android.content.SharedPreferences;
@@ -30,8 +29,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
-import android.provider.ContactsContract.CommonDataKinds.Phone;
-import android.provider.ContactsContract.Contacts;
 import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.text.TextUtils;
@@ -49,8 +46,6 @@ import android.widget.Toolbar;
 import com.android.contacts.common.list.ViewPagerTabs;
 import com.android.contacts.common.preference.ContactsPreferences;
 import com.android.mms.R;
-import com.android.mms.data.Contact;
-import com.android.mms.data.ContactList;
 import com.android.mms.data.Group;
 import com.android.mms.data.PhoneNumber;
 import com.android.mms.data.RecipientsListLoader;
@@ -73,7 +68,6 @@ public class SelectRecipientsList extends Activity implements
     public static final String EXTRA_INFO = "info";
     public static final String EXTRA_VCARD = "vcard";
     public static final String EXTRA_RECIPIENTS = "recipients";
-    public static final String EXTRA_NUMBERS = "numbers";
     public static final String PREF_MOBILE_NUMBERS_ONLY = "pref_key_mobile_numbers_only";
     public static final String PREF_SHOW_GROUPS = "pref_key_show_groups";
 
@@ -107,6 +101,10 @@ public class SelectRecipientsList extends Activity implements
     private boolean mMobileOnly = true;
     private int mMode = MODE_DEFAULT;
     private boolean mDataLoaded;
+    private int mLayoutDirection = -1;
+    private int mPosition = 0;
+    private static final String KEY_LAYOUT_DIRECTION = "layoutDirection";
+    private static final String KEY_PAGER_POSITION = "pagerPosition";
 
     private ViewPager mTabPager;
     private ViewPagerTabs mViewPagerTabs;
@@ -118,6 +116,29 @@ public class SelectRecipientsList extends Activity implements
     private SelectRecipientsGroupListAdapter mGroupListAdapter;
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(KEY_LAYOUT_DIRECTION, TextUtils.getLayoutDirectionFromLocale(Locale.getDefault()));
+        outState.putInt(KEY_PAGER_POSITION, mPosition);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        if (mLayoutDirection != TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())){
+            int count = mMode == MODE_DEFAULT ? 2 : 1;
+            for (int i = 0; i < count; i++) {
+                mViewPagerTabs.setTextViewSelected(i, false);
+            }
+            if (TextUtils.getLayoutDirectionFromLocale(Locale.getDefault()) == View.LAYOUT_DIRECTION_RTL) {
+                mViewPagerTabs.setTextViewSelected(count - 1 - mPosition, true);
+            } else {
+                mViewPagerTabs.setTextViewSelected(mPosition, true);
+            }
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -125,6 +146,8 @@ public class SelectRecipientsList extends Activity implements
 
         if (savedInstanceState != null) {
             mMode = savedInstanceState.getInt(MODE);
+            mLayoutDirection = savedInstanceState.getInt(KEY_LAYOUT_DIRECTION);
+            mPosition = savedInstanceState.getInt(KEY_PAGER_POSITION);
         } else {
             mMode = getIntent().getIntExtra(MODE, MODE_INFO);
         }
@@ -138,6 +161,7 @@ public class SelectRecipientsList extends Activity implements
         mTabPager.setAdapter(new ListTabAdapter());
         mTabPager.setOnPageChangeListener(new TabPagerListener());
         mViewPagerTabs = (ViewPagerTabs) findViewById(R.id.lists_pager_header);
+        mTabPager.setCurrentItem(getRtlPosition(0));
         mViewPagerTabs.setViewPager(mTabPager);
         mViewPagerTabs.setVisibility(mMode == MODE_DEFAULT ? View.VISIBLE : View.GONE);
 
@@ -415,7 +439,6 @@ public class SelectRecipientsList extends Activity implements
             }
 
             intent.putExtra(EXTRA_RECIPIENTS, numbers);
-            intent.putExtra(EXTRA_NUMBERS, getContactString(numbers));
         } else if (mMode == MODE_INFO) {
             intent.putExtra(EXTRA_INFO, getCheckedNumbersAsText());
         } else if (mMode == MODE_VCARD) {
@@ -423,20 +446,6 @@ public class SelectRecipientsList extends Activity implements
                 intent.putExtra(EXTRA_VCARD, getSelectedAsVcard(mVCardNumber).toString());
             }
         }
-    }
-
-    private String getContactString (ArrayList<String> numbers) {
-        ContactList list = ContactList.getByNumbers(numbers, true);
-        StringBuffer buffer = new StringBuffer();
-        for (Contact contact : list) {
-            Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI,
-                    contact.getPersonId());
-            String lookup = Uri.encode(Contacts.getLookupUri(
-                    this.getContentResolver(), contactUri).
-                    getPathSegments().get(2));
-            buffer.append(lookup + ":");
-        }
-        return buffer.substring(0, buffer.lastIndexOf(":"));
     }
 
     private String getCheckedNumbersAsText() {
@@ -556,6 +565,15 @@ public class SelectRecipientsList extends Activity implements
         }
     }
 
+    private int getRtlPosition(int position) {
+        if (TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())
+                    == View.LAYOUT_DIRECTION_RTL) {
+            int count = mMode == MODE_DEFAULT ? 2 : 1;
+            return count - 1 - position;
+        }
+        return position;
+    }
+
     private class ListTabAdapter extends FragmentPagerAdapter {
         public ListTabAdapter() {
             super(getFragmentManager());
@@ -570,12 +588,8 @@ public class SelectRecipientsList extends Activity implements
         public Object instantiateItem(ViewGroup container, int position) {
             ItemListFragment result =
                     (ItemListFragment) super.instantiateItem(container, position);
-            boolean isRtl = TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())
-                    == View.LAYOUT_DIRECTION_RTL;
-            if (isRtl) {
-               position = getCount() - 1 - position;
-            }
 
+            position = getRtlPosition(position);
             if (position == 1) {
                 mGroupFragment = result;
             } else {
@@ -591,6 +605,7 @@ public class SelectRecipientsList extends Activity implements
         public Fragment getItem(int position) {
             Bundle args = new Bundle();
 
+            position = getRtlPosition(position);
             args.putBoolean(ItemListFragment.IS_GROUP, position == 1);
             args.putInt(ItemListFragment.MODE, mMode);
 
@@ -613,6 +628,7 @@ public class SelectRecipientsList extends Activity implements
         }
         @Override
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            mPosition = position;
             mViewPagerTabs.onPageScrolled(position, positionOffset, positionOffsetPixels);
         }
         @Override

@@ -187,35 +187,6 @@ public class RcsChatMessageUtils {
             groupChatModel = intent.getParcelableExtra("groupChatModel");
         }
         try {
-            if (intent.hasExtra("smsMsgBody")) {
-                String smsMsgBody = intent.getStringExtra("smsMsgBody");
-                if (smsMsgBody != null) {
-                    MessageApi messageApi = RcsApiManager.getMessageApi();
-                    if (groupChatModel != null) {
-                        messageApi.sendGroupMessage(threadId, groupChatModel.getConversationId(), -1,
-                                smsMsgBody, String.valueOf(groupChatModel.getId()));
-                    } else {
-                        List<String> numberList = Arrays.asList(numbers);
-                        if (numberList != null) {
-                            if (numberList.size() == 1) {
-                                    messageApi.sendTextMessage(threadId, numberList.get(0),
-                                            smsMsgBody,
-                                            SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0);
-                            } else {
-                                messageApi.sendOne2ManyTextMessage(threadId, numberList,
-                                        smsMsgBody,
-                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0);
-                            }
-                        }
-                    }
-                }
-                return;
-            }
-        } catch (Exception e) {
-            RcsUtils.disposeRcsSendMessageException(context, e, 0);;
-        }
-
-        try {
             boolean success = false;
             ChatMessage message = RcsApiManager.getMessageApi().getMessageById(rcsForwardId + "");
             if (groupChatModel != null) {
@@ -302,16 +273,28 @@ public class RcsChatMessageUtils {
                 break;
             }
             case SuntekMessageData.MSG_TYPE_VIDEO: {
+                String newFilePath = getForwordFileName(chatMessage);
                 String path = messageApi.getFilepath(chatMessage);
-                messageApi.sendGroupVideoFile(threadId, groupChatModel.getConversationId(), -1,
-                        path, getAudioLength(chatMessage), String.valueOf(groupChatModel.getId()),
-                        false);
+                boolean success = renameFile(path, newFilePath);
+                if (success) {
+                    messageApi.sendGroupVideoFile(threadId, groupChatModel.getConversationId(), -1,
+                            newFilePath, getAudioLength(chatMessage),
+                            String.valueOf(groupChatModel.getId()), false);
+                } else {
+                    return false;
+                }
                 break;
             }
             case SuntekMessageData.MSG_TYPE_IMAGE: {
+                String newFilePath = getForwordFileName(chatMessage);
                 String path = messageApi.getFilepath(chatMessage);
-                messageApi.sendGroupImageFile(threadId, groupChatModel.getConversationId(), -1,
-                        path, String.valueOf(groupChatModel.getId()), 100);
+                boolean success = renameFile(path, newFilePath);
+                if (success) {
+                    messageApi.sendGroupImageFile(threadId, groupChatModel.getConversationId(), -1,
+                            newFilePath, String.valueOf(groupChatModel.getId()), 100);
+                } else {
+                    return false;
+                }
                 break;
             }
             case SuntekMessageData.MSG_TYPE_CONTACT: {
@@ -324,11 +307,6 @@ public class RcsChatMessageUtils {
                 messageApi.sendGroupLocation(threadId, groupChatModel.getConversationId(), -1,
                         geo.getLat(), geo.getLng(), geo.getLabel(),
                         String.valueOf(groupChatModel.getId()));
-                break;
-            }
-            case SuntekMessageData.MSG_TYPE_PAID_EMO: {
-                messageApi.sendGroupPaidEmo(threadId, groupChatModel.getConversationId(), -1, chatMessage.getData(),
-                        chatMessage.getFilename(), String.valueOf(groupChatModel.getId()));
                 break;
             }
             default:
@@ -382,7 +360,6 @@ public class RcsChatMessageUtils {
         builder.setCancelable(true);
         builder.setTitle(R.string.select_contact_conversation);
         builder.setItems(new String[] {
-                context.getString(R.string.forward_input_number),
                 context.getString(R.string.forward_contact),
                 context.getString(R.string.forward_conversation),
                 context.getString(R.string.forward_contact_group)
@@ -432,18 +409,30 @@ public class RcsChatMessageUtils {
                         case SuntekMessageData.MSG_TYPE_AUDIO: {
                             messageApi.sendAudioFile(threadId, -1, number, filePath,
                                     getAudioLength(chatMessage),
-                                    SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                                    SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, true);
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_VIDEO: {
-                            messageApi.sendVideoFile(threadId, -1, number, filePath,
-                                    getAudioLength(chatMessage),
-                                    SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                            String newFilePath = getForwordFileName(chatMessage);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendVideoFile(threadId, -1, number, newFilePath,
+                                        getAudioLength(chatMessage),
+                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, true);
+                            } else {
+                                return false;
+                            }
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_IMAGE: {
-                            messageApi.sendImageFile(threadId, -1, number, filePath,
-                                    SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, 100);
+                            String newFilePath = getForwordFileName(chatMessage);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendImageFile(threadId, -1, number, newFilePath,
+                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, 100);
+                            } else {
+                                return false;
+                            }
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_CONTACT: {
@@ -454,11 +443,6 @@ public class RcsChatMessageUtils {
                             GeoLocation geo = RcsUtils.readMapXml(filePath);
                             messageApi.sendLocation(threadId, -1, number, geo.getLat(),
                                     geo.getLng(), geo.getLabel());
-                            break;
-                        }
-                        case SuntekMessageData.MSG_TYPE_PAID_EMO: {
-                            messageApi.sendPaidEmo(threadId, -1, number, chatMessage.getData(),
-                                    chatMessage.getFilename());
                             break;
                         }
                         default:
@@ -498,14 +482,26 @@ public class RcsChatMessageUtils {
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_VIDEO: {
-                            messageApi.sendOne2ManyVideoFile(threadId, -1, array, filePath,
-                                    getAudioLength(chatMessage),
-                                    SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                            String newFilePath = getForwordFileName(chatMessage);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if (success) {
+                                messageApi.sendOne2ManyVideoFile(threadId, -1, array, newFilePath,
+                                        getAudioLength(chatMessage),
+                                        SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, false);
+                            } else {
+                                return false;
+                            }
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_IMAGE: {
-                            messageApi.sendOne2ManyImageFile(threadId, -1, array, filePath,
+                            String newFilePath = getForwordFileName(chatMessage);
+                            boolean success = renameFile(filePath, newFilePath);
+                            if(success){
+                            messageApi.sendOne2ManyImageFile(threadId, -1, array, newFilePath,
                                     SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0, 100);
+                            }else{
+                                return false;
+                            }
                             break;
                         }
                         case SuntekMessageData.MSG_TYPE_CONTACT: {
@@ -517,11 +513,6 @@ public class RcsChatMessageUtils {
                             GeoLocation geo = RcsUtils.readMapXml(filePath);
                             messageApi.sendOne2ManyLocation(threadId, -1, array, geo.getLat(),
                                     geo.getLng(), geo.getLabel());
-                            break;
-                        }
-                        case SuntekMessageData.MSG_TYPE_PAID_EMO: {
-                            messageApi.sendOne2ManyPaidEmoMessage(threadId, -1, array, chatMessage.getData(),
-                                    chatMessage.getFilename());
                             break;
                         }
                         default:

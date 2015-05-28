@@ -671,7 +671,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             final Preference pref = new Preference(this);
             pref.setKey(String.valueOf(i));
             pref.setTitle(getSMSCDialogTitle(count, i));
-            if (getResources().getBoolean(R.bool.show_edit_smsc)) {
+            if (getResources().getBoolean(R.bool.show_edit_smsc)
+                || getResources().getBoolean(com.android.internal.R.bool.config_regional_smsc_editable)) {
                 pref.setOnPreferenceClickListener(null);
             } else {
                 pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
@@ -1735,8 +1736,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     //  2. the feature is enabled in the mms settings page
     //  3. the SIM knows its own phone number
     public static boolean getIsGroupMmsEnabled(Context context) {
-        if (RcsApiManager.getSupportApi().isRcsSupported()
-                && RcsApiManager.getSupportApi().isOnline()) {
+        if (RcsApiManager.getSupportApi().isOnline()) {
             return false;
         }
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
