@@ -33,13 +33,13 @@ import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.capability.impl.CapabilityApi;
 import com.suntek.mway.rcs.client.api.emoticon.EmoticonApi;
 import com.suntek.mway.rcs.client.api.specialnumber.impl.SpecialServiceNumApi;
+import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
 import android.content.Context;
 import android.os.RemoteException;
 import android.util.Log;
 
 public class RcsApiManager {
     private static final String TAG = "RCS_UI";
-    private static boolean mIsRcsServiceInstalled;
 
     private static ConfApi mConfApi = new ConfApi();
     private static MessageApi mMessageApi = new MessageApi();
@@ -47,11 +47,13 @@ public class RcsApiManager {
     private static CapabilityApi mCapabilityApi = new CapabilityApi();
     private static McloudFileApi mMcloudFileApi = new McloudFileApi();
     private static EmoticonApi mEmoticonApi = new EmoticonApi();
+    private static RcsSupportApi mSupportApi = new RcsSupportApi();
     private static SpecialServiceNumApi mSpecialServiceNumApi = new SpecialServiceNumApi();
+    private static ProfileApi mProfileApi = new ProfileApi();
 
     public static void init(Context context) {
-        mIsRcsServiceInstalled = RcsSupportApi.isRcsServiceInstalled(context);
-        if (!mIsRcsServiceInstalled) {
+        mSupportApi.init(context);
+        if (!RcsSupportApi.isRcsServiceInstalled(context)) {
             return;
         }
 
@@ -128,6 +130,16 @@ public class RcsApiManager {
                 Log.d(TAG, "mSpecialServiceNumApi connected");
             }
         });
+
+        mProfileApi.init(context,new RCSServiceListener() {
+            public void onServiceDisconnected() throws RemoteException {
+                Log.d(TAG, "mSpecialServiceNumApi disconnected");
+            }
+
+            public void onServiceConnected() throws RemoteException {
+                Log.d(TAG, "mSpecialServiceNumApi connected");
+            }
+        });
     }
 
     public static McloudFileApi getMcloudFileApi(){
@@ -146,18 +158,6 @@ public class RcsApiManager {
         return mConfApi;
     }
 
-    public static boolean isRcsServiceInstalled() {
-        return mIsRcsServiceInstalled;
-    }
-
-    public static boolean isRcsOnline() {
-        try {
-            return mRcsAccountApi.isOnline();
-        } catch (ServiceDisconnectedException e) {
-            return false;
-        }
-    }
-
     public static CapabilityApi getCapabilityApi() {
         return mCapabilityApi;
     }
@@ -166,7 +166,15 @@ public class RcsApiManager {
         return mEmoticonApi;
     }
 
+    public static RcsSupportApi getSupportApi() {
+        return mSupportApi;
+    }
+
     public static SpecialServiceNumApi getSpecialServiceNumApi() {
         return mSpecialServiceNumApi;
+    }
+
+    public static ProfileApi getProfileApi() {
+        return mProfileApi;
     }
 }

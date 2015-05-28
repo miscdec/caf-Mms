@@ -23,7 +23,6 @@ import android.database.sqlite.SqliteWrapper;
 import android.net.NetworkUtils;
 import android.net.Uri;
 import android.provider.Telephony;
-import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -65,15 +64,16 @@ public class TransactionSettings {
             Log.v(TAG, "TransactionSettings: apnName: " + apnName +
                     "subId: " + subId);
         }
-        String numeric = TelephonyManager.getDefault().getIccOperatorNumeric(subId);
-        String selection = "numeric=" + numeric;
+        String selection = null;
         String[] selectionArgs = null;
-        Uri contentUri = Uri.withAppendedPath(Telephony.Carriers.CONTENT_URI, "/subId/" + subId);
+        Uri contentUri = Telephony.Carriers.CONTENT_URI;
         if (!TextUtils.isEmpty(apnName)) {
-            selection += " AND " + Telephony.Carriers.APN + "=?";
+            selection = Telephony.Carriers.APN + "=?";
             selectionArgs = new String[]{ apnName.trim() };
+        } else {
+            contentUri = Uri.withAppendedPath(contentUri, "/subId/" + subId);
         }
-        Log.d(TAG, "Selection: " + selection);
+
         Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
                             contentUri, APN_PROJECTION, selection, selectionArgs,
                             null);
