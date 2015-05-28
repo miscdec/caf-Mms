@@ -423,10 +423,10 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mMessageSendDelayPref = (ListPreference) findPreference(SEND_DELAY_DURATION);
         mMessageSendDelayPref.setSummary(mMessageSendDelayPref.getEntry());
 
-        mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
-
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
             mCBsettingPref = findPreference(CELL_BROADCAST);
+            mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
+            setMmsSizeSummary();
             mFontSizePref = (ListPreference) findPreference(FONT_SIZE_SETTING);
         }
         //Chat wallpaper
@@ -1765,7 +1765,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     //  2. the feature is enabled in the mms settings page
     //  3. the SIM knows its own phone number
     public static boolean getIsGroupMmsEnabled(Context context) {
-        if (RcsApiManager.getSupportApi().isOnline()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()
+                && RcsApiManager.getSupportApi().isOnline()) {
             return false;
         }
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
