@@ -49,6 +49,7 @@ import com.google.android.mms.pdu.PduHeaders;
 
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
 /**
  * An interface for finding information about conversations and/or creating new ones.
  */
@@ -92,7 +93,7 @@ public class Conversation {
     private static final int IS_GROUP_CHAT  = 9;
     private static final int IS_CONV_T0P    = 10;
 
-    private final Context mContext;
+    private static Context mContext;
 
     // The thread ID of this conversation.  Can be zero in the case of a
     // new conversation where the recipient set is changing as the user
@@ -117,7 +118,7 @@ public class Conversation {
     private boolean mMarkAsReadBlocked;
     private boolean mMarkAsReadWaiting;
     private boolean mHasMmsForward = false; // True if has forward mms
-    private String mForwardRecipientNumber; // The recipient that the forwarded Mms received from
+    private String[] mForwardRecipientNumber; // The recipient that the forwarded Mms received from
     private AsyncTask mMarkAsUnreadTask;
     private boolean mIsGroupChat;
     private GroupChatModel mGroupChat;
@@ -171,6 +172,26 @@ public class Conversation {
             return conv;
 
         conv = new Conversation(context, threadId, allowQuery);
+        try {
+            Cache.put(conv);
+        } catch (IllegalStateException e) {
+            LogTag.error("Tried to add duplicate Conversation to Cache (from threadId): " + conv);
+            if (!Cache.replace(conv)) {
+                LogTag.error("get by threadId cache.replace failed on " + conv);
+            }
+        }
+        return conv;
+    }
+
+     /**
+     * Find the conversation matching the provided thread ID.
+     * Because the data database data update, Conversation.get() didn't update.
+     * Don't get the conv from cache. Becasuse it not changed
+     */
+    public static Conversation getNewConversation
+            (Context context, long threadId, boolean allowQuery) {
+
+        Conversation conv = new Conversation(context, threadId, allowQuery);
         try {
             Cache.put(conv);
         } catch (IllegalStateException e) {
@@ -604,6 +625,10 @@ public class Conversation {
 
     public int getIsTop() {
         return mIsTop;
+    }
+
+    public void setIsTop(int isTop) {
+        mIsTop = isTop;
     }
 
     public synchronized void clearThreadId() {
@@ -1053,7 +1078,11 @@ public class Conversation {
 
                 handler.setDeleteToken(token);
                 handler.startDelete(token, new Long(threadId), uri, selection, null);
-
+                if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                    Conversation delConv = get(mContext, threadId, true);
+                    RcsUtils.deleteRcsMessageByThreadId(mContext, threadIds, deleteAll,
+                            delConv.mIsGroupChat);
+                }
                 DraftCache.getInstance().setDraftState(threadId, false);
             }
         }
@@ -1085,6 +1114,18 @@ public class Conversation {
 
             handler.setDeleteToken(token);
             handler.startDelete(token, new Long(-1), Threads.CONTENT_URI, selection, null);
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                try {
+                    if (deleteAll) {
+                        RcsApiManager.getMessageApi().removeAllMessage();
+                    } else {
+                        RcsApiManager.getMessageApi().removeAllButRemainLockMessage();
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -1775,6 +1816,22 @@ public class Conversation {
         mThreadId = id;
     }
 
+    public boolean getHasMmsForward() {
+        return mHasMmsForward;
+    }
+
+    public void setHasMmsForward(boolean value) {
+        mHasMmsForward = value;
+    }
+
+    public String[] getForwardRecipientNumber() {
+        return mForwardRecipientNumber;
+    }
+
+    public void setForwardRecipientNumber(String[] forwardRecipientNumber) {
+        mForwardRecipientNumber = forwardRecipientNumber;
+    }
+
     private static class ThreadUpateHandler {
         private static final HandlerThread sHandlerThread =
                 new HandlerThread("ThreadUpateHandler");
@@ -1849,22 +1906,6 @@ public class Conversation {
                 postHandlePendingThreads();
             }
         }
-    }
-
-    public boolean getHasMmsForward() {
-        return mHasMmsForward;
-    }
-
-    public void setHasMmsForward(boolean value) {
-        mHasMmsForward = value;
-    }
-
-    public String getForwardRecipientNumber() {
-        return mForwardRecipientNumber;
-    }
-
-    public void setForwardRecipientNumber(String forwardRecipientNumber) {
-        mForwardRecipientNumber = forwardRecipientNumber;
     }
 
     public boolean isGroupChat() {
