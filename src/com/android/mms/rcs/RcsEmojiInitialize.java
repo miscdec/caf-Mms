@@ -107,6 +107,10 @@ public class RcsEmojiInitialize {
         public void addEmojiPackageListener();
     }
 
+    public View getEmojiView() {
+        return mEmojiView;
+    }
+
     public RcsEmojiInitialize(Context context, ViewStub viewStub,
             ViewOnClickListener viewOnClickListener) {
         this.mContext = context;

@@ -99,6 +99,9 @@ public class RcsMessageStatusService extends IntentService {
             int id = intent.getIntExtra("id", 0);
             RecvMessageQueue.getInstance().addReport(id, intent);
             return;
+        } else if (BroadcastConstants.UI_SHOW_GROUP_MESSAGE_NOTIFY.equals(action)){
+            long rcsThreadId = intent.getLongExtra("threadId", -1);
+            disposeGroupChatNewMessage(rcsThreadId);
         }
         pool.execute(new Runnable() {
             public void run() {
@@ -108,35 +111,7 @@ public class RcsMessageStatusService extends IntentService {
 
                 String action = intent.getAction();
                 RcsUtils.dumpIntent(intent);
-                 if (BroadcastConstants.UI_SHOW_GROUP_MESSAGE_NOTIFY.equals(action)) {
-                    long rcsThreadId = intent.getLongExtra("threadId", -1);
-                    MessageApi messageApi = RcsApiManager.getMessageApi();
-                    if(messageApi == null){
-                        return;
-                    }
-                    try {
-                        GroupChatModel model = messageApi.getGroupChatByThreadId(rcsThreadId);
-                        if (model != null) {
-                            int msgNotifyType = model.getRemindPolicy();
-                            int rcsId = model.getId();
-                            long threadId = RcsUtils.getThreadIdByGroupId(
-                                    RcsMessageStatusService.this, String.valueOf(rcsId));
-                            if (msgNotifyType == 0) {
-                                // not in group chat
-                                if (threadId != MessagingNotification
-                                        .getCurrentlyDisplayedThreadId()) {
-                                    MessagingNotification.blockingUpdateNewMessageIndicator(
-                                            RcsMessageStatusService.this, threadId, true);
-                                }
-                            } else {
-                                MessagingNotification.blockingUpdateNewMessageIndicator(
-                                        RcsMessageStatusService.this, threadId, false);
-                            }
-                        }
-                    } catch (ServiceDisconnectedException e) {
-                        Log.i(LOG_TAG, "GroupChatMessage" + e);
-                    }
-                } else if (BroadcastConstants.UI_DOWNLOADING_FILE_CHANGE.equals(action)) {
+                if (BroadcastConstants.UI_DOWNLOADING_FILE_CHANGE.equals(action)) {
                     String rcs_message_id = intent
                             .getStringExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_MESSAGE_ID);
                     long start = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_START,
@@ -144,9 +119,9 @@ public class RcsMessageStatusService extends IntentService {
                     long end = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_END, -1);
                     if (start == end) {
                         RcsUtils.updateFileDownloadState(RcsMessageStatusService.this,
-                                rcs_message_id);
+                                 rcs_message_id, RcsUtils.RCS_IS_DOWNLOAD_OK);
                     }
-                }  else if("com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS".equals(action)){
+                }  else if ("com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS".equals(action)){
                     Log.i(LOG_TAG,"rcs message to sms="+action);
                     long messageId = intent.getLongExtra("id",-1);
                     RcsUtils.deleteMessageById(RcsMessageStatusService.this, messageId);
@@ -158,6 +133,29 @@ public class RcsMessageStatusService extends IntentService {
                 taskCount--;
             };
         });
+    }
+
+    private void disposeGroupChatNewMessage(long rcsThreadId){
+        MessageApi messageApi = RcsApiManager.getMessageApi();
+        if(messageApi == null){
+            return;
+        }
+        try {
+            GroupChatModel model = messageApi.getGroupChatByThreadId(rcsThreadId);
+            if (model != null) {
+                int msgNotifyType = model.getRemindPolicy();
+                int rcsId = model.getId();
+                long threadId = RcsUtils.getThreadIdByGroupId(
+                        RcsMessageStatusService.this, String.valueOf(rcsId));
+                if (msgNotifyType == 0 && threadId != MessagingNotification
+                        .getCurrentlyDisplayedThreadId()) {
+                    MessagingNotification.blockingUpdateNewMessageIndicator(
+                                RcsMessageStatusService.this, threadId, true);
+                }
+            }
+        } catch (ServiceDisconnectedException e) {
+            Log.i(LOG_TAG, "GroupChatMessage" + e);
+        }
     }
 
     public static long copyRcsMsgToSmsProvider(Context context, ChatMessage chatMessage) {

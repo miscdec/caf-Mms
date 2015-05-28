@@ -1232,8 +1232,14 @@ public class MailBoxMessageList extends ListActivity implements
         }
 
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            mode.setTitle(getString(R.string.selected_count,
-                    getListView().getCheckedItemCount()));
+            MenuItem topItem = menu.findItem(R.id.topConversation);
+            MenuItem unTopItem = menu.findItem(R.id.cancelTopConversation);
+            if (topItem != null) {
+                topItem.setVisible(false);
+            }
+            if (unTopItem != null) {
+                unTopItem.setVisible(false);
+            }
             mActionMode = mode;
             return true;
         }
@@ -1241,6 +1247,8 @@ public class MailBoxMessageList extends ListActivity implements
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             ListView listView = getListView();
             final int checkedCount = listView.getCheckedItemCount();
+            mode.setTitle(getString(R.string.selected_count,
+                    checkedCount));
             switch (item.getItemId()) {
                 case R.id.delete:
                     confirmDeleteMessages();
