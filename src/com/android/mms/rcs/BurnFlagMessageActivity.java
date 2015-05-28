@@ -39,30 +39,23 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.drawable.AnimationDrawable;
-import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
-import android.text.method.ScrollingMovementMethod;
 
-import java.io.File;
 import java.util.HashMap;
 
 import android.util.Log;
@@ -80,7 +73,6 @@ public class BurnFlagMessageActivity extends Activity {
 
     private static final String EXTRA_STATUS = "status";
     private static final String EXTRA_SMS_ID = "smsId";
-    private static final String EXTRA_RCS_ID = "rcsId";
 
     private static final int BURN_TIME_REFRESH = 1;
     private static final int AUDIO_TIME_REFRESH = 2;
@@ -89,8 +81,6 @@ public class BurnFlagMessageActivity extends Activity {
     public static final String VIDEO_HEAD = "[video]";
 
     public static final String SPLIT = "-";
-
-    private static final int REFRESH_PERIOD = 1000;
 
     private ImageView mImage;
 
@@ -107,8 +97,6 @@ public class BurnFlagMessageActivity extends Activity {
     private TextView mProgressText;
 
     private ImageView mAudioIcon;
-
-    private RelativeLayout mRootLayout;
 
     private long mTempType;
 
@@ -128,8 +116,6 @@ public class BurnFlagMessageActivity extends Activity {
 
     private long mSmsId;
 
-    private long mRcsId;
-
     private BroadcastReceiver simStateReceiver = new BroadcastReceiver() {
 
         @Override
@@ -137,15 +123,7 @@ public class BurnFlagMessageActivity extends Activity {
             String action = intent.getAction();
             if (action == ACTION_SIM_STATE_CHANGED) {
                 if (TelephonyManager.SIM_STATE_ABSENT == mTelManager.getSimState()) {
-                    Toast.makeText(BurnFlagMessageActivity.this, R.string.burn_all_message, 0)
-                        .show();
-                    burnMessage(mSmsId,mRcsId);
-                    try {
-                        RcsApiManager.getMessageApi().burnAllMsgAtOnce();
-                        RcsUtils.burnAllMessageAtLocal(BurnFlagMessageActivity.this);
-                        finish();
-                    } catch (Exception e) {
-                    }
+                    burnMessage(mSmsId);
                 }
             }
         }
@@ -212,10 +190,9 @@ public class BurnFlagMessageActivity extends Activity {
 
     };
 
-    public static void start(Context context, String messageId, String rcsId) {
+    public static void start(Context context, String messageId) {
         Intent intent = new Intent(context, BurnFlagMessageActivity.class);
         intent.putExtra("smsId", messageId);
-        intent.putExtra("rcsId",rcsId);
         context.startActivity(intent);
     }
 
@@ -223,10 +200,10 @@ public class BurnFlagMessageActivity extends Activity {
 
         @Override
         public void run() {
-            mTempType = mTempType - REFRESH_PERIOD;
-            mTime.setText(mTempType / REFRESH_PERIOD + "");
+            mTempType = mTempType - 1000;
+            mTime.setText(mTempType / 1000 + "");
             if (mTempType != 0) {
-                handler.postDelayed(this, REFRESH_PERIOD);
+                handler.postDelayed(this, 1000);
             } else {
                 Toast.makeText(getBaseContext(), R.string.message_is_burnd,
                         Toast.LENGTH_SHORT).show();
@@ -240,11 +217,11 @@ public class BurnFlagMessageActivity extends Activity {
 
         @Override
         public void run() {
-            mLen = mLen - REFRESH_PERIOD;
-            mAudio.setText(getString(R.string.audio_length) + mLen / REFRESH_PERIOD + "\'");
+            mLen = mLen - 1000;
+            mAudio.setText(getString(R.string.audio_length) + mLen / 1000 + "\'");
 
             if (mLen != 0) {
-                handler.postDelayed(this, REFRESH_PERIOD);
+                handler.postDelayed(this, 1000);
             } else {
                 Toast.makeText(getBaseContext(), R.string.message_is_play_over,
                         Toast.LENGTH_SHORT).show();
@@ -259,11 +236,11 @@ public class BurnFlagMessageActivity extends Activity {
 
         @Override
         public void run() {
-            mLen = mLen - REFRESH_PERIOD;
-            mVideoLen.setText(getString(R.string.video_length) + mLen / REFRESH_PERIOD
+            mLen = mLen - 1000;
+            mVideoLen.setText(getString(R.string.video_length) + mLen / 1000
                     + "\'");
             if (mLen != 0) {
-                handler.postDelayed(this, REFRESH_PERIOD);
+                handler.postDelayed(this, 1000);
             } else {
                 Toast.makeText(getBaseContext(), R.string.message_is_play_over,
                         Toast.LENGTH_SHORT).show();
@@ -280,20 +257,20 @@ public class BurnFlagMessageActivity extends Activity {
             super.handleMessage(msg);
             switch (msg.what) {
                 case BURN_TIME_REFRESH:
-                    mTime.setText(mTempType / REFRESH_PERIOD + "");
-                    handler.postDelayed(refresh, REFRESH_PERIOD);
+                    mTime.setText(mTempType / 1000 + "");
+                    handler.postDelayed(refresh, 1000);
                     break;
                 case AUDIO_TIME_REFRESH:
-                    mLen = mLen * REFRESH_PERIOD;
-                    mAudio.setText(getString(R.string.audio_length) + mLen / REFRESH_PERIOD
+                    mLen = mLen * 1000;
+                    mAudio.setText(getString(R.string.audio_length) + mLen / 1000
                             + "\"");
-                    handler.postDelayed(refreshAudio, REFRESH_PERIOD);
+                    handler.postDelayed(refreshAudio, 1000);
                     break;
                 case VIDEO_TIME_REFRESH:
-                    mLen = mLen * REFRESH_PERIOD;
-                    mVideoLen.setText(getString(R.string.video_length) + mLen / REFRESH_PERIOD
+                    mLen = mLen * 1000;
+                    mVideoLen.setText(getString(R.string.video_length) + mLen / 1000
                             + "\"");
-                    handler.postDelayed(refreshvideo, REFRESH_PERIOD);
+                    handler.postDelayed(refreshvideo, 1000);
                     break;
                 default:
                     break;
@@ -312,9 +289,6 @@ public class BurnFlagMessageActivity extends Activity {
 
         WindowManager mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         mTelManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-        mTelManager.listen(new phoneStateListener(),
-                PhoneStateListener.LISTEN_CALL_STATE);
-
         IntentFilter filter = new IntentFilter();
         filter.addAction(BroadcastConstants.UI_DOWNLOADING_FILE_CHANGE);
         filter.addAction(ACTION_REGISTER_STATUS_CHANGED);
@@ -326,13 +300,11 @@ public class BurnFlagMessageActivity extends Activity {
         simOutFilter.addAction(ACTION_SIM_STATE_CHANGED);
         registerReceiver(simStateReceiver,simOutFilter);
 
-        mSmsId = getIntent().getLongExtra(EXTRA_SMS_ID, -1);
-        mRcsId = getIntent().getLongExtra(EXTRA_RCS_ID, -1);
-        mMsg = RcsChatMessageUtils.getChatMessage(String.valueOf(mRcsId));
+        mSmsId = getIntent().getLongExtra("smsId", -1);
+        mMsg = RcsChatMessageUtils.getChatMessageOnSMSDB(this, mSmsId);
 
         if (mMsg == null) {
             finish();
-            return;
         }
         findView();
         initView();
@@ -363,20 +335,7 @@ public class BurnFlagMessageActivity extends Activity {
             mMediaPlayer.release();
         }
         if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-            if (mMsg.getMsgType() == SuntekMessageData.MSG_TYPE_IMAGE
-                    || mMsg.getMsgType() == SuntekMessageData.MSG_TYPE_VIDEO){
-                String filepath = null;
-                try {
-                    filepath = RcsChatMessageUtils.getFilePath(mMsg);
-                } catch (ServiceDisconnectedException e) {
-                    e.printStackTrace();
-                }
-                if (RcsChatMessageUtils.isFileDownload(filepath, mMsg.getFilesize())) {
-                    burnMessage(mSmsId, mRcsId);
-                }
-            } else {
-                burnMessage(mSmsId, mRcsId);
-            }
+            burnMessage(mSmsId);
             finish();
         }
     }
@@ -398,11 +357,13 @@ public class BurnFlagMessageActivity extends Activity {
                 }
             });
             mVideoLen.setVisibility(View.VISIBLE);
-            mVideoLen.setText(getString(R.string.video_length) + mLen / REFRESH_PERIOD
+            mVideoLen.setText(getString(R.string.video_length) + mLen / 1000
                     + "\"");
             mVideo.setVideoURI(Uri.parse(filepath));
             mVideo.start();
-
+            if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
+                burnMessage(mSmsId);
+            }
             handler.sendEmptyMessage(VIDEO_TIME_REFRESH);
         } else {
             mVideo.setVisibility(View.GONE);
@@ -420,28 +381,12 @@ public class BurnFlagMessageActivity extends Activity {
             e1.printStackTrace();
         }
         if (RcsChatMessageUtils.isFileDownload(mFilePath, mMsg.getFilesize())) {
-
-            if (imageIsGif(mMsg)) {
-                File file = new File(mFilePath);
-                byte[] data = RcsUtils.getBytesFromFile(file);
-                LinearLayout.LayoutParams mGifParam = new LinearLayout.LayoutParams(
-                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                ColorDrawable transparent = new ColorDrawable(Color.TRANSPARENT);
-                RcsEmojiGifView emojiGifView = new RcsEmojiGifView(BurnFlagMessageActivity.this);
-                emojiGifView.setLayoutParams(mGifParam);
-                emojiGifView.setBackground(transparent);
-                emojiGifView.setMonieByteData(data);
-                mRootLayout.setVisibility(View.VISIBLE);
-                mRootLayout.addView(emojiGifView);
-            } else {
-                Bitmap imageBm = ImageUtils.getBitmap(mFilePath);
-                mImage.setImageBitmap(imageBm);
-                if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-                   burnMessage(mSmsId, mRcsId);
-                }
-                mProgressText.setVisibility(View.GONE);
+            Bitmap imageBm = ImageUtils.getBitmap(mFilePath);
+            mImage.setImageBitmap(imageBm);
+            if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
+                burnMessage(mSmsId);
             }
-
+            mProgressText.setVisibility(View.GONE);
         } else {
             acceptFile();
             mProgressText.setVisibility(View.VISIBLE);
@@ -467,7 +412,7 @@ public class BurnFlagMessageActivity extends Activity {
                 mText.setVisibility(View.VISIBLE);
                 mText.setText(mMsg.getData());
                 if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-                    burnMessage(mSmsId, mRcsId);
+                    burnMessage(mSmsId);
                 }
                 break;
             case SuntekMessageData.MSG_TYPE_IMAGE:
@@ -478,10 +423,10 @@ public class BurnFlagMessageActivity extends Activity {
                 mAudio.setVisibility(View.VISIBLE);
                 mAudioIcon.setVisibility(View.VISIBLE);
                 mAudioIcon.setBackgroundResource(R.anim.burn_message_audio_icon);
-                final AnimationDrawable animaition =
-                        (AnimationDrawable) mAudioIcon.getBackground();
+                final AnimationDrawable animaition = (AnimationDrawable) mAudioIcon.getBackground();
                 animaition.setOneShot(false);
                 mMediaPlayer = new MediaPlayer();
+
                 try {
                     if (mMediaPlayer != null && mMediaPlayer.isPlaying()) {
                         mMediaPlayer.stop();
@@ -495,7 +440,7 @@ public class BurnFlagMessageActivity extends Activity {
                     mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                         @Override
                         public void onPrepared(MediaPlayer mp) {
-                        mLen = mMediaPlayer.getDuration() / REFRESH_PERIOD;
+                        mLen = mMediaPlayer.getDuration() / 1000;
                         Log.i("RCS_UI","AUDIO MELN="+mLen);
                         }
                     });
@@ -521,7 +466,7 @@ public class BurnFlagMessageActivity extends Activity {
                 }
                 mMediaPlayer.start();
                 if (mMsg.getSendReceive() == SuntekMessageData.MSG_RECEIVE) {
-                    burnMessage(mSmsId, mRcsId);
+                    burnMessage(mSmsId);
                 }
                 animaition.start();
                 handler.sendEmptyMessage(AUDIO_TIME_REFRESH);
@@ -551,11 +496,9 @@ public class BurnFlagMessageActivity extends Activity {
         mVideo = (VideoView) findViewById(R.id.video);
         mAudio = (TextView) findViewById(R.id.audio);
         mText = (TextView) findViewById(R.id.text);
-        mText.setMovementMethod(ScrollingMovementMethod.getInstance());
         mTime = (TextView) findViewById(R.id.burn_time);
         mVideoLen = (TextView) findViewById(R.id.video_len);
         mAudioIcon = (ImageView) findViewById(R.id.audio_icon);
-        mRootLayout = (RelativeLayout) findViewById(R.id.gif_root_view);
     }
 
     public static int getVideoLength(String message) {
@@ -566,19 +509,8 @@ public class BurnFlagMessageActivity extends Activity {
         return 0;
     }
 
-    private boolean imageIsGif(ChatMessage msg){
-        if (mMsg.getMimeType() != null &&
-                mMsg.getMimeType().endsWith("image/gif")
-                    || mMsg.getFilename() != null &&
-                        mMsg.getFilename().endsWith("gif")) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private void burnMessage(long messageId, long rcsId) {
-        String smsId = String.valueOf(rcsId);
+    private void burnMessage(long id) {
+        String smsId = String.valueOf(id);
         try {
             if (mMsg != null) {
                 RcsApiManager.getMessageApi().burnMessageAtOnce(smsId);
@@ -588,21 +520,9 @@ public class BurnFlagMessageActivity extends Activity {
         }
         ContentValues values = new ContentValues();
         values.put("rcs_is_burn", 1);
-        values.put("rcs_burn_body", "");
-        getContentResolver().update(Uri.parse("content://sms/"), values,
-                "rcs_id = ? ", new String[] {
-            smsId
+        getContentResolver().update(Uri.parse("content://sms/"), values, " _id = ? ", new String[] {
+                smsId
         });
     }
 
-    class phoneStateListener extends PhoneStateListener {
-        @Override
-        public void onCallStateChanged(int state, String incomingNumber) {
-            switch(state) {
-            case TelephonyManager.CALL_STATE_RINGING:
-                finish();
-                break;
-            }
-        }
-    }
 }

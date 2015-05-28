@@ -107,10 +107,6 @@ public class RcsEmojiInitialize {
         public void addEmojiPackageListener();
     }
 
-    public View getEmojiView() {
-        return mEmojiView;
-    }
-
     public RcsEmojiInitialize(Context context, ViewStub viewStub,
             ViewOnClickListener viewOnClickListener) {
         this.mContext = context;
@@ -119,7 +115,7 @@ public class RcsEmojiInitialize {
         mLayoutParams = new LinearLayout.LayoutParams(RcsUtils.dip2px(mContext, 45),
                 LinearLayout.LayoutParams.MATCH_PARENT);
         mLayoutParams.leftMargin = RcsUtils.dip2px(mContext, 1);
-        mSelectPackageId = mDefaultPackageId;
+        new LoadSessionTask().execute();
     }
 
     public void closeOrOpenView() {
@@ -150,10 +146,6 @@ public class RcsEmojiInitialize {
         mViewOnClickListener.viewOpenOrCloseListener(false);
     }
 
-    public void refreshData(){
-        new LoadSessionTask().execute();
-    }
-
     private void initEmojiView() {
         mEmojiView = mViewStub.inflate();
         mEmojiGridView = (GridView)mEmojiView.findViewById(R.id.emoji_grid_view);
@@ -165,11 +157,9 @@ public class RcsEmojiInitialize {
         mGirdViewAdapter = new GirdViewAdapter(mContext, mViewOnClickListener);
         mEmojiGridView.setAdapter(mGirdViewAdapter);
         mDeleteBtn.setVisibility(View.GONE);
-        new LoadSessionTask().execute();
     }
 
     class LoadSessionTask extends AsyncTask<Void, Void, List<EmojiPackageBO>> {
-
         @Override
         protected List<EmojiPackageBO> doInBackground(Void... params) {
             List<EmojiPackageBO> packageList = new ArrayList<EmojiPackageBO>();
@@ -183,12 +173,9 @@ public class RcsEmojiInitialize {
         @Override
         protected void onPostExecute(List<EmojiPackageBO> result) {
             super.onPostExecute(result);
-            if(mEmojiPackages.size() > 0
-                    && mEmojiPackages.size() == result.size()){
-                return;
-            }
             mEmojiPackages.clear();
             mEmojiPackages.addAll(result);
+            mSelectPackageId = mDefaultPackageId;
             initPackageView(result);
             setImageButtonCheck(mSelectPackageId);
             mGirdViewAdapter.setEmojiData(mSelectPackageId);
@@ -209,8 +196,6 @@ public class RcsEmojiInitialize {
     }
 
     private void initPackageView(List<EmojiPackageBO> packageList) {
-        mLinearLayout.removeAllViews();
-        packageListButton.clear();
         TextView textView = createTextView();
         mLinearLayout.addView(textView);
         packageListButton.add(textView);
@@ -322,7 +307,6 @@ public class RcsEmojiInitialize {
         public void setEmojiData(String packageId) {
             this.mPackageId = packageId;
             if (mPackageId.equals(mDefaultPackageId)) {
-                this.mEmojiObjects.clear();
                 this.notifyDataSetChanged();
                 return;
             }
@@ -372,7 +356,7 @@ public class RcsEmojiInitialize {
             }
             holder.setItemHeight(mItemHeight);
             if (mPackageId.equals(mDefaultPackageId)) {
-                int faceInt = (Integer)getItem(position);
+                int faceInt = (int)getItem(position);
                 holder.title.setVisibility(View.GONE);
                 holder.icon.setVisibility(View.GONE);
                 holder.textFace.setVisibility(View.VISIBLE);
@@ -383,8 +367,6 @@ public class RcsEmojiInitialize {
                 holder.mItemView.setOnClickListener(mClickListener);
             } else {
                 holder.textFace.setVisibility(View.GONE);
-                holder.icon.setVisibility(View.VISIBLE);
-                holder.title.setVisibility(View.VISIBLE);
                 EmoticonBO bean = (EmoticonBO)getItem(position);
                 holder.title.setText(bean.getEmoticonName());
                 RcsEmojiStoreUtil.getInstance().loadImageAsynById(holder.icon,

@@ -112,39 +112,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <ScrollView
-                android:id="@+id/rcs_cache_view"
-                android:layout_width="match_parent"
-                android:layout_height="0dip"
-                android:visibility="gone"
-                android:layout_weight="1.0" >
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/attachment_editor_bg"
-                    android:paddingEnd="5dip" >
-
-                    <Button
-                        android:id="@+id/remove_attachment_button"
-                        style="?android:attr/buttonStyleSmall"
-                        android:layout_width="80dip"
-                        android:layout_height="45dip"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginRight="5dip"
-                        android:textColor="@android:color/black"
-                        android:text="@string/remove" />
-
-                    <ImageView
-                        android:id="@+id/image_view_thumbnail"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="10dip"
-                        android:layout_toLeftOf="@+id/remove_attachment_button" />
-                </RelativeLayout>
-            </ScrollView>
-
             <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
                 android:id="@+id/attachment_editor_scroll_view"
                 android:layout_weight="1.0"
