@@ -3459,16 +3459,14 @@ public class ComposeMessageActivity extends Activity
                 mAddAttachmentButton.setVisibility(View.VISIBLE);
             }
         }
-        if (mIsRcsEnabled) {
-            if (mConversation.getThreadId() != 0) {
-                if (mConversation.getIsTop() == 0 &&
-                        !mTopThread.contains(mConversation.getThreadId())) {
-                    menu.add(0, MENU_TOP_CONVERSATION, 0, R.string.top_conversation).setIcon(
-                            R.drawable.ic_menu_edit);
-                } else {
-                    menu.add(0, MENU_CANCEL_TOP_CONVERSATION, 0, R.string.cancel_top_conversation)
-                            .setIcon(R.drawable.ic_menu_edit);
-                }
+        if (mConversation.getThreadId() != 0) {
+            if (mConversation.getIsTop() == 0 &&
+                    !mTopThread.contains(mConversation.getThreadId())) {
+                menu.add(0, MENU_TOP_CONVERSATION, 0, R.string.top_conversation).setIcon(
+                        R.drawable.ic_menu_edit);
+            } else {
+                menu.add(0, MENU_CANCEL_TOP_CONVERSATION, 0, R.string.cancel_top_conversation)
+                        .setIcon(R.drawable.ic_menu_edit);
             }
         }
         if (isPreparedForSending() && mIsSmsEnabled) {
