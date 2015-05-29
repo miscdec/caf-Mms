@@ -38,7 +38,6 @@ import com.suntek.mway.rcs.client.aidl.plugin.entity.mcloudfile.TransNode;
 import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.aidl.plugin.callback.IMcloudOperationCtrl;
-import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
 
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
@@ -72,7 +71,6 @@ import java.util.List;
 
 public class RcsMessageOpenUtils {
     private static final String LOG_TAG = "RCS_UI";
-    private static RcsAccountApi mAccountApi =RcsApiManager.getRcsAccountApi();
 
     public static void openRcsSlideShowMessage(MessageListItem messageListItem) {
         MessageItem messageItem = messageListItem.getMessageItem();
@@ -87,29 +85,25 @@ public class RcsMessageOpenUtils {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(Uri.fromFile(File),
                 messageListItem.getRcsContentType().toLowerCase());
-        if (!messageItem.isMe() && !RcsUtils.isFileDownLoadoK(messageItem)) {
+        if (!messageItem.isMe() && messageItem.mRcsIsDownload == 0) {
             try {
-                if (mAccountApi.isOnline()) {
-                      MessageApi messageApi = RcsApiManager.getMessageApi();
-                      ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
-                    if (messageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOADING) {
-                        RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
-                        messageApi.interruptFile(message);
-                    } else {
-                        RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
-                        messageApi.acceptFile(message);
-                    }
+                MessageApi messageApi = RcsApiManager.getMessageApi();
+                ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
+                if (messageListItem.isDownloading() && !messageListItem.getRcsIsStopDown()) {
+                    messageListItem.setRcsIsStopDown(true);
+                    messageApi.interruptFile(message);
+                    messageListItem.setDateViewText(R.string.stop_down_load);
+                    Log.i(LOG_TAG, "STOP LOAD");
                 } else {
-                    Toast.makeText(messageListItem.getContext(), R.string.rcs_network_unavailable,
-                        Toast.LENGTH_SHORT).show();
-              }
+                    messageListItem.setRcsIsStopDown(false);
+                    messageApi.acceptFile(message);
+                    messageListItem.setDateViewText(R.string.rcs_downloading);
+                }
             } catch (Exception e) {
                 Log.w(LOG_TAG, e);
             }
-        } else if (messageItem.isMe() || RcsUtils.isFileDownLoadoK(messageItem)){
-            startSafeActivity(messageListItem.getContext(), intent);
+        } else {
+            messageListItem.getContext().startActivity(intent);
         }
     }
 
@@ -278,21 +272,17 @@ public class RcsMessageOpenUtils {
             isFileDownload = RcsChatMessageUtils.isFileDownload(filePath, msg.getFilesize());
         if (!messageItem.isMe() && !isFileDownload) {
             try {
-                if (mAccountApi.isOnline()) {
                 MessageApi messageApi = RcsApiManager.getMessageApi();
                 ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
-                    if (messageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOADING) {
-                        RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
-                        messageApi.interruptFile(message);
-                    } else {
-                        RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
-                        messageApi.acceptFile(message);
-                    }
+                if (messageListItem.isDownloading() && !messageListItem.getRcsIsStopDown()) {
+                    messageListItem.setRcsIsStopDown(true);
+                    messageApi.interruptFile(message);
+                    messageListItem.setDateViewText(R.string.stop_down_load);
+                    Log.i(LOG_TAG, "STOP LOAD");
                 } else {
-                    Toast.makeText(messageListItem.getContext(), R.string.rcs_network_unavailable,
-                            Toast.LENGTH_SHORT).show();
+                    messageListItem.setRcsIsStopDown(false);
+                    messageApi.acceptFile(message);
+                    messageListItem.setDateViewText(R.string.rcs_downloading);
                 }
             } catch (Exception e) {
                 Log.w(LOG_TAG, e);
@@ -300,7 +290,7 @@ public class RcsMessageOpenUtils {
             return;
         }
         if (messageItem.isMe() || isFileDownload) {
-            startSafeActivity(messageListItem.getContext(), intent);
+            messageListItem.getContext().startActivity(intent);
         }
     }
 
@@ -490,15 +480,5 @@ public class RcsMessageOpenUtils {
             Log.w("RCS_UI",e);
         }
         return isFileDownload;
-    }
-
-    private static void startSafeActivity(Context context, Intent intent) {
-        try {
-            context.startActivity(intent);
-        } catch(ActivityNotFoundException e) {
-            Toast.makeText(context, R.string.please_install_application,
-                    Toast.LENGTH_LONG).show();
-            Log.w(LOG_TAG, e);
-        }
     }
 }

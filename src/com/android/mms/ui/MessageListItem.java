@@ -834,13 +834,9 @@ public class MessageListItem extends ZoomMessageListItem implements
                 MessagingPreferenceActivity.getMessageSendDelayDuration(mContext) > 0;
             int sendingTextResId = isCountingDown
                     ? R.string.sent_countdown : R.string.sending_message;
-            if (mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_IMAGE
-                    && mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_VIDEO
-                    && mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
-                mDateView.setText(buildTimestampLine(mMessageItem.isSending() ? mContext
-                        .getResources().getString(sendingTextResId) : mMessageItem.mTimestamp));
-            }
-
+            mDateView.setText(buildTimestampLine(mMessageItem.isSending() ?
+                    mContext.getResources().getString(sendingTextResId) :
+                        mMessageItem.mTimestamp));
         }
         if (isRcsMessage()) {
             bindCommonRcsMessage();
@@ -911,12 +907,13 @@ public class MessageListItem extends ZoomMessageListItem implements
         } else {
             if ((mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_IMAGE ||
                     mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO
-                    || mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE)) {
+                    || mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE )) {
                 if (mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOAD_FALSE
-                        && mMessageItem.mRcsBurnFlag != RcsUtils.RCS_IS_BURN_TRUE) {
+                        && mMessageItem.mRcsBurnFlag != RcsUtils.RCS_IS_BURN_TRUE
+                        && !isDownloading()
+                        && !RcsUtils.isFileDownLoadoK(mMessageItem)) {
                     mDateView.setText(R.string.message_download);
-                } else if (isDownloading() && 
-                        mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOADING) {
+                } else if (isDownloading() && !mRcsIsStopDown) {
                     if (mFileTrasnfer != null) {
                         Long percent = mFileTrasnfer.get(mMessageItem.mRcsMessageId);
                         if (percent != null) {
@@ -929,16 +926,26 @@ public class MessageListItem extends ZoomMessageListItem implements
                             }
                         }
                     }
-                } else if (mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOAD_PAUSE &&
-                        !RcsUtils.isFileDownLoadoK(mMessageItem)) {
+                } else if (mRcsIsStopDown && !RcsUtils.isFileDownLoadoK(mMessageItem)) {
                     mDateView.setText(getContext().getString(R.string.stop_down_load));
                 } else if (mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOAD_OK) {
                     mDateView.setText(buildTimestampLine(mMessageItem.isSending() ? mContext
                             .getResources().getString(R.string.sending_message)
                             : mMessageItem.mTimestamp));
-                } else if (mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOAD_FAIL
-                        && RcsUtils.isFileDownBeginButNotEnd(mMessageItem)){
-                    mDateView.setText(getContext().getString(R.string.download_fail_please_download_again));
+                }
+            }
+        }
+        if (mMessageItem.mRcsMsgState == 0
+                && mMessageItem.mRcsType != SuntekMessageData.MSG_TYPE_TEXT
+                && mFileTrasnfer != null) {
+            Long percent = mFileTrasnfer.get(mMessageItem.mRcsMessageId);
+            if (percent != null) {
+                if (!mMessageItem.isMe()) {
+                    mDateView.setText(getContext().getString(R.string.downloading_percent,
+                            percent.intValue()));
+                } else {
+                    mDateView.setText(getContext().getString(R.string.uploading_percent,
+                            percent.intValue()));
                 }
             }
         }

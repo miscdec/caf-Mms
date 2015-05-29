@@ -147,9 +147,8 @@
     <string name="rcs_mcloud_share_file">mClould file share</string>
     <string name="please_set_my_profile">Please define My Profile first</string>
     <string name="send_manage_fail">Message sent failed</string>
-    <string name="send_manage_down_fail">Message down failed</string>
     <string name="send_manage_fail_count">%1$s messages are failed to be sent</string>
-    <string name="send_manage_down_fail_count">%1$s messages are failed to be down</string>
+
     <string name="confirm_complain_selected_messages">Confirm to complain the selected messages</string>
     <string name="message_complain">Message complain</string>
     <!-- Firewall string resources 
@@ -186,7 +185,6 @@
     <string name="mcloud_share_file_after"> \n Please click to download. </string>
     <string name="confirm_cancel_selected_fav_messages">Confirm to delete the selected items from the Favourites? </string>
     <string name="stop_down_load">Pause download</string>
-    <string name="rcs_network_unavailable">Network unavailable</string>
     <string name="local_audio_item">Local audio file</string>
     <string name="audio_file_error">Please select 3gp、mp3、aac、amr、m4a format the audio file.</string>
     <string name="input_group_chat_title">Please input group chat title.</string>
@@ -238,5 +236,4 @@
     <string name="favorite_fail">Collection of failure</string>
     <string name="temp_group_chat">Temp group chat</string>
     <string name="rcs_offline_on_groupchat">You have been offline,group chat can not send multimedia messages.</string>
-    <string name="download_fail_please_download_again">Dowanload fail,please click download again</string>
 </resources>

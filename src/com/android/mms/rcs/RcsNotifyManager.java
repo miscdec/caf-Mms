@@ -59,29 +59,21 @@ public class RcsNotifyManager {
         // TODO factor out common code for creating notifications
         boolean bNotifEnabled = MessagingPreferenceActivity
                 .getNotificationEnabled(context);
-        if (!bNotifEnabled || (state != SuntekMessageData.MSG_STATE_SEND_FAIL &&
-                state != RcsUtils.RCS_IS_DOWNLOAD_FAIL)) {
+        if (!bNotifEnabled || state != SuntekMessageData.MSG_STATE_SEND_FAIL) {
             return;
         }
         int totalFailedCount = getRcsUndeliveredMessageCount(context, state);
         Intent sendFailedIntent;
         Notification notification = new Notification();
-        String title = "";
-        String description = "";
-        if (state == SuntekMessageData.MSG_STATE_SEND_FAIL) {
-            title = context.getString(R.string.send_manage_fail);
-            description = context.getString(R.string.send_manage_fail_count,
-                    totalFailedCount);
-        } else if (state == RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
-            title = context.getString(R.string.send_manage_down_fail);
-            description = context.getString(R.string.send_manage_down_fail_count,
-                    totalFailedCount);
-        }
+        String title = context.getString(R.string.send_manage_fail);
+
+        String description = context.getString(R.string.send_manage_fail_count,
+                totalFailedCount);
 
         TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(context);
 
         sendFailedIntent = getRcsFailedIntentFromConversationMode(context,
-                false, -1, state);
+                false, Integer.valueOf(messageId), state);
 
         taskStackBuilder.addNextIntent(sendFailedIntent);
         notification.icon = R.drawable.stat_notify_sms_failed;
@@ -106,16 +98,9 @@ public class RcsNotifyManager {
     // Query the DB and return the number of rcsundelivered messages (total for
     // both SMS and MMS)
     private static int getRcsUndeliveredMessageCount(Context context, int state) {
-        Cursor rcsundeliveredCursor = null;
-        if (state == SuntekMessageData.MSG_STATE_SEND_FAIL) {
-            rcsundeliveredCursor = SqliteWrapper.query(context,
-                    context.getContentResolver(),
-                    RCS_UNDELIVERED_URI, null, "rcs_msg_state = " + state, null, null);
-        } else if (state == RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
-            rcsundeliveredCursor = SqliteWrapper.query(context,
-                    context.getContentResolver(),
-                    RCS_UNDELIVERED_URI, null, "rcs_is_download = " + state, null, null);
-        }
+        Cursor rcsundeliveredCursor = SqliteWrapper.query(context,
+                context.getContentResolver(), RCS_UNDELIVERED_URI, null,
+                "rcs_msg_state = " + state, null, null);
         if (rcsundeliveredCursor == null) {
             return 0;
         }
@@ -138,14 +123,9 @@ public class RcsNotifyManager {
      */
     private static Intent getRcsFailedIntentFromConversationMode(
             Context context, boolean isDownload, long threadId, int state) {
-        Cursor cursor = null;
-        if (state == SuntekMessageData.MSG_STATE_SEND_FAIL) {
-            cursor = SqliteWrapper.query(context, context.getContentResolver(),
-                    RCS_UNDELIVERED_URI, null, "rcs_msg_state = " + state, null, null);
-        } else if (state == RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
-            cursor = SqliteWrapper.query(context, context.getContentResolver(),
-                    RCS_UNDELIVERED_URI, null, "rcs_is_download = " + state, null, null);
-        }
+        Cursor cursor = SqliteWrapper.query(context,
+                context.getContentResolver(), RCS_UNDELIVERED_URI, null,
+                "rcs_msg_state = " + state, null, null);
         if (cursor == null) {
             return null;
         }
