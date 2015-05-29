@@ -361,8 +361,6 @@ public class ComposeMessageActivity extends Activity
 
     private static final int MENU_FIERWALL_ADD_BLACKLIST    = 50;
     private static final int MENU_FIERWALL_ADD_WHITELIST    = 51;
-    private static final int MENU_TOP_SMS                   = 52;
-    private static final int MENU_CANCEL_TOP_SMS            = 53;
 
     private static final int DIALOG_TEMPLATE_SELECT     = 1;
     private static final int DIALOG_TEMPLATE_NOT_AVAILABLE = 2;
@@ -617,7 +615,6 @@ public class ComposeMessageActivity extends Activity
     private int mRcsForwardId = 0;
 
     private List<Long> mTopThread = new ArrayList<Long>();
-    private List<Long> mTopSms = new ArrayList<Long>();
 
     private Handler mHandler = new Handler();
 
@@ -7418,24 +7415,6 @@ public class ComposeMessageActivity extends Activity
             }
         }
 
-        private void topSms() {
-            for (Integer pos : mSelectedPos) {
-                Cursor c = (Cursor) getListView().getAdapter().getItem(pos);
-                long smsId = c.getLong(COLUMN_ID);
-                RcsUtils.topSms(ComposeMessageActivity.this, smsId);
-            }
-            startMsgListQuery();
-        }
-
-        private void cancelTopSms() {
-            for (Integer pos : mSelectedPos) {
-                Cursor c = (Cursor) getListView().getAdapter().getItem(pos);
-                long smsId = c.getLong(COLUMN_ID);
-                RcsUtils.cancelTopSms(ComposeMessageActivity.this, smsId);
-            }
-            startMsgListQuery();
-        }
-
         private void deleteMessages() {
             getWorkThread().startWork(WORK_TOKEN_DELETE);
         }
@@ -7518,7 +7497,6 @@ public class ComposeMessageActivity extends Activity
             SparseBooleanArray booleanArray = getListView()
                     .getCheckedItemPositions();
             mSelectedPos.clear();
-            mTopSms.clear();
             mSimpleMsgs.clear();
             logMultiChoice("booleanArray = " + booleanArray);
             for (int i = 0; i < booleanArray.size(); i++) {
@@ -7527,16 +7505,6 @@ public class ComposeMessageActivity extends Activity
                 logMultiChoice("pos=" + pos + ",checked=" + checked);
                 if (checked) {
                     mSelectedPos.add(pos);
-
-                    Cursor c = (Cursor) getListView().getAdapter().getItem(pos);
-                    long rcsTopTime = c.getLong(c.getColumnIndex("rcs_top_time"));
-                    android.util.Log.d(RCS_TAG, "recordAllSelectedItems: pos=" + pos + ", rcsTopTime="
-                            + rcsTopTime);
-                    if (rcsTopTime > 0) {
-                        mTopSms.add(Long.valueOf(pos));
-                    } else {
-                        mTopSms.remove(Long.valueOf(pos));
-                    }
                 }
             }
             calculateSelectedMsgUri();
@@ -7584,7 +7552,6 @@ public class ComposeMessageActivity extends Activity
                             return true;
                         }
                     });
-            mTopSms.clear();
             return true;
         }
 
@@ -7607,17 +7574,17 @@ public class ComposeMessageActivity extends Activity
                     item.setVisible(false);
                 }
             }
-            if (mIsRcsEnabled) {
-                if (mSelectedPos.size() > 0 && mSelectedPos.size() == mTopSms.size()) {
-                    menu.findItem(R.id.top_sms).setVisible(false);
-                    menu.findItem(R.id.cancel_top_sms).setVisible(true);
-                } else {
-                    menu.findItem(R.id.top_sms).setVisible(true);
-                    menu.findItem(R.id.cancel_top_sms).setVisible(false);
-                }
-            } else {
-                menu.findItem(R.id.top_sms).setVisible(false);
-                menu.findItem(R.id.cancel_top_sms).setVisible(false);
+            MenuItem complainItem = menu.findItem(R.id.complain);
+            if (complainItem != null) {
+                complainItem.setVisible(mIsRcsEnabled);
+            }
+            MenuItem saveBackItem = menu.findItem(R.id.save_back);
+            if (saveBackItem != null) {
+                saveBackItem.setVisible(mIsRcsEnabled);
+            }
+            MenuItem favouriteItem = menu.findItem(R.id.favourite);
+            if (favouriteItem != null) {
+                favouriteItem.setVisible(mIsRcsEnabled);
             }
             return true;
         }
@@ -7856,12 +7823,6 @@ public class ComposeMessageActivity extends Activity
                 break;
             case R.id.save_back:
                 showSaveOrBackDialog(ComposeMessageActivity.this);
-                break;
-            case R.id.top_sms:
-                topSms();
-                break;
-            case R.id.cancel_top_sms:
-                cancelTopSms();
                 break;
             default:
                 break;
@@ -8338,17 +8299,6 @@ public class ComposeMessageActivity extends Activity
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
 
-            if (checked) {
-                Cursor c = (Cursor) getListView().getAdapter().getItem(position);
-                long rcsTopTime = c.getLong(c.getColumnIndex("rcs_top_time"));
-                if (rcsTopTime > 0) {
-                    mTopSms.add(Long.valueOf(position));
-                } else {
-                    mTopSms.remove(Long.valueOf(position));
-                }
-            } else {
-                mTopSms.remove(Long.valueOf(position));
-            }
         }
 
         private boolean allItemsSelected() {
