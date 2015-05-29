@@ -174,9 +174,6 @@ public class RcsUtils {
     public static final String RCS_NATIVE_UI_ACTION_CONVERSATION_LIST =
             "com.suntek.mway.rcs.publicaccount.ACTION_LUNCHER_RCS_CONVERSATION_LIST";
 
-    private static final String PUBLIC_ACCOUNT_PACKAGE_NAME = "com.suntek.mway.rcs.publicaccount";
-    private static final String NATIVE_UI_PACKAGE_NAME = "com.suntek.mway.rcs.nativeui";
-
     // message status
     public static final int MESSAGE_SENDING = 64;
     public static final int MESSAGE_HAS_SENDED = 32;
@@ -2216,8 +2213,7 @@ public class RcsUtils {
     }
 
     public static void addPublicAccountItem(final Context context, ListView listView) {
-        if (!RcsApiManager.getSupportApi().isRcsSupported()
-                || !isPackageInstalled(context, PUBLIC_ACCOUNT_PACKAGE_NAME)) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
             return;
         }
         View view = LayoutInflater.from(context).inflate(
@@ -2241,8 +2237,7 @@ public class RcsUtils {
     }
 
     public static void addNotificationItem(final Context context, ListView listView) {
-        if (!RcsApiManager.getSupportApi().isRcsSupported() ||
-                !isPackageInstalled(context, NATIVE_UI_PACKAGE_NAME)) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
             return;
         }
         View view = LayoutInflater.from(context).inflate(
