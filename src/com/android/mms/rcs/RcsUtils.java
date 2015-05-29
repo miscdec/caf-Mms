@@ -1477,39 +1477,6 @@ public class RcsUtils {
                 Toast.LENGTH_SHORT).show();
     }
 
-    public static boolean showFirewallMenu(Context context, ContactList list,
-            boolean isBlacklist) {
-        String number = list.get(0).getNumber();
-        if (null == number || number.length() <= 0) {
-            return false;
-        }
-        number = number.replaceAll(" ", "");
-        number = number.replaceAll("-", "");
-        String comparenNumber = number;
-        int len = comparenNumber.length();
-        if (len > 11) {
-            comparenNumber = number.substring(len - 11, len);
-        }
-        Uri showFirewallBlockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
-                : RcsUtils.WHITELIST_CONTENT_URI;
-        ContentResolver contentResolver = context.getContentResolver();
-        Cursor cu = contentResolver.query(showFirewallBlockUri, new String[] {
-                "_id", "number", "person_id", "name"},
-                "number" + " LIKE '%" + comparenNumber + "'",
-                null, null);
-        try {
-            if (cu != null && cu.getCount() > 0) {
-                    return false;
-            }
-        } finally {
-            if (cu != null) {
-                cu.close();
-                cu = null;
-            }
-        }
-        return true;
-    }
-
     public static boolean isFireWallInstalled(Context context) {
         boolean installed = false;
         try {
