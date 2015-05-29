@@ -201,6 +201,7 @@ public class RcsUtils {
     public static final String RCS_MMS_VCARD_PATH = "sdcard/rcs/" + "mms.vcf";
 
     private static final int DEFAULT_THUMBNAIL_SIZE_IN_DP = 150;
+    private static final int NUMBER_LENGTH = 11;
 
     public static GeoLocation readMapXml(String filepath) {
         GeoLocation geo = null;
@@ -1475,6 +1476,39 @@ public class RcsUtils {
 
         Toast.makeText(context, context.getString(R.string.firewall_save_success),
                 Toast.LENGTH_SHORT).show();
+    }
+
+    public static boolean showFirewallMenu(Context context, ContactList list,
+            boolean isBlacklist) {
+        String number = list.get(0).getNumber();
+        if (null == number || number.length() <= 0) {
+            return false;
+        }
+        number = number.replaceAll(" ", "");
+        number = number.replaceAll("-", "");
+        String comparenNumber = number;
+        int len = comparenNumber.length();
+        if (len > NUMBER_LENGTH) {
+            comparenNumber = number.substring(len - NUMBER_LENGTH, len);
+        }
+        Uri showFirewallBlockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
+                : RcsUtils.WHITELIST_CONTENT_URI;
+        ContentResolver contentResolver = context.getContentResolver();
+        Cursor cu = contentResolver.query(showFirewallBlockUri, new String[] {
+                "_id", "number", "person_id", "name"},
+                "number" + " LIKE '%" + comparenNumber + "'",
+                null, null);
+        try {
+            if (cu != null && cu.getCount() > 0) {
+                    return false;
+            }
+        } finally {
+            if (cu != null) {
+                cu.close();
+                cu = null;
+            }
+        }
+        return true;
     }
 
     public static boolean isFireWallInstalled(Context context) {
