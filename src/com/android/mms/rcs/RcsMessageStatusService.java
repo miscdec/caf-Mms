@@ -144,9 +144,9 @@ public class RcsMessageStatusService extends IntentService {
                     long end = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_END, -1);
                     if (start == end) {
                         RcsUtils.updateFileDownloadState(RcsMessageStatusService.this,
-                                rcs_message_id);
+                                rcs_message_id, RcsUtils.RCS_IS_DOWNLOAD_OK);
                     }
-                }  else if("com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS".equals(action)){
+                }  else if ("com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS".equals(action)){
                     Log.i(LOG_TAG,"rcs message to sms="+action);
                     long messageId = intent.getLongExtra("id",-1);
                     RcsUtils.deleteMessageById(RcsMessageStatusService.this, messageId);

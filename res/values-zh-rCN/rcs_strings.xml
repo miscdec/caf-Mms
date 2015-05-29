@@ -138,7 +138,9 @@
     <string name="rcs_mcloud_share_file">彩云文件分享</string>
     <string name="please_set_my_profile">请先设置我的信息</string>
     <string name="send_manage_fail">消息发送失败</string>
+    <string name="send_manage_down_fail">消息下载失败</string>
     <string name="send_manage_fail_count">您有%1$s条消息发送失败</string>
+    <string name="send_manage_down_fail_count">您有%1$s条消息下载失败</string>
 
     <string name="confirm_complain_selected_messages">选中的信息将被举报</string>
     <string name="message_complain">信息举报</string>
@@ -176,6 +178,7 @@
     <string name="mcloud_share_file_after"> \n 请点击下载。</string>
     <string name="confirm_cancel_selected_fav_messages">确认取消选中收藏吗？</string>
     <string name="stop_down_load">暂停下载</string>
+    <string name="rcs_network_unavailable">网络不可用</string>
     <string name="install_emoj_store">请安装表情商店</string>
     <string name="vcard_name">姓名：</string>
     <string name="vcard_number">手机：</string>
@@ -225,4 +228,5 @@
     <string name="favorite_fail">收藏失败</string>
     <string name="temp_group_chat">临时群聊</string>
     <string name="rcs_offline_on_groupchat">您已离线，群聊不能发送多媒体消息。</string>
+    <string name="download_fail_please_download_again">下载失败,请点击继续下载</string>
 </resources>

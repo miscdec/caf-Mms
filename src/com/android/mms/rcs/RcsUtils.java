@@ -139,8 +139,11 @@ public class RcsUtils {
     public static final int IS_RCS_FALSE = 0;
     public static final int RCS_IS_BURN_TRUE = 1;
     public static final int RCS_IS_BURN_FALSE = 0;
-    public static final int RCS_IS_DOWNLOAD_FALSE = 0;
-    public static final int RCS_IS_DOWNLOAD_OK = 1;
+    public static final int RCS_IS_DOWNLOAD_FALSE = 0;//unDownload
+    public static final int RCS_IS_DOWNLOAD_OK = 1;//DownLoaded
+    public static final int RCS_IS_DOWNLOAD_PAUSE = 2;// pause DownLoaded
+    public static final int RCS_IS_DOWNLOAD_FAIL = 3;//DownLoad fail
+    public static final int RCS_IS_DOWNLOADING = 4;// DownLoading
     public static final int SMS_DEFAULT_RCS_ID = -1;
     public static final int RCS_MESSAGE_ID = 1;
     public static final int SMS_DEFAULT_RCS_GROUP_ID = 0;
@@ -289,6 +292,23 @@ public class RcsUtils {
         }
     }
 
+    public static int queryRcsMsgDownLoadState(Context context, String messageId) {
+        if(TextUtils.isEmpty(messageId)){
+            return 0;
+        }
+        ContentResolver resolver = context.getContentResolver();
+        Cursor cursor = SqliteWrapper.query(context, resolver, Sms.CONTENT_URI, new String[] {
+            "rcs_is_download"
+        }, "rcs_message_id = ?", new String[] {
+            messageId
+        }, null);
+        if (cursor != null && cursor.moveToNext()) {
+            return cursor.getInt(0);
+        } else {
+            return 0;
+        }
+    }
+
     public static void updateManyState(Context context, String rcs_id, String number,
             int rcs_msg_state) {
         ContentValues values = new ContentValues();
@@ -379,9 +399,10 @@ public class RcsUtils {
         });
     }
 
-    public static void updateFileDownloadState(Context context, String rcs_message_id) {
+    public static void updateFileDownloadState(Context context, String rcs_message_id,
+            int downLoadState) {
         ContentValues values = new ContentValues();
-        values.put("rcs_is_download", 1);
+        values.put("rcs_is_download", downLoadState);
         context.getContentResolver().update(Sms.CONTENT_URI, values, "rcs_message_id=?",
                 new String[] {
                     rcs_message_id
@@ -609,6 +630,7 @@ public class RcsUtils {
                 values.put("rcs_file_size", fileSize);
                 values.put("rcs_msg_state", rcs_msg_state);
                 values.put("rcs_play_time", playTime);
+                values.put("rcs_is_download", RCS_IS_DOWNLOAD_FALSE);
                 values.put("date", time);
 
                 Uri insertedUri = SqliteWrapper.insert(context, resolver, uri, values);
@@ -640,6 +662,7 @@ public class RcsUtils {
             values.put("rcs_chat_type", rcs_chat_type);
             values.put("rcs_file_size", fileSize);
             values.put("rcs_play_time", playTime);
+            values.put("rcs_is_download", RCS_IS_DOWNLOAD_FALSE);
             values.put("rcs_msg_state", rcs_msg_state);
             values.put("date", time);
             if (send_receive == 2) {
@@ -1648,7 +1671,7 @@ public class RcsUtils {
         switch (messageItem.mRcsType) {
             case RcsUtils.RCS_MSG_TYPE_IMAGE: {
                 if (messageItem.mRcsThumbPath != null
-                        && new File(messageItem.mRcsThumbPath).exists()
+                        && !new File(messageItem.mRcsThumbPath).exists()
                         && messageItem.mRcsThumbPath.contains(".")) {
                     messageItem.mRcsThumbPath = messageItem.mRcsThumbPath.substring(0,
                             messageItem.mRcsThumbPath.lastIndexOf("."));
@@ -1707,7 +1730,7 @@ public class RcsUtils {
             case RcsUtils.RCS_MSG_TYPE_IMAGE: {
                 String imagePath = workingMessage.getRcsPath();
                 if (imagePath != null
-                        && new File(imagePath).exists() && imagePath.contains(".")) {
+                        && !new File(imagePath).exists() && imagePath.contains(".")) {
                     imagePath = imagePath.substring(0,
                             imagePath.lastIndexOf("."));
                 }
@@ -2301,6 +2324,39 @@ public class RcsUtils {
             isFileDownload = RcsChatMessageUtils.isFileDownload(filePath, msg.getFilesize());
         }
         return isFileDownload;
+    }
+
+    public static boolean isFileDownBeginButNotEnd(MessageItem msgItem){
+        if(msgItem == null){
+            return false;
+        }
+        String filePath = RcsUtils.getFilePath(msgItem.mRcsId, msgItem.mRcsPath);
+        ChatMessage msg = null;
+        boolean isFileDownload = false;
+        try {
+            msg = RcsApiManager.getMessageApi().getMessageById(String.valueOf(msgItem.mRcsId));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (msg != null) {
+            if (TextUtils.isEmpty(filePath)) {
+                return false;
+            }
+            if (msg.getFilesize() == 0) {
+                return false;
+            }
+            boolean isBeginButNotEnd = false;
+            File file = new File(filePath);
+            if (file != null) {
+                LogHelper.trace("filePath = " + msg.getFilesize() + " ; thisFileSize = "
+                        + file.length() + " ; fileSize = " + msg.getFilesize());
+                if (file.exists() && file.length()> 0 && file.length() < msg.getFilesize()) {
+                    isBeginButNotEnd = true;
+                }
+            }
+            return isBeginButNotEnd;
+        }
+        return false;
     }
 
     public static String getPhoneNumberTypeStr(Context context, PropertyNode propertyNode) {
