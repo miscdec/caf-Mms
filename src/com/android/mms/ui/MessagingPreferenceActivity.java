@@ -415,10 +415,10 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mMessageSendDelayPref = (ListPreference) findPreference(SEND_DELAY_DURATION);
         mMessageSendDelayPref.setSummary(mMessageSendDelayPref.getEntry());
 
+        mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
+
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
             mCBsettingPref = findPreference(CELL_BROADCAST);
-            mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
-            setMmsSizeSummary();
             mFontSizePref = (ListPreference) findPreference(FONT_SIZE_SETTING);
         }
         //Chat wallpaper
@@ -588,6 +588,13 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             if (!MmsConfig.isCreationModeEnabled()) {
                 mMmsPrefCategory.removePreference(mMmsCreationModePref);
             }
+            if (!getResources().getBoolean(
+                    R.bool.def_custom_preferences_settings)
+                    && !(getResources().getBoolean(R.bool.def_show_mms_size))) {
+                mMmsPrefCategory.removePreference(mMmsSizeLimit);
+            } else {
+                setMmsSizeSummary();
+            }
         }
 
         if (TelephonyManager.getDefault().isMultiSimEnabled()) {
@@ -668,7 +675,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             final Preference pref = new Preference(this);
             pref.setKey(String.valueOf(i));
             pref.setTitle(getSMSCDialogTitle(count, i));
-            if (getResources().getBoolean(R.bool.show_edit_smsc)) {
+            if (getResources().getBoolean(R.bool.show_edit_smsc)
+                || getResources().getBoolean(com.android.internal.R.bool.config_regional_smsc_editable)) {
                 pref.setOnPreferenceClickListener(null);
             } else {
                 pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
@@ -1930,9 +1938,17 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         return null;
     }
     private void setMmsSizeSummary() {
-        mMmsSizeLimit.setSummary(Integer.toString(MmsConfig
-                .getMaxMessageSize() / MmsConfig.KB_IN_BYTES)
-                + MmsConfig.KILO_BYTE);
+        String mSize = "";
+        if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
+            mSize = MmsConfig
+                    .getMaxMessageSize() / MmsConfig.KB_IN_BYTES
+                    + MmsConfig.KILO_BYTE;
+        } else if (getResources().getBoolean(R.bool.def_show_mms_size)) {
+            mSize = MmsConfig.getMaxMessageSize()
+                    / (MmsConfig.KB_IN_BYTES * MmsConfig.KB_IN_BYTES)
+                    + MmsConfig.MEGA_BYTE;
+        }
+        mMmsSizeLimit.setSummary(mSize);
     }
 
     private void setSmsPreferFontSummary() {
