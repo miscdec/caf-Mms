@@ -174,6 +174,9 @@ public class RcsUtils {
     public static final String RCS_NATIVE_UI_ACTION_CONVERSATION_LIST =
             "com.suntek.mway.rcs.publicaccount.ACTION_LUNCHER_RCS_CONVERSATION_LIST";
 
+    private static final String PUBLIC_ACCOUNT_PACKAGE_NAME = "com.suntek.mway.rcs.publicaccount";
+    private static final String NATIVE_UI_PACKAGE_NAME = "com.suntek.mway.rcs.nativeui";
+
     // message status
     public static final int MESSAGE_SENDING = 64;
     public static final int MESSAGE_HAS_SENDED = 32;
@@ -1474,39 +1477,6 @@ public class RcsUtils {
                 Toast.LENGTH_SHORT).show();
     }
 
-    public static boolean showFirewallMenu(Context context, ContactList list,
-            boolean isBlacklist) {
-        String number = list.get(0).getNumber();
-        if (null == number || number.length() <= 0) {
-            return false;
-        }
-        number = number.replaceAll(" ", "");
-        number = number.replaceAll("-", "");
-        String comparenNumber = number;
-        int len = comparenNumber.length();
-        if (len > 11) {
-            comparenNumber = number.substring(len - 11, len);
-        }
-        Uri blockUri = isBlacklist ? RcsUtils.BLACKLIST_CONTENT_URI
-                : RcsUtils.WHITELIST_CONTENT_URI;
-        ContentResolver contentResolver = context.getContentResolver();
-        Cursor cu = contentResolver.query(blockUri, new String[] {
-                "_id", "number", "person_id", "name"},
-                "number" + " LIKE '%" + comparenNumber + "'",
-                null, null);
-        try {
-            if (cu != null && cu.getCount() > 0) {
-                    return false;
-            }
-        } finally {
-            if (cu != null) {
-                cu.close();
-                cu = null;
-            }
-        }
-        return true;
-    }
-
     public static boolean isFireWallInstalled(Context context) {
         boolean installed = false;
         try {
@@ -1944,10 +1914,6 @@ public class RcsUtils {
             // that a media file has been added to the sd card
             context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
                     Uri.fromFile(file)));
-            Looper.prepare();
-            Toast.makeText(context,context.getString(R.string.copy_rcs_message_to_sdcard_success,
-                    file.toString()), Toast.LENGTH_LONG).show();
-            Looper.loop();
         } catch (IOException e) {
             // Ignore
             Log.e(LOG_TAG, "IOException caught while opening or reading stream", e);
@@ -2213,7 +2179,8 @@ public class RcsUtils {
     }
 
     public static void addPublicAccountItem(final Context context, ListView listView) {
-        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()
+                || !isPackageInstalled(context, PUBLIC_ACCOUNT_PACKAGE_NAME)) {
             return;
         }
         View view = LayoutInflater.from(context).inflate(
@@ -2237,7 +2204,8 @@ public class RcsUtils {
     }
 
     public static void addNotificationItem(final Context context, ListView listView) {
-        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported() ||
+                !isPackageInstalled(context, NATIVE_UI_PACKAGE_NAME)) {
             return;
         }
         View view = LayoutInflater.from(context).inflate(
@@ -2462,16 +2430,4 @@ public class RcsUtils {
                 + name + "\n" + number;
     }
 
-    public static boolean isRcsMediaMsg(MessageItem msgItem) {
-        if (msgItem == null) {
-            return false;
-        }
-        if (msgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_IMAGE
-                || msgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_AUDIO
-                || msgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO) {
-            return true;
-        } else {
-            return false;
-        }
-    }
 }
