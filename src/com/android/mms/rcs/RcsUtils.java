@@ -82,6 +82,7 @@ import android.graphics.drawable.NinePatchDrawable;
 import android.media.MediaPlayer;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -106,6 +107,7 @@ import android.provider.Telephony.Threads;
 import android.provider.Telephony.Sms.Sent;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Pair;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -1870,78 +1872,114 @@ public class RcsUtils {
         return body;
     }
 
-   public static boolean saveRcsMassage(Context context, long msgId) {
-       InputStream input = null;
-       FileOutputStream fout = null;
-       try {
-           ChatMessage chatMessage = RcsApiManager.getMessageApi().getMessageById(msgId + "");
-           if ( chatMessage == null) {
-                return false;
-            }
-           int msgType = chatMessage.getMsgType();
-            if (msgType != SuntekMessageData.MSG_TYPE_AUDIO
-                    && msgType != SuntekMessageData.MSG_TYPE_VIDEO
-                    && msgType != SuntekMessageData.MSG_TYPE_IMAGE) {
-                return true;    // we only save pictures, videos, and sounds.
-            }
-            String filePath = getFilePath(chatMessage);
-            if(isLoading(filePath,chatMessage.getFilesize())){
-                return false;
-            }
-            String fileName = chatMessage.getFilename();
-            input = new FileInputStream(filePath);
+    public static boolean saveRcsMassage(final Context context, long msgId) {
+        new AsyncTask<Long, Void, Object[]>() {
 
-            String dir = Environment.getExternalStorageDirectory() + "/"
-                                + Environment.DIRECTORY_DOWNLOADS  + "/";
-            String extension;
-            int index;
-            index = fileName.lastIndexOf('.');
-            extension = fileName.substring(index + 1, fileName.length());
-            fileName = fileName.substring(0, index);
-            // Remove leading periods. The gallery ignores files starting with a period.
-            fileName = fileName.replaceAll("^.", "");
+            @Override
+            protected void onPostExecute(Object[] objects) {
+                if ((Boolean) objects[0]) {
+                    String filePath = (String) objects[1];
+                    if (filePath != null) {
+                        Toast.makeText(context, context.getResources().getString(
+                                R.string.copy_rcs_message_to_sdcard_success, filePath),
+                                Toast.LENGTH_LONG).show();
+                    }
 
-            File file = getUniqueDestination(dir + fileName, extension);
+                } else {
+                    Toast.makeText(context, R.string.copy_to_sdcard_fail, Toast.LENGTH_SHORT)
+                            .show();
 
-            fout = new FileOutputStream(file);
-
-            byte[] buffer = new byte[8000];
-            int size = 0;
-            while ((size=input.read(buffer)) != -1) {
-                fout.write(buffer, 0, size);
-            }
-            // Notify other applications listening to scanner events
-            // that a media file has been added to the sd card
-            context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                    Uri.fromFile(file)));
-        } catch (IOException e) {
-            // Ignore
-            Log.e(LOG_TAG, "IOException caught while opening or reading stream", e);
-            return false;
-        } catch (ServiceDisconnectedException e) {
-            Log.e(LOG_TAG, "ServiceDisconnectedException" +
-                    " caught while opening or reading stream", e);
-            return false;
-        } finally {
-            if (null != input) {
-                try {
-                    input.close();
-                } catch (IOException e) {
-                    // Ignore
-                    Log.e(LOG_TAG, "IOException caught while closing stream", e);
-                    return false;
                 }
             }
-            if (null != fout) {
+
+            @Override
+            protected Object[] doInBackground(Long... params) {
+                InputStream input = null;
+                FileOutputStream fout = null;
+                boolean result = false;
+                String finePath = null;
                 try {
-                    fout.close();
+                    ChatMessage chatMessage = RcsApiManager.getMessageApi().getMessageById(
+                            params[0] + "");
+                    if (chatMessage == null) {
+                        result = false;
+                    } else {
+                        int msgType = chatMessage.getMsgType();
+                        if (msgType != SuntekMessageData.MSG_TYPE_AUDIO
+                                && msgType != SuntekMessageData.MSG_TYPE_VIDEO
+                                && msgType != SuntekMessageData.MSG_TYPE_IMAGE) {
+                            result = true; // we only save pictures, videos, and
+                                           // sounds.
+                        } else {
+                            String filePath = getFilePath(chatMessage);
+                            if (isLoading(filePath, chatMessage.getFilesize())) {
+                                result = false;
+                            } else {
+                                String fileName = chatMessage.getFilename();
+                                input = new FileInputStream(filePath);
+
+                                String dir = Environment.getExternalStorageDirectory() + "/"
+                                        + Environment.DIRECTORY_DOWNLOADS + "/";
+                                String extension;
+                                int index;
+                                index = fileName.lastIndexOf('.');
+                                extension = fileName.substring(index + 1, fileName.length());
+                                fileName = fileName.substring(0, index);
+                                // Remove leading periods. The gallery ignores
+                                // files starting with a period.
+                                fileName = fileName.replaceAll("^.", "");
+
+                                File file = getUniqueDestination(dir + fileName, extension);
+                                finePath = file.toString();
+                                fout = new FileOutputStream(file);
+
+                                byte[] buffer = new byte[8000];
+                                int size = 0;
+                                while ((size = input.read(buffer)) != -1) {
+                                    fout.write(buffer, 0, size);
+                                }
+                                if (filePath != null) {
+                                    context.sendBroadcast(new Intent(
+                                            Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri
+                                                    .fromFile(file)));
+                                }
+                            }
+                        }
+                    }
                 } catch (IOException e) {
                     // Ignore
-                    Log.e(LOG_TAG, "IOException caught while closing stream", e);
-                    return false;
+                    Log.e(LOG_TAG, "IOException caught while opening or reading stream", e);
+                    result = false;
+                } catch (ServiceDisconnectedException e) {
+                    Log.e(LOG_TAG, "ServiceDisconnectedException"
+                            + " caught while opening or reading stream", e);
+                    result = false;
+                } finally {
+                    if (null != input) {
+                        try {
+                            input.close();
+                        } catch (IOException e) {
+                            // Ignore
+                            Log.e(LOG_TAG, "IOException caught while closing stream", e);
+                            result = false;
+                        }
+                    }
+                    if (null != fout) {
+                        try {
+                            fout.close();
+                        } catch (IOException e) { // Ignore
+                            Log.e(LOG_TAG, "IOException caught while closing stream", e);
+                            result = false;
+                        }
+                    }
                 }
+
+                return new Object[] {
+                        result, finePath
+                };
             }
-        }
+        }.execute(msgId);
+
         return true;
     }
 
@@ -2430,4 +2468,16 @@ public class RcsUtils {
                 + name + "\n" + number;
     }
 
+    public static boolean isRcsMediaMsg(MessageItem msgItem) {
+        if (msgItem == null) {
+            return false;
+        }
+        if (msgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_IMAGE
+                || msgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_AUDIO
+                || msgItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
