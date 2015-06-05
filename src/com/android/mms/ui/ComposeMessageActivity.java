@@ -7838,7 +7838,7 @@ public class ComposeMessageActivity extends Activity
             if (mIsRcsEnabled) {
                 long rcsId = getSelectedRcsId();
                 if (rcsId > 0) {
-                    saveRcsMassages(rcsId);
+                    RcsUtils.saveRcsMassage(ComposeMessageActivity.this, rcsId);
                 }
             }
         }
@@ -7853,20 +7853,6 @@ public class ComposeMessageActivity extends Activity
                 return -1;
             }
             return c.getLong(COLUMN_RCS_ID);
-        }
-
-        private void saveRcsMassages(final long rcs_id){
-
-             new Thread() {
-                 @Override
-                 public void run() {
-                     int resId = RcsUtils.saveRcsMassage(ComposeMessageActivity.this, rcs_id) ?
-                             R.string.copy_to_sdcard_success : R.string.copy_to_sdcard_fail;
-                     Looper.prepare();
-                     Toast.makeText(ComposeMessageActivity.this, resId, Toast.LENGTH_SHORT).show();
-                     Looper.loop();
-                }
-            }.start();
         }
 
         private void showReport() {
@@ -8085,17 +8071,16 @@ public class ComposeMessageActivity extends Activity
         }
 
         private void saveMessage() {
-            if (!mIsRcsEnabled) {
-                Cursor cursor = (Cursor) mMsgListAdapter.getItem(mSelectedPos.get(0));
-                if (cursor != null && isAttachmentSaveable(cursor)) {
+            Cursor cursor = (Cursor)mMsgListAdapter.getItem(mSelectedPos.get(0));
+            if (cursor != null && isAttachmentSaveable(cursor)) {
+                if (cursor.getLong(COLUMN_RCS_ID) <= 0) {
                     saveAttachment(cursor.getLong(COLUMN_ID));
-                } else {
-                    Toast.makeText(ComposeMessageActivity.this,
-                            R.string.copy_to_sdcard_fail, Toast.LENGTH_SHORT)
-                            .show();
                 }
-            } else {
+            } else if (cursor != null && cursor.getLong(COLUMN_RCS_ID) > 0) {
                 saveRcsAttachment();
+            } else {
+                Toast.makeText(ComposeMessageActivity.this, R.string.copy_to_sdcard_fail,
+                        Toast.LENGTH_SHORT).show();
             }
         }
 
@@ -8414,7 +8399,8 @@ public class ComposeMessageActivity extends Activity
                 }
             } else {
                 menu.findItem(R.id.detail).setVisible(true);
-                menu.findItem(R.id.save_attachment).setVisible(!noMmsSelected);
+                menu.findItem(R.id.save_attachment).setVisible(
+                        !noMmsSelected || RcsUtils.isRcsMediaMsg(getMessageItemByPos(position)));;
 
                 Intent shareIntent = getShareMessageIntent("");
                 int numShareTargets = IntentUtils.getTargetActivityCount(getContext(),
