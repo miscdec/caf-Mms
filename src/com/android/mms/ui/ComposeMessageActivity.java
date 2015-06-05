@@ -7801,7 +7801,7 @@ public class ComposeMessageActivity extends Activity
             if (mIsRcsEnabled) {
                 long rcsId = getSelectedRcsId();
                 if (rcsId > 0) {
-                    saveRcsMassages(rcsId);
+                    RcsUtils.saveRcsMassage(ComposeMessageActivity.this, rcsId);
                 }
             }
         }
@@ -7816,20 +7816,6 @@ public class ComposeMessageActivity extends Activity
                 return -1;
             }
             return c.getLong(COLUMN_RCS_ID);
-        }
-
-        private void saveRcsMassages(final long rcs_id){
-
-             new Thread() {
-                 @Override
-                 public void run() {
-                     int resId = RcsUtils.saveRcsMassage(ComposeMessageActivity.this, rcs_id) ?
-                             R.string.copy_to_sdcard_success : R.string.copy_to_sdcard_fail;
-                     Looper.prepare();
-                     Toast.makeText(ComposeMessageActivity.this, resId, Toast.LENGTH_SHORT).show();
-                     Looper.loop();
-                }
-            }.start();
         }
 
         private void showReport() {
