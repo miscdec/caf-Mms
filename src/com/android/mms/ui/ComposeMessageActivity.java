@@ -6122,7 +6122,7 @@ public class ComposeMessageActivity extends Activity
                     threadId /* cookie */,
                     conversationUri,
                     PROJECTION,
-                    null, null, "rcs_top_time DESC");
+                    null, null, null);
         } catch (SQLiteException e) {
             SqliteWrapper.checkSQLiteException(this, e);
         }
