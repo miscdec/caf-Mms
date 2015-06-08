@@ -41,6 +41,7 @@ import android.util.Log;
 public class RcsApiManager {
     private static final String TAG = "RCS_UI";
 
+    private static Context mContext;
     private static ConfApi mConfApi = new ConfApi();
     private static MessageApi mMessageApi = new MessageApi();
     private static RcsAccountApi mRcsAccountApi = new RcsAccountApi();
@@ -52,11 +53,21 @@ public class RcsApiManager {
     private static ProfileApi mProfileApi = new ProfileApi();
 
     public static void init(Context context) {
+        mContext = context;
         mSupportApi.init(context);
         if (!RcsSupportApi.isRcsServiceInstalled(context)) {
             return;
         }
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                rcsApiInit(mContext);
+            }
+        };
+        t.start();
+    }
 
+    private static void rcsApiInit(Context context) {
         mMessageApi.init(context, new RCSServiceListener() {
             @Override
             public void onServiceDisconnected() throws RemoteException {
