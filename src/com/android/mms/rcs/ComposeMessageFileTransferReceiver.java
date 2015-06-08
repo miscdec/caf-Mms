@@ -23,12 +23,9 @@
 
 package com.android.mms.rcs;
 
-import com.android.mms.ui.MessageItem;
 import com.android.mms.ui.MessageListAdapter;
-import com.android.mms.ui.MessageListItem;
 import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
 import com.suntek.mway.rcs.client.api.util.log.LogHelper;
-
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -39,6 +36,7 @@ import android.util.Log;
 import java.util.HashMap;
 
 public class ComposeMessageFileTransferReceiver extends BroadcastReceiver {
+
     private static final String LOG_TAG = "RCS_UI";
     private MessageListAdapter mMsgListAdapter;
 
@@ -50,25 +48,35 @@ public class ComposeMessageFileTransferReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         ConnectivityManager manager = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
+        HashMap<String, Long> fileProgressHashMap = mMsgListAdapter.getFileTrasnferHashMap();
+        String notifyMessageId = intent
+                .getStringExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_MESSAGE_ID);
         NetworkInfo gprs = manager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
         NetworkInfo wifi = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
         if (!gprs.isConnected() && !wifi.isConnected()) {
-            MessageListItem.setRcsIsStopDown(true);
+            fileProgressHashMap.clear();
             mMsgListAdapter.notifyDataSetChanged();
+            if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId)
+                    != RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
+                RcsUtils.updateFileDownloadState(context, notifyMessageId,
+                        RcsUtils.RCS_IS_DOWNLOAD_FAIL);
+            }
             return;
         }
         long start = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_START, -1);
         long end = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_END, -1);
         long total = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_TOTAL, -1);
-        String notifyMessageId = intent
-                .getStringExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_MESSAGE_ID);
         LogHelper.trace("messageId =" + notifyMessageId + "start =" + start + ";end =" + end
                 + ";total =" + total);
-        HashMap<String, Long> fileProgressHashMap = MessageListItem.getFileTrasnferHashMap();
         if (notifyMessageId != null && start == end) {
             LogHelper.trace("download finish ");
             fileProgressHashMap.remove(notifyMessageId);
+            if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId) !=
+                    RcsUtils.RCS_IS_DOWNLOAD_OK){
+                RcsUtils.updateFileDownloadState(context, notifyMessageId,
+                        RcsUtils.RCS_IS_DOWNLOAD_OK);
+            }
             mMsgListAdapter.notifyDataSetChanged();
             return;
         }
@@ -77,8 +85,12 @@ public class ComposeMessageFileTransferReceiver extends BroadcastReceiver {
             long temp = start * 100 / total;
             if (temp == 100) {
                 fileProgressHashMap.remove(notifyMessageId);
-                MessageItem.setRcsIsDownload(RcsUtils.RCS_IS_DOWNLOAD_OK);
                 Log.i(LOG_TAG, "100");
+                if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId) !=
+                        RcsUtils.RCS_IS_DOWNLOAD_OK){
+                    RcsUtils.updateFileDownloadState(context, notifyMessageId,
+                            RcsUtils.RCS_IS_DOWNLOAD_OK);
+                }
                 return;
             }
             if (lastProgress != null) {
@@ -88,7 +100,12 @@ public class ComposeMessageFileTransferReceiver extends BroadcastReceiver {
             if (lastProgress == null || temp - lastProgress >= 5) {
                 lastProgress = temp;
                 fileProgressHashMap.put(notifyMessageId, Long.valueOf(temp));
-                MessageListItem.setsFileTrasnfer(fileProgressHashMap);
+                mMsgListAdapter.setsFileTrasnfer(fileProgressHashMap);
+                if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId) !=
+                        RcsUtils.RCS_IS_DOWNLOADING){
+                    RcsUtils.updateFileDownloadState(context, notifyMessageId,
+                            RcsUtils.RCS_IS_DOWNLOADING);
+                }
                 mMsgListAdapter.notifyDataSetChanged();
             }
         }

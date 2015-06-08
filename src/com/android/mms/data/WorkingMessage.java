@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -94,6 +95,7 @@ import com.suntek.mway.rcs.client.aidl.contacts.RCSContact;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
 import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
+import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
 import com.suntek.mway.rcs.client.api.util.FileSuffixException;
 import com.suntek.mway.rcs.client.api.util.FileTransferException;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
@@ -221,6 +223,18 @@ public class WorkingMessage {
 
     private String mRcsEmoName;
 
+    private String mCloudFileId;
+
+    private boolean mIsCacheRcsMessage;
+
+    public String getCloudFileId() {
+        return mCloudFileId;
+    }
+
+    public void setCloudFileId(String cloudFileId) {
+        this.mCloudFileId = cloudFileId;
+    }
+
     public String getScaling() {
         return mScaling;
     }
@@ -337,9 +351,29 @@ public class WorkingMessage {
         this.mRcsEmoName = rcsEmoName;
     }
 
+    public boolean getCacheRcsMessage() {
+        return mIsCacheRcsMessage;
+    }
+
+    public void setCacheRcsMessage(boolean isCacheRcsMessage) {
+        this.mIsCacheRcsMessage = isCacheRcsMessage;
+    }
+
+    public void clearCacheRcsMessage(){
+        setIsBurn(false);
+        setRcsType(RcsUtils.RCS_MSG_TYPE_TEXT);
+        setRcsPath("");
+        setDuration(0);
+        setIsRecord(false);
+        setLatitude(0);
+        setLongitude(0);
+        setLocation("");
+        setCloudFileId("");
+    }
+
     private void preSendRcsSmsWorker(Conversation conv, String msgText, String recipientsInUI,
             boolean isGroupChat) throws ServiceDisconnectedException, FileSuffixException,
-            FileTransferException, FileDurationException {
+            FileTransferException, FileDurationException, NumberFormatException {
         // If user tries to send the message, it's a signal the inputted text is
         // what they wanted.
         UserHappinessSignals.userAcceptedImeText(mActivity);
@@ -391,44 +425,71 @@ public class WorkingMessage {
 
     private void sendRcsSmsWorker(String msgText, String semiSepRecipients, long threadId)
             throws ServiceDisconnectedException, FileSuffixException, FileTransferException,
-            FileDurationException {
+            FileDurationException, NumberFormatException {
         String[] dests = TextUtils.split(semiSepRecipients, ";");
         Recycler.getSmsRecycler().deleteOldMessagesByThreadId(mActivity, threadId);
         MessageApi messageApi = RcsApiManager.getMessageApi();
+        McloudFileApi mcloudFileApi = RcsApiManager.getMcloudFileApi();
         switch (mRcsType) {
             case RcsUtils.RCS_MSG_TYPE_TEXT:
-                sendRcsText(msgText, dests, threadId, messageApi);
                 mStatusListener.onPreMessageSent();
+                sendRcsText(msgText, dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_IMAGE:
-                sendRcsImage(dests, threadId, messageApi);
                 mStatusListener.onPreRcsMessageSent();
+                sendRcsImage(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_VIDEO:
-                sendRcsVideo(dests, threadId, messageApi);
                 mStatusListener.onPreRcsMessageSent();
+                sendRcsVideo(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_AUDIO:
-                sendRcsAudio(dests, threadId, messageApi);
                 mStatusListener.onPreRcsMessageSent();
+                sendRcsAudio(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_MAP:
-                sendRcsLocation(dests, threadId, messageApi);
                 mStatusListener.onPreRcsMessageSent();
+                sendRcsLocation(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_VCARD:
-                sendRcsVcard(dests, threadId, messageApi);
                 mStatusListener.onPreRcsMessageSent();
+                sendRcsVcard(dests, threadId, messageApi);
                 break;
             case RcsUtils.RCS_MSG_TYPE_PAID_EMO:
-                sendRcsPaidEmo(dests, threadId, messageApi);
                 mStatusListener.onPreRcsMessageSent();
+                sendRcsPaidEmo(dests, threadId, messageApi);
+                break;
+            case RcsUtils.RCS_MSG_TYPE_CAIYUNFILE:
+                mStatusListener.onPreRcsMessageSent();
+                sendRcsCloudFile(dests, threadId, mcloudFileApi);
                 break;
             default:
                 break;
         }
         mStatusListener.onMessageSent();
         MmsWidgetProvider.notifyDatasetChanged(mActivity);
+    }
+
+    private void sendRcsCloudFile(String[] dests, long threadId,McloudFileApi mcloudFileApi)
+            throws ServiceDisconnectedException {
+        if (mConversation.isGroupChat()) {
+            GroupChatModel groupChat = mConversation.getGroupChat();
+            long thread_id = groupChat.getThreadId();
+            String conversationId = groupChat.getConversationId();
+            String groupId = String.valueOf(groupChat.getId());
+            mcloudFileApi.shareFileAndSendGroup(getCloudFileId(), "",
+                    thread_id, conversationId,groupId);
+        } else if (dests.length == 1) {
+            mcloudFileApi.shareFileAndSend(getCloudFileId(), "",
+                    dests[0],threadId, "");
+        } else {
+            List<String> numberList = new ArrayList<String>();
+            for (int i = 0; i < dests.length; i++) {
+                numberList.add(dests[i]);
+            }
+            mcloudFileApi.shareFileAndSendOne2Many(getCloudFileId(), "",
+                    numberList, threadId, "");
+        }
     }
 
     private void sendRcsPaidEmo(String[] dests, long threadId, MessageApi messageApi)
@@ -1788,7 +1849,7 @@ public class WorkingMessage {
             }, "WorkingMessage.send MMS").start();
         } else {
 
-            if (RcsUtils.isSupportRcs()) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 String text = mText.toString();
                 final String msgText = text;
                 new Thread(new Runnable() {
