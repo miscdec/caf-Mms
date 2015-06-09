@@ -136,6 +136,7 @@ import android.provider.Telephony.Sms;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.ServiceState;
 import android.telephony.SubscriptionManager;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
@@ -190,6 +191,10 @@ import android.widget.Button;
 
 import com.android.contacts.common.util.MaterialColorMapUtils;
 import com.android.contacts.common.util.MaterialColorMapUtils.MaterialPalette;
+import com.android.ims.ImsConfig;
+import com.android.ims.ImsException;
+import com.android.ims.ImsManager;
+import com.android.ims.ImsConfigListener;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.TelephonyIntents;
@@ -2354,6 +2359,8 @@ public class ComposeMessageActivity extends Activity
         }
 
         registerRcsReceiver();
+        registerReceiver(netAvailbaleReceiver,
+                new IntentFilter(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED));
     }
 
     @Override
@@ -3044,6 +3051,7 @@ public class ComposeMessageActivity extends Activity
             mZoomGestureOverlayView.removeZoomListener(this);
         }
         try {
+            unregisterReceiver(netAvailbaleReceiver);
             unregisterReceiver(mFileTranferReceiver);
             unregisterReceiver(mGroupReceiver);
             unregisterReceiver(mCloudFileReceiver);
@@ -5721,14 +5729,15 @@ public class ComposeMessageActivity extends Activity
         mWorkingMessage.setIsBurn(mIsBurnMessage);
         mIsRTL = (v.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
-            if (mShowTwoButtons) {
-                confirmSendMessageIfNeeded(PhoneConstants.SUB1);
+            if (netStatus == ServiceState.STATE_OUT_OF_SERVICE
+                && getResources().getBoolean(R.bool.config_regional_pup_no_available_network)) {
+                checkCurrentNetStatus();
             } else {
                 if (mWorkingMessage.getCacheRcsMessage()) {
                     rcsSend();
                     return;
                 }
-                confirmSendMessageIfNeeded();
+                send();
             }
         } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
             mShowTwoButtons && isPreparedForSending()) {
@@ -5752,6 +5761,122 @@ public class ComposeMessageActivity extends Activity
             ViewStub viewStub = (ViewStub) findViewById(R.id.view_stub);
             showEmojiView(viewStub);
         }
+    }
+
+    public void checkCurrentNetStatus() {
+        ImsConfig imsConfig;
+        try {
+            ImsManager imsManager = ImsManager.getInstance(getBaseContext(),
+                    SubscriptionManager.getDefaultVoiceSubId());
+            imsConfig = imsManager.getConfigInterface();
+            if (imsConfig != null) {
+                imsConfig.getWifiCallingPreference(imsConfigListener);
+            } else {
+                send();
+            }
+        } catch (ImsException e) {
+            imsConfig = null;
+            Log.e(TAG, "ImsService is not running");
+        }
+    }
+
+    private void send() {
+        if (mShowTwoButtons) {
+            confirmSendMessageIfNeeded(PhoneConstants.SUB1);
+        } else {
+            confirmSendMessageIfNeeded();
+        }
+    }
+
+    private static int netStatus = ServiceState.STATE_IN_SERVICE;
+    private BroadcastReceiver netAvailbaleReceiver = new BroadcastReceiver(){
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            if (intent.getAction().equals(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED)) {
+                ServiceState state = ServiceState.newFromBundle(intent.getExtras());
+                Log.i(TAG,"netAvailbaleReceiver state : " + state.getState());
+                if (state.getState() == ServiceState.STATE_OUT_OF_SERVICE) {
+                    netStatus = ServiceState.STATE_OUT_OF_SERVICE;
+                }
+            }
+        }
+    };
+
+    public void showWifiCallDialog() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(false)
+                .setPositiveButton(R.string.yes, new OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // TODO Auto-generated method stub
+                        startWifiSetting();
+                    }
+                })
+                .setNegativeButton(R.string.no, new OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // TODO Auto-generated method stub
+                        send();
+                    }
+
+                })
+                .setMessage(R.string.no_network_alert_when_send_message)
+                .show();
+    }
+
+    public void startWifiSetting() {
+        Intent intent = new Intent();
+        intent.setClassName("com.android.phone", "com.android.phone.WifiCallingSettings");
+        startActivity(intent);
+    }
+
+    private ImsConfigListener imsConfigListener = new ImsConfigListener.Stub() {
+        public void onGetVideoQuality(int status, int quality) {
+            // TODO not required as of now
+        }
+
+        public void onSetVideoQuality(int status) {
+            // TODO not required as of now
+        }
+
+        public void onGetFeatureResponse(int feature, int network, int value, int status) {
+            // TODO not required as of now
+        }
+
+        public void onSetFeatureResponse(int feature, int network, int value, int status) {
+            // TODO not required as of now
+        }
+
+        public void onGetPacketCount(int status, long packetCount) {
+            // TODO not required as of now
+        }
+
+        public void onGetPacketErrorCount(int status, long packetErrorCount) {
+            // TODO not required as of now
+        }
+
+        public void onGetWifiCallingPreference(int status, int wifiCallingStatus,
+                int wifiCallingPreference) {
+            if (hasRequestFailed(status)) {
+                wifiCallingStatus = ImsConfig.WifiCallingValueConstants.OFF;
+                showWifiCallDialog();
+                Log.e(TAG, "onGetWifiCallingPreference: failed. errorCode = " + status);
+            } else if (wifiCallingStatus == ImsConfig.WifiCallingValueConstants.OFF) {
+                showWifiCallDialog();
+            }
+        }
+
+        public void onSetWifiCallingPreference(int status) {
+
+        }
+    };
+
+    private boolean hasRequestFailed(int result) {
+        return (result != ImsConfig.OperationStatusConstants.SUCCESS);
     }
 
     private void showEmojiView(ViewStub emojiViewStub) {
