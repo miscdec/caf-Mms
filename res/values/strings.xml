@@ -1132,4 +1132,6 @@
     <string name="default_sms_validity_period">-1</string>
     <string name="emergency_call_number">911</string>
     <string name="default_mms_validity_period">0</string>
+    <string name="no_cellular_coverage_alert">Connect to Wi-Fi for Messaging.</string>
+    <string name="no_network_alert_when_send_message">No cellular network available.  Connect to available Wi-Fi for messaging.</string>
 </resources>
