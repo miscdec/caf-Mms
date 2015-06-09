@@ -5588,7 +5588,8 @@ public class ComposeMessageActivity extends Activity
         mIsRTL = (v.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
             if (netStatus == ServiceState.STATE_OUT_OF_SERVICE
-                && getResources().getBoolean(R.bool.config_regional_pup_no_available_network)) {
+                    && getResources().getBoolean(
+                    com.android.internal.R.bool.config_regional_pup_no_available_network)) {
                 checkCurrentNetStatus();
             } else {
                 send();

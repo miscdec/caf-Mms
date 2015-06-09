@@ -462,8 +462,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 ServiceState state = ServiceState.newFromBundle(intent.getExtras());
                 Log.i(TAG,"netAvailbaleReceiver state : " + state.getState());
                 if (state.getState() == ServiceState.STATE_OUT_OF_SERVICE
-                        && getResources().getBoolean(
-                                R.bool.config_regional_pup_no_available_network)) {
+                        && getResources()
+                        .getBoolean(com.android.internal
+                        .R.bool.config_regional_pup_no_available_network)) {
                     checkCurrentNetStatus();
                 }
             }
