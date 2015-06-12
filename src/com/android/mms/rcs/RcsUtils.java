@@ -198,6 +198,7 @@ public class RcsUtils {
     public static final int MESSAGE_SEND_RECEIVE = 99;//delivered
     public static final int MESSAGE_HAS_READ = 100;//displayed
     public static final int MESSAGE_HAS_SEND_SERVER = 0;//send to server
+    public static final int CONVERSATION_IS_TOP = 1;
 
     private static final String FIREWALL_APK_NAME = "com.android.firewall";
     public static final Uri WHITELIST_CONTENT_URI = Uri
@@ -311,11 +312,20 @@ public class RcsUtils {
         }, "rcs_message_id = ?", new String[] {
             messageId
         }, null);
-        if (cursor != null && cursor.moveToNext()) {
-            return cursor.getInt(0);
-        } else {
-            return 0;
+        try {
+            if (cursor != null && cursor.moveToNext()) {
+                return cursor.getInt(0);
+            }else {
+                return 0;
+            }
+        } catch (Exception e) {
+            // TODO: handle exception
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
+        return 0;
     }
 
     public static void updateManyState(Context context, String rcs_id, String number,
@@ -505,21 +515,19 @@ public class RcsUtils {
 
     public static void rcsInsertThread(Context context,List<ChatMessage> cMsgList)
             throws ServiceDisconnectedException{
-        Map threadIdAndTimeMap = getRcsThreadIdAndLastTime(context,cMsgList);
-        Iterator it = threadIdAndTimeMap.entrySet().iterator();
-        while(it.hasNext()){
-         Map.Entry m=(Map.Entry)it.next();
-         Log.i(LOG_TAG, "threadId =" + m.getKey() + "lastTime" + m.getValue());
-         ContentValues values = new ContentValues();
-         values.put("date", m.getValue()+"");
-         final Uri THREAD_ID_CONTENT_URI = Uri.parse("content://mms-sms/update-top");
-         context.getContentResolver().update(THREAD_ID_CONTENT_URI, values, "_id=?", new String[] {
-                 m.getKey() + ""
-         });
+        Map<Long, Long> threadIdAndTimeMap = getRcsThreadIdAndLastTime(context,cMsgList);
+        for (Map.Entry<Long, Long> entry : threadIdAndTimeMap.entrySet()) {
+            Log.i(LOG_TAG, "threadId =" + entry.getKey() + "lastTime" + entry.getValue());
+            ContentValues values = new ContentValues();
+            values.put("date", String.valueOf(entry.getValue()));
+            final Uri THREAD_ID_CONTENT_URI = Uri.parse("content://mms-sms/update-top");
+            context.getContentResolver().update(THREAD_ID_CONTENT_URI, values, "_id=?", new String[] {
+                    String.valueOf(entry.getKey())
+            });
         }
     }
 
-    public static Map getRcsThreadIdAndLastTime(Context context,List<ChatMessage> cMsgList)
+    public static Map<Long, Long> getRcsThreadIdAndLastTime(Context context,List<ChatMessage> cMsgList)
             throws ServiceDisconnectedException {
         List<Long> threadIdList = new ArrayList<Long>();
         for(ChatMessage cMsg : cMsgList){
@@ -2702,21 +2710,39 @@ public class RcsUtils {
     }
 
     public static byte[] getBytesFromFile(File f) {
+        FileInputStream stream = null;
+        ByteArrayOutputStream out = null;
         if (f == null) {
             return null;
         }
         try {
-            FileInputStream stream = new FileInputStream(f);
-            ByteArrayOutputStream out = new ByteArrayOutputStream(1000);
+            stream = new FileInputStream(f);
+            out = new ByteArrayOutputStream(1000);
             byte[] b = new byte[1000];
             int n;
             while ((n = stream.read(b)) != -1) {
                 out.write(b, 0, n);
             }
-            stream.close();
-            out.close();
             return out.toByteArray();
         } catch (IOException e) {
+
+        } finally {
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) {
+
+                    return null;
+                }
+            }
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException e) {
+
+                    return null;
+                }
+            }
         }
         return null;
     }

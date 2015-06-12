@@ -1077,6 +1077,11 @@
     <string name="remove_subject">Remove subject</string>
     <string name="pref_title_notification_creation_mode">Creation mode</string>
 
+    <!-- ConfigurationClient -->
+    <string name="omacp_configuration">OMACP Configuration</string>
+    <string name="configuration_message_key">Configuration Message</string>
+    <string name="configuration_message_key_activity">Touch to configure your OMACP messages</string>
+
     <string name="pref_dialog_title_creation_mode">Select creation mode</string>
     <string name="pref_summary_creation_mode">MMS creation mode for compose message</string>
     <string name="restricted_format">Restricted format</string>
