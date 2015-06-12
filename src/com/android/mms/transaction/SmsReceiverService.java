@@ -536,7 +536,7 @@ public class SmsReceiverService extends Service {
                     int subId = TelephonyManager.getDefault().isMultiSimEnabled()
                             ? sms.getSubId() : (int)MessageUtils.SUB_INVALID;
                     String address = MessageUtils.convertIdp(this,
-                            sms.getDisplayOriginatingAddress());
+                            sms.getDisplayOriginatingAddress(), subId);
                     MessagingNotification.blockingUpdateNewIccMessageIndicator(
                             this, address, sms.getDisplayMessageBody(),
                             SubscriptionManager.getPhoneId(subId),
@@ -881,7 +881,8 @@ public class SmsReceiverService extends Service {
         }
 
         ContentResolver resolver = context.getContentResolver();
-        String originatingAddress = MessageUtils.convertIdp(this, sms.getOriginatingAddress());
+        String originatingAddress = MessageUtils.convertIdp(this,
+                sms.getOriginatingAddress(), sms.getSubId());
         int protocolIdentifier = sms.getProtocolIdentifier();
         String selection;
         String[] selectionArgs;
@@ -1040,7 +1041,8 @@ public class SmsReceiverService extends Service {
         // Store the message in the content provider.
         ContentValues values = new ContentValues();
 
-        values.put(Inbox.ADDRESS, MessageUtils.convertIdp(this, sms.getDisplayOriginatingAddress()));
+        values.put(Inbox.ADDRESS, MessageUtils.convertIdp(this, sms.getDisplayOriginatingAddress(),
+                sms.getSubId()));
 
         // Use now for the timestamp to avoid confusion with clock
         // drift between the handset and the SMSC.
@@ -1120,7 +1122,8 @@ public class SmsReceiverService extends Service {
     private boolean saveMessageToIcc(SmsMessage sms) {
         boolean result = true;
         int subscription = sms.getSubId();
-        String address = MessageUtils.convertIdp(this, sms.getOriginatingAddress());
+        String address = MessageUtils.convertIdp(this, sms.getOriginatingAddress(),
+            subscription);
         ContentValues values = new ContentValues();
         values.put(PhoneConstants.SUBSCRIPTION_KEY, subscription);
         values.put(Sms.ADDRESS, address);
