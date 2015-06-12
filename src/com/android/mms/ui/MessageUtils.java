@@ -1556,11 +1556,7 @@ public class MessageUtils {
         String[] number = address.split(":");
         int index = MmsApp.getApplication().getResources()
                 .getInteger(R.integer.wap_push_address_index);
-        if(number.length <= index){
-            return number[0];
-        } else {
-            return number[index];
-        }
+        return number[index];
     }
 
     /**

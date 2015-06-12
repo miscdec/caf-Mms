@@ -2291,6 +2291,9 @@ public class WorkingMessage {
         } catch (IllegalStateException e) {
             Log.e(TAG,"failed to create draft mms "+ e);
             return null;
+        } catch (NullPointerException e){
+            Log.e(TAG,"failed to create draft mms NullPointerException"+ e.toString());
+            return null;
         }
     }
 
