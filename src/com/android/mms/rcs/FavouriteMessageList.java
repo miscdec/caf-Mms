@@ -215,7 +215,10 @@ public class FavouriteMessageList extends ListActivity implements
         setupActionBar();
         actionBar.setTitle(getString(R.string.my_favorited));
         mHandler = new Handler();
-
+        View actionButton = findViewById(R.id.floating_action_button);
+        if (actionButton != null) {
+            actionButton.setVisibility(View.GONE);
+        }
     }
 
     @Override
