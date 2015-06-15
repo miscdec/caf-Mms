@@ -1229,6 +1229,12 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
         } else {
+            if (getResources().getBoolean(com.android.internal.R.bool.config_regional_mms_via_wifi_enable)
+                    && !TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
+                    && isMms
+                    && checkForMmsRecipients(getString(R.string.mms_recipient_Limit), true)) {
+                return;
+            }
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
             ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
@@ -1264,6 +1270,12 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
         } else {
+            if (getResources().getBoolean(com.android.internal.R.bool.config_regional_mms_via_wifi_enable)
+                    && !TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
+                    && isMms
+                    && checkForMmsRecipients(getString(R.string.mms_recipient_Limit), true)) {
+                return;
+            }
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
             ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
@@ -1382,7 +1394,32 @@ public class ComposeMessageActivity extends Activity
         updateTitle(contacts);
     }
 
+    private boolean checkForMmsRecipients(String strLimit, boolean isMmsSend) {
+        if (mWorkingMessage.requiresMms()) {
+            int recipientLimit = Integer.parseInt(strLimit);
+            final int currentRecipients = recipientCount();
+            if (recipientLimit < currentRecipients) {
+                if (currentRecipients != mLastRecipientCount || isMmsSend) {
+                    mLastRecipientCount = currentRecipients;
+                    String tooManyMsg = getString(R.string.too_many_recipients, currentRecipients,
+                            recipientLimit);
+                    Toast.makeText(ComposeMessageActivity.this,
+                             tooManyMsg, Toast.LENGTH_LONG).show();
+                }
+                return true;
+            } else {
+                mLastRecipientCount = currentRecipients;
+            }
+        }
+        return false;
+    }
+
     private void checkForTooManyRecipients() {
+        if (getResources().getBoolean(com.android.internal.R.bool.config_regional_mms_via_wifi_enable)
+                && !TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
+                && checkForMmsRecipients(getString(R.string.mms_recipient_Limit), false)) {
+            return;
+        }
         final int recipientLimit = MmsConfig.getRecipientLimit();
         if (recipientLimit != Integer.MAX_VALUE && recipientLimit > 0) {
             final int recipientCount = recipientCount();
@@ -4659,7 +4696,7 @@ public class ComposeMessageActivity extends Activity
                 ContactList recipients = conv.getRecipients();
                 ContactList existing = mRecipientsEditor.constructContactsFromInput(false);
                 for (Contact contact : existing) {
-                        recipients.add(contact);
+                    recipients.add(contact);
                 }
                 mRecipientsEditor.populate(recipients);
                 break;
@@ -7801,7 +7838,7 @@ public class ComposeMessageActivity extends Activity
             if (mIsRcsEnabled) {
                 long rcsId = getSelectedRcsId();
                 if (rcsId > 0) {
-                    saveRcsMassages(rcsId);
+                    RcsUtils.saveRcsMassage(ComposeMessageActivity.this, rcsId);
                 }
             }
         }
@@ -7816,20 +7853,6 @@ public class ComposeMessageActivity extends Activity
                 return -1;
             }
             return c.getLong(COLUMN_RCS_ID);
-        }
-
-        private void saveRcsMassages(final long rcs_id){
-
-             new Thread() {
-                 @Override
-                 public void run() {
-                     int resId = RcsUtils.saveRcsMassage(ComposeMessageActivity.this, rcs_id) ?
-                             R.string.copy_to_sdcard_success : R.string.copy_to_sdcard_fail;
-                     Looper.prepare();
-                     Toast.makeText(ComposeMessageActivity.this, resId, Toast.LENGTH_SHORT).show();
-                     Looper.loop();
-                }
-            }.start();
         }
 
         private void showReport() {
@@ -8048,17 +8071,16 @@ public class ComposeMessageActivity extends Activity
         }
 
         private void saveMessage() {
-            if (!mIsRcsEnabled) {
-                Cursor cursor = (Cursor) mMsgListAdapter.getItem(mSelectedPos.get(0));
-                if (cursor != null && isAttachmentSaveable(cursor)) {
+            Cursor cursor = (Cursor)mMsgListAdapter.getItem(mSelectedPos.get(0));
+            if (cursor != null && isAttachmentSaveable(cursor)) {
+                if (cursor.getLong(COLUMN_RCS_ID) <= 0) {
                     saveAttachment(cursor.getLong(COLUMN_ID));
-                } else {
-                    Toast.makeText(ComposeMessageActivity.this,
-                            R.string.copy_to_sdcard_fail, Toast.LENGTH_SHORT)
-                            .show();
                 }
-            } else {
+            } else if (cursor != null && cursor.getLong(COLUMN_RCS_ID) > 0) {
                 saveRcsAttachment();
+            } else {
+                Toast.makeText(ComposeMessageActivity.this, R.string.copy_to_sdcard_fail,
+                        Toast.LENGTH_SHORT).show();
             }
         }
 
@@ -8377,7 +8399,8 @@ public class ComposeMessageActivity extends Activity
                 }
             } else {
                 menu.findItem(R.id.detail).setVisible(true);
-                menu.findItem(R.id.save_attachment).setVisible(!noMmsSelected);
+                menu.findItem(R.id.save_attachment).setVisible(
+                        !noMmsSelected || RcsUtils.isRcsMediaMsg(getMessageItemByPos(position)));;
 
                 Intent shareIntent = getShareMessageIntent("");
                 int numShareTargets = IntentUtils.getTargetActivityCount(getContext(),

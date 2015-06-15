@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
 -->
 
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
     <string name="rcs_service_is_not_available">RCS Service is not available.</string>
     <string name="creating_group_chat">Creating group chat</string>
@@ -260,4 +260,5 @@
     <string name="mms_does_not_support_rcs_cachemessage_send">MMS does not support Rcs cachemessage send, please re select</string>
     <string name="Group_name_not_fit">Group name not fit</string>
     <string name="download_fail_please_download_again">Dowanload fail,please click download again</string>
+    <string name="copy_rcs_message_to_sdcard_success">Attachment is kept in:<xliff:g id="path">%s</xliff:g></string>
 </resources>

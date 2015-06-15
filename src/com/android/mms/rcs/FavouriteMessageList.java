@@ -616,7 +616,7 @@ public class FavouriteMessageList extends ListActivity implements
                          } else if (cursor.getCount() == 0) {
                              mListView.setEmptyView(emptyView);
                          } else if (needShowCountNum(cursor)) {
-                            //showMessageCount(cursor);
+                             showMessageCount(cursor);
                          }
                      } else {
                         mListAdapter.changeCursor(mCursor);

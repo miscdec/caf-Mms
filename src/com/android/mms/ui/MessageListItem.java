@@ -683,17 +683,10 @@ public class MessageListItem extends ZoomMessageListItem implements
             Drawable avatarDrawable = new BitmapDrawable(contact.getAvatar(getContext()));
             if (isSelf) {
                 mAvatar.assignContactUri(Profile.CONTENT_URI);
-                if (avatarDrawable == null) {
-                    avatarDrawable = sDefaultContactImage;
-                    mAvatar.setOverlay(avatarDrawable);
-                }
             } else {
                 if (contact.existsInDatabase()) {
                     mAvatar.assignContactUri(contact.getUri());
-                    if (avatarDrawable == null) {
-                        avatarDrawable = sDefaultContactImage;
-                        mAvatar.setOverlay(avatarDrawable);
-                    }
+                    mAvatar.setImageDrawable(avatarDrawable);
                 } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
                     mAvatar.assignContactFromPhone(
                             MessageUtils.getWapPushNumber(contact.getNumber()), true);

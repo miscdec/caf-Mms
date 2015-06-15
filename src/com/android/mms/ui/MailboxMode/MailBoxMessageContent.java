@@ -458,7 +458,8 @@ public class MailBoxMessageContent extends Activity {
             Toast.makeText(MailBoxMessageContent.this, success ? R.string.forward_message_success :
                     R.string.forward_message_fail, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            Toast.makeText(MailBoxMessageContent.this, R.string.forward_message_fail, Toast.LENGTH_SHORT).show();
+            Toast.makeText(MailBoxMessageContent.this, R.string.forward_message_fail,
+                    Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -469,14 +470,16 @@ public class MailBoxMessageContent extends Activity {
         }
         switch (requestCode) {
             case REQUEST_CODE_RCS_PICK:
-                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId, MailBoxMessageContent.this);
+                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId,
+                        MailBoxMessageContent.this);
                 break;
             case REQUEST_SELECT_CONV:
                 RcsChatMessageUtils.sendRcsFavoritedMessage(MailBoxMessageContent.this, data,
                         mRcsId);
                 break;
             case REQUEST_SELECT_GROUP:
-                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId, MailBoxMessageContent.this);
+                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId,
+                        MailBoxMessageContent.this);
                 break;
             default:
                 break;

@@ -1072,8 +1072,8 @@ public class Conversation {
                 handler.startDelete(token, new Long(threadId), uri, selection, null);
                 if (RcsApiManager.getSupportApi().isRcsSupported()) {
                     Conversation delConv = get(MmsApp.getApplication(), threadId, true);
-                    RcsUtils.deleteRcsMessageByThreadId(MmsApp.getApplication(), threadIds, deleteAll,
-                            delConv.mIsGroupChat);
+                    RcsUtils.deleteRcsMessageByThreadId(MmsApp.getApplication(),
+                            threadIds, deleteAll, delConv.mIsGroupChat);
                 }
                 DraftCache.getInstance().setDraftState(threadId, false);
             }
