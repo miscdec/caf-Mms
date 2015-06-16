@@ -7811,7 +7811,8 @@ public class ComposeMessageActivity extends Activity
                     e.printStackTrace();
                     return false;
                 }
-                if (message.getMsgType() == SuntekMessageData.MSG_TYPE_PAID_EMO) {
+                if (message != null
+                        && message.getMsgType() == SuntekMessageData.MSG_TYPE_PAID_EMO) {
                     emotItemCheck(message, new EmotCheck() {
                         @Override
                         public void check(boolean canSend) {
