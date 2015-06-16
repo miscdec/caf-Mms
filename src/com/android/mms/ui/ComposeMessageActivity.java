@@ -7789,6 +7789,7 @@ public class ComposeMessageActivity extends Activity
                 break;
             case R.id.complain:
                 confirmComplainDialog(new ComplainMessageListener());
+                break;
             case R.id.copy_to_sim:
                 copySmsToSim();
                 break;
