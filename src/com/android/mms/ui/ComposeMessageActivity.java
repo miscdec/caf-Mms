@@ -494,8 +494,6 @@ public class ComposeMessageActivity extends Activity
     private ImageView mIndicatorForSimMmsSec, mIndicatorForSimSmsSec;
     private ZoomGestureOverlayView mZoomGestureOverlayView; // overlay for handling zoom
     private View mRcsThumbnailLayout;
-    private ImageButton mRcsThumbnailSendButton;
-    private ImageView mRcsThumbnailView;
 
     private AttachmentEditor mAttachmentEditor;
     private View mAttachmentEditorScrollView;
@@ -1325,9 +1323,6 @@ public class ComposeMessageActivity extends Activity
             mWorkingMessage.setWorkingRecipients(mRecipientsEditor.getNumbers());
             mWorkingMessage.setHasEmail(mRecipientsEditor.containsEmail(), true);
 
-            if (mRecipientsEditor.getNumbers().size() > 0) {
-                mRcsThumbnailSendButton.setEnabled(true);
-            }
             checkForTooManyRecipients();
             // If pick recipients from Contacts,
             // then only update title once when process finished
@@ -3053,7 +3048,11 @@ public class ComposeMessageActivity extends Activity
     private void onKeyboardStateChanged() {
         // If the keyboard is hidden, don't show focus highlights for
         // things that cannot receive input.
-        mTextEditor.setEnabled(mIsSmsEnabled);
+        if (mWorkingMessage.hasRcsMessageCache()) {
+            mTextEditor.setEnabled(false);
+        } else {
+            mTextEditor.setEnabled(mIsSmsEnabled);
+        }
         if (!mIsSmsEnabled) {
             if (mRecipientsEditor != null) {
                 mRecipientsEditor.setFocusableInTouchMode(false);
@@ -3114,6 +3113,9 @@ public class ComposeMessageActivity extends Activity
             case KeyEvent.KEYCODE_ENTER:
                 if (isPreparedForSending()) {
                     confirmSendMessageIfNeeded();
+                    if(mWorkingMessage.hasRcsMessageCache()){
+                        clearRcsMessageCache();
+                    }
                     return true;
                 }
                 break;
@@ -4615,23 +4617,34 @@ public class ComposeMessageActivity extends Activity
 
     private boolean cacheWorkingMessage() {
         if (mConversation.getRecipients().size() == 0) {
+            mWorkingMessage.setHasRcsMessageCache(true);
             mRcsThumbnailLayout.setVisibility(View.VISIBLE);
-            mRcsThumbnailSendButton.setOnClickListener(
+            mWorkingMessage.setIsBurn(mIsBurnMessage);
+            ImageView imageView = (ImageView) findViewById(R.id.image_view_thumbnail);
+            RcsUtils.setThumbnailForMessageItem(this, imageView, mWorkingMessage);
+            mButtonEmoj.setEnabled(false);
+            mTextEditor.setEnabled(false);
+            findViewById(R.id.remove_attachment_button).setOnClickListener(
                     new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     if (!isDisposeImage) {
-                        mWorkingMessage.setIsBurn(mIsBurnMessage);
-                        rcsSend();
-                        mRcsThumbnailLayout.setVisibility(View.GONE);
+                        clearRcsMessageCache();
+                        mWorkingMessage.clearRcsMessageCache();
                     }
                 }
             });
-            mRcsThumbnailSendButton.setEnabled(false);
-            RcsUtils.setThumbnailForMessageItem(this, mRcsThumbnailView, mWorkingMessage);
             return true;
         }
         return false;
+    }
+
+    private void clearRcsMessageCache(){
+        mWorkingMessage.setHasRcsMessageCache(false);
+        mRcsThumbnailLayout.setVisibility(View.GONE);
+        mButtonEmoj.setEnabled(true);
+        mTextEditor.setEnabled(true);
+        mTextEditor.requestFocus();
     }
 
     private void imageDispose(final String photoPath){
@@ -5903,10 +5916,7 @@ public class ComposeMessageActivity extends Activity
         mAttachmentEditor.setHandler(mAttachmentEditorHandler);
         mAttachmentEditorScrollView = findViewById(R.id.attachment_editor_scroll_view);
         mAttachmentSelector = findViewById(R.id.attachments_selector);
-
-        mRcsThumbnailLayout = findViewById(R.id.layout_thumbnail);
-        mRcsThumbnailSendButton = (ImageButton) findViewById(R.id.ib_thumbnail_send);
-        mRcsThumbnailView = (ImageView) findViewById(R.id.image_view_thumbnail);
+        mRcsThumbnailLayout = findViewById(R.id.rcs_cache_view);
         setEmojBtnGone();
     }
 
