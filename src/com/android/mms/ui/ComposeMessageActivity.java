@@ -6133,11 +6133,18 @@ public class ComposeMessageActivity extends Activity
                     || mWorkingMessage.hasSubject())) || mConversation.isGroupChatActive();
         }
 
-        return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&
-                recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
-                mIsSmsEnabled &&
-                (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText() ||
-                    mWorkingMessage.hasSubject());
+        if (getContext().getResources().getBoolean(R.bool.enable_send_blank_message)) {
+            Log.d(TAG, "Blank SMS");
+            return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&
+                    recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
+                    mIsSmsEnabled;
+        } else {
+            return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&
+                    recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
+                    mIsSmsEnabled &&
+                    (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText() ||
+                        mWorkingMessage.hasSubject());
+        }
     }
 
     private boolean isCdmaNVMode() {
