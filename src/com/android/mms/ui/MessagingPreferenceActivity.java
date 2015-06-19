@@ -422,10 +422,9 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // SMS Sending Delay
         mMessageSendDelayPref = (ListPreference) findPreference(SEND_DELAY_DURATION);
         mMessageSendDelayPref.setSummary(mMessageSendDelayPref.getEntry());
-
+        mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
             mCBsettingPref = findPreference(CELL_BROADCAST);
-            mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
             setMmsSizeSummary();
             mFontSizePref = (ListPreference) findPreference(FONT_SIZE_SETTING);
         }
