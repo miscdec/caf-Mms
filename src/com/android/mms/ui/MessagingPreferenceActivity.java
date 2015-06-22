@@ -425,7 +425,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
             mCBsettingPref = findPreference(CELL_BROADCAST);
-            setMmsSizeSummary();
             mFontSizePref = (ListPreference) findPreference(FONT_SIZE_SETTING);
         }
         //Chat wallpaper
