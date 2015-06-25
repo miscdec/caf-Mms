@@ -1970,8 +1970,9 @@ public class RcsUtils {
                                 }
                                 if (filePath != null) {
                                     context.sendBroadcast(new Intent(
-                                            Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri
-                                                    .fromFile(file)));
+                                            Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                                            Uri.fromFile(file)));
+                                    result = true;
                                 }
                             }
                         }
