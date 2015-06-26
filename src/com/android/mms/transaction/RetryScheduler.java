@@ -72,6 +72,7 @@ public class RetryScheduler implements Observer {
     }
 
     public void update(Observable observable) {
+        Uri uri = null;
         Transaction t = (Transaction) observable;
         TransactionState state = t.getState();
         try {
@@ -88,7 +89,7 @@ public class RetryScheduler implements Observer {
                     || (t instanceof SendTransaction)) {
                 try {
                     if (state.getState() == TransactionState.FAILED) {
-                        Uri uri = state.getContentUri();
+                        uri = state.getContentUri();
                         if (uri != null) {
                             scheduleRetry(mContext, uri);
                         }
@@ -99,7 +100,7 @@ public class RetryScheduler implements Observer {
             }
         } finally {
             if (state.getState() == TransactionState.FAILED) {
-                setRetryAlarm(mContext);
+                setRetryAlarm(mContext, uri);
             }
         }
     }
@@ -278,11 +279,16 @@ public class RetryScheduler implements Observer {
     }
 
     public static void setRetryAlarm(Context context) {
-        Cursor cursor = PduPersister.getPduPersister(context).getPendingMessages(
+        setRetryAlarm(context, null);
+    }
+
+    public static void setRetryAlarm(Context context, Uri mmsUrl) {
+        Cursor mmsCuror = PduPersister.getPduPersister(context).getPendingMessages(
                 Long.MAX_VALUE);
-        if (cursor != null) {
+        if (mmsCuror != null) {
             try {
-                if (cursor.moveToFirst()) {
+                Cursor cursor = getMmsCursor(mmsCuror, mmsUrl);
+                if (cursor != null) {
                     // The result of getPendingMessages() is order by due time.
                     long retryAt = cursor.getLong(cursor.getColumnIndexOrThrow(
                             PendingMessages.DUE_TIME));
@@ -317,9 +323,37 @@ public class RetryScheduler implements Observer {
                     }
                 }
             } finally {
-                cursor.close();
+                mmsCuror.close();
             }
         }
+    }
+
+    private static Cursor getMmsCursor(Cursor cursor, Uri uri) {
+        if (uri == null) {
+            return cursor;
+        }
+
+        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+            Log.v(TAG, "Set alarm for " + uri);
+        }
+
+        int columnIndexOfMsgId = cursor.getColumnIndexOrThrow(PendingMessages.MSG_ID);
+        long msgId = ContentUris.parseId(uri);
+        for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+            long id = cursor.getLong(columnIndexOfMsgId);
+            if (id == msgId) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    Log.v(TAG, "Find out the MMS in pendingMessage table.");
+                }
+                break;
+            }
+        }
+
+        if (cursor.isAfterLast()) {
+            Log.e(TAG, "Can't not find the MMS in pendingMessage table.");
+            return null;
+        }
+        return cursor;
     }
 
     public static int getSubIdFromDb(Uri uri, Context context) {

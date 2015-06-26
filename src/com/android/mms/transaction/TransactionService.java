@@ -942,7 +942,7 @@ public class TransactionService extends Service implements Observer {
         if (getResources().getBoolean(R.bool.config_retry_always)
                 && !isLastRetry(uri.getLastPathSegment())) {
             RetryScheduler.scheduleRetry(getApplicationContext(), uri);
-            RetryScheduler.setRetryAlarm(getApplicationContext());
+            RetryScheduler.setRetryAlarm(getApplicationContext(), uri);
         }
     }
 
@@ -1032,7 +1032,6 @@ public class TransactionService extends Service implements Observer {
      */
     public void update(Observable observable) {
         Log.d(TAG, "update() E");
-        decRefCount();
 
         Transaction transaction = (Transaction) observable;
         int serviceId = transaction.getServiceId();
@@ -1139,6 +1138,7 @@ public class TransactionService extends Service implements Observer {
         } finally {
             transaction.detach(this);
             cleanUpIfIdle(serviceId);
+            decRefCount();
         }
     }
 
