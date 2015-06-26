@@ -27,6 +27,8 @@ import android.net.Uri;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.Sms;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -271,6 +273,20 @@ public class MessageItem {
         } else {
             throw new MmsException("Unknown type of the message: " + type);
         }
+    }
+
+    public boolean isCdmaInboxMessage() {
+        int activePhone;
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            int[] subId = SubscriptionManager.getSubId(mPhoneId);
+            activePhone = TelephonyManager.getDefault().getCurrentPhoneType(subId[0]);
+        } else {
+            activePhone = TelephonyManager.getDefault().getPhoneType();
+        }
+
+        return ((mBoxId == Sms.MESSAGE_TYPE_INBOX
+                || mBoxId == Sms.MESSAGE_TYPE_ALL)
+                && (TelephonyManager.PHONE_TYPE_CDMA == activePhone));
     }
 
     private void interpretFrom(EncodedStringValue from, Uri messageUri) {
