@@ -238,7 +238,6 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
             if (contact.existsInDatabase()) {
                 mAvatarView.assignContactUri(contact.getUri());
-                mAvatarView.setImageDrawable(avatarDrawable);
             } else {
                 // identify it is phone number or email address,handle it respectively
                 if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
