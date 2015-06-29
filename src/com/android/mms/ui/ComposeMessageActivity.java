@@ -2948,7 +2948,9 @@ public class ComposeMessageActivity extends Activity
 
         mIsRunning = true;
         updateThreadIdIfRunning();
-        mConversation.markAsRead(true, false);
+        if (!mSendDiscreetMode) {
+            mConversation.markAsRead(true, false);
+        }
         mIsAirplain = Settings.System.getInt(ComposeMessageActivity.this.getContentResolver(),
                 Settings.System.AIRPLANE_MODE_ON, 0) ;
 
@@ -2995,7 +2997,9 @@ public class ComposeMessageActivity extends Activity
             Log.v(TAG, "onPause: mSavedScrollPosition=" + mSavedScrollPosition);
         }
 
-        mConversation.markAsRead(true, false);
+        if (!mSendDiscreetMode) {
+            mConversation.markAsRead(true, false);
+        }
         mIsRunning = false;
     }
 
