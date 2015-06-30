@@ -5733,17 +5733,16 @@ public class ComposeMessageActivity extends Activity
         mWorkingMessage.setIsBurn(mIsBurnMessage);
         mIsRTL = (v.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
-            if (netStatus == ServiceState.STATE_OUT_OF_SERVICE
-                    && getResources().getBoolean(
+            if (mWorkingMessage.getCacheRcsMessage()) {
+                rcsSend();
+                return;
+             }
+             send();
+             if (netStatus == ServiceState.STATE_OUT_OF_SERVICE
+                 && getResources().getBoolean(
                     com.android.internal.R.bool.config_regional_pup_no_available_network)) {
                 checkCurrentNetStatus();
-            } else {
-                if (mWorkingMessage.getCacheRcsMessage()) {
-                    rcsSend();
-                    return;
-                }
-                send();
-            }
+             }
         } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
             mShowTwoButtons && isPreparedForSending()) {
             confirmSendMessageIfNeeded(PhoneConstants.SUB2);
@@ -5776,8 +5775,6 @@ public class ComposeMessageActivity extends Activity
             imsConfig = imsManager.getConfigInterface();
             if (imsConfig != null) {
                 imsConfig.getWifiCallingPreference(imsConfigListener);
-            } else {
-                send();
             }
         } catch (ImsException e) {
             imsConfig = null;
@@ -5802,18 +5799,17 @@ public class ComposeMessageActivity extends Activity
             if (intent.getAction().equals(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED)) {
                 ServiceState state = ServiceState.newFromBundle(intent.getExtras());
                 Log.i(TAG,"netAvailbaleReceiver state : " + state.getState());
-                if (state.getState() == ServiceState.STATE_OUT_OF_SERVICE) {
-                    netStatus = ServiceState.STATE_OUT_OF_SERVICE;
-                }
+                netStatus = state.getState();
             }
         }
     };
 
     public void showWifiCallDialog() {
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setCancelable(false)
-                .setPositiveButton(R.string.yes, new OnClickListener() {
+        runOnUiThread(new Runnable() {
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
+                builder.setCancelable(false)
+                        .setPositiveButton(R.string.yes, new OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // TODO Auto-generated method stub
@@ -5825,12 +5821,13 @@ public class ComposeMessageActivity extends Activity
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // TODO Auto-generated method stub
-                        send();
                     }
 
                 })
                 .setMessage(R.string.no_network_alert_when_send_message)
                 .show();
+             }
+         });
     }
 
     public void startWifiSetting() {
