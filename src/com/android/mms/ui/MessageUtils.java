@@ -127,6 +127,7 @@ import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
 import com.android.mms.util.DownloadManager;
+import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.CharacterSets;
@@ -1997,7 +1998,7 @@ public class MessageUtils {
                     SqliteWrapper.update(context,
                             context.getContentResolver(),
                             msgUri, values, null, null);
-
+                    MmsWidgetProvider.notifyDatasetChanged(context);
                     MessagingNotification.blockingUpdateNewMessageIndicator(
                             context,
                             MessagingNotification.THREAD_NONE, false);
