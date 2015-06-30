@@ -7990,8 +7990,9 @@ public class ComposeMessageActivity extends Activity
                 }
                 break;
             case R.id.resend:
+                mode.finish();
                 resendCheckedMessage();
-                break;
+                return true;
             case R.id.favourite:
                 if (item.getTitle().equals(
                         getContext().getString(R.string.favorited))) {
