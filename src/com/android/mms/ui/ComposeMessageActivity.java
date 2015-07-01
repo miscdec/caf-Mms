@@ -2739,11 +2739,6 @@ public class ComposeMessageActivity extends Activity
 
         // reset mMessagesAndDraftLoaded
         mMessagesAndDraftLoaded = false;
-        long threadId = mWorkingMessage.getConversation().getThreadId();
-        // Same recipient for ForwardMms will not load draft
-        if (MessageUtils.sSameRecipientList.contains(threadId)) {
-            mShouldLoadDraft = false;
-        }
 
         CharSequence text = mWorkingMessage.getText();
         if (text != null) {
@@ -2833,7 +2828,9 @@ public class ComposeMessageActivity extends Activity
             }
             loadMessageContent();
             boolean drawBottomPanel = true;
-            if (mShouldLoadDraft) {
+            long threadId = mWorkingMessage.getConversation().getThreadId();
+            // Do not load draft when forwarding to the same recipients.
+            if (mShouldLoadDraft && !MessageUtils.sSameRecipientList.contains(threadId)) {
                 if (loadDraft()) {
                     drawBottomPanel = false;
                 }
