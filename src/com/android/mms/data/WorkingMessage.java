@@ -1590,7 +1590,7 @@ public class WorkingMessage {
             return;
         } else {
             String body = bundle.getString("sms_body");
-            mText = body;
+            mText = body != null ? body : "";
         }
     }
 
