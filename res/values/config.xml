@@ -112,4 +112,6 @@
     <bool name="config_ignore_sms_attributes">false</bool>
 
     <integer name="max_chips_parsed">15</integer>
+    <!-- configuration for display sent time in CT mode -->
+    <bool name="config_display_sent_time">false</bool>
 </resources>
