@@ -736,7 +736,7 @@ public class TransactionService extends Service implements Observer {
         if (getResources().getBoolean(R.bool.config_retry_always)
                 && !isLastRetry(uri.getLastPathSegment())) {
             RetryScheduler.scheduleRetry(getApplicationContext(), uri);
-            RetryScheduler.setRetryAlarm(getApplicationContext());
+            RetryScheduler.setRetryAlarm(getApplicationContext(), uri);
         }
         stopSelfIfIdle(serviceId);
     }
