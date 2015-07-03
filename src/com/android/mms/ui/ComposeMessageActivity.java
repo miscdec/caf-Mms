@@ -2755,10 +2755,7 @@ public class ComposeMessageActivity extends Activity
             }
             saveDraft(false);    // if we've got a draft, save it first
             resetEditorText();
-            // add attachment vcard return will create new Conversation.
-            Bundle bundle = new Bundle();
-            bundle.putString(RECIPIENTS, getRecipients().serialize());
-            initialize(bundle, originalThreadId);
+            initialize(null, originalThreadId);
         }
         loadMessagesAndDraft(0);
     }
