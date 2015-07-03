@@ -7777,33 +7777,7 @@ public class ComposeMessageActivity extends Activity
                 shareMessage();
                 break;
             case R.id.save_attachment:
-                ChatMessage message;
-                try {
-                    Cursor cursor = (Cursor) mMsgListAdapter.getItem(mSelectedPos.get(0));
-                    MessageItem messageItem = mMsgListAdapter.getCachedMessageItem(
-                            cursor.getString(COLUMN_MSG_TYPE),
-                            cursor.getLong(COLUMN_ID), cursor);
-                    message = mMessageApi.getMessageById(messageItem.mRcsId + "");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return false;
-                }
-                if (message != null
-                        && message.getMsgType() == SuntekMessageData.MSG_TYPE_PAID_EMO) {
-                    if (emotItemCheck(message, null)) {
-                        saveMessage();
-                    } else {
-                        toast(R.string.save_message_not_support);
-                    }
-                } else {
-                    if (message != null
-                            && (message.getMsgType() == RcsUtils.RCS_MSG_TYPE_TEXT || message
-                            .getMsgType() == RcsUtils.RCS_MSG_TYPE_NOTIFICATION)) {
-                        toast(R.string.save_message_not_support);
-                    } else {
-                        saveMessage();
-                    }
-                }
+                saveMessage();
                 break;
             case R.id.report:
                 showReport();
