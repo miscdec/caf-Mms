@@ -7649,6 +7649,7 @@ public class ComposeMessageActivity extends Activity
                 RcsUtils.deleteRcsMessageByMessageId(mSelectedRcsMsgId);
             }
             mDeleteLockedMessages = false;
+            startMsgListQuery(MESSAGE_LIST_QUERY_AFTER_DELETE_TOKEN);
         }
 
         private void calculateSelectedMsgUri() {
