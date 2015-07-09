@@ -547,6 +547,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
 
         mListAdapter.setOnContentChangedListener(mContentChangedListener);
+        if (!mDoOnceAfterFirstQuery) {
+            startAsyncQuery();
+        }
         mIsRunning = true;
     }
 
