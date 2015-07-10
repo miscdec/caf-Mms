@@ -103,9 +103,9 @@ public class MessageListAdapter extends CursorAdapter {
         Mms.LOCKED,
         Mms.STATUS,
         Mms.TEXT_ONLY,
+        "sub_id",
         Threads.RECIPIENT_IDS,  // add for obtaining address of MMS
-        "rcs_top_time",
-        "is_rcs",
+        "is_rcs"
     };
 
     public static final String[] MAILBOX_PROJECTION = new String[] {
@@ -232,8 +232,7 @@ public class MessageListAdapter extends CursorAdapter {
     static final int COLUMN_MMS_TEXT_ONLY       = 39;
     static final int COLUMN_MMS_SUB_ID          = 40;
     static final int COLUMN_RECIPIENT_IDS       = 41;
-    public static final int COLUMN_TOP_TIME     = 42;
-    public static final int COLUMN_IS_RCS       = 43;
+    public static final int COLUMN_IS_RCS       = 42;
 
     private static final int CACHE_SIZE         = 50;
 
@@ -610,7 +609,6 @@ public class MessageListAdapter extends CursorAdapter {
         public int mColumnRcsPlayTime;
         public int mColumnRcsChatType;
         public int mColumnRcsMessageId;
-        public int mColumnTopTime;
         public int mColumnIsRcs;
 
         public ColumnsMap() {
@@ -651,7 +649,6 @@ public class MessageListAdapter extends CursorAdapter {
             mColumnRcsPlayTime        = COLUMN_RCS_PLAY_TIME;
             mColumnRcsChatType        = COLUMN_CHAT_TYPE;
             mColumnRcsMessageId       = COLUMN_RCS_MESSAGE_ID;
-            mColumnTopTime            = COLUMN_TOP_TIME;
             mColumnIsRcs              = COLUMN_IS_RCS;
         }
 
@@ -773,12 +770,6 @@ public class MessageListAdapter extends CursorAdapter {
 
             try {
                 mColumnRcsMsgState = cursor.getColumnIndexOrThrow("rcs_msg_state");
-            } catch (IllegalArgumentException e) {
-                Log.w("colsMap", e.getMessage());
-            }
-
-            try {
-                mColumnTopTime = cursor.getColumnIndexOrThrow("rcs_top_time");
             } catch (IllegalArgumentException e) {
                 Log.w("colsMap", e.getMessage());
             }

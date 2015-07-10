@@ -536,7 +536,7 @@ public class SmsReceiverService extends Service {
                     int subId = TelephonyManager.getDefault().isMultiSimEnabled()
                             ? sms.getSubId() : (int)MessageUtils.SUB_INVALID;
                     String address = MessageUtils.convertIdp(this,
-                            sms.getDisplayOriginatingAddress());
+                            sms.getDisplayOriginatingAddress(), subId);
                     MessagingNotification.blockingUpdateNewIccMessageIndicator(
                             this, address, sms.getDisplayMessageBody(),
                             SubscriptionManager.getPhoneId(subId),
@@ -615,8 +615,9 @@ public class SmsReceiverService extends Service {
         // Some messages may get stuck in the outbox. At this point, they're probably irrelevant
         // to the user, so mark them as failed and notify the user, who can then decide whether to
         // resend them manually.
-        int numMoved = moveOutboxMessagesToFailedBox();
-        if (numMoved > 0) {
+        moveOutboxMessagesToFailedBox();
+        int numUnreadFailed = getUnreadFailedMessageCount();
+        if (numUnreadFailed > 0) {
             MessagingNotification.notifySendFailed(getApplicationContext(), true);
         }
 
@@ -626,6 +627,20 @@ public class SmsReceiverService extends Service {
         // Called off of the UI thread so ok to block.
         MessagingNotification.blockingUpdateNewMessageIndicator(
                 this, MessagingNotification.THREAD_ALL, false);
+    }
+
+    private int getUnreadFailedMessageCount() {
+        final Uri uri = Uri.parse("content://sms/failed");
+        Cursor cursor = SqliteWrapper.query(
+                getApplicationContext(), getContentResolver(), uri,
+                new String[] { Sms._ID }, "read=0", null, null);
+        int count = 0;
+        if (cursor != null) {
+            count = cursor.getCount();
+            cursor.close();
+        }
+
+        return count;
     }
 
     /**
@@ -866,7 +881,8 @@ public class SmsReceiverService extends Service {
         }
 
         ContentResolver resolver = context.getContentResolver();
-        String originatingAddress = MessageUtils.convertIdp(this, sms.getOriginatingAddress());
+        String originatingAddress = MessageUtils.convertIdp(this,
+                sms.getOriginatingAddress(), sms.getSubId());
         int protocolIdentifier = sms.getProtocolIdentifier();
         String selection;
         String[] selectionArgs;
@@ -1025,7 +1041,8 @@ public class SmsReceiverService extends Service {
         // Store the message in the content provider.
         ContentValues values = new ContentValues();
 
-        values.put(Inbox.ADDRESS, MessageUtils.convertIdp(this, sms.getDisplayOriginatingAddress()));
+        values.put(Inbox.ADDRESS, MessageUtils.convertIdp(this, sms.getDisplayOriginatingAddress(),
+                sms.getSubId()));
 
         // Use now for the timestamp to avoid confusion with clock
         // drift between the handset and the SMSC.
@@ -1105,7 +1122,8 @@ public class SmsReceiverService extends Service {
     private boolean saveMessageToIcc(SmsMessage sms) {
         boolean result = true;
         int subscription = sms.getSubId();
-        String address = MessageUtils.convertIdp(this, sms.getOriginatingAddress());
+        String address = MessageUtils.convertIdp(this, sms.getOriginatingAddress(),
+            subscription);
         ContentValues values = new ContentValues();
         values.put(PhoneConstants.SUBSCRIPTION_KEY, subscription);
         values.put(Sms.ADDRESS, address);

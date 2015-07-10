@@ -556,10 +556,12 @@ public class Contact {
         private static final String[] SELF_PROJECTION = new String[] {
                 Phone._ID,                      // 0
                 Phone.DISPLAY_NAME,             // 1
+                Phone.PHOTO_ID,                 // 2
         };
 
         private static final int SELF_ID_COLUMN = 0;
         private static final int SELF_NAME_COLUMN = 1;
+        private static final int SELF_PHOTO_ID_COLUMN = 2;
 
         // query params for contact lookup by email
         private static final Uri EMAIL_WITH_PRESENCE_URI = Data.CONTENT_URI;
@@ -872,7 +874,7 @@ public class Contact {
                     }
                     // If the number is a wap push number, keep it as original form.
                     // We will get the number through MessageUtils.getWapPushNumber.
-                    if (!MessageUtils.isWapPushNumber(c.mNumber)) {
+                    if (!MessageUtils.isWapPushNumber(c.mNumber) && !isSpecialPhoneNumber(c)) {
                         c.mNumber = entry.mNumber;
                     }
                     c.mLabel = entry.mLabel;
@@ -960,7 +962,7 @@ public class Contact {
         //    "#4#5#6#"  -> true   [it is considered to be the address "#4#5#6#"]
         //    "AB12"     -> true   [2 digits, it is considered to be the address "AB12"]
         //    "12"       -> true   [2 digits, it is considered to be the address "12"]
-        private boolean isAlphaNumber(String number) {
+        boolean isAlphaNumber(String number) {
             // TODO: PhoneNumberUtils.isWellFormedSmsAddress() only check if the number is a valid
             // GSM SMS address. If the address contains a dialable char, it considers it a well
             // formed SMS addr. CDMA doesn't work that way and has a different parser for SMS
@@ -1109,6 +1111,7 @@ public class Contact {
                     log("fillSelfContact: name=" + contact.mName + ", number="
                             + contact.mNumber);
                 }
+                contact.mPhotoId = cursor.getLong(SELF_PHOTO_ID_COLUMN);
             }
             byte[] data = loadAvatarData(contact);
 
@@ -1378,6 +1381,14 @@ public class Contact {
         } else {
             return mName;
         }
+    }
+
+    private static boolean isSpecialPhoneNumber(Contact c) {
+        String num = c.getNumber();
+        if (c.isMe() || Mms.isEmailAddress(num) || sContactCache.isAlphaNumber(num)) {
+            return false;
+        }
+        return true;
     }
 
 }

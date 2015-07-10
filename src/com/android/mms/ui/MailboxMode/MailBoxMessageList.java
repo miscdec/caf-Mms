@@ -67,6 +67,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.view.ActionMode;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -89,6 +90,7 @@ import com.android.mms.ui.PopupList;
 import com.android.mms.ui.SearchActivityExtend;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.DraftCache;
+import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.pdu.PduHeaders;
 
 import static com.android.mms.ui.MessageListAdapter.MAILBOX_PROJECTION;
@@ -831,6 +833,21 @@ public class MailBoxMessageList extends ListActivity implements
         Contact.clearListener();
     }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_SEARCH && !mMultiChoiceMode) {
+            if (getResources().getBoolean(R.bool.config_classify_search)) {
+                Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                startActivityIfNeeded(searchintent, -1);
+            } else if (mSearchView != null) {
+                mSearchView.setIconified(false);
+            }
+            return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
+    }
+
     /**
      * Mark messages as read/unread when this listener is fired. To be passed to a confirmation
      * dialog and run when the confirm button is clicked.
@@ -1046,7 +1063,7 @@ public class MailBoxMessageList extends ListActivity implements
                 }
             }
         }
-
+        MmsWidgetProvider.notifyDatasetChanged(getApplicationContext());
         if (mThreadIds.size() > 0) {
             Conversation.updateThreads(mThreadIds);
             mThreadIds.clear();
@@ -1091,6 +1108,7 @@ public class MailBoxMessageList extends ListActivity implements
                                      Uri.parse("content://mms"), mmsUpdateCV, mmsWhereUpdate, null);
             }
         }
+        MmsWidgetProvider.notifyDatasetChanged(getApplicationContext());
         // The selection will be deselected now.
         mThreadIds.clear();
     }

@@ -406,26 +406,39 @@ public class ManageSimMessages extends Activity
                 cursor.getColumnIndexOrThrow("address"));
         String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
         Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
+        int subId = MessageUtils.SUB_INVALID;
         int subscription = cursor.getInt(cursor.getColumnIndexOrThrow("phone_id"));
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            int[] subIds = SubscriptionManager.getSubId(subscription);
+            if (subIds == null || subIds.length == 0) {
+                Log.d(TAG, "subIds null or length 0 for subscription = " + subscription);
+                showToast(false);
+                return;
+            }
+            subId = subIds[0];
+        } else {
+            subId = SubscriptionManager.getDefaultSmsSubId();
+        }
+
         boolean success = true;
         try {
             if (isIncomingMessage(cursor)) {
-                Sms.Inbox.addMessage(subscription, mContentResolver, address, body, null,
+                Sms.Inbox.addMessage(subId, mContentResolver, address, body, null,
                         date, true /* read */);
             } else {
-                Sms.Sent.addMessage(subscription, mContentResolver, address, body, null, date);
+                Sms.Sent.addMessage(subId, mContentResolver, address, body, null, date);
             }
         } catch (SQLiteException e) {
             SqliteWrapper.checkSQLiteException(this, e);
             success = false;
         }
-        String toast;
-        if (success){
-            toast = getString(R.string.copy_to_phone_success);
-        } else {
-            toast = getString(R.string.copy_to_phone_fail);
-        }
-        Toast.makeText(getContext(), toast, Toast.LENGTH_SHORT).show();
+        showToast(success);
+    }
+
+    private void showToast(boolean success) {
+        int resId = success ? R.string.copy_to_phone_success :
+                R.string.copy_to_phone_fail;
+        Toast.makeText(getContext(), getString(resId), Toast.LENGTH_SHORT).show();
     }
 
     private boolean isIncomingMessage(Cursor cursor) {
