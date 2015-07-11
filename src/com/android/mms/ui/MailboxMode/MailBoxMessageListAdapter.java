@@ -258,7 +258,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             addr = item.mAddress;
             isError = item.mSmsType == Sms.MESSAGE_TYPE_FAILED;
             isLocked = item.mLocked;
-            bodyStr = RcsUtils.formatConversationSnippet(context, item.mBody);
+            bodyStr = RcsUtils.formatConversationSnippet(context, item.mBody, item.mRcsMsgType);
             dateStr = item.mDateStr;
             nameContact = item.mName;
         } else if (type.equals("mms")) {
