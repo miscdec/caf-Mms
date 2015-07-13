@@ -3204,12 +3204,16 @@ public class ComposeMessageActivity extends Activity
                 }
                 break;
             case KeyEvent.KEYCODE_BACK:
-                exitComposeMessageActivity(new Runnable() {
-                    @Override
-                    public void run() {
-                        finish();
-                    }
-                });
+                if (mAttachmentSelector.getVisibility() == View.VISIBLE) {
+                    mAttachmentSelector.setVisibility(View.GONE);
+                } else {
+                    exitComposeMessageActivity(new Runnable() {
+                        @Override
+                        public void run() {
+                            finish();
+                        }
+                    });
+                }
                 return true;
         }
 
@@ -8116,6 +8120,11 @@ public class ComposeMessageActivity extends Activity
         }
 
         private String getAllSMSBody() {
+            if (!getResources().getBoolean(R.bool.config_forwardconv)) {
+                //There should be only one messageItem if forwardconv config is disable.
+                return mMessageItems.get(0).mBody;
+            }
+
             StringBuilder body = new StringBuilder();
             for (MessageItem msgItem : mMessageItems) {
                 // if not the first append a new line
@@ -8417,6 +8426,8 @@ public class ComposeMessageActivity extends Activity
                         mode.getMenu().findItem(R.id.forward).setVisible(false);
                     } else if (getResources().getBoolean(R.bool.config_forwardconv)) {
                         mode.getMenu().findItem(R.id.forward).setVisible(true);
+                    } else {
+                        mode.getMenu().findItem(R.id.forward).setVisible(false);
                     }
                     mode.getMenu().findItem(R.id.copy_to_sim).setVisible(true);
                 }
