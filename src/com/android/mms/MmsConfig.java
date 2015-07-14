@@ -134,6 +134,13 @@ public class MmsConfig {
 
     private static final String MMS_DESTINATION = "9798";
 
+    public static boolean sIsRcsVersion;
+
+    public static boolean getIsRcsVersion() {
+        return sIsRcsVersion;
+    }
+
+
     public static void init(Context context) {
         if (LOCAL_LOGV) {
             Log.v(TAG, "MmsConfig.init()");
@@ -147,6 +154,7 @@ public class MmsConfig {
         final Resources res = context.getResources();
         MAX_SLIDE_NUM = res.getInteger(R.integer.max_slide_num);
         sMmsCornerRadius = res.getDimension(R.dimen.mms_image_corner_radius);
+        sIsRcsVersion = res.getBoolean(R.bool.config_rcs_sms_version);
     }
 
     public static int getMaxSlideNumber() {

@@ -1,33 +1,26 @@
 /*
- * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015 pci-suntektech Technologies, Inc.  All Rights Reserved.
+ * pci-suntektech Technologies Proprietary and Confidential.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above
- *       copyright notice, this list of conditions and the following
- *       disclaimer in the documentation and/or other materials provided
- *       with the distribution.
- *     * Neither the name of The Linux Foundation nor the names of its
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
- * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
- * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
-
-package com.android.mms.ui;
+package com.android.mms.rcs;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,22 +33,17 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.NinePatch;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.NinePatchDrawable;
 import android.net.Uri;
-import android.os.Looper;
-import android.os.Parcelable;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Intents.Insert;
-import android.provider.Telephony.Sms;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.text.TextUtils;
@@ -70,27 +58,23 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.VideoView;
 
 import com.android.mms.R;
 import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.rcs.RcsMessageOpenUtils;
-import com.android.mms.rcs.RcsUtils;
+import com.android.mms.ui.MessageUtils;
 import com.android.vcard.VCardParser;
 import com.android.vcard.VCardParser_V21;
-import com.android.mms.ui.MessageItem;
-import com.android.mms.ui.MessageListItem;
-import com.android.mms.ui.MessageUtils;
 
+import com.suntek.mway.rcs.client.aidl.constant.Constants.FavoriteMessageProvider;
+import com.suntek.mway.rcs.client.aidl.constant.Constants;
 import com.suntek.rcs.ui.common.mms.GeoLocation;
 import com.suntek.rcs.ui.common.PropertyNode;
 import com.suntek.rcs.ui.common.RcsEmojiStoreUtil;
 import com.suntek.rcs.ui.common.VNode;
 import com.suntek.rcs.ui.common.VNodeBuilder;
 
-import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
-
-public class MessageDetailAdapter extends PagerAdapter {
+public class FavoriteDetailAdapter extends PagerAdapter {
 
     private String RCS_TAG = "RCS_UI";
     private Context mContext;
@@ -105,7 +89,7 @@ public class MessageDetailAdapter extends PagerAdapter {
     public static final int VIEW_VCARD_FROM_MMS        = 1;
     public static final int MERGE_VCARD_DETAIL         = 2;
 
-    public MessageDetailAdapter(Context context, Cursor cursor) {
+    public FavoriteDetailAdapter(Context context, Cursor cursor) {
         mContext = context;
         mCursor = cursor;
         mInflater = LayoutInflater.from(context);
@@ -120,7 +104,8 @@ public class MessageDetailAdapter extends PagerAdapter {
         TextView bodyText = (TextView) content.findViewById(R.id.textViewBody);
         LinearLayout mLinearLayout = (LinearLayout)content.findViewById(R.id.other_type_layout);
 
-        mMsgType = mCursor.getInt(mCursor.getColumnIndex(RcsColumns.SmsRcsColumns.RCS_MSG_TYPE));
+        mMsgType = mCursor.getInt(mCursor.getColumnIndex(
+                FavoriteMessageProvider.FavoriteMessage.MSG_TYPE));
         if (mMsgType == RcsUtils.RCS_MSG_TYPE_TEXT) {
             initTextMsgView(bodyText);
         } else {
@@ -141,14 +126,15 @@ public class MessageDetailAdapter extends PagerAdapter {
                 mContentType = "audio/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO) {
                 String thumbPath = mCursor.getString(mCursor
-                        .getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_THUMB_PATH));
+                        .getColumnIndexOrThrow(FavoriteMessageProvider.FavoriteMessage.THUMBNAIL));
                 Bitmap bitmap = BitmapFactory.decodeFile(thumbPath);
                 imageView.setImageBitmap(bitmap);
                 showContentFileSize(textView);
                 mContentType = "video/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_MAP) {
                 imageView.setImageResource(R.drawable.rcs_map);
-                String body = mCursor.getString(mCursor.getColumnIndexOrThrow(Sms.BODY));
+                String body = mCursor.getString(mCursor.getColumnIndexOrThrow(
+                        FavoriteMessageProvider.FavoriteMessage.CONTENT));
                 textView.setText(body);
                 mContentType = "map/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_VCARD) {
@@ -157,7 +143,7 @@ public class MessageDetailAdapter extends PagerAdapter {
                 mContentType = "text/x-vCard";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_PAID_EMO) {
                 String messageBody = mCursor.getString(mCursor.getColumnIndex(
-                        RcsColumns.SmsRcsColumns.RCS_FILENAME));
+                        FavoriteMessageProvider.FavoriteMessage.FILE_NAME));
                 String[] body = messageBody.split(",");
                 RcsEmojiStoreUtil.getInstance().loadImageAsynById(imageView, body[0],
                         RcsEmojiStoreUtil.EMO_STATIC_FILE);
@@ -169,7 +155,7 @@ public class MessageDetailAdapter extends PagerAdapter {
         }
 
         TextView detailsText = (TextView) content.findViewById(R.id.textViewDetails);
-        detailsText.setText(MessageUtils.getTextMessageDetails(mContext, mCursor, true));
+        detailsText.setText(getTextMessageDetails(mContext, mCursor, true));
         view.addView(content);
 
         return content;
@@ -177,7 +163,7 @@ public class MessageDetailAdapter extends PagerAdapter {
 
     private void showContentFileSize(TextView textView){
         long fileSize = mCursor.getLong(
-                 mCursor.getColumnIndex(RcsColumns.SmsRcsColumns.RCS_FILE_SIZE));
+                 mCursor.getColumnIndex(FavoriteMessageProvider.FavoriteMessage.FILE_SIZE));
         if(fileSize > 1024){
             textView.setText(fileSize / 1024 + " KB");
         }else{
@@ -223,7 +209,8 @@ public class MessageDetailAdapter extends PagerAdapter {
     }
 
     private void initTextMsgView(final TextView bodyText){
-        bodyText.setText(mCursor.getString(mCursor.getColumnIndexOrThrow(Sms.BODY)));
+        bodyText.setText(mCursor.getString(mCursor.getColumnIndexOrThrow(
+                FavoriteMessageProvider.FavoriteMessage.CONTENT)));
         bodyText.setTextSize(TypedValue.COMPLEX_UNIT_PX, mBodyFontSize);
         bodyText.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
         bodyText.setTextIsSelectable(true);
@@ -237,9 +224,9 @@ public class MessageDetailAdapter extends PagerAdapter {
 
     private void initImageMsgView(LinearLayout linearLayout) {
         String thumbPath = mCursor.getString(
-                mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_THUMB_PATH));
+                mCursor.getColumnIndexOrThrow(FavoriteMessageProvider.FavoriteMessage.THUMBNAIL));
         String fileName = mCursor.getString(
-                mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILENAME));
+                mCursor.getColumnIndexOrThrow(FavoriteMessageProvider.FavoriteMessage.FILE_NAME));
         thumbPath = RcsUtils.formatFilePathIfExisted(thumbPath);
         fileName = RcsUtils.formatFilePathIfExisted(fileName);
         ImageView imageView = (ImageView)linearLayout.findViewById(R.id.image_view);
@@ -262,7 +249,7 @@ public class MessageDetailAdapter extends PagerAdapter {
     private void initVcardMagView(LinearLayout linearLayout){
         ImageView imageView = (ImageView)linearLayout.findViewById(R.id.image_view);
         String fileName = mCursor.getString(
-                mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILENAME));
+                mCursor.getColumnIndexOrThrow(FavoriteMessageProvider.FavoriteMessage.FILE_NAME));
         String vcardFileName = fileName;
         ArrayList<PropertyNode> propList = RcsMessageOpenUtils.openRcsVcardDetail(
                 mContext, vcardFileName);
@@ -288,9 +275,9 @@ public class MessageDetailAdapter extends PagerAdapter {
         @Override
         public void onClick(View v) {
             String fileName = mCursor.getString(
-                    mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILENAME));
+                    mCursor.getColumnIndexOrThrow(FavoriteMessageProvider.FavoriteMessage.FILE_NAME));
             long filesize = mCursor.getInt(
-                    mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILE_SIZE));
+                    mCursor.getColumnIndexOrThrow(FavoriteMessageProvider.FavoriteMessage.FILE_SIZE));
             fileName = RcsUtils.formatFilePathIfExisted(fileName);
             boolean isFileDownload = RcsChatMessageUtils.isFileDownload(fileName, filesize);
             if (mMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO || mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE) {
@@ -309,7 +296,7 @@ public class MessageDetailAdapter extends PagerAdapter {
                 }
             }
             String rcsMimeType = mCursor.getString(
-                    mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_MIME_TYPE));
+                    mCursor.getColumnIndexOrThrow(FavoriteMessageProvider.FavoriteMessage.MIME_TYPE));
 
             File file = new File(fileName);
             Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -363,7 +350,7 @@ public class MessageDetailAdapter extends PagerAdapter {
 
     private void showOpenRcsVcardDialog(){
         final String vcardFileName = mCursor.getString(
-                mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILENAME));
+                mCursor.getColumnIndexOrThrow(FavoriteMessageProvider.FavoriteMessage.FILE_NAME));
         final String[] openVcardItems = new String[] {
                 mContext.getString(R.string.vcard_detail_info),
                 mContext.getString(R.string.vcard_import),
@@ -468,4 +455,62 @@ public class MessageDetailAdapter extends PagerAdapter {
         context.startActivity(intent);
     }
 
+    private static String getTextMessageDetails(Context context, Cursor cursor,
+            boolean isAppendContentType) {
+
+        StringBuilder details = new StringBuilder();
+        Resources res = context.getResources();
+
+        // Message Type: Text message.
+        details.append(res.getString(R.string.message_type_label));
+        int rcsChatType = cursor.getInt(cursor.getColumnIndexOrThrow(
+                 FavoriteMessageProvider.FavoriteMessage.CHAT_TYPE));
+        boolean isRcsMessage = RcsUtils.isRcsMessage(rcsChatType);
+        if (isRcsMessage)
+            details.append(res.getString(R.string.rcs_text_message));
+        else
+            details.append(res.getString(R.string.text_message));
+
+        if (isAppendContentType) {
+            details.append('\n');
+            details.append(res.getString(R.string.message_content_type));
+            int msgType = cursor.getInt(cursor.getColumnIndex(
+                    FavoriteMessageProvider.FavoriteMessage.MSG_TYPE));
+            if (msgType == RcsUtils.RCS_MSG_TYPE_IMAGE)
+                details.append(res.getString(R.string.message_content_image));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_AUDIO)
+                details.append(res.getString(R.string.message_content_audio));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_VIDEO)
+                details.append(res.getString(R.string.message_content_video));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_MAP)
+                details.append(res.getString(R.string.message_content_map));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_VCARD)
+                details.append(res.getString(R.string.message_content_vcard));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE)
+                details.append(res.getString(R.string.msg_type_CaiYun));
+            else
+                details.append(res.getString(R.string.message_content_text));
+        }
+        // Address: ***
+        details.append('\n');
+        int smsType = cursor.getInt(cursor.getColumnIndexOrThrow(
+                FavoriteMessageProvider.FavoriteMessage.DIRECTION));
+        if (smsType != Constants.MessageConstants.CONST_DIRECTION_RECEIVE) {
+            details.append(res.getString(R.string.to_address_label));
+        } else {
+            details.append(res.getString(R.string.from_label));
+        }
+
+        String address = "";
+            address = cursor.getString(cursor.getColumnIndexOrThrow(
+                    FavoriteMessageProvider.FavoriteMessage.NUMBER));
+        details.append(address);
+        // date
+        details.append('\n');
+        long date = cursor.getLong(cursor.getColumnIndexOrThrow(
+                FavoriteMessageProvider.FavoriteMessage.DATE));
+        details.append(MessageUtils.formatTimeStampString(context, date, true));
+
+        return details.toString();
+    }
 }

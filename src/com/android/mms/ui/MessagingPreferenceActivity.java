@@ -96,6 +96,7 @@ import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.Recycler;
@@ -112,6 +113,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
+import com.suntek.mway.rcs.client.api.support.SupportApi;
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -1763,8 +1765,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     //  2. the feature is enabled in the mms settings page
     //  3. the SIM knows its own phone number
     public static boolean getIsGroupMmsEnabled(Context context) {
-        if (RcsApiManager.getSupportApi().isRcsSupported()
-                && RcsApiManager.getSupportApi().isOnline()) {
+        if (SupportApi.getInstance().isRcsSupported()
+                && RcsUtils.isRcsOnline()) {
             return false;
         }
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
