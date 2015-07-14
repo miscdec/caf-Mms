@@ -61,7 +61,6 @@ import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
 
-import com.suntek.mway.rcs.client.aidl.constant.Constants;
 /**
  * Mostly immutable model for an SMS/MMS message.
  *
@@ -86,10 +85,10 @@ public class MessageItem {
     boolean mReadReport;
     boolean mLocked;            // locked to prevent auto-deletion
 
-    String mTimestamp;
+    public String mTimestamp;
     String mAddress;
     String mContact;
-    String mBody; // Body of SMS, first text of MMS.
+    public String mBody; // Body of SMS, first text of MMS.
     int mPhoneId;   // Holds current mms/sms phone Id value.
     String mTextContentType; // ContentType of text of MMS.
     Pattern mHighlight; // portion of message to highlight (from search)
@@ -121,22 +120,26 @@ public class MessageItem {
     private PduLoadedCallback mPduLoadedCallback;
     private ItemLoadedFuture mItemLoadedFuture;
     int mLayoutType = LayoutModel.DEFAULT_LAYOUT_TYPE;
-    long mDate;
+    public long mDate;
     boolean mIsForwardable = true;
     boolean mHasAttachmentToSave = false;
     boolean mIsDrmRingtoneWithRights = false;
 
     int mCountDown = 0;
-    String mRcsPath;
-    String mRcsThumbPath;
-    int mRcsType;
-    boolean mIsRcsBurnMessage;
-    int mRcsIsDownload;
-    int mRcsMsgState;
-    int mRcsFileSize;
-    int mRcsChatType;
-    String mRcsMessageId;
-    String mRcsMimeType;
+    public String mRcsPath;
+    public String mRcsThumbPath;
+    public int mRcsType;
+    public int mRcsId;
+    public int mRcsBurnFlag;
+    public int mRcsIsBurn;
+    public int mRcsIsDownload;
+    public int mRcsMsgState;
+    public int mRcsPlayTime;
+    public int mRcsFileSize;
+    public String mRcsMimeType;
+    public int mRcsChatType;
+    public String mRcsMessageId;
+    public int mIsRcs;
 
     public int getCountDown() {
         return mCountDown;
@@ -193,14 +196,17 @@ public class MessageItem {
             mRcsPath = cursor.getString(columnsMap.mColumnRcsPath);
             mRcsThumbPath = cursor.getString(columnsMap.mColumnRcsThumbPath);
             mRcsType = cursor.getInt(columnsMap.mColumnRcsMsgType);
-            mIsRcsBurnMessage = (cursor.getInt(columnsMap.mColumnRcsBurnMessage)
-                    > RcsUtils.RCS_NOT_A_BURN_MESSAGE);
+            mRcsId = cursor.getInt(columnsMap.mColumnRcsId);
+            mRcsBurnFlag = cursor.getInt(columnsMap.mColumnRcsBurnFlag);
+            mRcsIsBurn = cursor.getInt(columnsMap.mColumnRcsIsBurn);
             mRcsIsDownload = cursor.getInt(columnsMap.mColumnRcsIsDownload);
             mRcsMsgState = cursor.getInt(columnsMap.mColumnRcsMsgState);
             mRcsMimeType = cursor.getString(columnsMap.mColumnRcsMimeType);
+            mRcsPlayTime= cursor.getInt(columnsMap.mColumnRcsPlayTime);
             mRcsFileSize= cursor.getInt(columnsMap.mColumnRcsFileSize);
             mRcsChatType = cursor.getInt(columnsMap.mColumnRcsChatType);
             mRcsMessageId = cursor.getString(columnsMap.mColumnRcsMessageId);
+            mIsRcs = cursor.getInt(columnsMap.mColumnIsRcs);
             mBody = cursor.getString(columnsMap.mColumnSmsBody);
 
             mPhoneId = cursor.getInt(columnsMap.mColumnPhoneId);
@@ -619,88 +625,5 @@ public class MessageItem {
 
     public String getTimestamp() {
         return mTimestamp;
-    }
-
-    public void setTimestamp(String timesTamp) {
-        mTimestamp = timesTamp;
-    }
-
-    public void setDate(long date) {
-        mDate = date;
-    }
-
-    public long getDate() {
-        return mDate;
-    }
-
-    public String getMsgBody() {
-        return mBody;
-    }
-
-    public void setMsgBody(String body) {
-        mBody = body;
-    }
-
-    public String getRcsPath() {
-        return mRcsPath;
-    }
-
-    public String getRcsThumbPath() {
-        return mRcsThumbPath;
-    }
-
-    public void setRcsThumbPath(String thumbPath) {
-        this.mRcsThumbPath = thumbPath;
-    }
-
-    public int getRcsMsgType() {
-        return mRcsType;
-    }
-
-    public boolean isRcsBurnMessage() {
-        return mIsRcsBurnMessage;
-    }
-
-    public int getMsgDownlaodState() {
-        return mRcsIsDownload;
-    }
-
-    public int getRcsMsgState() {
-        return mRcsMsgState;
-    }
-
-    public int getRcsMsgFileSize() {
-        return mRcsFileSize;
-    }
-
-    public String getRcsMimeType() {
-        return mRcsMimeType;
-    }
-
-    public int getRcsChatType() {
-        return mRcsChatType;
-    }
-
-    /**
-     *@return whether this message is a RCS message.
-     */
-    public boolean isRcsMessage() {
-        return mRcsChatType > RcsUtils.RCS_CHAT_TYPE_DEFAULT
-                && mRcsChatType < RcsUtils.RCS_CHAT_TYPE_PUBLIC_MESSAGE;
-    }
-
-    public boolean isRcsMediaMsg() {
-        if (mRcsType == RcsUtils.RCS_MSG_TYPE_IMAGE
-                || mRcsType == RcsUtils.RCS_MSG_TYPE_AUDIO
-                || mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public boolean isGroupChatMessageWithoutNotification() {
-        return mRcsChatType == Constants.MessageConstants.CONST_CHAT_GROUP
-                && mRcsType != Constants.MessageConstants.CONST_MESSAGE_NOTIFICATION;
     }
 }

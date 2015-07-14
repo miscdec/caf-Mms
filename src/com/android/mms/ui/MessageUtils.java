@@ -60,7 +60,6 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.BitmapFactory.Options;
 import android.graphics.drawable.Drawable;
@@ -74,7 +73,6 @@ import android.os.Handler;
 import android.os.Bundle;
 import android.os.Message;
 import android.os.Messenger;
-import android.os.RemoteException;
 import android.os.StatFs;
 import android.os.SystemProperties;
 import android.os.UserHandle;
@@ -83,7 +81,6 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.MediaStore;
-import android.provider.MediaStore.Audio.Media;
 import android.provider.MediaStore.Audio;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
@@ -126,7 +123,6 @@ import com.android.mms.model.MediaModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.VcardModel;
-import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
@@ -154,10 +150,11 @@ import static android.telephony.SmsMessage.MAX_USER_DATA_BYTES;
 import static android.telephony.SmsMessage.MAX_USER_DATA_BYTES_WITH_HEADER;
 import static android.telephony.SmsMessage.MAX_USER_DATA_SEPTETS;
 
-import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
-import com.suntek.mway.rcs.client.api.basic.BasicApi;
-import com.suntek.mway.rcs.client.api.support.SupportApi;
+import com.android.mms.rcs.RcsApiManager;
+import com.android.mms.rcs.RcsUtils;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 /**
  * An utility class for managing messages.
  */
@@ -350,8 +347,6 @@ public class MessageUtils {
 
     public static final String SMS_BOX_ID = "box_id";
     public static final String COPY_SMS_INTO_SIM_SUCCESS = "success";
-
-    private static final long ARM_BIT = 12800;
 
     private MessageUtils() {
         // Forbidden being instantiated.
@@ -578,10 +573,8 @@ public class MessageUtils {
 
         // Message Type: Text message.
         details.append(res.getString(R.string.message_type_label));
-        int rcsChatType = cursor.getInt(cursor.getColumnIndexOrThrow(
-                 RcsColumns.SmsRcsColumns.RCS_CHAT_TYPE));
-        boolean isRcsMessage = RcsUtils.isRcsMessage(rcsChatType);
-        if (isRcsMessage)
+        int rcsId = cursor.getInt(cursor.getColumnIndexOrThrow("rcs_id"));
+        if (rcsId > 0)
             details.append(res.getString(R.string.rcs_text_message));
         else
             details.append(res.getString(R.string.text_message));
@@ -589,8 +582,7 @@ public class MessageUtils {
         if (isAppendContentType) {
             details.append('\n');
             details.append(res.getString(R.string.message_content_type));
-            int msgType = cursor.getInt(cursor.getColumnIndex(
-                    RcsColumns.SmsRcsColumns.RCS_MSG_TYPE));
+            int msgType = cursor.getInt(cursor.getColumnIndex("rcs_msg_type"));
             if (msgType == RcsUtils.RCS_MSG_TYPE_IMAGE)
                 details.append(res.getString(R.string.message_content_image));
             else if (msgType == RcsUtils.RCS_MSG_TYPE_AUDIO)
@@ -793,7 +785,7 @@ public class MessageUtils {
         // other choices like external audio and system audio. Allow user to select
         // an audio from particular storage (Internal or External) and return it.
         String[] items = null;
-        if (RcsUtils.isRcsOnline()) {
+        if (RcsApiManager.getSupportApi().isOnline()) {
             items = new String[3];
             items[SELECT_LOCAL] = activity.getString(R.string.local_audio_item);
         } else {
@@ -852,9 +844,8 @@ public class MessageUtils {
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
         // add RCS recordSound time add size limit
-        if (!isMms && RcsUtils.isRcsOnline()) {
-            long durationLimit = RcsUtils.getAudioMaxTime();
-            intent.putExtra(Media.EXTRA_MAX_BYTES, (long)((ARM_BIT / 8) * (durationLimit + 1)));
+        if (!isMms && RcsApiManager.getSupportApi().isOnline()) {
+            intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit*1024);
         } else {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
         }
@@ -865,7 +856,7 @@ public class MessageUtils {
     public static void recordVideo(Activity activity, int requestCode, long sizeLimit,
             boolean isMms) {
         // add RCS recordVideo time add size limit
-        if (!isMms && RcsUtils.isRcsOnline()) {
+        if (!isMms && RcsApiManager.getSupportApi().isOnline()) {
             Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
             intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 10.0);
             intent.putExtra("android.intent.extra.sizeLimit", sizeLimit*1024);

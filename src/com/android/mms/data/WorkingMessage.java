@@ -38,13 +38,11 @@ import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
 import android.provider.Telephony.Sms;
-import android.provider.Telephony.Sms.Outbox;
 import android.telephony.SmsMessage;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -68,8 +66,6 @@ import com.android.mms.model.ImageModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.TextModel;
-import com.android.mms.R;
-import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessageSender;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.transaction.SmsMessageSender;
@@ -81,7 +77,6 @@ import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
 import com.android.mms.util.ThumbnailManager;
 import com.android.mms.widget.MmsWidgetProvider;
-
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
@@ -90,18 +85,21 @@ import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.SendReq;
 
-import com.suntek.mway.rcs.client.aidl.constant.Constants;
-import com.suntek.mway.rcs.client.aidl.constant.Constants.MessageConstants;
-import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
-import com.suntek.mway.rcs.client.api.cloudfile.CloudFileApi;
-import com.suntek.mway.rcs.client.api.message.MessageApi;
-import com.suntek.mway.rcs.client.api.support.SupportApi;
-import com.suntek.mway.rcs.client.api.exception.FileDurationException;
-import com.suntek.mway.rcs.client.api.exception.FileNotExistsException;
-import com.suntek.mway.rcs.client.api.exception.FileSuffixException;
-import com.suntek.mway.rcs.client.api.exception.FileTooLargeException;
-import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
-import com.suntek.rcs.ui.common.mms.RcsContactsUtils;
+import android.provider.Telephony.Sms.Outbox;
+import android.widget.Toast;
+
+import com.android.mms.rcs.RcsApiManager;
+import com.android.mms.rcs.RcsContactsUtils;
+import com.android.mms.rcs.RcsUtils;
+import com.suntek.mway.rcs.client.aidl.contacts.RCSContact;
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
+import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
+import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
+import com.suntek.mway.rcs.client.api.util.FileSuffixException;
+import com.suntek.mway.rcs.client.api.util.FileTransferException;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.util.FileDurationException;
 
 /**
  * Contains all state related to a message being edited by the user.
@@ -118,9 +116,6 @@ public class WorkingMessage {
     public static final String EXTRA_SMS_MESSAGE = "android.mms.extra.MESSAGE";
     public static final String EXTRA_SMS_RECIPIENTS = "android.mms.extra.RECIPIENTS";
     public static final String EXTRA_SMS_THREAD_ID = "android.mms.extra.THREAD_ID";
-
-    //Vcard saved path
-    public static final String RCS_MMS_VCARD_PATH = "sdcard/rcs/";
 
     // Database access stuff
     private final Activity mActivity;
@@ -231,8 +226,6 @@ public class WorkingMessage {
     private String mCloudFileId;
 
     private boolean mIsCacheRcsMessage;
-
-    private String mVcardPath;
 
     public String getCloudFileId() {
         return mCloudFileId;
@@ -366,13 +359,6 @@ public class WorkingMessage {
         this.mIsCacheRcsMessage = isCacheRcsMessage;
     }
 
-    public String setVcardPath() {
-        Long curtime = System.currentTimeMillis();
-        String time = curtime.toString();
-        mVcardPath = RCS_MMS_VCARD_PATH + time + ".vcf";
-        return mVcardPath;
-    }
-
     public void clearCacheRcsMessage(){
         setIsBurn(false);
         setRcsType(RcsUtils.RCS_MSG_TYPE_TEXT);
@@ -386,9 +372,8 @@ public class WorkingMessage {
     }
 
     private void preSendRcsSmsWorker(Conversation conv, String msgText, String recipientsInUI,
-            boolean isGroupChat) throws ServiceDisconnectedException, NumberFormatException,
-            RemoteException, FileSuffixException, FileDurationException, FileTooLargeException,
-            FileNotExistsException {
+            boolean isGroupChat) throws ServiceDisconnectedException, FileSuffixException,
+            FileTransferException, FileDurationException, NumberFormatException {
         // If user tries to send the message, it's a signal the inputted text is
         // what they wanted.
         UserHappinessSignals.userAcceptedImeText(mActivity);
@@ -439,13 +424,12 @@ public class WorkingMessage {
     }
 
     private void sendRcsSmsWorker(String msgText, String semiSepRecipients, long threadId)
-            throws ServiceDisconnectedException, NumberFormatException, RemoteException,
-            FileSuffixException, FileDurationException, FileTooLargeException,
-            FileNotExistsException {
+            throws ServiceDisconnectedException, FileSuffixException, FileTransferException,
+            FileDurationException, NumberFormatException {
         String[] dests = TextUtils.split(semiSepRecipients, ";");
         Recycler.getSmsRecycler().deleteOldMessagesByThreadId(mActivity, threadId);
-        MessageApi messageApi = MessageApi.getInstance();
-        CloudFileApi cloudFileApi = CloudFileApi.getInstance();
+        MessageApi messageApi = RcsApiManager.getMessageApi();
+        McloudFileApi mcloudFileApi = RcsApiManager.getMcloudFileApi();
         switch (mRcsType) {
             case RcsUtils.RCS_MSG_TYPE_TEXT:
                 mStatusListener.onPreMessageSent();
@@ -477,7 +461,7 @@ public class WorkingMessage {
                 break;
             case RcsUtils.RCS_MSG_TYPE_CAIYUNFILE:
                 mStatusListener.onPreRcsMessageSent();
-                sendRcsCloudFile(dests, threadId, cloudFileApi);
+                sendRcsCloudFile(dests, threadId, mcloudFileApi);
                 break;
             default:
                 break;
@@ -486,161 +470,215 @@ public class WorkingMessage {
         MmsWidgetProvider.notifyDatasetChanged(mActivity);
     }
 
-    private void sendRcsCloudFile(String[] dests, long threadId, CloudFileApi cloudFileApi)
-            throws ServiceDisconnectedException, RemoteException {
+    private void sendRcsCloudFile(String[] dests, long threadId,McloudFileApi mcloudFileApi)
+            throws ServiceDisconnectedException {
         if (mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
-            long groupThreadId = groupChat.getThreadId();
-            long groupId = groupChat.getId();
-            cloudFileApi.shareFileAndSendGroup(getCloudFileId(), "", groupThreadId, groupId);
+            GroupChatModel groupChat = mConversation.getGroupChat();
+            long thread_id = groupChat.getThreadId();
+            String conversationId = groupChat.getConversationId();
+            String groupId = String.valueOf(groupChat.getId());
+            mcloudFileApi.shareFileAndSendGroup(getCloudFileId(), "",
+                    thread_id, conversationId,groupId);
         } else if (dests.length == 1) {
-            cloudFileApi.shareFileAndSend(getCloudFileId(), "", dests[0],
-                    threadId, "", -1);
+            mcloudFileApi.shareFileAndSend(getCloudFileId(), "",
+                    dests[0],threadId, "");
         } else {
             List<String> numberList = new ArrayList<String>();
             for (int i = 0; i < dests.length; i++) {
                 numberList.add(dests[i]);
             }
-            cloudFileApi.shareFileAndSend(getCloudFileId(), "", numberList,
-                    threadId, "", -1);
+            mcloudFileApi.shareFileAndSendOne2Many(getCloudFileId(), "",
+                    numberList, threadId, "");
         }
     }
 
     private void sendRcsPaidEmo(String[] dests, long threadId, MessageApi messageApi)
-            throws ServiceDisconnectedException, RemoteException {
+            throws ServiceDisconnectedException {
         if (mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
+            GroupChatModel groupChat = mConversation.getGroupChat();
             long thread_id = groupChat.getThreadId();
             String conversationId = groupChat.getConversationId();
-            messageApi.sendEmoticonToGroupChat(groupChat.getId(), thread_id,
-                    getRcsEmoId(), getRcsEmoName());
+            String groupId = String.valueOf(groupChat.getId());
+            messageApi.sendGroupPaidEmo(thread_id, conversationId, -1, getRcsEmoId(),
+                    getRcsEmoName(), groupId);
         } else if (dests.length == 1) {
-            messageApi.sendEmoticon(dests[0], threadId, getRcsEmoId(), getRcsEmoName(),
-                    isBurn() ? 1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendPaidEmo(threadId, -1, dests[0], getRcsEmoId(), getRcsEmoName());
         } else {
-            messageApi.sendEmoticon(Arrays.asList(dests), threadId, getRcsEmoId(),
-                    getRcsEmoName(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendOne2ManyPaidEmoMessage(mConversation.getThreadId(), -1,
+                    Arrays.asList(dests), getRcsEmoId(), getRcsEmoName());
+        }
+    }
+
+    public void sendPerson(RCSContact rcsContact) throws ServiceDisconnectedException {
+        if (rcsContact == null) {
+            Log.i("RCS_UI", "RCSContact is null");
+            return;
+        }
+        int chatType;
+        if (mConversation.isGroupChat()) {
+            chatType = SuntekMessageData.CHAT_TYPE_GROUP;
+        } else if (mConversation.getRecipients().getNumbers().length == 1) {
+            chatType = SuntekMessageData.CHAT_TYPE_ONE2ONE;
+        } else {
+            chatType = SuntekMessageData.CHAT_TYPE_ONE2GROUP;
+        }
+        switch (chatType) {
+            case SuntekMessageData.CHAT_TYPE_GROUP:
+                if (mConversation.getThreadId() < 0) {
+                    return;
+                } else {
+                    GroupChatModel groupChat = mConversation.getGroupChat();
+                    long thread_id = groupChat.getThreadId();
+                    String conversationId = groupChat.getConversationId();
+                    String groupId = String.valueOf(groupChat.getId());
+                    RcsApiManager.getMessageApi().sendGroupVCard(thread_id, conversationId, -1,
+                            rcsContact, groupId);
+                }
+                break;
+            case SuntekMessageData.CHAT_TYPE_ONE2ONE:
+                String[] receives = mConversation.getRecipients().getNumbers();
+                RcsApiManager.getMessageApi().sendVCard(mConversation.getThreadId(), -1,
+                        receives[0], rcsContact);
+                break;
+            case SuntekMessageData.CHAT_TYPE_ONE2GROUP:
+                String[] receives2 = mConversation.getRecipients().getNumbers();
+                RcsApiManager.getMessageApi().sendOne2ManyVCard(mConversation.getThreadId(), -1,
+                        Arrays.asList(receives2), rcsContact);
+                break;
+            default:
+                break;
+        }
+    }
+
+    public void sendRcsVcardList(String[] dests, long threadId, MessageApi messageApi,
+            List<RCSContact> list) throws ServiceDisconnectedException {
+        if (mConversation.isGroupChat()) {
+            GroupChatModel groupChat = mConversation.getGroupChat();
+            long thread_id = groupChat.getThreadId();
+            String conversationId = groupChat.getConversationId();
+            String groupId = String.valueOf(groupChat.getId());
+            messageApi.sendGroupVCardList(thread_id, conversationId, -1, list, groupId + "");
+        } else if (dests.length == 1) {
+            messageApi.sendVCardList(threadId, -1, dests[0], list, 1);
+        } else {
+            messageApi.sendOne2ManyVCardList(threadId, -1, Arrays.asList(dests), list);
         }
     }
 
     public void sendRcsVcard(String[] dests, long threadId, MessageApi messageApi)
-            throws ServiceDisconnectedException, RemoteException,FileSuffixException,
-            FileNotExistsException {
+            throws ServiceDisconnectedException {
         if (mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
+            GroupChatModel groupChat = mConversation.getGroupChat();
             long thread_id = groupChat.getThreadId();
             String conversationId = groupChat.getConversationId();
             int sms_id = -1;
             String groupId = String.valueOf(groupChat.getId());
-            messageApi.sendVcardToGroupChat(groupChat.getId(), thread_id, mVcardPath);
+            messageApi.sendGroupVCard(thread_id, conversationId, sms_id,
+                    RcsUtils.RCS_MMS_VCARD_PATH, groupId);
         } else if (dests.length == 1) {
-            messageApi.sendVcard(dests[0], threadId, mVcardPath,
-                    Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendVCard(threadId, -1, dests[0], RcsUtils.RCS_MMS_VCARD_PATH);
         } else {
-            messageApi.sendVcard(Arrays.asList(dests), threadId, mVcardPath,
-                    Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendOne2ManyVCard(threadId, -1, Arrays.asList(dests),
+                    RcsUtils.RCS_MMS_VCARD_PATH);
         }
     }
 
     private void sendRcsLocation(String[] dests, long threadId, MessageApi messageApi)
-            throws ServiceDisconnectedException,RemoteException, FileSuffixException {
+            throws ServiceDisconnectedException {
         if (mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
+            GroupChatModel groupChat = mConversation.getGroupChat();
             long thread_id = groupChat.getThreadId();
             String conversationId = groupChat.getConversationId();
             int sms_id = -1;
-            messageApi.sendLocationToGroupChat(groupChat.getId(), thread_id, getLatitude(),
-                    getLongitude(),getLocation());
+            String groupId = String.valueOf(groupChat.getId());
+            messageApi.sendGroupLocation(thread_id, conversationId, sms_id, getLatitude(),
+                    getLongitude(), getLocation(), groupId);
         } else if (dests.length == 1) {
-            messageApi.sendLocation(dests[0], threadId, getLatitude(), getLongitude(),
-                    getLocation(), Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendLocation(threadId, -1, dests[0], getLatitude(), getLongitude(),
+                    getLocation());
         } else {
-            messageApi.sendLocation(Arrays.asList(dests), threadId, getLatitude(),
-                    getLongitude(), getLocation(),
-                            Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendOne2ManyLocation(threadId, -1, Arrays.asList(dests), getLatitude(),
+                    getLongitude(), getLocation());
         }
     }
 
     private void sendRcsAudio(String[] dests, long threadId, MessageApi messageApi)
-            throws ServiceDisconnectedException,RemoteException, FileSuffixException,
-            FileTooLargeException, FileDurationException, FileNotExistsException {
+            throws ServiceDisconnectedException, FileSuffixException, FileTransferException,
+            FileDurationException {
         int recordTime = getDuration();
         if (mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
+            GroupChatModel groupChat = mConversation.getGroupChat();
             long thread_id = groupChat.getThreadId();
             String conversationId = groupChat.getConversationId();
             int sms_id = -1;
             String filepath = getRcsPath();
-            messageApi.sendAudioToGroupChat(groupChat.getId(), thread_id, filepath, recordTime,
-                    getIsRecord());
+
+            String groupId = String.valueOf(groupChat.getId());
+            messageApi.sendGroupAudioFile(thread_id, conversationId, sms_id, filepath, recordTime,
+                    groupId, getIsRecord());
         } else if (dests.length == 1) {
-            messageApi.sendAudio(dests[0], threadId, getRcsPath(), recordTime,
-                    getIsRecord(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendAudioFile(threadId, -1, dests[0], getRcsPath(), recordTime, isBurn() ? 1
+                    : 0, 100, getIsRecord());
         } else {
-            messageApi.sendAudio(Arrays.asList(dests), threadId, getRcsPath(), recordTime,
-                    getIsRecord(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendOne2ManyAudioFile(threadId, -1, Arrays.asList(dests), getRcsPath(),
+                    recordTime, isBurn() ? 1 : 0, 10, getIsRecord());
         }
     }
 
     private void sendRcsVideo(String[] dests, long threadId, MessageApi messageApi)
-            throws ServiceDisconnectedException, RemoteException, FileTooLargeException,
-            FileDurationException, FileSuffixException, FileNotExistsException {
+            throws ServiceDisconnectedException, FileSuffixException, FileTransferException,
+            FileDurationException {
         int recordTime = getDuration();
         if (mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
+            GroupChatModel groupChat = mConversation.getGroupChat();
             long thread_id = groupChat.getThreadId();
             int sms_id = -1;
+            String groupId = String.valueOf(groupChat.getId());
             String conversationId = groupChat.getConversationId();
-            messageApi.sendVideoToGroupChat(groupChat.getId(), thread_id, getRcsPath(),
-                    recordTime,getIsRecord());
+            messageApi.sendGroupVideoFile(thread_id, conversationId, sms_id, getRcsPath(),
+                    recordTime, groupId, getIsRecord());
         } else if (dests.length == 1) {
-            messageApi.sendVideo(dests[0], threadId, getRcsPath(), recordTime,
-                    getIsRecord(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendVideoFile(threadId, -1, dests[0], getRcsPath(), recordTime, isBurn() ? 1
+                    : 0, 100, getIsRecord());
         } else {
-            messageApi.sendVideo(Arrays.asList(dests), threadId, getRcsPath(), recordTime,
-                    getIsRecord(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendOne2ManyVideoFile(threadId, -1, Arrays.asList(dests), getRcsPath(),
+                    recordTime, isBurn() ? 1 : 0, 100, getIsRecord());
         }
     }
 
     private void sendRcsImage(String[] dests, long threadId, MessageApi messageApi)
-            throws ServiceDisconnectedException, RemoteException, FileSuffixException,
-            FileDurationException, FileTooLargeException, FileNotExistsException{
+            throws ServiceDisconnectedException, FileSuffixException, FileTransferException,
+            FileDurationException {
         if (mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
+            GroupChatModel groupChat = mConversation.getGroupChat();
             long thread_id = groupChat.getThreadId();
-            messageApi.sendImageToGroupChat(groupChat.getId(), thread_id, getRcsPath(),
-                      getScalingToInt(), false);
+            int sms_id = -1;
+            String groupId = String.valueOf(groupChat.getId());
+            String conversationId = groupChat.getConversationId();
+            messageApi.sendGroupImageFile(thread_id, conversationId, sms_id, getRcsPath(), groupId,
+                    getScalingToInt());
         } else if (dests.length == 1) {
-            messageApi.sendImage(dests[0], threadId, getRcsPath(), getScalingToInt(),
-                     false, isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendImageFile(threadId, -1, dests[0], getRcsPath(), isBurn() ? 1 : 0, 100,
+                    getScalingToInt());
         } else {
-            messageApi.sendImage(Arrays.asList(dests), threadId, getRcsPath(),
-                    getScalingToInt(), false, isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendOne2ManyImageFile(threadId, -1, Arrays.asList(dests), getRcsPath(),
+                    isBurn() ? 1 : 0, 100, getScalingToInt());
         }
     }
 
-    private void sendRcsText(String msgText, String[] dests, long threadId,
-            MessageApi messageApi)
-            throws ServiceDisconnectedException, RemoteException {
+    private void sendRcsText(String msgText, String[] dests, long threadId, MessageApi messageApi)
+            throws ServiceDisconnectedException {
         if (mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
+            GroupChatModel groupChat = mConversation.getGroupChat();
             String groupId = String.valueOf(groupChat.getId());
             String conversationId = groupChat.getConversationId();
-            messageApi.sendTextToGroupChat(groupChat.getId(), groupChat.getThreadId(),
-                    msgText);
+            messageApi.sendGroupMessage(groupChat.getThreadId(), conversationId, 0, msgText,
+                    groupId);
         } else if (dests.length == 1) {
-            messageApi.sendText(dests[0], threadId, msgText,
-                    isBurn() ? 1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendTextMessage(threadId, dests[0], msgText, isBurn() ? 1 : 0, 10);
         } else {
-            messageApi.sendText(Arrays.asList(dests), threadId, msgText,
-                    isBurn() ? 1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendOne2ManyTextMessage(threadId, Arrays.asList(dests), msgText,
+                    isBurn() ? 1 : 0, 10);
         }
     }
 
@@ -1811,7 +1849,7 @@ public class WorkingMessage {
             }, "WorkingMessage.send MMS").start();
         } else {
 
-            if (SupportApi.getInstance().isRcsSupported()) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 String text = mText.toString();
                 final String msgText = text;
                 new Thread(new Runnable() {

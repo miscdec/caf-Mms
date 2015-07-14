@@ -38,14 +38,13 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.mms.R;
-import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.ConversationList;
-
-import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
-import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 
 public class RcsNotifyManager {
     private static final String LOG_TAG = "RCS_UI";
@@ -60,7 +59,7 @@ public class RcsNotifyManager {
         // TODO factor out common code for creating notifications
         boolean bNotifEnabled = MessagingPreferenceActivity
                 .getNotificationEnabled(context);
-        if (!bNotifEnabled || state != RcsUtils.MESSAGE_FAIL) {
+        if (!bNotifEnabled || state != SuntekMessageData.MSG_STATE_SEND_FAIL) {
             return;
         }
         int totalFailedCount = getRcsUndeliveredMessageCount(context, state);
@@ -101,8 +100,7 @@ public class RcsNotifyManager {
     private static int getRcsUndeliveredMessageCount(Context context, int state) {
         Cursor rcsundeliveredCursor = SqliteWrapper.query(context,
                 context.getContentResolver(), RCS_UNDELIVERED_URI, null,
-                RcsColumns.SmsRcsColumns.RCS_MSG_STATE + " = " + state,
-                null, null);
+                "rcs_msg_state = " + state, null, null);
         if (rcsundeliveredCursor == null) {
             return 0;
         }
@@ -127,8 +125,7 @@ public class RcsNotifyManager {
             Context context, boolean isDownload, long threadId, int state) {
         Cursor cursor = SqliteWrapper.query(context,
                 context.getContentResolver(), RCS_UNDELIVERED_URI, null,
-                RcsColumns.SmsRcsColumns.RCS_MSG_STATE + " = " + state,
-                null, null);
+                "rcs_msg_state = " + state, null, null);
         if (cursor == null) {
             return null;
         }

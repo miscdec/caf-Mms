@@ -119,7 +119,6 @@ public class Contact {
     private Bitmap mAvatar;
     private byte [] mAvatarData;
     private int mAccentColor;
-    private boolean mIsChecked = true;
     private boolean mIsStale;
     private boolean mQueryPending;
     private boolean mIsMe;          // true if this contact is me!
@@ -1366,14 +1365,6 @@ public class Contact {
                 }
             }
         }
-    }
-
-    public boolean isChecked() {
-        return mIsChecked;
-    }
-
-    public void setChecked(boolean mIsChecked) {
-        this.mIsChecked = mIsChecked;
     }
 
     private static void log(String msg) {

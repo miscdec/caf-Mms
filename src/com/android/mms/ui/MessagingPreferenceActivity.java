@@ -96,7 +96,6 @@ import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
-import com.android.mms.rcs.RcsUtils;
 import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.Recycler;
@@ -113,7 +112,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
-import com.suntek.mway.rcs.client.api.support.SupportApi;
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -1377,14 +1375,15 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             public void onNumberSet(int limit) {
                 mSmsRecycler.setMessageLimit(MessagingPreferenceActivity.this, limit);
                 setSmsDisplayLimit();
-                if (mSmsRecycler.checkForThreadsOverLimit(MessagingPreferenceActivity.this)) {
-                    getAsyncDialog().runAsync(new Runnable() {
-                        @Override
-                        public void run() {
+                getAsyncDialog().runAsync(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mSmsRecycler
+                                .checkForThreadsOverLimit(MessagingPreferenceActivity.this)) {
                             mSmsRecycler.deleteOldMessages(MessagingPreferenceActivity.this);
                         }
-                    }, null, R.string.pref_title_auto_delete);
-                }
+                    }
+                }, null, R.string.pref_title_auto_delete);
             }
     };
 
@@ -1393,14 +1392,15 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             public void onNumberSet(int limit) {
                 mMmsRecycler.setMessageLimit(MessagingPreferenceActivity.this, limit);
                 setMmsDisplayLimit();
-                if (mMmsRecycler.checkForThreadsOverLimit(MessagingPreferenceActivity.this)) {
-                    getAsyncDialog().runAsync(new Runnable() {
-                        @Override
-                        public void run() {
+                getAsyncDialog().runAsync(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mMmsRecycler
+                                .checkForThreadsOverLimit(MessagingPreferenceActivity.this)) {
                             mMmsRecycler.deleteOldMessages(MessagingPreferenceActivity.this);
                         }
-                    }, null, R.string.pref_title_auto_delete);
-                }
+                    }
+                }, null, R.string.pref_title_auto_delete);
             }
     };
 
@@ -1766,8 +1766,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     //  2. the feature is enabled in the mms settings page
     //  3. the SIM knows its own phone number
     public static boolean getIsGroupMmsEnabled(Context context) {
-        if (SupportApi.getInstance().isRcsSupported()
-                && RcsUtils.isRcsOnline()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()
+                && RcsApiManager.getSupportApi().isOnline()) {
             return false;
         }
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);

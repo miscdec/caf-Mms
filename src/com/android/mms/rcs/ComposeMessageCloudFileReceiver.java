@@ -23,6 +23,13 @@
 
 package com.android.mms.rcs;
 
+import java.util.HashMap;
+
+import com.android.mms.ui.ComposeMessageActivity;
+import com.android.mms.ui.MessageListAdapter;
+import com.android.mms.ui.MessageListItem;
+import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
+import com.android.mms.R;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -34,16 +41,6 @@ import android.util.Log;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.android.mms.ui.ComposeMessageActivity;
-import com.android.mms.ui.MessageListAdapter;
-import com.android.mms.ui.MessageListItem;
-import com.android.mms.R;
-import com.suntek.mway.rcs.client.aidl.constant.Constants;
-import com.suntek.mway.rcs.client.aidl.constant.Parameter;
-import com.suntek.rcs.ui.common.mms.RcsFileTransferCache;
-
-import java.util.HashMap;
 
 public class ComposeMessageCloudFileReceiver extends BroadcastReceiver {
 
@@ -60,63 +57,63 @@ public class ComposeMessageCloudFileReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         ConnectivityManager manager = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        long messageId = intent.getLongExtra(
-                Parameter.EXTRA_MCLOUD_CHATMESSAGE_ID, -1);
         NetworkInfo gprs = manager
                 .getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
         NetworkInfo wifi = manager
                 .getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
         if (!gprs.isConnected() && !wifi.isConnected()) {
-            if (RcsUtils.queryRcsMsgDownLoadState(context, messageId)
-                    != RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
-                RcsUtils.updateFileDownloadState(context, messageId,
-                        RcsUtils.RCS_IS_DOWNLOAD_FAIL);
-            }
+            mMsgListAdapter.setRcsIsStopDown(true);
             mMsgListAdapter.notifyDataSetChanged();
             return;
         }
-        String eventType = intent.getStringExtra(Parameter.EXTRA_MCLOUD_ENENTTYPE);
+        String eventType = intent
+                .getStringExtra(BroadcastConstants.BC_VAR_MC_ENENTTYPE);
+        int messageId = intent.getIntExtra(
+                BroadcastConstants.BC_VAR_MC_CHATMESSAGE_ID, -1);
+        HashMap<String, Long> fileProgressHashMap = mMsgListAdapter
+                .getFileTrasnferHashMap();
+
+        TextView textDataView = (TextView) mListView
+                .findViewWithTag("tag_file_" + messageId);
 
         if (!TextUtils.isEmpty(eventType) && eventType.
-                equals(Constants.PluginConstants.CONST_MCLOUD_EVENT_ERROR)) {
+                equals(BroadcastConstants.BC_V_MC_EVENTTYPE_ERROR)) {
             Toast.makeText(context, R.string.download_mcloud_file_fail,
                     Toast.LENGTH_SHORT).show();
-            RcsFileTransferCache.getInstance().removeFileTransferPercent(messageId);
-            if (RcsUtils.queryRcsMsgDownLoadState(context, messageId)
-                    != RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
-                RcsUtils.updateFileDownloadState(context, messageId,
-                        RcsUtils.RCS_IS_DOWNLOAD_FAIL);
+            fileProgressHashMap.remove(String.valueOf(messageId));
+            if (textDataView != null) {
+                textDataView
+                        .setText(context.getString(R.string.stop_down_load));
             }
-            mMsgListAdapter.notifyDataSetChanged();
         } else if (!TextUtils.isEmpty(eventType) && eventType
-                .equals(Constants.PluginConstants.CONST_MCLOUD_EVENT_PROGRESS)) {
-            float process = (int) intent.getLongExtra(Parameter.EXTRA_MCLOUD_PROCESS_SIZE, 0);
-            float total = (int) intent.getLongExtra(Parameter.EXTRA_MCLOUD_TOTAL_SIZE, 0);
+                .equals(BroadcastConstants.BC_V_MC_EVENTTYPE_PROGRESS)) {
+            float process = (int) intent.getLongExtra(
+                    BroadcastConstants.BC_VAR_MC_PROCESS_SIZE, 0);
+            float total = (int) intent.getLongExtra(
+                    BroadcastConstants.BC_VAR_MC_TOTAL_SIZE, 0);
             long percent = (long) ((process / total) * 100);
-            RcsFileTransferCache.getInstance().addFileTransferPercent(messageId, percent);
-            if (RcsUtils.queryRcsMsgDownLoadState(context, messageId) !=
-                    RcsUtils.RCS_IS_DOWNLOADING){
-                RcsUtils.updateFileDownloadState(context, messageId,
-                        RcsUtils.RCS_IS_DOWNLOADING);
+            fileProgressHashMap.put(String.valueOf(messageId), percent);
+            mMsgListAdapter.setsFileTrasnfer(fileProgressHashMap);
+            if (textDataView != null) {
+                textDataView.setText(context.getString(
+                        R.string.downloading_percent, percent));
             }
             mMsgListAdapter.notifyDataSetChanged();
         } else if (!TextUtils.isEmpty(eventType) && eventType
-                .equals(Constants.PluginConstants.CONST_MCLOUD_EVENT_SUCCESS)) {
-            RcsFileTransferCache.getInstance().removeFileTransferPercent(messageId);
-            if (RcsUtils.queryRcsMsgDownLoadState(context, messageId) !=
-                    RcsUtils.RCS_IS_DOWNLOAD_OK){
-                RcsUtils.updateFileDownloadState(context, messageId,
-                        RcsUtils.RCS_IS_DOWNLOAD_OK);
+                .equals(BroadcastConstants.BC_V_MC_EVENTTYPE_SUCCESS)) {
+            fileProgressHashMap.remove(String.valueOf(messageId));
+            if (textDataView != null) {
+                textDataView.setText(context
+                        .getString(R.string.downloading_finish));
             }
             mMsgListAdapter.notifyDataSetChanged();
         } else if(!TextUtils.isEmpty(eventType) && eventType
-                .equals(Constants.PluginConstants.CONST_MCLOUD_EVENT_FILE_TOO_LARGE)){
+                .equals(BroadcastConstants.BC_V_MC_EVENTTYPE_FILE_TOO_LARGE)){
           Toast.makeText(context,R.string.file_is_too_larger,
                   Toast.LENGTH_LONG).show();
         } else if(!TextUtils.isEmpty(eventType) && eventType.
-                equals(Constants.PluginConstants.CONST_MCLOUD_EVENT_SUFFIX_NOT_ALLOWED)){
+                equals(BroadcastConstants.BC_V_MC_EVENTTYPE_SUFFIX_NOT_ALLOWED)){
             Toast.makeText(context,R.string.name_not_fix,
                     Toast.LENGTH_LONG).show();
         }

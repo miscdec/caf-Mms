@@ -47,9 +47,8 @@ import android.widget.SimpleAdapter;
 
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.rcs.RcsUtils;
-
-import com.suntek.mway.rcs.client.api.support.SupportApi;
 
 public class AttachmentPagerAdapter extends PagerAdapter {
     public static final int GRID_COLUMN_COUNT = 3;
@@ -197,7 +196,7 @@ public class AttachmentPagerAdapter extends PagerAdapter {
                         : R.drawable.ic_attach_slideshow_holo_light));
         mIndexOfAttachmentTypes.put(index++, ADD_SLIDESHOW);
         boolean config_vcard = mContext.getResources().getBoolean(R.bool.config_vcard);
-        boolean isRcsSupported = SupportApi.getInstance().isRcsSupported();
+        boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
         if (config_vcard) {
             list.add(new IconListItem(mContext.getString(R.string.attach_add_contact_as_text),
                     (!mIsReplace && mHasSlideshow) ? R.drawable.ic_attach_contact_info_disable

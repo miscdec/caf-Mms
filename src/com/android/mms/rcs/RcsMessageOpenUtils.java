@@ -23,6 +23,23 @@
 
 package com.android.mms.rcs;
 
+import com.android.mms.MmsApp;
+import com.android.mms.R;
+import com.android.mms.ui.MessageItem;
+import com.android.mms.ui.MessageListItem;
+import com.android.vcard.VCardParser;
+import com.android.vcard.VCardParser_V21;
+import com.android.vcard.exception.VCardException;
+import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
+import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
+import com.suntek.mway.rcs.client.aidl.provider.model.CloudFileMessage;
+import com.suntek.mway.rcs.client.aidl.plugin.entity.emoticon.EmoticonConstant;
+import com.suntek.mway.rcs.client.aidl.plugin.entity.mcloudfile.TransNode;
+import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.aidl.plugin.callback.IMcloudOperationCtrl;
+import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
+
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.content.ActivityNotFoundException;
@@ -36,13 +53,13 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
-import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Intents.Insert;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -54,83 +71,64 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.mms.MmsApp;
-import com.android.mms.R;
-import com.android.mms.ui.MessageItem;
-import com.android.mms.ui.MessageListItem;
-import com.android.vcard.VCardParser;
-import com.android.vcard.VCardParser_V21;
-import com.android.vcard.exception.VCardException;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.suntek.rcs.ui.common.mms.GeoLocation;
-import com.suntek.rcs.ui.common.PropertyNode;
-import com.suntek.rcs.ui.common.RcsLog;
-import com.suntek.rcs.ui.common.VNode;
-import com.suntek.rcs.ui.common.VNodeBuilder;
-import com.suntek.mway.rcs.client.aidl.plugin.callback.ICloudOperationCtrl;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.cloudfile.TransNode;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.cloudfile.CloudFileMessage;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.emoticon.EmoticonConstant;
-import com.suntek.mway.rcs.client.api.message.MessageApi;
-import com.suntek.mway.rcs.client.api.cloudfile.CloudFileApi;
-import com.suntek.mway.rcs.client.api.basic.BasicApi;
-import com.suntek.mway.rcs.client.api.emoticon.EmoticonApi;
-import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
-
 public class RcsMessageOpenUtils {
+    private static final String LOG_TAG = "RCS_UI";
     private static final int VIEW_VCARD_DETAIL = 0;
     private static final int IMPORT_VCARD = 1;
     private static final int MERGE_VCARD_CONTACTS = 2;
+    // RCS Account API
+    private static RcsAccountApi mAccountApi = RcsApiManager.getRcsAccountApi();
+
 
     public static void openRcsSlideShowMessage(MessageListItem messageListItem) {
         MessageItem messageItem = messageListItem.getMessageItem();
-        if (messageItem.getRcsMsgState() == RcsUtils.MESSAGE_FAIL
-                && messageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_TEXT) {
+        if (messageItem.mRcsMsgState == RcsUtils.MESSAGE_FAIL
+                && messageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_TEXT) {
             retransmisMessage(messageItem);
             return;
         }
-        MessageApi messageApi = MessageApi.getInstance();
-        String filepath = messageItem.getRcsPath();
+
+        String filepath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
         File File = new File(filepath);
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(Uri.fromFile(File),
                 messageListItem.getRcsContentType().toLowerCase());
         if (!messageItem.isMe() && !RcsUtils.isFileDownLoadoK(messageItem)) {
             try {
-                if (RcsUtils.isRcsOnline()) {
-                    if (messageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOADING) {
+                if (mAccountApi.isOnline()) {
+                    MessageApi messageApi = RcsApiManager.getMessageApi();
+                    ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
+                    if (messageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOADING) {
                         RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                                messageItem.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
-                        messageApi.pauseDownload(messageItem.getMessageId());
+                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
+                        messageApi.interruptFile(message);
                     } else {
                         RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                                messageItem.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
-                        messageApi.download(messageItem.getMessageId());
+                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
+                        messageApi.acceptFile(message);
                     }
                 } else {
                     Toast.makeText(messageListItem.getContext(), R.string.rcs_network_unavailable,
                         Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
-                RcsLog.e(e);
+                Log.w(LOG_TAG, e);
             }
         } else if (messageItem.isMe() || RcsUtils.isFileDownLoadoK(messageItem)){
-            RcsUtils.startSafeActivity(messageListItem.getContext(), intent);
+            startSafeActivity(messageListItem.getContext(), intent);
         }
     }
 
     public static void retransmisMessage(MessageItem messageItem) {
         try {
-            MessageApi.getInstance().resend(messageItem.getMessageId());
+            RcsApiManager.getMessageApi().retransmitMessageById(String.valueOf(messageItem.mRcsId));
         } catch (ServiceDisconnectedException e) {
-            RcsLog.e(e);
-        } catch (RemoteException e) {
-            RcsLog.e(e);
+            Log.w(LOG_TAG, e);
         }
     }
 
@@ -146,8 +144,8 @@ public class RcsMessageOpenUtils {
 
     private static void resendOrOpenRcsMessage(MessageListItem messageListItem) {
         MessageItem messageItem = messageListItem.getMessageItem();
-        if (messageItem.getRcsMsgState() == RcsUtils.MESSAGE_FAIL
-                && messageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_TEXT) {
+        if (messageItem.mRcsMsgState == RcsUtils.MESSAGE_FAIL
+                && messageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_TEXT) {
             retransmisMessage(messageItem);
         } else {
             openRcsMessage(messageListItem);
@@ -156,7 +154,7 @@ public class RcsMessageOpenUtils {
 
     private static void openRcsMessage(MessageListItem messageListItem) {
         MessageItem messageItem = messageListItem.getMessageItem();
-        switch (messageItem.getRcsMsgType()) {
+        switch (messageItem.mRcsType) {
             case RcsUtils.RCS_MSG_TYPE_AUDIO:
                 openRcsAudioMessage(messageListItem);
                 break;
@@ -182,42 +180,36 @@ public class RcsMessageOpenUtils {
 
     private static void openRcsCaiYunFile(MessageListItem messageListItem) {
         MessageItem mMessageItem = messageListItem.getMessageItem();
-        boolean isFileDownloadOk = false;
+        ChatMessage msg = null;
+        boolean isFileDownload = false;
         CloudFileMessage cMessage = null;
-        CloudFileApi api = null;
-        ICloudOperationCtrl operation = null;
+        McloudFileApi api = null;
+        IMcloudOperationCtrl operation = null;
         TransNode.TransOper transOper = TransNode.TransOper.NEW;
-        String filePath = "";
         try {
-            cMessage = MessageApi.parseCloudFileMessage(mMessageItem.getMsgBody());
-            api = CloudFileApi.getInstance();
-            filePath = api.getLocalRootPath() + cMessage.getFileName();
-            if (cMessage != null) {
-                isFileDownloadOk = RcsUtils.isCloudFileDownLoadOk(cMessage);
+            msg = RcsApiManager.getMessageApi().getMessageById(String.valueOf(mMessageItem.mRcsId));
+            cMessage = msg.getCloudFileMessage();
+            api = RcsApiManager.getMcloudFileApi();
+            if (msg != null)
+                isFileDownload = RcsUtils.isFileDownLoadoK(mMessageItem);
+            if(messageListItem.isDownloading()){
+                transOper  = TransNode.TransOper.RESUME;
             }
-            if (RcsUtils.isFileDownBeginButNotEnd(filePath, cMessage.getFileSize())) {
-                transOper = TransNode.TransOper.RESUME;
+            if (messageListItem.isDownloading() && !messageListItem.getRcsIsStopDown()) {
+                messageListItem.setRcsIsStopDown(true);
+                operation.pause();
+                messageListItem.setDateViewText(R.string.stop_down_load);
+                Log.i(LOG_TAG, "STOP LOAD");
+            } else if(!isFileDownload) {
+                messageListItem.setRcsIsStopDown(false);
+                operation = api.downloadFileFromUrl(cMessage.getShareUrl(), cMessage.getFileName(),
+                        transOper,mMessageItem.mRcsId);
+                messageListItem.setDateViewText(R.string.rcs_downloading);
             }
-            if (RcsUtils.isRcsOnline()) {
-                if (!isFileDownloadOk && mMessageItem.getMsgDownlaodState() ==
-                        RcsUtils.RCS_IS_DOWNLOADING) {
-                    RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                            mMessageItem.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
-                    operation.pause();
-                    messageListItem.setDateViewText(R.string.stop_down_load);
-                } else if (!isFileDownloadOk) {
-                    RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                            mMessageItem.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
-                    operation = api.downloadFileFromUrl(cMessage.getShareUrl(),
-                            cMessage.getFileName(), transOper, mMessageItem.getMessageId());
-                    messageListItem.setDateViewText(R.string.rcs_downloading);
-                }
-            } else {
-                Toast.makeText(messageListItem.getContext(), R.string.rcs_network_unavailable,
-                        Toast.LENGTH_SHORT).show();
-            }
-            if (isFileDownloadOk) {
+
+            if (isFileDownload) {
                 String path = api.getLocalRootPath() + cMessage.getFileName();
+                Log.i("RCS_UI","PATH="+path);
                 Intent intent2 = RcsUtils.OpenFile(path);
                 messageListItem.getContext().startActivity(intent2);
             }
@@ -225,6 +217,7 @@ public class RcsMessageOpenUtils {
             if(e instanceof ActivityNotFoundException){
                 Toast.makeText(messageListItem.getContext(), R.string.please_install_application,
                         Toast.LENGTH_LONG).show();
+                Log.w(LOG_TAG, e);
             }
         }
 
@@ -232,20 +225,15 @@ public class RcsMessageOpenUtils {
 
     private static void openRcsEmojiMessage(MessageListItem messageListItem){
         MessageItem messageItem = messageListItem.getMessageItem();
-        String[] body = messageItem.getRcsPath().split(",");
-        EmoticonApi emotionApi = EmoticonApi.getInstance();
+        String[] body = messageItem.mBody.split(",");
         byte[] data = null;
         try {
-            if (messageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
-                emotionApi.downloadEmoticon(body[0], messageItem.getMessageId());
-                return;
-            }
-            data = emotionApi.decrypt2Bytes(body[0], EmoticonConstant.EMO_DYNAMIC_FILE);
+            data = RcsApiManager
+                    .getEmoticonApi()
+                    .decrypt2Bytes(body[0],
+                            EmoticonConstant.EMO_DYNAMIC_FILE);
         } catch (ServiceDisconnectedException e) {
-            RcsLog.e(e);
-            return;
-        } catch (RemoteException e) {
-            RcsLog.e(e);
+            e.printStackTrace();
             return;
         }
         if(data == null || data.length <= 0){
@@ -253,68 +241,77 @@ public class RcsMessageOpenUtils {
         }
         Context context = messageListItem.getContext();
         View view = messageListItem.getImageView();
-        com.suntek.rcs.ui.common.utils.RcsUtils.openPopupWindow(context, view, data,
-                R.drawable.rcs_emoji_popup_bg);
+        RcsUtils.openPopupWindow(context, view, data);
     }
 
     private static void openRcsAudioMessage(MessageListItem messageListItem) {
-        MessageItem messageItem = messageListItem.getMessageItem();
-        String rcsContentType = messageListItem.getRcsContentType();
-        String filePath = messageItem.getRcsPath();
-        File file = new File(filePath);
-        if (!file.exists()) {
-            Toast.makeText(messageListItem.getContext(), R.string.file_not_exist,
-                    Toast.LENGTH_LONG).show();
-            return;
+        try {
+            MessageItem messageItem = messageListItem.getMessageItem();
+            String rcsContentType = messageListItem.getRcsContentType();
+            String filePath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
+            File file = new File(filePath);
+            if (!file.exists()) {
+                Toast.makeText(messageListItem.getContext(), "no exists file",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.fromFile(file),
+                    rcsContentType.toLowerCase());
+            messageListItem.getContext().startActivity(intent);
+        } catch (Exception e) {
+            Log.w(LOG_TAG, e);
         }
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(Uri.fromFile(file), rcsContentType.toLowerCase());
-        RcsUtils.startSafeActivity(messageListItem.getContext(), intent);
     }
 
     private static void openRcsImageMessage(MessageListItem messageListItem) {
         MessageItem messageItem = messageListItem.getMessageItem();
 
-        String filePath = messageItem.getRcsPath();
+        String filePath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
         File file = new File(filePath);
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        String rcsMimeType = messageItem.getRcsMimeType();
-        if (rcsMimeType != null && rcsMimeType.endsWith(RcsUtils.RCS_MSG_IMAGE_TYPE_BMP)) {
-            intent.setDataAndType(Uri.fromFile(file), RcsUtils.RCS_MSG_IMAGE_TYPE_BMP);
-        } else if (rcsMimeType != null && rcsMimeType.endsWith(RcsUtils.RCS_MSG_IMAGE_TYPE_GIF)) {
+        if (messageItem.mRcsMimeType != null && messageItem.mRcsMimeType.endsWith("image/bmp")) {
+            intent.setDataAndType(Uri.fromFile(file), "image/bmp");
+        } else if (messageItem.mRcsMimeType != null && messageItem.mRcsMimeType.endsWith("image/gif")) {
             intent.setAction("com.android.gallery3d.VIEW_GIF");
-            intent.setDataAndType(Uri.fromFile(file), RcsUtils.RCS_MSG_IMAGE_TYPE_GIF);
+            intent.setDataAndType(Uri.fromFile(file), "image/gif");
         } else {
-            intent.setDataAndType(Uri.fromFile(file), RcsUtils.RCS_MSG_IMAGE_TYPE_ALL);
+            intent.setDataAndType(Uri.fromFile(file), "image/*");
         }
+        ChatMessage msg = null;
         boolean isFileDownload = false;
-        if (messageItem != null)
-            isFileDownload = RcsChatMessageUtils.isFileDownload(filePath,
-                    messageItem.getRcsMsgFileSize());
+        try {
+            msg = RcsApiManager.getMessageApi().getMessageById(String.valueOf(messageItem.mRcsId));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (msg != null)
+            isFileDownload = RcsChatMessageUtils.isFileDownload(filePath, msg.getFilesize());
         if (!messageItem.isMe() && !isFileDownload) {
             try {
-                if (RcsUtils.isRcsOnline()) {
-                    MessageApi messageApi = MessageApi.getInstance();
-                    if (messageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOADING) {
+                if (mAccountApi.isOnline()) {
+                    MessageApi messageApi = RcsApiManager.getMessageApi();
+                    ChatMessage message = messageApi.getMessageById(String.valueOf(messageItem.mRcsId));
+                    if (messageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOADING) {
                         RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                                messageItem.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
-                        messageApi.pauseDownload(messageItem.getMessageId());
+                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
+                        messageApi.interruptFile(message);
                     } else {
                         RcsUtils.updateFileDownloadState(messageListItem.getContext(),
-                                messageItem.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
-                        messageApi.download(messageItem.getMessageId());
+                                message.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
+                        messageApi.acceptFile(message);
                     }
                 } else {
                     Toast.makeText(messageListItem.getContext(), R.string.rcs_network_unavailable,
                             Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
-                RcsLog.e(e);
+                Log.w(LOG_TAG, e);
             }
             return;
         }
         if (messageItem.isMe() || isFileDownload) {
-            RcsUtils.startSafeActivity(messageListItem.getContext(), intent);
+            startSafeActivity(messageListItem.getContext(), intent);
         }
     }
 
@@ -329,32 +326,32 @@ public class RcsMessageOpenUtils {
                 context.getString(R.string.vcard_import),
                 context.getString(R.string.merge_contacts)
         };
-        final MessageItem messageItem = messageListItem.getMessageItem();
+       final MessageItem messageItem = messageListItem.getMessageItem();
         AlertDialog.Builder builder = new AlertDialog.Builder(messageListItem.getContext());
         builder.setItems(openVcardItems, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
                     case VIEW_VCARD_DETAIL:
-                        String vcardFilePath = messageItem.getRcsPath();
-                        ArrayList<PropertyNode> propList =
-                                openRcsVcardDetail(context,vcardFilePath);
+                        String vcardFilePath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
+                        ArrayList<PropertyNode> propList = openRcsVcardDetail(context,vcardFilePath);
                         showDetailVcard(context, propList);
                         break;
                     case IMPORT_VCARD:
                         try {
-                          String filePath = messageItem.getRcsPath();
+                          String filePath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
                           File file = new File(filePath);
                           Intent intent = new Intent(Intent.ACTION_VIEW);
-                          intent.setDataAndType(Uri.fromFile(file),
-                                  messageListItem.getRcsContentType().toLowerCase());
+                          intent.setDataAndType(Uri.fromFile(file), messageListItem.getRcsContentType()
+                                  .toLowerCase());
                           intent.putExtra("VIEW_VCARD_FROM_MMS", true);
                           messageListItem.getContext().startActivity(intent);
                       } catch (Exception e) {
-                          RcsLog.e(e);
+                          Log.w(LOG_TAG, e);
                       }
                         break;
                     case MERGE_VCARD_CONTACTS:
-                        String mergeVcardFilePath = messageItem.getRcsPath();
+                        String mergeVcardFilePath = RcsUtils.getFilePath(
+                                messageItem.mRcsId, messageItem.mRcsPath);
                         ArrayList<PropertyNode> mergePropList
                                 = openRcsVcardDetail(context,mergeVcardFilePath);
                         mergeVcardDetail(context, mergePropList);
@@ -409,7 +406,7 @@ public class RcsMessageOpenUtils {
             intent.putParcelableArrayListExtra(Insert.DATA, phoneValue);
         }
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        RcsUtils.startSafeActivity(context, intent);
+        startSafeActivity(context, intent);
     }
 
     public static ArrayList<PropertyNode> openRcsVcardDetail(Context context,String filePath){
@@ -428,7 +425,7 @@ public class RcsMessageOpenUtils {
             ArrayList<PropertyNode> propList = vNodeList.get(0).propList;
             return propList;
         } catch (Exception e) {
-            RcsLog.e(e);
+            Log.w(LOG_TAG,e);
             return null;
         }
     }
@@ -523,36 +520,49 @@ public class RcsMessageOpenUtils {
 
     private static void openRcsLocationMessage(MessageListItem messageListItem) {
         MessageItem messageItem = messageListItem.getMessageItem();
-        String filePath = messageItem.getRcsPath();
-        String messageItemBody = messageItem.getMsgBody();
+        String filePath = RcsUtils.getFilePath(messageItem.mRcsId, messageItem.mRcsPath);
+        String messageItemBody = messageItem.mBody;
         try {
             GeoLocation geo = RcsUtils.readMapXml(filePath);
             String geourl = "geo:" + geo.getLat() + "," + geo.getLng()+ "?q=" + geo.getLabel();
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(geourl));
             messageListItem.getContext().startActivity(intent);
         } catch (NullPointerException e) {
-            RcsLog.e(e);
+            Log.w(LOG_TAG, e);
         } catch (ActivityNotFoundException ae) {
             Toast.makeText(messageListItem.getContext(),
                     R.string.toast_install_map, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            RcsLog.e(e);
+            Log.w(LOG_TAG, e);
         }
     }
+
     public static boolean isCaiYunFileDown(MessageItem messageItem){
+        ChatMessage msg = null;
         boolean isFileDownload = false;
         CloudFileMessage cMessage = null;
-        CloudFileApi api = null;
+        McloudFileApi api = null;
 
         try {
-            cMessage = MessageApi.getInstance().parseCloudFileMessage(messageItem.getMsgBody());
-            api = CloudFileApi.getInstance();
-            if (cMessage != null)
+            msg = RcsApiManager.getMessageApi().getMessageById(String.valueOf(messageItem.mRcsId));
+            cMessage = msg.getCloudFileMessage();
+            api = RcsApiManager.getMcloudFileApi();
+            if (msg != null)
                 isFileDownload = RcsChatMessageUtils.isFileDownload(api.getLocalRootPath()
                                     + cMessage.getFileName(), cMessage.getFileSize());
         } catch (Exception e) {
-            RcsLog.e(e);
+            Log.w("RCS_UI",e);
         }
         return isFileDownload;
+    }
+
+    private static void startSafeActivity(Context context, Intent intent) {
+        try {
+            context.startActivity(intent);
+        } catch(ActivityNotFoundException e) {
+            Toast.makeText(context, R.string.please_install_application,
+                    Toast.LENGTH_LONG).show();
+            Log.w(LOG_TAG, e);
+        }
     }
 }

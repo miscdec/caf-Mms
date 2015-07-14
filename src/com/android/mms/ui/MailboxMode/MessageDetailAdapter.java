@@ -73,22 +73,24 @@ import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.android.mms.R;
+import com.android.mms.rcs.GeoLocation;
+import com.android.mms.rcs.PropertyNode;
+import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.rcs.RcsChatMessageUtils;
+import com.android.mms.rcs.RcsEmojiStoreUtil;
 import com.android.mms.rcs.RcsMessageOpenUtils;
 import com.android.mms.rcs.RcsUtils;
 import com.android.vcard.VCardParser;
 import com.android.vcard.VCardParser_V21;
+import com.android.mms.rcs.VNode;
+import com.android.mms.rcs.VNodeBuilder;
 import com.android.mms.ui.MessageItem;
 import com.android.mms.ui.MessageListItem;
 import com.android.mms.ui.MessageUtils;
-
-import com.suntek.rcs.ui.common.mms.GeoLocation;
-import com.suntek.rcs.ui.common.PropertyNode;
-import com.suntek.rcs.ui.common.RcsEmojiStoreUtil;
-import com.suntek.rcs.ui.common.VNode;
-import com.suntek.rcs.ui.common.VNodeBuilder;
-
-import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
+import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
+import com.suntek.mway.rcs.client.aidl.provider.model.CloudFileMessage;
+import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 
 public class MessageDetailAdapter extends PagerAdapter {
 
@@ -100,10 +102,7 @@ public class MessageDetailAdapter extends PagerAdapter {
     private ArrayList<TextView> mScaleTextList;
     private String mContentType = "";
     private int mMsgType = -1;
-
-    public static final int SHOW_DETAIL_VCARD          = 0;
-    public static final int VIEW_VCARD_FROM_MMS        = 1;
-    public static final int MERGE_VCARD_DETAIL         = 2;
+    private int mRcsId;
 
     public MessageDetailAdapter(Context context, Cursor cursor) {
         mContext = context;
@@ -120,7 +119,8 @@ public class MessageDetailAdapter extends PagerAdapter {
         TextView bodyText = (TextView) content.findViewById(R.id.textViewBody);
         LinearLayout mLinearLayout = (LinearLayout)content.findViewById(R.id.other_type_layout);
 
-        mMsgType = mCursor.getInt(mCursor.getColumnIndex(RcsColumns.SmsRcsColumns.RCS_MSG_TYPE));
+        mMsgType = mCursor.getInt(mCursor.getColumnIndex("rcs_msg_type"));
+        mRcsId = mCursor.getInt(mCursor.getColumnIndex("rcs_id"));
         if (mMsgType == RcsUtils.RCS_MSG_TYPE_TEXT) {
             initTextMsgView(bodyText);
         } else {
@@ -141,7 +141,7 @@ public class MessageDetailAdapter extends PagerAdapter {
                 mContentType = "audio/*";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO) {
                 String thumbPath = mCursor.getString(mCursor
-                        .getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_THUMB_PATH));
+                        .getColumnIndexOrThrow("rcs_thumb_path"));
                 Bitmap bitmap = BitmapFactory.decodeFile(thumbPath);
                 imageView.setImageBitmap(bitmap);
                 showContentFileSize(textView);
@@ -160,7 +160,44 @@ public class MessageDetailAdapter extends PagerAdapter {
                 String[] body = messageBody.split(",");
                 RcsEmojiStoreUtil.getInstance().loadImageAsynById(imageView, body[0],
                         RcsEmojiStoreUtil.EMO_STATIC_FILE);
-            }  else {
+            } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
+                imageView.setImageResource(R.drawable.rcs_ic_cloud);
+                ChatMessage msg = null;
+                try {
+                    msg = RcsApiManager.getMessageApi().getMessageById(String.valueOf(mRcsId));
+                    final CloudFileMessage cMessage = msg.getCloudFileMessage();
+                    final McloudFileApi api = RcsApiManager.getMcloudFileApi();
+                    if (cMessage != null) {
+                        textView.setText(cMessage.getFileName() + "(" + cMessage.getFileSize()
+                                + "K )");
+                        final boolean isFileDownload = RcsChatMessageUtils.isFileDownload(
+                                api.getLocalRootPath() + cMessage.getFileName(),
+                                cMessage.getFileSize());
+                        imageView.setOnClickListener(new OnClickListener() {
+                            @Override
+                            public void onClick(View arg0) {
+                                try {
+                                    if (isFileDownload) {
+                                        String path = api.getLocalRootPath()
+                                                + cMessage.getFileName();
+                                        Intent fileIntent = RcsUtils.OpenFile(path);
+                                        mContext.startActivity(fileIntent);
+                                    } else {
+                                        Toast.makeText(mContext, R.string.not_download_cloudFile,
+                                                Toast.LENGTH_SHORT).show();
+                                    }
+                                } catch (ServiceDisconnectedException e) {
+                                    Log.w(RCS_TAG, e);
+                                }
+                            }
+                        });
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(mContext, R.string.please_install_application,
+                            Toast.LENGTH_LONG).show();
+                    Log.w(RCS_TAG, e);
+                }
+            } else {
                 bodyText.setVisibility(View.VISIBLE);
                 mLinearLayout.setVisibility(View.GONE);
                 initTextMsgView(bodyText);
@@ -175,8 +212,7 @@ public class MessageDetailAdapter extends PagerAdapter {
     }
 
     private void showContentFileSize(TextView textView){
-        long fileSize = mCursor.getLong(
-                 mCursor.getColumnIndex(RcsColumns.SmsRcsColumns.RCS_FILE_SIZE));
+        long fileSize = mCursor.getLong(mCursor.getColumnIndex("rcs_file_size"));
         if(fileSize > 1024){
             textView.setText(fileSize / 1024 + " KB");
         }else{
@@ -235,19 +271,21 @@ public class MessageDetailAdapter extends PagerAdapter {
     }
 
     private void initImageMsgView(LinearLayout linearLayout) {
-        String thumbPath = mCursor.getString(
-                mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_THUMB_PATH));
-        String fileName = mCursor.getString(
-                mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILENAME));
-        thumbPath = RcsUtils.formatFilePathIfExisted(thumbPath);
-        fileName = RcsUtils.formatFilePathIfExisted(fileName);
+        String thumbPath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_thumb_path"));
+        String filePath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_path"));
+        if (thumbPath != null && !new File(thumbPath).exists() && thumbPath.contains(".")) {
+            thumbPath = thumbPath.substring(0, thumbPath.lastIndexOf("."));
+        }
+        if (filePath != null && !new File(filePath).exists() && filePath.contains(".")) {
+            filePath = filePath.substring(0, filePath.lastIndexOf("."));
+        }
         ImageView imageView = (ImageView)linearLayout.findViewById(R.id.image_view);
         Bitmap thumbPathBitmap = null;
         Bitmap filePathBitmap = null;
         if(!TextUtils.isEmpty(thumbPath)) {
             thumbPathBitmap = RcsUtils.decodeInSampleSizeBitmap(thumbPath);
-        } else if (!TextUtils.isEmpty(fileName)) {
-            filePathBitmap = RcsUtils.decodeInSampleSizeBitmap(fileName);
+        } else if (!TextUtils.isEmpty(filePath)) {
+            filePathBitmap = RcsUtils.decodeInSampleSizeBitmap(filePath);
         }
         if (thumbPathBitmap != null) {
             imageView.setBackgroundDrawable(new BitmapDrawable(thumbPathBitmap));
@@ -260,11 +298,11 @@ public class MessageDetailAdapter extends PagerAdapter {
 
     private void initVcardMagView(LinearLayout linearLayout){
         ImageView imageView = (ImageView)linearLayout.findViewById(R.id.image_view);
-        String fileName = mCursor.getString(
-                mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILENAME));
-        String vcardFileName = fileName;
+        int rcsId = mCursor.getInt(mCursor.getColumnIndexOrThrow("rcs_id"));
+        String filePath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_path"));
+        String vcardFilePath = RcsUtils.getFilePath(rcsId, filePath);
         ArrayList<PropertyNode> propList = RcsMessageOpenUtils.openRcsVcardDetail(
-                mContext, vcardFileName);
+                mContext, vcardFilePath);
         Bitmap bitmap = null;
         for (PropertyNode propertyNode : propList) {
             if ("PHOTO".equals(propertyNode.propName)) {
@@ -286,12 +324,13 @@ public class MessageDetailAdapter extends PagerAdapter {
     private OnClickListener mOnClickListener = new OnClickListener() {
         @Override
         public void onClick(View v) {
-            String fileName = mCursor.getString(
-                    mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILENAME));
-            long filesize = mCursor.getInt(
-                    mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILE_SIZE));
-            fileName = RcsUtils.formatFilePathIfExisted(fileName);
-            boolean isFileDownload = RcsChatMessageUtils.isFileDownload(fileName, filesize);
+            String rcsPath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_path"));
+            long filesize = mCursor.getInt(mCursor.getColumnIndexOrThrow("rcs_file_size"));
+            if (rcsPath.indexOf(".") != -1) {
+                int idx = rcsPath.indexOf(".");
+                rcsPath = rcsPath.substring(0, idx);
+            }
+            boolean isFileDownload = RcsChatMessageUtils.isFileDownload(rcsPath, filesize);
             if (mMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO || mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE) {
                 if (!isFileDownload) {
                     if (mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE) {
@@ -307,10 +346,11 @@ public class MessageDetailAdapter extends PagerAdapter {
                     return;
                 }
             }
-            String rcsMimeType = mCursor.getString(
-                    mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_MIME_TYPE));
+            int rcsId = mCursor.getInt(mCursor.getColumnIndexOrThrow("rcs_id"));
+            String filepath = RcsUtils.getFilePath(rcsId, rcsPath);
+            String rcsMimeType = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_mime_type"));
 
-            File file = new File(fileName);
+            File file = new File(filepath);
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setDataAndType(Uri.fromFile(file), mContentType.toLowerCase());
             if (rcsMimeType != null && rcsMimeType.endsWith("image/gif")) {
@@ -333,7 +373,7 @@ public class MessageDetailAdapter extends PagerAdapter {
                     showOpenRcsVcardDialog();
                     break;
                 case RcsUtils.RCS_MSG_TYPE_MAP:
-                    openMapMessage(fileName);
+                    openMapMessage(filepath);
                     break;
                 default:
                     break;
@@ -353,16 +393,17 @@ public class MessageDetailAdapter extends PagerAdapter {
         } catch (NullPointerException e) {
             Log.w(RCS_TAG, e);
         } catch (ActivityNotFoundException ae) {
-            Toast.makeText(mContext, R.string.toast_install_map,
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext,
+                    R.string.toast_install_map, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Log.w(RCS_TAG, e);
         }
     }
 
     private void showOpenRcsVcardDialog(){
-        final String vcardFileName = mCursor.getString(
-                mCursor.getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_FILENAME));
+        int rcsId = mCursor.getInt(mCursor.getColumnIndexOrThrow("rcs_id"));
+        String filePath = mCursor.getString(mCursor.getColumnIndexOrThrow("rcs_path"));
+        final String vcardFilePath = RcsUtils.getFilePath(rcsId, filePath);
         final String[] openVcardItems = new String[] {
                 mContext.getString(R.string.vcard_detail_info),
                 mContext.getString(R.string.vcard_import),
@@ -372,14 +413,14 @@ public class MessageDetailAdapter extends PagerAdapter {
         builder.setItems(openVcardItems, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
-                    case SHOW_DETAIL_VCARD:
+                    case 0:
                         ArrayList<PropertyNode> propList = RcsMessageOpenUtils.
-                                openRcsVcardDetail(mContext, vcardFileName);
+                                openRcsVcardDetail(mContext, vcardFilePath);
                         RcsMessageOpenUtils.showDetailVcard(mContext, propList);
                         break;
-                    case VIEW_VCARD_FROM_MMS:
+                    case 1:
                         try {
-                          File file = new File(vcardFileName);
+                          File file = new File(vcardFilePath);
                           Intent intent = new Intent(Intent.ACTION_VIEW);
                           intent.setDataAndType(Uri.fromFile(file), mContentType
                                   .toLowerCase());
@@ -389,9 +430,9 @@ public class MessageDetailAdapter extends PagerAdapter {
                           Log.w(RCS_TAG, e);
                       }
                         break;
-                    case MERGE_VCARD_DETAIL:
+                    case 2:
                         ArrayList<PropertyNode> mergePropList
-                                = openRcsVcardDetail(mContext, vcardFileName);
+                                = openRcsVcardDetail(mContext,vcardFilePath);
                         mergeVcardDetail(mContext, mergePropList);
                         break;
                     default:
@@ -402,12 +443,12 @@ public class MessageDetailAdapter extends PagerAdapter {
         builder.create().show();
     }
 
-    public static ArrayList<PropertyNode> openRcsVcardDetail(Context context, String fileName){
-        if (TextUtils.isEmpty(fileName)){
+    public static ArrayList<PropertyNode> openRcsVcardDetail(Context context,String filePath){
+        if (TextUtils.isEmpty(filePath)){
             return null;
         }
         try {
-            File file = new File(fileName);
+            File file = new File(filePath);
             FileInputStream fis = new FileInputStream(file);
             VNodeBuilder builder = new VNodeBuilder();
             VCardParser parser = new VCardParser_V21();
@@ -458,6 +499,13 @@ public class MessageDetailAdapter extends PagerAdapter {
                         intent.putExtra(ContactsContract.Intents.Insert.JOB_TITLE,
                                 propertyNode.propValue);
                 }
+//            } else if ("PHOTO".equals(propertyNode.propName)) {
+//                if (propertyNode.propValue_bytes != null) {
+//                    byte[] bytes = propertyNode.propValue_bytes;
+//                    final Bitmap vcardBitmap = BitmapFactory.decodeByteArray(
+//                            bytes, 0, bytes.length);
+//                    intent.putExtra(ContactsContract.Intents.ATTACH_IMAGE, vcardBitmap);
+//                }
             }
         }
         if (phoneValue.size() > 0) {

@@ -49,7 +49,6 @@
     <!-- 群聊通知 -->
     <string name="group_chat_created">新群聊已创建。</string>
     <string name="group_chat_active">群聊已激活。</string>
-    <string name="group_chat_accept">您已同意群聊邀请。</string>
     <string name="group_chat_update_chairman">%1$s 已成为群主。</string>
     <string name="group_chat_join">%1$s 已加入群聊。</string>
     <string name="group_chat_subject">群聊主题已更新为%1$s 。</string>
@@ -72,6 +71,12 @@
     <string name="message_downloaded">下载完毕</string>
     <string name="message_send_fail_resend">发送失败，点击继续发送</string>
     <!-- RCS -->
+    <string name="image_downloading">下载中：%1$d %%</string>
+    <string name="audio_length">音频时长:</string>
+    <string name="message_is_play_over">消息播放完了</string>
+    <string name="video_length">视频长度:</string>
+    <string name="image_msg_load_fail_tip">加载失败</string>
+    <string name="open_file_fail">打开文件失败</string>
     <string name="message_is_burnd">消息已焚</string>
     <string name="downloading_percent">下载中：%1$d %%</string>
     <string name="uploading_percent">发送中：%1$d %%</string>
@@ -89,7 +94,6 @@
     <string name="file_suffix_vaild_tip">文件格式无效！</string>
     <string name="file_size_over">文件大小超过系统限制,不能发送！</string>
     <string name="not_intent">没有应用程序可执行此操作。</string>
-    <string name="file_not_exist">文件不存在</string>
     <string name="please_input_1_100_int">请输入一个1~100的整数</string>
     <string name="video_record_out_time">视频录制超出了限制时长，限制最大时长为%1$s秒</string>
     <string name="audio_record_out_time">语音录制超出了限制时长，限制最大时长为%1$s秒</string>
@@ -213,6 +217,7 @@
     <string name="input_group_chat_title">请输入群标题</string>
     <string name="group_chat_member">群成员</string>
     <string name="create_group_chat">创建群聊</string>
+    <string name="burn_all_message">焚掉所有阅后即焚消息</string>
     <string name="name_not_fix">文件名不合法</string>
     <string name="file_is_too_larger">文件太大</string>
     <string name="please_install_application">请安装相关应用</string>
@@ -240,18 +245,5 @@
     <string name="mms_does_not_support_rcs_cachemessage_send">RCS缓存消息，不支持通过彩信发送，请重新选择</string>
     <string name="Group_name_not_fit">群聊名称不能为空格</string>
     <string name="download_fail_please_download_again">下载失败,请点击继续下载</string>
-    <string name="menu_view_one_to_many_status">查看消息状态</string>
-
-    <string name="setting_message_send_tactics">消息发送策略</string>
-    <string name="sim1_send_tactics">SIM卡1发送策略</string>
-    <string name="sim2_send_tactics">SIM卡2发送策略</string>
-    <string name="send_tactics_auto">自动</string>
-    <string name="send_tactics_IM">即时消息</string>
-    <string name="send_tactics_sms_mms">短彩信</string>
-
-    <string name="frou_g_talk">4G会议电话</string>
-    <string name="add_nuber_to_contects">从通讯录添加</string>
-    <string name="contects">通讯录</string>
-    <string name="start_call">开始拨打</string>
-    <string name="no_data_can_not_send">没有数据无法发送,请打开数据网络</string>
+    <string name="copy_rcs_message_to_sdcard_success">"附件已保存在：“<xliff:g id="path">%s</xliff:g>”"</string>
 </resources>
