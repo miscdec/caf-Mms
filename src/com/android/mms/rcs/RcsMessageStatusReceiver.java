@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 pci-suntektech Technologies, Inc.  All Rights Reserved.
+ * Copyright (c) 2015 pci-suntektech Technologies, Inc.  All Rights Reserved.
  * pci-suntektech Technologies Proprietary and Confidential.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,6 +26,8 @@ package com.android.mms.rcs;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
+import com.android.mms.rcs.RcsMessageStatusService;
 
 public class RcsMessageStatusReceiver extends BroadcastReceiver {
     public static final String MESSAGE_STATUS_RECEIVED_ACTION =
@@ -34,6 +36,7 @@ public class RcsMessageStatusReceiver extends BroadcastReceiver {
     public static final String UI_MESSAGE_STATUS_CHANGE_NOTIFY =
             "com.suntek.mway.rcs.ACTION_UI_MESSAGE_STATUS_CHANGE_NOTIFY";
 
+    public static final String UI_MESSAGE_RECEIVE = "messageAction";
     @Override
     public void onReceive(Context context, Intent intent) {
         intent.setClass(context, RcsMessageStatusService.class);
