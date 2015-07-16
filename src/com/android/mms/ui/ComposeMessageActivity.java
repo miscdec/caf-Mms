@@ -8448,6 +8448,8 @@ public class ComposeMessageActivity extends Activity
                 }
 
                 mode.getMenu().findItem(R.id.report).setVisible(isDeliveryReportMsg(position));
+                mode.getMenu().findItem(R.id.resend).setVisible(isFailedMessage(position));
+
             }
         }
 
