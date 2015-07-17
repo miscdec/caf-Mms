@@ -104,6 +104,10 @@ public class MessageDetailAdapter extends PagerAdapter {
     private int mMsgType = -1;
     private int mRcsId;
 
+    public static final int SHOW_DETAIL_VCARD          = 0;
+    public static final int VIEW_VCARD_FROM_MMS        = 1;
+    public static final int MERGE_VCARD_DETAIL         = 2;
+
     public MessageDetailAdapter(Context context, Cursor cursor) {
         mContext = context;
         mCursor = cursor;
@@ -192,9 +196,11 @@ public class MessageDetailAdapter extends PagerAdapter {
                             }
                         });
                     }
-                } catch (Exception e) {
+                } catch (ActivityNotFoundException e) {
                     Toast.makeText(mContext, R.string.please_install_application,
                             Toast.LENGTH_LONG).show();
+                    Log.w(RCS_TAG, e);
+                } catch (ServiceDisconnectedException e) {
                     Log.w(RCS_TAG, e);
                 }
             } else {
@@ -331,7 +337,8 @@ public class MessageDetailAdapter extends PagerAdapter {
                 rcsPath = rcsPath.substring(0, idx);
             }
             boolean isFileDownload = RcsChatMessageUtils.isFileDownload(rcsPath, filesize);
-            if (mMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO || mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE) {
+            if (mMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO ||
+                    mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE) {
                 if (!isFileDownload) {
                     if (mMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE) {
                         Toast.makeText(mContext, R.string.not_download_image, Toast.LENGTH_SHORT)
@@ -413,12 +420,12 @@ public class MessageDetailAdapter extends PagerAdapter {
         builder.setItems(openVcardItems, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
-                    case 0:
+                    case SHOW_DETAIL_VCARD:
                         ArrayList<PropertyNode> propList = RcsMessageOpenUtils.
                                 openRcsVcardDetail(mContext, vcardFilePath);
                         RcsMessageOpenUtils.showDetailVcard(mContext, propList);
                         break;
-                    case 1:
+                    case VIEW_VCARD_FROM_MMS:
                         try {
                           File file = new File(vcardFilePath);
                           Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -430,7 +437,7 @@ public class MessageDetailAdapter extends PagerAdapter {
                           Log.w(RCS_TAG, e);
                       }
                         break;
-                    case 2:
+                    case MERGE_VCARD_DETAIL:
                         ArrayList<PropertyNode> mergePropList
                                 = openRcsVcardDetail(mContext,vcardFilePath);
                         mergeVcardDetail(mContext, mergePropList);
@@ -499,13 +506,6 @@ public class MessageDetailAdapter extends PagerAdapter {
                         intent.putExtra(ContactsContract.Intents.Insert.JOB_TITLE,
                                 propertyNode.propValue);
                 }
-//            } else if ("PHOTO".equals(propertyNode.propName)) {
-//                if (propertyNode.propValue_bytes != null) {
-//                    byte[] bytes = propertyNode.propValue_bytes;
-//                    final Bitmap vcardBitmap = BitmapFactory.decodeByteArray(
-//                            bytes, 0, bytes.length);
-//                    intent.putExtra(ContactsContract.Intents.ATTACH_IMAGE, vcardBitmap);
-//                }
             }
         }
         if (phoneValue.size() > 0) {
