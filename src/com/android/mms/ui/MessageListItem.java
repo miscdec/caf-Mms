@@ -276,7 +276,6 @@ public class MessageListItem extends ZoomMessageListItem implements
         addZoomableTextView(mDateView);
         addZoomableTextView(mSimMessageAddress);
         addZoomableTextView(mNameView);
-
     }
 
     private void updateBodyTextView() {

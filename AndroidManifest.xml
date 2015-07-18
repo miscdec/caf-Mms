@@ -531,6 +531,18 @@
         </activity>
 
         <activity
+            android:name="com.android.mms.rcs.RcsCreateGroupChatActivity"
+            android:theme="@style/MmsTheme.NoActionBar"
+            android:label="@string/new_group_chat"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="com.android.mms.rcs.CREATR_GROUP_CHAT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".transaction.MmsNoConfirmationSendActivity"
             android:label="@string/plugger"
             android:enabled="@bool/enablePlugger"

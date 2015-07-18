@@ -599,9 +599,12 @@ public class BurnFlagMessageActivity extends Activity {
         @Override
         public void onCallStateChanged(int state, String incomingNumber) {
             switch(state) {
-            case TelephonyManager.CALL_STATE_RINGING:
-                finish();
-                break;
+                case TelephonyManager.CALL_STATE_RINGING:
+                    finish();
+                    break;
+
+                default:
+                    break;
             }
         }
     }
