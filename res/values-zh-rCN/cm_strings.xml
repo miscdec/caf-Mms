@@ -97,4 +97,6 @@
         <!-- Case of 0 or 2 or more results. -->
         <item quantity="other"><xliff:g id="number" example="15">%1$s</xliff:g> 个会话将会被标记为未读。</item>
     </plurals>
+    <!-- Select recipients dialog -->
+    <string name="adding_selected_recipients_dialog_text">添加联系人中&#8230;</string>
 </resources>
