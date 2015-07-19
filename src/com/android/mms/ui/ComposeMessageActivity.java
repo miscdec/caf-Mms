@@ -7803,10 +7803,8 @@ public class ComposeMessageActivity extends Activity
                         @Override
                         public boolean onPopupItemClick(int itemId) {
                             if (itemId == RcsSelectionMenu.SELECT_OR_DESELECT) {
-                                boolean selectAll = getListView().getCheckedItemCount() <
-                                        getListView().getCount() ? true : false;
-                                checkAll(selectAll);
-                                mSelectionMenu.updateSelectAllMode(selectAll);
+                                checkAll(!allItemsSelected());
+                                mSelectionMenu.updateSelectAllMode(allItemsSelected());
                             }
                             return true;
                         }
@@ -8545,6 +8543,8 @@ public class ComposeMessageActivity extends Activity
 
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
+            mSelectionMenu.setTitle(getString(R.string.selected_count, mCheckedCount));
+            mSelectionMenu.updateSelectAllMode(allItemsSelected());
         }
 
         private boolean allItemsSelected() {
