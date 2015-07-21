@@ -225,6 +225,8 @@ public class WorkingMessage {
 
     private String mCloudFileId;
 
+    private boolean mHasRcsMessageCache;
+
     public String getCloudFileId() {
         return mCloudFileId;
     }
@@ -347,6 +349,26 @@ public class WorkingMessage {
 
     public void setRcsEmoName(String rcsEmoName) {
         this.mRcsEmoName = rcsEmoName;
+    }
+
+    public boolean hasRcsMessageCache() {
+        return mHasRcsMessageCache;
+    }
+
+    public void setHasRcsMessageCache(boolean hasRcsMessageCache) {
+        this.mHasRcsMessageCache = hasRcsMessageCache;
+    }
+
+    public void clearRcsMessageCache(){
+        setIsBurn(false);
+        setRcsType(RcsUtils.RCS_MSG_TYPE_TEXT);
+        setRcsPath("");
+        setDuration(0);
+        setIsRecord(false);
+        setLatitude(0);
+        setLongitude(0);
+        setLocation("");
+        setCloudFileId("");
     }
 
     private void preSendRcsSmsWorker(Conversation conv, String msgText, String recipientsInUI,
