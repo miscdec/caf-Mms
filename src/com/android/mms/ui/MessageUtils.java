@@ -1693,6 +1693,10 @@ public class MessageUtils {
         }
 
         int subId[] = SubscriptionManager.getSubId(subscription);
+        if (subId == null || subId.length == 0) {
+            return null;
+        }
+
         final TelecomManager telecomManager = (TelecomManager) context
                 .getSystemService(Context.TELECOM_SERVICE);
         List<PhoneAccountHandle> pHandles = telecomManager.getCallCapablePhoneAccounts();
