@@ -2718,10 +2718,7 @@ public class ComposeMessageActivity extends Activity
             }
             saveDraft(false);    // if we've got a draft, save it first
             resetEditorText();
-            // add attachment vcard return will create new Conversation.
-            Bundle bundle = new Bundle();
-            bundle.putString(RECIPIENTS, getRecipients().serialize());
-            initialize(bundle, originalThreadId);
+            initialize(null, originalThreadId);
         }
         loadMessagesAndDraft(0);
     }
@@ -5191,6 +5188,11 @@ public class ComposeMessageActivity extends Activity
                     title = res.getString(R.string.illegal_message_or_increase_size);
                     message = res.getString(R.string.failed_to_add_media, mediaType);
                     break;
+                case WorkingMessage.FAILED_TO_QUERY_CONTACT:
+                    title = res.getString(R.string.attach_add_contact_as_vcard);
+                    message = res.getString(R.string.failed_to_add_media, title);
+                    Toast.makeText(ComposeMessageActivity.this, message, Toast.LENGTH_SHORT).show();
+                    return;
                 default:
                     throw new IllegalArgumentException("unknown error " + error);
                 }
@@ -7649,6 +7651,7 @@ public class ComposeMessageActivity extends Activity
                 RcsUtils.deleteRcsMessageByMessageId(mSelectedRcsMsgId);
             }
             mDeleteLockedMessages = false;
+            startMsgListQuery(MESSAGE_LIST_QUERY_AFTER_DELETE_TOKEN);
         }
 
         private void calculateSelectedMsgUri() {
@@ -7827,10 +7830,8 @@ public class ComposeMessageActivity extends Activity
             String body = c.getString(COLUMN_SMS_BODY);
             Intent shareIntent = getShareMessageIntent(body);
             Context ctx = getContext();
-            Intent chooserIntent =
-                    IntentUtils.createFilteredChooser(
-                            ctx, ctx.getString(R.string.message_share_intent_title),
-                            shareIntent, ctx.getPackageName());
+            Intent chooserIntent = Intent.createChooser(shareIntent,
+                    ctx.getString(R.string.message_share_intent_title));
             try {
                 startActivity(chooserIntent);
             } catch (ActivityNotFoundException e) {
