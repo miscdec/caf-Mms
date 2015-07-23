@@ -578,7 +578,7 @@
     <string name="perform_backup_title">备份</string>
     <string name="prefs_title_export_sms_messages">导出SMS</string>
     <string name="import_sms_toast">SMS导入成功</string>
-    <string name="backup_file_name_message">文件路径</string>
+    <string name="backup_file_name_message">文件路径 \'%1$s\'</string>
     <string name="delete_sms_title">删除SMS</string>
     <string name="perform_restore_title">恢复</string>
     <string name="export_sms_title">导出SMS</string>
