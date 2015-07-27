@@ -93,7 +93,7 @@ public class Conversation {
     private static final int IS_GROUP_CHAT  = 9;
     private static final int IS_CONV_T0P    = 10;
 
-    private static Context mContext;
+    private final Context mContext;
 
     // The thread ID of this conversation.  Can be zero in the case of a
     // new conversation where the recipient set is changing as the user
@@ -1079,9 +1079,9 @@ public class Conversation {
                 handler.setDeleteToken(token);
                 handler.startDelete(token, new Long(threadId), uri, selection, null);
                 if (RcsApiManager.getSupportApi().isRcsSupported()) {
-                    Conversation delConv = get(mContext, threadId, true);
-                    RcsUtils.deleteRcsMessageByThreadId(mContext, threadIds, deleteAll,
-                            delConv.mIsGroupChat);
+                    Conversation delConv = get(MmsApp.getApplication(), threadId, true);
+                    RcsUtils.deleteRcsMessageByThreadId(MmsApp.getApplication(),
+                            threadIds, deleteAll, delConv.mIsGroupChat);
                 }
                 DraftCache.getInstance().setDraftState(threadId, false);
             }

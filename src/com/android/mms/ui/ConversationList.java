@@ -146,6 +146,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     public static final int BACKUP_ALL_MESSAGE_SAVING = 1;
     public static final int BACKUP_ALL_MESSAGE_SUCCESS = 2;
 
+    public static final int CREATE_NEW_MESSAGE         = 0;
+    public static final int CREATE_NEW_GROUP_CHAT      = 1;
     private static final int PROGRESS_TOTAL = 0;
 
     // Backup and Restore messages
@@ -307,9 +309,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     }
                     break;
                 case RESTORE_ALL_MESSAGE_SAVING:
-                    if (mStartSaveProgressDialog!=null) {
+                    if (mStartSaveProgressDialog != null) {
                         mStartSaveProgressDialog.dismiss();
-                        mStartSaveProgressDialog =null;
+                        mStartSaveProgressDialog = null;
                     }
                     if (total == 0) {
                         return;
@@ -353,7 +355,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     try {
                         MessageApi messageApi = RcsApiManager.getMessageApi();
                         int length = messageId.length;
-                        for ( int i = 0; i < length; i++) {
+                        for (int i = 0; i < length; i++) {
                             if (i == 0) {
                                 String messageIndex = messageId[0].substring(1);
                                 if (length == 1) {
@@ -378,7 +380,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                                 }
                             }
                         }
-                        RcsUtils.rcsInsertMany(ConversationList.this, cMsgList,false);
+                        RcsUtils.rcsInsertMany(ConversationList.this, cMsgList, false);
                     } catch (Exception e) {
                         Log.e("RCS_UI",e.toString());
                     }
@@ -386,7 +388,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         mSaveOrBackProgressDialog.dismiss();
                         mSaveOrBackProgressDialog = null;
                     }
-                    if (mStartSaveProgressDialog !=null) {
+                    if (mStartSaveProgressDialog != null) {
                         mStartSaveProgressDialog.dismiss();
                         mStartSaveProgressDialog = null;
                     }
@@ -399,7 +401,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         mSaveOrBackProgressDialog.dismiss();
                         mSaveOrBackProgressDialog = null;
                     }
-                    if (mStartSaveProgressDialog !=null) {
+                    if (mStartSaveProgressDialog != null) {
                         mStartSaveProgressDialog.dismiss();
                         mStartSaveProgressDialog = null;
                     }
@@ -549,6 +551,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
 
         mListAdapter.setOnContentChangedListener(mContentChangedListener);
+        if (!mDoOnceAfterFirstQuery) {
+            startAsyncQuery();
+        }
         mIsRunning = true;
     }
 
@@ -1006,10 +1011,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
-                    case 0:
+                    case CREATE_NEW_MESSAGE:
                         createNewMessage();
                         break;
-                    case 1:
+                    case CREATE_NEW_GROUP_CHAT:
                         createNewGroupChat();
                         break;
                 }
@@ -1133,7 +1138,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         builder.create().show();
     }
 
-    private void showStartProgressDialog(Context context, int progress, String title, int total){
+    private void showStartProgressDialog(Context context, int progress, String title, int total) {
         if (mStartSaveProgressDialog == null) {
             mStartSaveProgressDialog = new ProgressDialog(context);
             mStartSaveProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
@@ -1141,7 +1146,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mStartSaveProgressDialog.setCancelable(false);
             mStartSaveProgressDialog.setCanceledOnTouchOutside(false);
             mStartSaveProgressDialog.setButton(context.getResources().
-                    getString(R.string.cacel_back_message),new DialogInterface.OnClickListener(){
+                    getString(R.string.cacel_back_message),new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     try {
@@ -1178,7 +1183,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mSaveOrBackProgressDialog.setCancelable(false);
             mSaveOrBackProgressDialog.setCanceledOnTouchOutside(false);
             mSaveOrBackProgressDialog.setButton(context.getResources().
-                    getString(R.string.cacel_back_message),new DialogInterface.OnClickListener(){
+                    getString(R.string.cacel_back_message),new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     try {
@@ -1200,14 +1205,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                  }
             });
             mSaveOrBackProgressDialog.show();
-            if (total!=PROGRESS_TOTAL) {
+            if (total != PROGRESS_TOTAL) {
                  mSaveOrBackProgressDialog.setMax(total);
                  mSaveOrBackProgressDialog.setProgress(progress);
             }
 
         } else {
             mSaveOrBackProgressDialog.setMessage(title);
-            if (total!=PROGRESS_TOTAL) {
+            if (total != PROGRESS_TOTAL) {
                 mSaveOrBackProgressDialog.setMax(total);
                 mSaveOrBackProgressDialog.setProgress(progress);
             }
@@ -2055,7 +2060,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             long threadId = conv.getThreadId();
             if (mIsRcsEnabled && checkedCount == 1) {
                 mRcsTopConversationId = threadId;
-                mIsTopConversation = conv.getIsTop() == 1 ? true : false;
+                mIsTopConversation = conv.getIsTop() ==
+                        RcsUtils.CONVERSATION_IS_TOP ? true : false;
                 mConversation = conv;
             }
             if (checked) {

@@ -430,7 +430,8 @@ public class MailBoxMessageContent extends Activity {
             public void onClick(DialogInterface dialog, int which) {
                 String input = editText.getText().toString();
                 if (TextUtils.isEmpty(input)) {
-                    Toast.makeText(MailBoxMessageContent.this, R.string.forward_input_number_title,Toast.LENGTH_SHORT ).show();
+                    Toast.makeText(MailBoxMessageContent.this, R.string.forward_input_number_title,
+                            Toast.LENGTH_SHORT).show();
                 } else {
                     String[] numbers = input.split(";");
                     if (numbers != null && numbers.length > 0) {
@@ -451,16 +452,14 @@ public class MailBoxMessageContent extends Activity {
         long a = -1;
         boolean success = false;
         try {
-            ChatMessage message = mMessageApi.getMessageById(mRcsId + "");
+            ChatMessage message = mMessageApi.getMessageById(String.valueOf(mRcsId));
             success = RcsChatMessageUtils.forwardMessage(a, Arrays.asList(list.getNumbers()),
                     message);
-            if (success) {
-                Toast.makeText(MailBoxMessageContent.this, R.string.forward_message_success,Toast.LENGTH_SHORT ).show();
-            } else {
-                Toast.makeText(MailBoxMessageContent.this, R.string.forward_message_fail,Toast.LENGTH_SHORT ).show();
-            }
+            Toast.makeText(MailBoxMessageContent.this, success ? R.string.forward_message_success :
+                    R.string.forward_message_fail, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            Toast.makeText(MailBoxMessageContent.this, R.string.forward_message_fail,Toast.LENGTH_SHORT ).show();
+            Toast.makeText(MailBoxMessageContent.this, R.string.forward_message_fail,
+                    Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -471,14 +470,16 @@ public class MailBoxMessageContent extends Activity {
         }
         switch (requestCode) {
             case REQUEST_CODE_RCS_PICK:
-                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId, MailBoxMessageContent.this);
+                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId,
+                        MailBoxMessageContent.this);
                 break;
             case REQUEST_SELECT_CONV:
                 RcsChatMessageUtils.sendRcsFavoritedMessage(MailBoxMessageContent.this, data,
                         mRcsId);
                 break;
             case REQUEST_SELECT_GROUP:
-                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId, MailBoxMessageContent.this);
+                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId,
+                        MailBoxMessageContent.this);
                 break;
             default:
                 break;

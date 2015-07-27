@@ -3550,14 +3550,16 @@ public class ComposeMessageActivity extends Activity
                 mAddAttachmentButton.setVisibility(View.VISIBLE);
             }
         }
-        if (mConversation.getThreadId() != 0) {
-            if (mConversation.getIsTop() == 0 &&
-                    !mTopThread.contains(mConversation.getThreadId())) {
-                menu.add(0, MENU_TOP_CONVERSATION, 0, R.string.top_conversation).setIcon(
-                        R.drawable.ic_menu_edit);
-            } else {
-                menu.add(0, MENU_CANCEL_TOP_CONVERSATION, 0, R.string.cancel_top_conversation)
-                        .setIcon(R.drawable.ic_menu_edit);
+        if (mIsRcsEnabled) {
+            if (mConversation.getThreadId() != 0) {
+                if (mConversation.getIsTop() == 0 &&
+                        !mTopThread.contains(mConversation.getThreadId())) {
+                    menu.add(0, MENU_TOP_CONVERSATION, 0, R.string.top_conversation).setIcon(
+                            R.drawable.ic_menu_edit);
+                } else {
+                    menu.add(0, MENU_CANCEL_TOP_CONVERSATION, 0, R.string.cancel_top_conversation)
+                            .setIcon(R.drawable.ic_menu_edit);
+                }
             }
         }
         if (isPreparedForSending() && mIsSmsEnabled) {
@@ -4728,7 +4730,7 @@ public class ComposeMessageActivity extends Activity
                 ContactList recipients = conv.getRecipients();
                 ContactList existing = mRecipientsEditor.constructContactsFromInput(false);
                 for (Contact contact : existing) {
-                        recipients.add(contact);
+                    recipients.add(contact);
                 }
                 mRecipientsEditor.populate(recipients);
                 break;
@@ -4930,9 +4932,9 @@ public class ComposeMessageActivity extends Activity
         long a = -1;
         boolean success = false;
         try {
-            ChatMessage message = mMessageApi.getMessageById(mRcsForwardId + "");
+            ChatMessage message = mMessageApi.getMessageById(String.valueOf(mRcsForwardId));
             MessageItem msgItem = mRcsForwardItems.get(0);
-            if(msgItem != null && msgItem.mIsRcs == -1){
+            if (msgItem != null && msgItem.mIsRcs == -1) {
                 if (numbers.size() == 1) {
                     mMessageApi.sendTextMessage(a, numbers.get(0), msgItem.mBody,
                             SuntekMessageData.MSG_BURN_AFTER_READ_NOT, 0);
@@ -5137,6 +5139,9 @@ public class ComposeMessageActivity extends Activity
                         log("ResizeImageResultCallback: dataUri=" + dataUri);
                     }
                 } catch (MmsException e) {
+                    result = WorkingMessage.UNKNOWN_ERROR;
+                } catch (NullPointerException e) {
+                    log("onResizeResult" + e);
                     result = WorkingMessage.UNKNOWN_ERROR;
                 }
             }
@@ -5715,7 +5720,7 @@ public class ComposeMessageActivity extends Activity
         builder.setItems(new String[] {
                 getContext().getString(R.string.forward_contact),
                 getContext().getString(R.string.forward_conversation),
-        },listener);
+        }, listener);
         builder.show();
     }
 
@@ -5726,7 +5731,7 @@ public class ComposeMessageActivity extends Activity
                     pickContacts(SelectRecipientsList.MODE_DEFAULT, REQUEST_CODE_ADD_RECIPIENTS);
                     break;
                 case DIALOG_ADD_RECEIVE_MSG:
-                    Intent intent = new Intent(ComposeMessageActivity.this,ConversationList.class);
+                    Intent intent = new Intent(ComposeMessageActivity.this, ConversationList.class);
                     intent.putExtra(MULTI_SELECT_CONV, true);
                     startActivityForResult(intent, REQUEST_CODE_ADD_CONVERSATION);
                     break;
@@ -6069,20 +6074,16 @@ public class ComposeMessageActivity extends Activity
             mTextEditor.setFilters(new InputFilter[] {
                     new LengthFilter(getResources().getInteger(R.integer.slide_text_limit_size))});
         }
-        mTextEditor.setOnTouchListener(new OnTouchListener() {
+        mTextEditor.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    if (mAttachmentSelector != null &&
-                            mAttachmentSelector.getVisibility() == View.VISIBLE) {
-                        mAttachmentSelector.setVisibility(View.GONE);
-                    }
-                    if(mRcsEmojiInitialize != null
-                            && mRcsEmojiInitialize.getEmojiView().getVisibility() == View.VISIBLE) {
-                        mRcsEmojiInitialize.closeViewAndKB();
-                    }
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus && mAttachmentSelector.getVisibility() == View.VISIBLE) {
+                    mAttachmentSelector.setVisibility(View.GONE);
                 }
-                return false;
+                if (hasFocus && mRcsEmojiInitialize != null
+                        && mRcsEmojiInitialize.getEmojiView().getVisibility() == View.VISIBLE) {
+                    mRcsEmojiInitialize.closeViewAndKB();
+                }
             }
         });
 
@@ -7761,10 +7762,8 @@ public class ComposeMessageActivity extends Activity
                         @Override
                         public boolean onPopupItemClick(int itemId) {
                             if (itemId == RcsSelectionMenu.SELECT_OR_DESELECT) {
-                                boolean selectAll = getListView().getCheckedItemCount() <
-                                        getListView().getCount() ? true : false;
-                                checkAll(selectAll);
-                                mSelectionMenu.updateSelectAllMode(selectAll);
+                                checkAll(!allItemsSelected());
+                                mSelectionMenu.updateSelectAllMode(allItemsSelected());
                             }
                             return true;
                         }
@@ -8503,6 +8502,8 @@ public class ComposeMessageActivity extends Activity
 
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
+            mSelectionMenu.setTitle(getString(R.string.selected_count, mCheckedCount));
+            mSelectionMenu.updateSelectAllMode(allItemsSelected());
         }
 
         private boolean allItemsSelected() {

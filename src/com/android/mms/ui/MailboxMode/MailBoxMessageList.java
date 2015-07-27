@@ -830,7 +830,6 @@ public class MailBoxMessageList extends ListActivity implements
             mListAdapter.changeCursor(null);
         }
         MessageUtils.removeDialogs();
-        Contact.clearListener();
     }
 
     @Override
@@ -1259,8 +1258,6 @@ public class MailBoxMessageList extends ListActivity implements
             if (unTopItem != null) {
                 unTopItem.setVisible(false);
             }
-            mode.setTitle(getString(R.string.selected_count,
-                    getListView().getCheckedItemCount()));
             mActionMode = mode;
             return true;
         }
@@ -1268,6 +1265,8 @@ public class MailBoxMessageList extends ListActivity implements
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             ListView listView = getListView();
             final int checkedCount = listView.getCheckedItemCount();
+            mode.setTitle(getString(R.string.selected_count,
+                    checkedCount));
             switch (item.getItemId()) {
                 case R.id.delete:
                     confirmDeleteMessages();
