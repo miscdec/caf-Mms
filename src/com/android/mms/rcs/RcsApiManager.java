@@ -54,10 +54,10 @@ public class RcsApiManager {
 
     public static void init(Context context) {
         mContext = context;
-        mSupportApi.init(context);
         if (!RcsSupportApi.isRcsServiceInstalled(context)) {
             return;
         }
+        mSupportApi.init(context);
         Thread t = new Thread() {
             @Override
             public void run() {
