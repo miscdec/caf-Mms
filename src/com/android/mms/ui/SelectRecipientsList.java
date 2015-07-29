@@ -480,16 +480,18 @@ public class SelectRecipientsList extends Activity implements
         }
     }
 
-    private String getContactString (ArrayList<String> numbers) {
+    private String getContactString(ArrayList<String> numbers) {
         ContactList list = ContactList.getByNumbers(numbers, true);
         StringBuffer buffer = new StringBuffer();
         for (Contact contact : list) {
-            Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI,
-                    contact.getPersonId());
-            String lookup = Uri.encode(Contacts.getLookupUri(
-                    this.getContentResolver(), contactUri).
-                    getPathSegments().get(2));
-            buffer.append(lookup + ":");
+            if (contact.getPersonId() != 0) {
+                Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI,
+                        contact.getPersonId());
+                String lookup = Uri.encode(Contacts
+                        .getLookupUri(this.getContentResolver(), contactUri).getPathSegments()
+                        .get(2));
+                buffer.append(lookup + ":");
+            }
         }
         return buffer.substring(0, buffer.lastIndexOf(":"));
     }
