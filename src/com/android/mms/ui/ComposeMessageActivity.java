@@ -694,6 +694,9 @@ public class ComposeMessageActivity extends Activity
     //rcs forward messageitems
     private List<MessageItem> mRcsForwardItems = new ArrayList<MessageItem>();
 
+    // Distinguish new message interface from ConversationList mode or MailBox mode
+    private boolean mCreateNewMessageFromConversationList = false;
+
     private AddNumbersTask mAddNumbersTask;
 
     private boolean mSendMmsMobileDataOff = false;
@@ -2451,7 +2454,9 @@ public class ComposeMessageActivity extends Activity
             boolean isGroupChat = intent.getBooleanExtra("isGroupChat", false);
             mConversation.setIsGroupChat(isGroupChat);
         }
-
+        if (intent.hasExtra("fromNormol")) {
+            mCreateNewMessageFromConversationList = intent.getBooleanExtra("fromNormol", false);
+        }
         mConfApi = RcsApiManager.getConfApi();
         mMessageApi = RcsApiManager.getMessageApi();
         mAccountApi = RcsApiManager.getRcsAccountApi();
@@ -5809,7 +5814,11 @@ public class ComposeMessageActivity extends Activity
             mShowTwoButtons && isPreparedForSending()) {
             confirmSendMessageIfNeeded(PhoneConstants.SUB2);
         } else if (v == mRecipientsSelector) {
-            addGrouChatWayOrConversation(new addGrouChatWayClickListener());
+            if (mCreateNewMessageFromConversationList) {
+                addGrouChatWayOrConversation(new addGrouChatWayClickListener());
+            } else {
+                pickContacts(SelectRecipientsList.MODE_DEFAULT, REQUEST_CODE_ADD_RECIPIENTS);
+            }
         } else if ((v == mAddAttachmentButton)) {
             if (mAttachmentSelector.getVisibility() == View.VISIBLE && !mIsReplaceAttachment) {
                 mAttachmentSelector.setVisibility(View.GONE);
