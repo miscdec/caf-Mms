@@ -251,6 +251,7 @@ public class FavoriteMessageListAdapter extends CursorAdapter implements Contact
         } else {
             buf = new SpannableStringBuilder(name);
         }
+        mNameView.setText(buf);
     }
 
     public void cleanItemCache() {

@@ -56,7 +56,7 @@ public class RcsNotifyManager {
     private static final Uri RCS_UNDELIVERED_URI = Sms.CONTENT_URI;
 
     public static void sendMessageFailNotif(Context context, int state,
-            String messageId, boolean shouldPlaySound) {
+            long messageId, boolean shouldPlaySound) {
         // TODO factor out common code for creating notifications
         boolean bNotifEnabled = MessagingPreferenceActivity
                 .getNotificationEnabled(context);
@@ -74,7 +74,7 @@ public class RcsNotifyManager {
         TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(context);
 
         sendFailedIntent = getRcsFailedIntentFromConversationMode(context,
-                false, Integer.valueOf(messageId), state);
+                false, messageId, state);
 
         taskStackBuilder.addNextIntent(sendFailedIntent);
         notification.icon = R.drawable.stat_notify_sms_failed;

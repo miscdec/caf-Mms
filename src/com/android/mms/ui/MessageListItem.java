@@ -708,13 +708,11 @@ public class MessageListItem extends ZoomMessageListItem implements
             } else {
                 if (contact.existsInDatabase()) {
                     mAvatar.assignContactUri(contact.getUri());
-                    mAvatar.setImageDrawable(avatarDrawable);
                 } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
                     mAvatar.assignContactFromPhone(
                             MessageUtils.getWapPushNumber(contact.getNumber()), true);
                 } else if (mRcsGroupId != RcsUtils.SMS_DEFAULT_RCS_GROUP_ID) {
-                    GroupMemberPhotoCache.loadGroupMemberPhoto(MmsApp.getApplication()
-                            .getApplicationContext(), mRcsGroupId,
+                    GroupMemberPhotoCache.getInstance().loadGroupMemberPhoto(mRcsGroupId,
                             addr, mAvatar, sDefaultContactImage);
                     mAvatar.assignContactFromPhone(
                             MessageUtils.getWapPushNumber(contact.getNumber()), true);

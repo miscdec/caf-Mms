@@ -33,6 +33,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.android.mms.R;
+import com.android.mms.MmsApp;
 import com.android.mms.transaction.MessagingNotification;
 
 import com.suntek.mway.rcs.client.aidl.constant.Actions;
@@ -51,6 +52,9 @@ public class RcsMessageStatusService extends IntentService {
     private static int runningCount = 0;
     private static int runningId = 0;
     private static long taskCount = 0;
+    private static long DEFAULT_THREAD_ID = -1;
+    private static long DEFAULT_THREAD_SIZE = -1;
+    private static int DEFAULT_STATUS = -11;
 
     static {
         NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors();
@@ -88,11 +92,14 @@ public class RcsMessageStatusService extends IntentService {
 
         String action = intent.getAction();
         if (Actions.MessageAction.ACTION_MESSAGE_NOTIFY.equals(action)){
-            long rcsThreadId = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, -1);
-            disposeGroupChatNewMessage(rcsThreadId);
-        } else if (Actions.MessageAction.ACTION_MESSAGE_NOTIFY.equals(action)){
-            long threadId = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, -1);
-            notifyNewMessage(threadId);
+            long threadId = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
+            disposeGroupChatNewMessage(threadId);
+        } else if (Actions.MessageAction.ACTION_MESSAGE_STATUS_CHANGED.equals(action)) {
+            long id = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
+            int status = intent.getIntExtra(Parameter.EXTRA_STATUS, DEFAULT_STATUS);
+            if (status == RcsUtils.MESSAGE_FAIL) {
+                RcsNotifyManager.sendMessageFailNotif(MmsApp.getApplication(), status, id, true);
+            }
         }
         pool.execute(new Runnable() {
             public void run() {
@@ -102,10 +109,11 @@ public class RcsMessageStatusService extends IntentService {
 
                 String action = intent.getAction();
                 if (Actions.MessageAction.ACTION_MESSAGE_FILE_TRANSFER_PROGRESS.equals(action)) {
-                    long msgId = intent.getLongExtra(Parameter.EXTRA_ID, -1);
+                    long msgId = intent.getLongExtra(Parameter.EXTRA_ID, DEFAULT_THREAD_ID);
                     long currentSize = intent.getLongExtra(Parameter.EXTRA_TRANSFER_CURRENT_SIZE,
-                            -1);
-                    long totalSize = intent.getLongExtra(Parameter.EXTRA_TRANSFER_TOTAL_SIZE, -1);
+                            DEFAULT_THREAD_SIZE);
+                    long totalSize = intent.getLongExtra(Parameter.EXTRA_TRANSFER_TOTAL_SIZE,
+                            DEFAULT_THREAD_SIZE);
                     if (totalSize > 0 && currentSize == totalSize) {
                         RcsUtils.updateFileDownloadState(RcsMessageStatusService.this,
                                 msgId, RcsUtils.RCS_IS_DOWNLOAD_OK);
@@ -121,7 +129,7 @@ public class RcsMessageStatusService extends IntentService {
     }
 
     private void notifyNewMessage(long threadId) {
-        if (threadId != -1 && threadId != MessagingNotification
+        if (threadId != DEFAULT_THREAD_ID && threadId != MessagingNotification
                 .getCurrentlyDisplayedThreadId()) {
             MessagingNotification.blockingUpdateNewMessageIndicator(
                     RcsMessageStatusService.this, threadId, true);
@@ -139,6 +147,8 @@ public class RcsMessageStatusService extends IntentService {
                     MessagingNotification.blockingUpdateNewMessageIndicator(
                                 RcsMessageStatusService.this, threadId, true);
                 }
+            } else {
+                notifyNewMessage(threadId);
             }
         } catch (ServiceDisconnectedException e) {
             RcsLog.e(e);

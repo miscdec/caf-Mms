@@ -22,28 +22,24 @@
  */
 
 package com.android.mms.rcs;
+
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.util.Log;
+import com.android.mms.rcs.RcsMessageStatusService;
 
-import com.suntek.mway.rcs.client.api.ClientApi;
-import com.suntek.mway.rcs.client.api.ServiceListener;
-import com.suntek.mway.rcs.client.api.support.SupportApi;
-import com.suntek.rcs.ui.common.RcsLog;
+public class RcsMessageStatusReceiver extends BroadcastReceiver {
+    public static final String MESSAGE_STATUS_RECEIVED_ACTION =
+            "com.suntek.mway.rcs.ACTION_UI_MESSAGE_ADD_TO_DATABASE";
 
-public class RcsApiManager {
+    public static final String UI_MESSAGE_STATUS_CHANGE_NOTIFY =
+            "com.suntek.mway.rcs.ACTION_UI_MESSAGE_STATUS_CHANGE_NOTIFY";
 
-    public static void init(Context context) {
-        SupportApi.getInstance().initApi(context);
-        ServiceListener listener = new ServiceListener() {
-            @Override
-            public void onServiceDisconnected() {
-                RcsLog.i("ClientApi disconnected");
-            }
-
-            @Override
-            public void onServiceConnected() {
-                RcsLog.i("ClientApi connected");
-            }
-        };
-        new ClientApi().init(context, listener, listener);
+    public static final String UI_MESSAGE_RECEIVE = "messageAction";
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        intent.setClass(context, RcsMessageStatusService.class);
+        context.startService(intent);
     }
 }

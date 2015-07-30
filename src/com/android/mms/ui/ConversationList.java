@@ -307,9 +307,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     }
                     break;
                 case RESTORE_ALL_MESSAGE_SAVING:
-                    if (mStartSaveProgressDialog!=null) {
+                    if (mStartSaveProgressDialog != null) {
                         mStartSaveProgressDialog.dismiss();
-                        mStartSaveProgressDialog =null;
+                        mStartSaveProgressDialog = null;
                     }
                     if (total == 0) {
                         return;
@@ -476,6 +476,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
 
         mListAdapter.setOnContentChangedListener(mContentChangedListener);
+        if (!mDoOnceAfterFirstQuery) {
+            startAsyncQuery();
+        }
         mIsRunning = true;
     }
 
@@ -1072,7 +1075,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mStartSaveProgressDialog.setCancelable(false);
             mStartSaveProgressDialog.setCanceledOnTouchOutside(false);
             mStartSaveProgressDialog.setButton(context.getResources().
-                    getString(R.string.cacel_back_message),new DialogInterface.OnClickListener(){
+                    getString(R.string.cacel_back_message),new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     try {
@@ -1182,7 +1185,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     }
 
     private void createNewMessage() {
-        startActivity(ComposeMessageActivity.createIntent(this, 0));
+        Intent createIntent = ComposeMessageActivity.createIntent(this, 0);
+        if (mIsRcsEnabled) {
+            createIntent.putExtra("fromNormol", true);
+        }
+        startActivity(createIntent);
     }
 
     private void createNewGroupChat() {

@@ -381,7 +381,7 @@ public class FavoriteDetailActivity  extends Activity {
 
         mScaleDetector = new ScaleGestureDetector(this, new MyScaleListener());
 
-        if (mCursor != null) {
+        if (mCursor != null && mCursor.moveToFirst()) {
             mPagerAdapter = new FavoriteDetailAdapter(this, mCursor);
             mPagerAdapter.setScaleTextList(mSlidePaperItemTextViews);
             mContentPager = (ViewPager) findViewById(R.id.details_view_pager);
@@ -411,11 +411,9 @@ public class FavoriteDetailActivity  extends Activity {
                         Log.e(TAG, "onQueryComplete: cursor is null!");
                         return;
                     }
-
                     mCursor = cursor;
-                    if (mCursor.moveToFirst()) {
-                        initUi();
-                    }
+                    initUi();
+
                     if (cursor != null && cursor.getCount() == 1) {
                         try {
                             if (cursor.moveToFirst()) {

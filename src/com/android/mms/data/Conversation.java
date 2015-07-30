@@ -36,6 +36,7 @@ import android.widget.Toast;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessagingNotification;
@@ -54,6 +55,7 @@ import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
 import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
 import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
+import com.suntek.mway.rcs.client.aidl.constant.Constants.MessageConstants;
 
 /**
  * An interface for finding information about conversations and/or creating new ones.
@@ -67,20 +69,33 @@ public class Conversation {
     public static final Uri sAllThreadsUri =
         Threads.CONTENT_URI.buildUpon().appendQueryParameter("simple", "true").build();
 
-    public static final String[] ALL_THREADS_PROJECTION = {
+    public static final String[] RCS_ADD_ALL_THREADS_PROJECTION = {
         Threads._ID, Threads.DATE, Threads.MESSAGE_COUNT, Threads.RECIPIENT_IDS,
         Threads.SNIPPET, Threads.SNIPPET_CHARSET, Threads.READ, Threads.ERROR,
         Threads.HAS_ATTACHMENT, RcsColumns.ThreadColumns.RCS_TOP,
         RcsColumns.ThreadColumns.RCS_TOP_TIME, RcsColumns.ThreadColumns.RCS_MSG_ID,
         RcsColumns.ThreadColumns.RCS_MSG_TYPE, RcsColumns.ThreadColumns.RCS_CHAT_TYPE
+   };
+
+    public static final String[] DEFAULT_ALL_THREADS_PROJECTION = {
+        Threads._ID, Threads.DATE, Threads.MESSAGE_COUNT, Threads.RECIPIENT_IDS,
+        Threads.SNIPPET, Threads.SNIPPET_CHARSET, Threads.READ, Threads.ERROR,
+        Threads.HAS_ATTACHMENT
     };
+
+    public static final String[] ALL_THREADS_PROJECTION = MmsConfig.getIsRcsVersion() ?
+            RCS_ADD_ALL_THREADS_PROJECTION : DEFAULT_ALL_THREADS_PROJECTION;
 
     public static final String[] UNREAD_PROJECTION = {
         Threads._ID,
         Threads.READ
     };
 
-    public static final String DEFAULT_SORT_ORDER = "rcs_top_time DESC,rcs_top DESC, date DESC";
+    public static final String RCS_SORT_ORDER = RcsColumns.ThreadColumns.RCS_TOP_TIME + " DESC," +
+            RcsColumns.ThreadColumns.RCS_TOP + " DESC, date DESC";
+
+    public static final String DEFAULT_SORT_ORDER = MmsConfig.getIsRcsVersion() ?
+            RCS_SORT_ORDER : "date DESC";
 
     private static final String UNREAD_SELECTION = "(read=0 OR seen=0)";
     private static final String READ_SELECTION = "(read=1 OR seen=1)";
@@ -103,7 +118,7 @@ public class Conversation {
     private static final int RCS_MSG_TYPE   = 12;
     private static final int RCS_CHAT_TYPE  = 13;
 
-    private static Context mContext;
+    private final Context mContext;
 
     // The thread ID of this conversation.  Can be zero in the case of a
     // new conversation where the recipient set is changing as the user
@@ -380,7 +395,7 @@ public class Conversation {
         }
 
         final Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
-                        Mms.Inbox.CONTENT_URI, new String[] {Mms._ID, Mms.MESSAGE_ID},
+                        Mms.Inbox.CONTENT_URI, new String[] {Mms._ID, Mms.MESSAGE_ID, Mms.PHONE_ID},
                         selection, null, null);
 
         try {
@@ -389,12 +404,14 @@ public class Conversation {
             }
 
             while (c.moveToNext()) {
-                Uri uri = ContentUris.withAppendedId(Mms.CONTENT_URI, c.getLong(0));
+                Uri uri = ContentUris.withAppendedId(Mms.CONTENT_URI,
+                        c.getLong(MessageUtils.MESSAGE_REPORT_COLUMN_ID));
                 if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                     LogTag.debug("sendReadReport: uri = " + uri);
                 }
                 MmsMessageSender.sendReadRec(context, AddressUtils.getFrom(context, uri),
-                                             c.getString(1), status);
+                        c.getString(MessageUtils.MESSAGE_REPORT_COLUMN_MESSAGE_ID),
+                        c.getInt(MessageUtils.MESSAGE_REPORT_COLUMN_PHONE_ID), status);
             }
         } finally {
             if (c != null) {
@@ -953,6 +970,10 @@ public class Conversation {
             uri = sAllThreadsUri.buildUpon()
                     .appendQueryParameter("phone_id", String.valueOf(phoneId)).build();
         }
+        if (MmsConfig.getIsRcsVersion()) {
+            selection = RcsUtils.concatSelections(selection, RcsColumns.ThreadColumns.RCS_CHAT_TYPE
+                    + "!=" + MessageConstants.CONST_CHAT_PUBLIC_ACCOUNT);
+        }
         handler.startQuery(token, null, uri,
                 ALL_THREADS_PROJECTION, selection, null, DEFAULT_SORT_ORDER);
     }
@@ -1252,12 +1273,14 @@ public class Conversation {
             conv.setHasUnreadMessages(c.getInt(READ) == 0);
             conv.mHasError = (c.getInt(ERROR) != 0);
             conv.mHasAttachment = (c.getInt(HAS_ATTACHMENT) != 0);
-            conv.mIsTop = c.getInt(IS_CONV_T0P);
-            conv.mRcsTopTime = c.getInt(RCS_TOP_TIME);
-            conv.mRcsMsgId = c.getInt(RCS_MSG_ID);
-            conv.mRcsMsgType = c.getInt(RCS_MSG_TYPE);
-            conv.mRcsChatType = c.getInt(RCS_CHAT_TYPE);
-            conv.mIsGroupChat = (conv.mRcsChatType == RcsUtils.RCS_CHAT_TYPE_GROUP_CHAT);
+            if (MmsConfig.getIsRcsVersion()) {
+                conv.mIsTop = c.getInt(IS_CONV_T0P);
+                conv.mRcsTopTime = c.getInt(RCS_TOP_TIME);
+                conv.mRcsMsgId = c.getInt(RCS_MSG_ID);
+                conv.mRcsMsgType = c.getInt(RCS_MSG_TYPE);
+                conv.mRcsChatType = c.getInt(RCS_CHAT_TYPE);
+                conv.mIsGroupChat = (conv.mRcsChatType == RcsUtils.RCS_CHAT_TYPE_GROUP_CHAT);
+            }
         }
         // Fill in as much of the conversation as we can before doing the slow stuff of looking
         // up the contacts associated with this conversation.

@@ -34,6 +34,7 @@ import android.util.Log;
 
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.WorkingMessage;
@@ -190,17 +191,19 @@ public class MessageItem {
                 // For incoming messages, the ADDRESS field contains the sender.
                 mContact = Contact.get(mAddress, false).getName();
             }
-            mRcsPath = cursor.getString(columnsMap.mColumnRcsPath);
-            mRcsThumbPath = cursor.getString(columnsMap.mColumnRcsThumbPath);
-            mRcsType = cursor.getInt(columnsMap.mColumnRcsMsgType);
-            mIsRcsBurnMessage = (cursor.getInt(columnsMap.mColumnRcsBurnMessage)
-                    > RcsUtils.RCS_NOT_A_BURN_MESSAGE);
-            mRcsIsDownload = cursor.getInt(columnsMap.mColumnRcsIsDownload);
-            mRcsMsgState = cursor.getInt(columnsMap.mColumnRcsMsgState);
-            mRcsMimeType = cursor.getString(columnsMap.mColumnRcsMimeType);
-            mRcsFileSize= cursor.getInt(columnsMap.mColumnRcsFileSize);
-            mRcsChatType = cursor.getInt(columnsMap.mColumnRcsChatType);
-            mRcsMessageId = cursor.getString(columnsMap.mColumnRcsMessageId);
+            if (MmsConfig.getIsRcsVersion()) {
+                mRcsPath = cursor.getString(columnsMap.mColumnRcsPath);
+                mRcsThumbPath = cursor.getString(columnsMap.mColumnRcsThumbPath);
+                mRcsType = cursor.getInt(columnsMap.mColumnRcsMsgType);
+                mIsRcsBurnMessage = (cursor.getInt(columnsMap.mColumnRcsBurnMessage)
+                        > RcsUtils.RCS_NOT_A_BURN_MESSAGE);
+                mRcsIsDownload = cursor.getInt(columnsMap.mColumnRcsIsDownload);
+                mRcsMsgState = cursor.getInt(columnsMap.mColumnRcsMsgState);
+                mRcsMimeType = cursor.getString(columnsMap.mColumnRcsMimeType);
+                mRcsFileSize= cursor.getInt(columnsMap.mColumnRcsFileSize);
+                mRcsChatType = cursor.getInt(columnsMap.mColumnRcsChatType);
+                mRcsMessageId = cursor.getString(columnsMap.mColumnRcsMessageId);
+            }
             mBody = cursor.getString(columnsMap.mColumnSmsBody);
 
             mPhoneId = cursor.getInt(columnsMap.mColumnPhoneId);
@@ -213,7 +216,7 @@ public class MessageItem {
                     if (0 == mDate) {
                         mDate = System.currentTimeMillis();
                     }
-                    mTimestamp = formatTimeStamp(context, true);
+                    mTimestamp = formatTimeStamp(context, true, mDate);
                 } else {
                     // Set "received" time stamp
                     mDate = cursor.getLong(context.getResources().getBoolean(
@@ -223,7 +226,7 @@ public class MessageItem {
                     if (0 == mDate) {
                         mDate = System.currentTimeMillis();
                     }
-                    mTimestamp = formatTimeStamp(context, false);
+                    mTimestamp = formatTimeStamp(context, false, mDate);
                 }
             }
 
@@ -269,12 +272,13 @@ public class MessageItem {
         }
     }
 
-    private String formatTimeStamp(Context context, boolean isSent) {
+    private String formatTimeStamp(Context context, boolean isSent, long timestamp) {
         if (context.getResources().getBoolean(R.bool.config_display_sent_time)) {
-            return MessageUtils.formatTimeStampString(context, mDate);
+            return MessageUtils.formatTimeStampString(context, timestamp);
         } else {
             return String.format(context.getString(isSent ? R.string.sent_on
-                    : R.string.received_on), MessageUtils.formatTimeStampString(context, mDate));
+                    : R.string.received_on), MessageUtils.formatTimeStampString(context,
+                    timestamp));
         }
     }
 
@@ -547,7 +551,8 @@ public class MessageItem {
                             MessageUtils.formatTimeStampString(mContext, timestamp));
                 } else {
                     // add judgement the Mms is sent or received and format mTimestamp
-                    mTimestamp = formatTimeStamp(mContext, mBoxId == Sms.MESSAGE_TYPE_SENT);
+                    mTimestamp = formatTimeStamp(mContext, mBoxId == Mms.MESSAGE_BOX_SENT,
+                            timestamp);
                 }
             }
             if (mPduLoadedCallback != null) {
@@ -685,8 +690,14 @@ public class MessageItem {
      *@return whether this message is a RCS message.
      */
     public boolean isRcsMessage() {
-        return mRcsChatType > RcsUtils.RCS_CHAT_TYPE_DEFAULT
-                && mRcsChatType < RcsUtils.RCS_CHAT_TYPE_PUBLIC_MESSAGE;
+        switch (mRcsChatType) {
+            case RcsUtils.RCS_CHAT_TYPE_ONE_TO_ONE:
+            case RcsUtils.RCS_CHAT_TYPE_ONE_TO_N:
+            case RcsUtils.RCS_CHAT_TYPE_GROUP_CHAT:
+                return true;
+            default:
+                return false;
+        }
     }
 
     public boolean isRcsMediaMsg() {

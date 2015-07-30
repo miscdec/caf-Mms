@@ -156,7 +156,8 @@ public class MessageDetailAdapter extends PagerAdapter {
                 initVcardMagView(mLinearLayout);
                 mContentType = "text/x-vCard";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_PAID_EMO) {
-                String messageBody = mCursor.getString(mCursor.getColumnIndex(Sms.BODY));
+                String messageBody = mCursor.getString(mCursor.getColumnIndex(
+                        RcsColumns.SmsRcsColumns.RCS_FILENAME));
                 String[] body = messageBody.split(",");
                 RcsEmojiStoreUtil.getInstance().loadImageAsynById(imageView, body[0],
                         RcsEmojiStoreUtil.EMO_STATIC_FILE);

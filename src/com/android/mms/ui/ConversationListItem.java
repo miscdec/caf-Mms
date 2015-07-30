@@ -243,7 +243,6 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
             if (contact.existsInDatabase()) {
                 mAvatarView.assignContactUri(contact.getUri());
-                mAvatarView.setImageDrawable(avatarDrawable);
             } else {
                 // identify it is phone number or email address,handle it respectively
                 if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
@@ -316,7 +315,8 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
             String snippet =
                     RcsUtils.formatConversationSnippet(getContext(), conversation.getSnippet(),
                             conversation.getRcsLastMsgType());
-            if (conversation.isGroupChat()) { // TODO judge the latest message is notification message.
+            // TODO judge the latest message is notification message.
+            if (conversation.isGroupChat()) {
                 snippet = RcsUtils.getStringOfNotificationBody(context, snippet);
                 mSubjectView.setText(snippet);
             } else if (mConversation.hasUnreadMessages()) {

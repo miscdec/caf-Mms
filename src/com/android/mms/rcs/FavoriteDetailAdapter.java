@@ -143,7 +143,7 @@ public class FavoriteDetailAdapter extends PagerAdapter {
                 mContentType = "text/x-vCard";
             } else if (mMsgType == RcsUtils.RCS_MSG_TYPE_PAID_EMO) {
                 String messageBody = mCursor.getString(mCursor.getColumnIndex(
-                        FavoriteMessageProvider.FavoriteMessage.CONTENT));
+                        FavoriteMessageProvider.FavoriteMessage.FILE_NAME));
                 String[] body = messageBody.split(",");
                 RcsEmojiStoreUtil.getInstance().loadImageAsynById(imageView, body[0],
                         RcsEmojiStoreUtil.EMO_STATIC_FILE);

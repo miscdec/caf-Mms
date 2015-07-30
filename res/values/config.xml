@@ -103,7 +103,7 @@
     </integer-array>
 
     <!-- configuration for error toast during retry -->
-    <bool name="config_mms_retry_toast">false</bool>
+    <bool name="config_mms_retry_toast">true</bool>
     <bool name="enable_filter_threads_by_sim">true</bool>
     <!-- configuration for prefix special Number delete -->
     <bool name="config_mms_delete_prefix_special_number">true</bool>
@@ -114,4 +114,8 @@
     <integer name="max_chips_parsed">15</integer>
     <!-- configuration for display sent time in CT mode -->
     <bool name="config_display_sent_time">false</bool>
+
+    <!-- configuration for CMCC rcs version-->
+    <bool name="config_rcs_sms_version">false</bool>
+
 </resources>

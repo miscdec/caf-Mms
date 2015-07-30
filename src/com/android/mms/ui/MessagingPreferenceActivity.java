@@ -423,7 +423,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // SMS Sending Delay
         mMessageSendDelayPref = (ListPreference) findPreference(SEND_DELAY_DURATION);
         mMessageSendDelayPref.setSummary(mMessageSendDelayPref.getEntry());
-
         mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
 
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
@@ -1377,14 +1376,15 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             public void onNumberSet(int limit) {
                 mSmsRecycler.setMessageLimit(MessagingPreferenceActivity.this, limit);
                 setSmsDisplayLimit();
-                if (mSmsRecycler.checkForThreadsOverLimit(MessagingPreferenceActivity.this)) {
-                    getAsyncDialog().runAsync(new Runnable() {
-                        @Override
-                        public void run() {
+                getAsyncDialog().runAsync(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mSmsRecycler
+                                .checkForThreadsOverLimit(MessagingPreferenceActivity.this)) {
                             mSmsRecycler.deleteOldMessages(MessagingPreferenceActivity.this);
                         }
-                    }, null, R.string.pref_title_auto_delete);
-                }
+                    }
+                }, null, R.string.pref_title_auto_delete);
             }
     };
 
@@ -1393,14 +1393,15 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             public void onNumberSet(int limit) {
                 mMmsRecycler.setMessageLimit(MessagingPreferenceActivity.this, limit);
                 setMmsDisplayLimit();
-                if (mMmsRecycler.checkForThreadsOverLimit(MessagingPreferenceActivity.this)) {
-                    getAsyncDialog().runAsync(new Runnable() {
-                        @Override
-                        public void run() {
+                getAsyncDialog().runAsync(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mMmsRecycler
+                                .checkForThreadsOverLimit(MessagingPreferenceActivity.this)) {
                             mMmsRecycler.deleteOldMessages(MessagingPreferenceActivity.this);
                         }
-                    }, null, R.string.pref_title_auto_delete);
-                }
+                    }
+                }, null, R.string.pref_title_auto_delete);
             }
     };
 

@@ -277,6 +277,9 @@ public class RcsUtils {
 
     private static final int FILE_NOT_EXIST = 4;
 
+    // Vcard saved path
+    public static final String RCS_MMS_VCARD_PATH = "sdcard/rcs/";
+
     public static GeoLocation readMapXml(String filepath) {
         GeoLocation geo = null;
         try {
@@ -840,15 +843,17 @@ public class RcsUtils {
         return dst;
     }
 
-    public static boolean setVcard(final Context context, Uri uri, String path) {
+    public static String createVcardFile(final Context context, Uri uri) {
         InputStream instream = null;
-
+        Long curtime = System.currentTimeMillis();
+        String time = curtime.toString();
+        String vcardPath = RCS_MMS_VCARD_PATH + time + ".vcf";
         FileOutputStream fout = null;
         try {
 
             AssetFileDescriptor fd = context.getContentResolver().openAssetFileDescriptor(uri, "r");
             instream = fd.createInputStream();
-            File file = new File(path);
+            File file = new File(vcardPath);
 
             fout = new FileOutputStream(file);
 
@@ -860,28 +865,25 @@ public class RcsUtils {
 
             context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri
                     .fromFile(file)));
-
         } catch (IOException e) {
-
+            RcsLog.w(e);
         } finally {
             if (null != instream) {
                 try {
                     instream.close();
                 } catch (IOException e) {
-
-                    return false;
+                    RcsLog.w(e);
                 }
             }
             if (null != fout) {
                 try {
                     fout.close();
                 } catch (IOException e) {
-
-                    return false;
+                    RcsLog.w(e);
                 }
             }
-            return true;
         }
+        return vcardPath;
     }
 
     public static Bitmap decodeInSampleSizeBitmap(String imageFilePath) {
@@ -1978,11 +1980,11 @@ public class RcsUtils {
     }
 
     public static byte[] getBytesFromFile(File f) {
+        FileInputStream stream = null;
+        ByteArrayOutputStream out = null;
         if (f == null) {
             return null;
         }
-        FileInputStream stream = null;
-        ByteArrayOutputStream out = null;
         try {
             stream = new FileInputStream(f);
             out = new ByteArrayOutputStream(1000);
@@ -1993,6 +1995,7 @@ public class RcsUtils {
             }
             return out.toByteArray();
         } catch (IOException e) {
+
         } finally {
             closeQuietly(out);
             closeQuietly(stream);
@@ -2140,4 +2143,15 @@ public class RcsUtils {
             RcsLog.w(e);
         }
     }
+
+    public static String concatSelections(String selection1, String selection2) {
+        if (TextUtils.isEmpty(selection1)) {
+            return selection2;
+        } else if (TextUtils.isEmpty(selection2)) {
+            return selection1;
+        } else {
+            return selection1 + " AND " + selection2;
+        }
+    }
+
 }

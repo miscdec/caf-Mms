@@ -119,9 +119,6 @@ public class WorkingMessage {
     public static final String EXTRA_SMS_RECIPIENTS = "android.mms.extra.RECIPIENTS";
     public static final String EXTRA_SMS_THREAD_ID = "android.mms.extra.THREAD_ID";
 
-    //Vcard saved path
-    public static final String RCS_MMS_VCARD_PATH = "sdcard/rcs/";
-
     // Database access stuff
     private final Activity mActivity;
     private final ContentResolver mContentResolver;
@@ -145,6 +142,7 @@ public class WorkingMessage {
     public static final int UNSUPPORTED_TYPE = -3;
     public static final int IMAGE_TOO_LARGE = -4;
     public static final int NEGATIVE_MESSAGE_OR_INCREASE_SIZE = -5;
+    public static final int FAILED_TO_QUERY_CONTACT = -6;
 
     public static final int UNSUPPORTED_TYPE_WARNING = -6;
     public static final int MESSAGE_SIZE_EXCEEDED_WARNING = -7;
@@ -157,6 +155,8 @@ public class WorkingMessage {
     public static final int SLIDESHOW = 4;
     public static final int VCARD = 5;
     public static final int VCAL = 6;
+
+    private static final int DEFAULT_RCS_BURN_TIME = 1;
 
     // Current attachment type of the message; one of the above values.
     private int mAttachmentType;
@@ -366,11 +366,8 @@ public class WorkingMessage {
         this.mIsCacheRcsMessage = isCacheRcsMessage;
     }
 
-    public String setVcardPath() {
-        Long curtime = System.currentTimeMillis();
-        String time = curtime.toString();
-        mVcardPath = RCS_MMS_VCARD_PATH + time + ".vcf";
-        return mVcardPath;
+    public void setVcardPath(String vcardPath) {
+        this.mVcardPath = vcardPath;
     }
 
     public void clearCacheRcsMessage(){
@@ -516,11 +513,12 @@ public class WorkingMessage {
                     getRcsEmoId(), getRcsEmoName());
         } else if (dests.length == 1) {
             messageApi.sendEmoticon(dests[0], threadId, getRcsEmoId(), getRcsEmoName(),
-                    isBurn() ? 1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+                    isBurn() ? DEFAULT_RCS_BURN_TIME
+                    : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else {
             messageApi.sendEmoticon(Arrays.asList(dests), threadId, getRcsEmoId(),
-                    getRcsEmoName(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+                    getRcsEmoName(), isBurn() ? DEFAULT_RCS_BURN_TIME
+                    : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         }
     }
 
@@ -558,7 +556,7 @@ public class WorkingMessage {
         } else {
             messageApi.sendLocation(Arrays.asList(dests), threadId, getLatitude(),
                     getLongitude(), getLocation(),
-                            Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+                    Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         }
     }
 
@@ -576,12 +574,12 @@ public class WorkingMessage {
                     getIsRecord());
         } else if (dests.length == 1) {
             messageApi.sendAudio(dests[0], threadId, getRcsPath(), recordTime,
-                    getIsRecord(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+                    getIsRecord(), isBurn() ? DEFAULT_RCS_BURN_TIME
+                    : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else {
             messageApi.sendAudio(Arrays.asList(dests), threadId, getRcsPath(), recordTime,
-                    getIsRecord(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+                    getIsRecord(), isBurn() ? DEFAULT_RCS_BURN_TIME
+                    : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         }
     }
 
@@ -598,12 +596,12 @@ public class WorkingMessage {
                     recordTime,getIsRecord());
         } else if (dests.length == 1) {
             messageApi.sendVideo(dests[0], threadId, getRcsPath(), recordTime,
-                    getIsRecord(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+                    getIsRecord(), isBurn() ? DEFAULT_RCS_BURN_TIME
+                    : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else {
             messageApi.sendVideo(Arrays.asList(dests), threadId, getRcsPath(), recordTime,
-                    getIsRecord(), isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+                    getIsRecord(), isBurn() ? DEFAULT_RCS_BURN_TIME
+                    : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         }
     }
 
@@ -617,12 +615,12 @@ public class WorkingMessage {
                       getScalingToInt(), false);
         } else if (dests.length == 1) {
             messageApi.sendImage(dests[0], threadId, getRcsPath(), getScalingToInt(),
-                     false, isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+                     false, isBurn() ? DEFAULT_RCS_BURN_TIME
+                     : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else {
             messageApi.sendImage(Arrays.asList(dests), threadId, getRcsPath(),
-                    getScalingToInt(), false, isBurn() ?
-                            1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+                    getScalingToInt(), false, isBurn() ? DEFAULT_RCS_BURN_TIME
+                    : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         }
     }
 
@@ -636,11 +634,11 @@ public class WorkingMessage {
             messageApi.sendTextToGroupChat(groupChat.getId(), groupChat.getThreadId(),
                     msgText);
         } else if (dests.length == 1) {
-            messageApi.sendText(dests[0], threadId, msgText,
-                    isBurn() ? 1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendText(dests[0], threadId, msgText,isBurn() ?
+                    DEFAULT_RCS_BURN_TIME : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else {
-            messageApi.sendText(Arrays.asList(dests), threadId, msgText,
-                    isBurn() ? 1 : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
+            messageApi.sendText(Arrays.asList(dests), threadId, msgText, isBurn() ?
+                    DEFAULT_RCS_BURN_TIME : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         }
     }
 
@@ -2113,6 +2111,12 @@ public class WorkingMessage {
             values.put(Mms.PHONE_ID, SubscriptionManager.getPhoneId(
                     SubscriptionManager.getDefaultDataSubId()));
         }
+
+        if (mmsUri == null) {
+            mStatusListener.onAttachmentError(FAILED_TO_QUERY_CONTACT);
+            return;
+        }
+
         SqliteWrapper.update(mActivity, mContentResolver, mmsUri, values, null, null);
 
         MessageSender sender = new MmsMessageSender(mActivity, mmsUri,
@@ -2245,6 +2249,9 @@ public class WorkingMessage {
             return null;
         } catch (IllegalStateException e) {
             Log.e(TAG,"failed to create draft mms "+ e);
+            return null;
+        } catch (NullPointerException e){
+            Log.e(TAG,"failed to create draft mms NullPointerException"+ e.toString());
             return null;
         }
     }

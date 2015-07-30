@@ -110,8 +110,8 @@ public class MmsApp extends Application {
         RateController.init(this);
         LayoutManager.init(this);
         MessagingNotification.init(this);
-        activePendingMessages();
         RcsApiManager.init(this);
+        activePendingMessages();
         registerMobileDataObserver();
 
         int enablePlugger = getResources().getBoolean(R.bool.enablePlugger) ?
