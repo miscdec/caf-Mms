@@ -48,14 +48,13 @@ import com.android.mms.util.DraftCache;
 
 import com.google.android.mms.pdu.PduHeaders;
 
-
+import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
+import com.suntek.mway.rcs.client.aidl.constant.Constants.MessageConstants;
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
 import com.suntek.mway.rcs.client.api.message.MessageApi;
 import com.suntek.mway.rcs.client.api.support.SupportApi;
 import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
-import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
-import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
-import com.suntek.mway.rcs.client.aidl.constant.Constants.MessageConstants;
 
 /**
  * An interface for finding information about conversations and/or creating new ones.
@@ -1998,6 +1997,12 @@ public class Conversation {
                     return mContext.getString(R.string.group_chat_status_active);
                 case GroupChat.STATUS_TERMINATED:
                     return mContext.getString(R.string.group_chat_status_deleted);
+                case GroupChat.STATUS_QUITED:
+                    return mContext.getString(R.string.group_chat_status_deleted);
+                case GroupChat.STATUS_PAUSE:
+                    return mContext.getString(R.string.group_chat_status_offline);
+				default:
+                    break;
             }
         }
         return "";

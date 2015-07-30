@@ -48,7 +48,7 @@ public final class MessageListView extends ZoomMessageListView {
             if (item != null && item.isSms()) {
                 ClipboardManager clip =
                     (ClipboardManager)getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                clip.setText(item.mBody);
+                clip.setText(item.getMsgBody());
                 return true;
             }
             break;

@@ -30,6 +30,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import com.android.mms.R;
 import com.android.mms.data.ContactList;
+import com.android.mms.rcs.RcsDualSimMananger;
 
 import java.util.List;
 
@@ -41,6 +42,7 @@ public class MsimDialog extends AlertDialog {
     View mLayout;
     OnSimButtonClickListener mOnSimClickListener;
     ContactList mRecipients;
+    boolean mIsRcsGroupChat = false;
 
     public MsimDialog(Context context,
                       OnSimButtonClickListener onSimClickListener,
@@ -48,6 +50,15 @@ public class MsimDialog extends AlertDialog {
         super(context);
         mOnSimClickListener = onSimClickListener;
         mRecipients = recipients;
+    }
+
+    public MsimDialog(Context context,
+            OnSimButtonClickListener onSimClickListener,
+            ContactList recipients, boolean isGroupChat) {
+        super(context);
+        mOnSimClickListener = onSimClickListener;
+        mRecipients = recipients;
+        mIsRcsGroupChat = isGroupChat;
     }
 
     @Override
@@ -95,7 +106,10 @@ public class MsimDialog extends AlertDialog {
         int[] smsBtnIds = {R.id.BtnSimOne, R.id.BtnSimTwo, R.id.BtnSimThree};
         int phoneCount = TelephonyManager.getDefault().getPhoneCount();
         Button[] smsBtns = new Button[phoneCount];
-
+        int rcsOnlineSlot = -1;
+        if (mIsRcsGroupChat) {
+            rcsOnlineSlot = RcsDualSimMananger.getCurrentRcsOnlineSlot();
+        }
         for (int i = 0; i < phoneCount; i++) {
             final int phoneId = i;
             smsBtns[i] = (Button) mLayout.findViewById(smsBtnIds[i]);
@@ -108,6 +122,9 @@ public class MsimDialog extends AlertDialog {
                     : "SIM " + (i + 1);
 
             smsBtns[i].setText(displayName);
+            if (mIsRcsGroupChat && rcsOnlineSlot != i) {
+                smsBtns[i].setEnabled(false);
+            }
             smsBtns[i].setOnClickListener(
                 new View.OnClickListener() {
                     public void onClick(View v) {
