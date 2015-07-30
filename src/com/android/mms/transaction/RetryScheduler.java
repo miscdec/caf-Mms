@@ -330,7 +330,10 @@ public class RetryScheduler implements Observer {
 
     private static Cursor getMmsCursor(Cursor cursor, Uri uri) {
         if (uri == null) {
-            return cursor;
+            if (cursor.moveToFirst()) {
+                return cursor;
+            }
+            return null;
         }
 
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
