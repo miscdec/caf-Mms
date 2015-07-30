@@ -302,7 +302,6 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         // From
         mFromView.setText(formatMessage());
         if (isBurnMsg(messageID)){
-            mDateView.setText("");
             mSubjectView.setText(R.string.msg_type_burnMessage);
         } else {
             // Date
@@ -402,8 +401,8 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         Cursor cursor = null;
         try {
             Uri uri = Uri.parse("content://sms/");
-            cursor = mContext.getContentResolver().query (uri, null,"_id = ?",
-                    new String[] {String.valueOf(messageID)}, null);
+            cursor = mContext.getContentResolver().query (uri, null, Sms._ID + " = ? and "
+                    + Sms.TYPE + " != 0", new String[] {String.valueOf(messageID)}, null);
             if (cursor != null && cursor.moveToNext()) {
                 isBurnMsg = (cursor.getInt(cursor.getColumnIndex(
                         RcsColumns.SmsRcsColumns.RCS_BURN))> RcsUtils.RCS_NOT_A_BURN_MESSAGE);

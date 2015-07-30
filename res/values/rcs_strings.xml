@@ -45,6 +45,7 @@
     <string name="group_chat_status_active">(Active)</string>
     <string name="group_chat_status_inactive">(Inactive)</string>
     <string name="group_chat_status_deleted">(Deleted)</string>
+    <string name="group_chat_status_offline">(Offline)</string>
 
     <!-- Group chat notification. -->
     <string name="group_chat_created">New group chat created.</string>
@@ -132,6 +133,7 @@
     <string name="forward_conversation">Conversation</string>
     <string name="forward_contact_group">Contact group</string>
     <string name="my_vcard">My vCard</string>
+    <string name="vcard">Vcard(%1$s)</string>
     <string name="select_contact_conversation">Select contact or conversation</string>
     <string name="file_share">mCloud file share</string>
     <string name="download_mcloud_file_fail">Failed to download, please download again</string>
@@ -250,6 +252,7 @@
     <string name="msg_type_location">geolocation</string>
     <string name="msg_type_CaiYun">Mcloud</string>
     <string name="msg_type_burnMessage">Burn after read</string>
+    <string name="msg_type_paid_emo">Paid emoticon</string>
     <string name="merge_contacts">Merge Contacts</string>
     <string name="mms_does_not_support_location_sharing">MMS does not support location sharing, please re select</string>
     <string name="mms_does_not_support_rcs_cachemessage_send">MMS does not support Rcs cachemessage send, please select again</string>
@@ -257,16 +260,21 @@
     <string name="download_fail_please_download_again">Dowanload fail,please click download again</string>
     <string name="menu_view_one_to_many_status">View Message Status</string>
 
-    <string name="setting_message_send_tactics">Message send tacrics</string>
-    <string name="sim1_send_tactics">SIM1 send tacrics</string>
-    <string name="sim2_send_tactics">SIM2 send tacrics</string>
-    <string name="send_tactics_auto">Auto</string>
-    <string name="send_tactics_IM">Instant message</string>
-    <string name="send_tactics_sms_mms">SMS or MMS</string>
+    <string name="message_send_policy">Message send policy</string>
+    <string name="rcs_immediately_message_title">RCS IM message</string>
+    <string name="rcs_immediately_message_summary">When RCS is online, RCS function will be given priority to send message</string>
+    <string name="rcs_message_failure_change_to_sms_title">Convert to SMS if sent failure occurs</string>
+    <string name="rcs_message_failure_change_to_sms_summary"> Convert to SMS if IM message failed to be sent</string>
 
     <string name="frou_g_talk">Conference Call</string>
     <string name="add_nuber_to_contects">Add the phone number from the contects</string>
     <string name="contects">Contects</string>
     <string name="start_call">Call</string>
     <string name="no_data_can_not_send">No data, please open it.</string>
+    <string name="rcs_offline_not_support_attachment">Rcs offline and sending policy is RCS ONLY not support attachment.</string>
+    <string name="rcs_offline_not_support_sending">RCS is not online and the sending policy is RCS only, unable to send</string>
+    <string name="group_chat_unsupport_sending_mms">Group chat unsupport sending mms.</string>
+    <string name="group_chat_send_message_in_woring_card">Sending message preferred card is not matching for group chat card, please reselect preferred card.</string>
+    <string name="rcs_msgtype_only">RCS message type only</string>
+    <string name="time_length_unit">"s"</string>
 </resources>

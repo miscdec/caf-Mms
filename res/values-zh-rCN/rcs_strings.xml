@@ -45,6 +45,7 @@
     <string name="group_chat_status_active">(已激活)</string>
     <string name="group_chat_status_inactive">(未激活)</string>
     <string name="group_chat_status_deleted">(已删除)</string>
+    <string name="group_chat_status_offline">(已离线)</string>
 
     <!-- 群聊通知 -->
     <string name="group_chat_created">新群聊已创建。</string>
@@ -120,6 +121,7 @@
     <string name="forward_conversation">会话</string>
     <string name="forward_contact_group">群组</string>
     <string name="my_vcard">我的名片</string>
+    <string name="vcard">名片（%1$s）</string>
     <string name="select_contact_conversation">选择联系人或会话</string>
     <string name="file_share">彩云文件分享</string>
     <string name="download_mcloud_file_fail">下载失败，请点击继续下载</string>
@@ -143,13 +145,6 @@
 
     <string name="confirm_complain_selected_messages">选中的信息将被举报</string>
     <string name="message_complain">信息举报</string>
-    <!-- Firewall string resources 
-    <string name="firewall_number_len_not_valid">Number is wrong</string>
-    <string name="firewall_number_in_black">"Number already in blacklist"</string>
-    <string name="firewall_number_in_white">"Number already in whitelist"</string>
-    <string name="firewall_save_success">Saved successfully</string>
-    <string name="firewall_add_blacklist_wring">if you add this number to blacklsit you will not receive the message and call from it</string>
-    -->
     <string name="menuid_add_to_black_list">加入黑名单</string>
     <string name="menuid_add_to_white_list">加入白名单</string>
     <string name="firewall_number_len_not_valid">号码错误</string>
@@ -235,6 +230,7 @@
     <string name="msg_type_location">地理位置消息</string>
     <string name="msg_type_CaiYun">彩云文件消息</string>
     <string name="msg_type_burnMessage">阅后即焚消息</string>
+    <string name="msg_type_paid_emo">表情消息</string>
     <string name="merge_contacts">合并联系人</string>
     <string name="mms_does_not_support_location_sharing">彩信不支持位置共享，请重新选择</string>
     <string name="mms_does_not_support_rcs_cachemessage_send">RCS缓存消息，不支持通过彩信发送，请重新选择</string>
@@ -242,16 +238,21 @@
     <string name="download_fail_please_download_again">下载失败,请点击继续下载</string>
     <string name="menu_view_one_to_many_status">查看消息状态</string>
 
-    <string name="setting_message_send_tactics">消息发送策略</string>
-    <string name="sim1_send_tactics">SIM卡1发送策略</string>
-    <string name="sim2_send_tactics">SIM卡2发送策略</string>
-    <string name="send_tactics_auto">自动</string>
-    <string name="send_tactics_IM">即时消息</string>
-    <string name="send_tactics_sms_mms">短彩信</string>
+    <string name="message_send_policy">消息发送策略</string>
+    <string name="rcs_immediately_message_title">RCS即时消息</string>
+    <string name="rcs_immediately_message_summary">RCS在线时，优选RCS功能发送消息</string>
+    <string name="rcs_message_failure_change_to_sms_title">发送失败时转短信</string>
+    <string name="rcs_message_failure_change_to_sms_summary">即时消息发送失败时转短信发送</string>
 
     <string name="frou_g_talk">4G会议电话</string>
     <string name="add_nuber_to_contects">从通讯录添加</string>
     <string name="contects">通讯录</string>
     <string name="start_call">开始拨打</string>
     <string name="no_data_can_not_send">没有数据无法发送,请打开数据网络</string>
+    <string name="rcs_offline_not_support_attachment">融合通信不在线且发送策略是仅融合通信，不支持附件选择</string>
+    <string name="rcs_offline_not_support_sending">融合通信不在线且发送策略是仅融合通信，不支持发送</string>
+    <string name="group_chat_unsupport_sending_mms">群聊不支持发彩信</string>
+    <string name="group_chat_send_message_in_woring_card">短信优选卡与当前注册的融合通信卡不匹配，请重新选择短信优选卡。</string>
+    <string name="rcs_msgtype_only">仅RCS支持的消息类型</string>
+    <string name="time_length_unit">秒</string>
 </resources>

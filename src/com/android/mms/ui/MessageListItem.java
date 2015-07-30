@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.ArrayList;
 
 import android.app.AlertDialog;
 import android.content.ComponentName;
@@ -318,7 +317,11 @@ public class MessageListItem extends ZoomMessageListItem implements
                                 // clicks first.
 
         if (isRcsMessage()) {
-            bindRcsMessage();
+            if (mSimIndicatorView != null)
+                mSimIndicatorView.setVisibility(View.GONE);
+                bindRcsMessage();
+        } else {
+            showMmsView(false);
         }
         switch (msgItem.mMessageType) {
             case PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND:
@@ -399,8 +402,14 @@ public class MessageListItem extends ZoomMessageListItem implements
         mRcsContentType = RcsUtils.getContentTypeForMessageItem(mMessageItem);
         switch (mMessageItem.getRcsMsgType()) {
             case RcsUtils.RCS_MSG_TYPE_VIDEO: {
+                int videoDuration = 0;
+                String body = mMessageItem.getMsgBody();
+                if (body != null) {
+                    videoDuration = Integer.valueOf(body);
+                }
+                double displayDuration = (double)(Math.round(videoDuration/10)/100.0);
                 String msgBody = mMessageItem.getRcsMsgFileSize() / 1024 + "KB/ "
-                        + mMessageItem.getMsgBody() + "''";
+                        + displayDuration + "s";
                 formatAndSetRcsCachedFormattedMessage(mMessageItem, msgBody);
                 mBodyTextView.setVisibility(View.VISIBLE);
                 break;
@@ -420,8 +429,9 @@ public class MessageListItem extends ZoomMessageListItem implements
                 if (body != null) {
                     audioDuration = Integer.valueOf(body);
                 }
-                double displayDuration=(double)(Math.round(audioDuration/10)/100.0);
-                String dispayBody = displayDuration + "''";
+                double displayDuration = (double)(Math.round(audioDuration/10)/100.0);
+                String dispayBody = displayDuration +
+                        mContext.getString(R.string.time_length_unit);
                 formatAndSetRcsCachedFormattedMessage(mMessageItem, dispayBody);
                 break;
             }
@@ -680,7 +690,6 @@ public class MessageListItem extends ZoomMessageListItem implements
             } else {
                 if (contact.existsInDatabase()) {
                     mAvatar.assignContactUri(contact.getUri());
-                    mAvatar.setImageDrawable(avatarDrawable);
                 } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
                     mAvatar.assignContactFromPhone(
                             MessageUtils.getWapPushNumber(contact.getNumber()), true);
@@ -918,7 +927,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                             : mMessageItem.getTimestamp()));
                 } else if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FAIL
                         && RcsUtils.isFileDownBeginButNotEnd(mMessageItem.getRcsPath(),
-                        mMessageItem.getRcsMsgFileSize())){
+                        mMessageItem.getRcsMsgFileSize())) {
                     mDateView.setText(R.string.download_fail_please_download_again);
                 }
             }
@@ -1361,7 +1370,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         } else {
             mDateView.setText(buildTimestampLine(mMessageItem.isSending()
                 ? mContext.getResources().getString(R.string.sending_message)
-                : mMessageItem.mTimestamp));
+                : mMessageItem.getTimestamp()));
         }
     }
 

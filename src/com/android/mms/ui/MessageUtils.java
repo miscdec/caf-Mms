@@ -849,13 +849,13 @@ public class MessageUtils {
     }
 
     public static void recordSound(Activity activity, int requestCode, long sizeLimit,
-            boolean isMms) {
+            boolean requringRcsAttachment) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType(ContentType.AUDIO_AMR);
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
         // add RCS recordSound time add size limit
-        if (!isMms && RcsUtils.isRcsOnline()) {
+        if (requringRcsAttachment) {
             long durationLimit = RcsUtils.getAudioMaxTime();
             intent.putExtra(Media.EXTRA_MAX_BYTES, (long)((ARM_BIT / 8) * (durationLimit + 1)));
         } else {

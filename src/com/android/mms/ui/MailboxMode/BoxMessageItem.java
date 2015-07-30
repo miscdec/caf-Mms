@@ -78,7 +78,7 @@ public class BoxMessageItem {
             mSmsType = cursor.getInt(COLUMN_SMS_TYPE);
             mLocked = cursor.getInt(COLUMN_SMS_LOCKED) != 0;
             mThreadId = cursor.getInt(COLUMN_THREAD_ID);
-            mRcsMsgType = cursor.getInt(COLUMN_RCS_MSG_TYPE);
+
             // For incoming messages, the ADDRESS field contains the sender.
             mName = Contact.get(mAddress, true).getName();
         }
