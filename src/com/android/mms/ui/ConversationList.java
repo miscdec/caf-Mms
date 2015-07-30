@@ -1256,7 +1256,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     }
 
     private void createNewMessage() {
-        startActivity(ComposeMessageActivity.createIntent(this, 0));
+        Intent createIntent = ComposeMessageActivity.createIntent(this, 0);
+        if (mIsRcsEnabled) {
+            createIntent.putExtra("fromNormol", true);
+        }
+        startActivity(createIntent);
     }
 
     private void createNewGroupChat() {
