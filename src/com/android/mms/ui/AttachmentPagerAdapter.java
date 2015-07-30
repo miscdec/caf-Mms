@@ -164,6 +164,9 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     private List<IconListItem> getAttachmentData() {
         int index = 0;
         mIndexOfAttachmentTypes.clear();
+        boolean isRcsSupported = SupportApi.getInstance().isRcsSupported();
+        boolean isRcsOneline = RcsUtils.isRcsOnline();
+        boolean isRcsAttachment = isRcsSupported && isRcsOneline;
 
         List<IconListItem> list = new ArrayList<IconListItem>(10);
         list.add(new IconListItem(mContext.getString(R.string.attach_image),
@@ -197,7 +200,6 @@ public class AttachmentPagerAdapter extends PagerAdapter {
                         : R.drawable.ic_attach_slideshow_holo_light));
         mIndexOfAttachmentTypes.put(index++, ADD_SLIDESHOW);
         boolean config_vcard = mContext.getResources().getBoolean(R.bool.config_vcard);
-        boolean isRcsSupported = SupportApi.getInstance().isRcsSupported();
         if (config_vcard) {
             list.add(new IconListItem(mContext.getString(R.string.attach_add_contact_as_text),
                     (!mIsReplace && mHasSlideshow) ? R.drawable.ic_attach_contact_info_disable
@@ -207,13 +209,13 @@ public class AttachmentPagerAdapter extends PagerAdapter {
                     (!mIsReplace && mHasAttachment) ? R.drawable.ic_attach_vcard_disable
                             : R.drawable.ic_attach_vcard_holo_light));
             mIndexOfAttachmentTypes.put(index++, ADD_CONTACT_AS_VCARD);
-        } else if (isRcsSupported) {
+        } else if (isRcsAttachment) {
             list.add(new IconListItem(mContext.getString(R.string.attach_add_contact_as_vcard),
                     (!mIsReplace && mHasAttachment) ? R.drawable.ic_attach_vcard_disable
                             : R.drawable.ic_attach_vcard_holo_light));
             mIndexOfAttachmentTypes.put(index++, ADD_CONTACT_AS_VCARD);
         }
-        if (isRcsSupported) {
+        if (isRcsAttachment) {
             list.add(new IconListItem(mContext.getString(R.string.attach_map),
                     R.drawable.rcs_caiyun_sharefile));
             mIndexOfAttachmentTypes.put(index++, ADD_MAP);

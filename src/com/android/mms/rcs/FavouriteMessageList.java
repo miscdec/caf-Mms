@@ -282,7 +282,7 @@ public class FavouriteMessageList extends ListActivity implements
                          }
                      } else {
                         mListAdapter.changeCursor(mCursor);
-                        mCountTextView.setVisibility(View.INVISIBLE);
+                        mCountTextView.setVisibility(View.GONE);
                     }
                 } else {
                     if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
