@@ -2450,6 +2450,14 @@ public class WorkingMessage {
         }, "WorkingMessage.asyncDelete").start();
     }
 
+    public void asyncDeleteDraftMessage(Conversation conv) {
+        if (mHasSmsDraft) {
+            asyncDeleteDraftSmsMessage(conv);
+        } else {
+            asyncDeleteDraftMmsMessage(conv);
+        }
+    }
+
     public void asyncDeleteDraftSmsMessage(Conversation conv) {
         mHasSmsDraft = false;
 
