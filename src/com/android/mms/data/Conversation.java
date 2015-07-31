@@ -436,7 +436,7 @@ public class Conversation {
                 mMarkAsUnreadTask = null;
                 return null;
             }
-        }.execute();
+        }.executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
     }
 
     /**
@@ -544,7 +544,7 @@ public class Conversation {
 				}
                 return null;
             }
-        }.execute();
+        }.executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
     }
 
     /**
