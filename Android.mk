@@ -27,7 +27,7 @@ LOCAL_JAVA_LIBRARIES += rcs_service_api
 
 LOCAL_STATIC_JAVA_LIBRARIES += android-common jsr305
 LOCAL_STATIC_JAVA_LIBRARIES += libchips
-LOCAL_STATIC_JAVA_LIBRARIES += com.android.vcard libphonenumber libgeocoding guava
+LOCAL_STATIC_JAVA_LIBRARIES += libphonenumber libgeocoding guava
 LOCAL_STATIC_JAVA_LIBRARIES += android-support-v7-palette
 LOCAL_STATIC_JAVA_LIBRARIES += android-support-v4
 LOCAL_STATIC_JAVA_LIBRARIES += android-support-v13

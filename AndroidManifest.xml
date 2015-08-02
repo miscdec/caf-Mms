@@ -500,23 +500,19 @@
 
         <receiver android:name=".rcs.RcsMessageStatusReceiver" >
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS" />
-                <action android:name="com.suntek.mway.rcs.ACTION_UI_MESSAGE_ADD_TO_DATABASE" />
-                <action android:name="com.suntek.mway.rcs.ACTION_UI_MESSAGE_STATUS_CHANGE_NOTIFY" />
-                <action android:name="com.suntek.mway.rcs.ACTION_UI_SHOW_RECV_REPORT_INFO" />
-                <action android:name="com.suntek.mway.rcs.ACTION_UI_SHOW_GROUP_MESSAGE_NOTIFY" />
+                <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_STATUS_CHANGED" />
                 <action android:name="com.suntek.mway.rcs.UI_DOWNLOADING_FILE_CHANGE" />
+                <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_NOTIFY" />
             </intent-filter>
         </receiver>
 
-        <service android:name=".rcs.RcsMessageStatusService"/>
-
-        <activity
-            android:name=".rcs.BurnFlagMessageActivity"
-            android:exported="true"
-            android:theme="@style/burn_message" >
-        </activity>
+        <service
+            android:name=".rcs.RcsMessageStatusService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.android.mms.rcs.RcsMessageStatusService"/>
+            </intent-filter>
+        </service>
 
        <activity android:name=".rcs.FavouriteMessageList"
             android:label="@string/app_label"
@@ -531,11 +527,18 @@
         </activity>
 
         <activity
+            android:name="com.android.mms.rcs.FavoriteDetailActivity"
+            android:label="@string/message_detail"
+            android:theme="@style/MmsTheme"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:launchMode="singleTop" >
+        </activity>
+
+        <activity
             android:name="com.android.mms.rcs.RcsCreateGroupChatActivity"
             android:theme="@style/MmsTheme.NoActionBar"
             android:label="@string/new_group_chat"
-            android:exported="true"
-            android:screenOrientation="portrait">
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.android.mms.rcs.CREATR_GROUP_CHAT" />
                 <category android:name="android.intent.category.DEFAULT" />

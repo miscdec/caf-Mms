@@ -114,4 +114,8 @@
     <integer name="max_chips_parsed">15</integer>
     <!-- configuration for display sent time in CT mode -->
     <bool name="config_display_sent_time">false</bool>
+
+    <!-- configuration for CMCC rcs version-->
+    <bool name="config_rcs_sms_version">false</bool>
+
 </resources>

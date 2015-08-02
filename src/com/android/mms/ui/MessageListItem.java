@@ -17,6 +17,11 @@
 
 package com.android.mms.ui;
 
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,17 +41,23 @@ import android.database.sqlite.SqliteWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.BitmapFactory;
+import android.graphics.BitmapFactory.Options;
 import android.graphics.Paint.FontMetricsInt;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
+import android.media.MediaMetadataRetriever;
+import android.media.MediaPlayer;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.Browser;
 import android.provider.ContactsContract.Profile;
+import android.provider.MediaStore;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Mms;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
@@ -83,6 +94,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.contacts.common.widget.CheckableQuickContactBadge;
 import com.android.mms.LogTag;
@@ -94,8 +106,9 @@ import com.android.mms.data.WorkingMessage;
 import com.android.mms.model.LayoutModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
-import com.android.mms.rcs.GroupMemberPhotoCache;
-import com.android.mms.rcs.PropertyNode;
+import com.android.mms.rcs.RcsMessageOpenUtils;
+import com.android.mms.rcs.RcsUtils;
+import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.transaction.SmsReceiverService;
 import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
@@ -105,37 +118,23 @@ import com.android.mms.ui.zoom.ZoomMessageListItem;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ThumbnailManager.ImageLoaded;
+
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.NotificationInd;
 import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
-import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
-import com.suntek.mway.rcs.client.aidl.provider.SuntekMessageData;
-import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
-import com.suntek.mway.rcs.client.aidl.provider.model.CloudFileMessage;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
-import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.IOException;
 
-import android.graphics.BitmapFactory;
-import android.graphics.BitmapFactory.Options;
-import android.media.MediaMetadataRetriever;
-import android.media.MediaPlayer;
-import android.media.ThumbnailUtils;
-import android.provider.MediaStore;
+import com.suntek.rcs.ui.common.mms.RcsFileTransferCache;
+import com.suntek.mway.rcs.client.aidl.constant.Constants;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.message.MessageApi;
+import com.suntek.rcs.ui.common.mms.GeoLocation;
+import com.suntek.rcs.ui.common.mms.GroupMemberPhotoCache;
+import com.suntek.rcs.ui.common.mms.RcsContactsUtils;
+import com.suntek.rcs.ui.common.PropertyNode;
 
-import com.android.mms.rcs.GeoLocation;
-import com.android.mms.rcs.RcsApiManager;
-import com.android.mms.rcs.RcsContactsUtils;
-import com.android.mms.rcs.RcsMessageOpenUtils;
-import com.android.mms.rcs.RcsUtils;
-import com.android.mms.rcs.RcsChatMessageUtils;
 
-import android.os.Environment;
-import android.widget.Toast;
 /**
  * This class provides view of a message in the messages list.
  */
@@ -195,13 +194,8 @@ public class MessageListItem extends ZoomMessageListItem implements
     private TextView downloadTextView;
     private TextView mNameView;
     boolean mRcsShowMmsView = false;
-    private int mRcsGroupId;
+    private long mRcsGroupId;
     private String mRcsContentType = "";
-    private HashMap<String, Long> mFileTrasnfer;
-
-    public void setFileTrasnfer(HashMap<String, Long> fileTrasnfer){
-        this.mFileTrasnfer = fileTrasnfer;
-    }
 
     public MessageListItem(Context context) {
         this(context, null);
@@ -291,21 +285,16 @@ public class MessageListItem extends ZoomMessageListItem implements
         }
     }
 
-    private void updateNameTextView() {
-        if (isRcsMessage()) {
-            if (mMessageItem.mRcsChatType == SuntekMessageData.CHAT_TYPE_GROUP
-                    && mMessageItem.mRcsType != SuntekMessageData.MSG_TYPE_NOTIFICATION) {
-                if (mNameView != null) {
-                    mNameView.setText(RcsContactsUtils.getGroupChatMemberDisplayName(getContext(),
-                            mRcsGroupId, mMessageItem.mAddress));
-                    mNameView.setVisibility(View.VISIBLE);
-                }
-            }
+    private void updateGroupMemberDisplayName() {
+        if (mNameView != null) {
+            mNameView.setText(RcsContactsUtils.getGroupChatMemberDisplayName(getContext(),
+                    mRcsGroupId, mMessageItem.mAddress));
+            mNameView.setVisibility(View.VISIBLE);
         }
     }
 
     public void bind(MessageItem msgItem, int accentColor,
-            boolean convHasMultiRecipients, int position, boolean selected, int rcsGroupId) {
+            boolean convHasMultiRecipients, int position, boolean selected, long rcsGroupId) {
         if (DEBUG) {
             Log.v(TAG, "bind for item: " + position + " old: " +
                    (mMessageItem != null ? mMessageItem.toString() : "NULL" ) +
@@ -362,13 +351,15 @@ public class MessageListItem extends ZoomMessageListItem implements
     }
 
     private boolean isRcsMessage() {
-        return mMessageItem.mRcsId > 0;
+        return mMessageItem.isRcsMessage();
     }
 
     private void bindRcsMessage() {
-        updateNameTextView();
+        if (mMessageItem.isGroupChatMessageWithoutNotification()) {
+            updateGroupMemberDisplayName();
+        }
 
-        if (mMessageItem.mRcsBurnFlag == RcsUtils.RCS_IS_BURN_TRUE) {
+        if (mMessageItem.isRcsBurnMessage()) {
             bindRcsBurnMessage();
         } else {
             bindRcsNotBurnMessage();
@@ -384,20 +375,20 @@ public class MessageListItem extends ZoomMessageListItem implements
         if (mSlideShowButton != null) {
             mSlideShowButton.setVisibility(View.GONE);
         }
-        if (mMessageItem.mRcsIsBurn == 0) {
-            mImageView.setImageDrawable(sRcsBurnFlagImage);
-        } else {
+        if (mMessageItem.getRcsMsgState() == RcsUtils.MESSAGE_HAS_BURNED) {
             mImageView.setImageDrawable(sRcsBurnMessageHasBurnImage);
+        } else {
+            mImageView.setImageDrawable(sRcsBurnFlagImage);
         }
         mImageView.setOnClickListener(new OnClickListener() {
 
             @Override
             public void onClick(View arg0) {
-                if (mMessageItem.mRcsMsgState == RcsUtils.MESSAGE_FAIL) {
+                if (mMessageItem.getRcsMsgState() == RcsUtils.MESSAGE_FAIL) {
                     RcsMessageOpenUtils.retransmisMessage(mMessageItem);
                 } else {
-                    RcsChatMessageUtils.startBurnMessageActivity(mContext,
-                            mMessageItem.mRcsIsBurn, mMessageItem.mRcsId, mMessageItem.getMessageId());
+                    RcsChatMessageUtils.startBurnMessageActivity(mContext, mMessageItem.mMsgId,
+                            mMessageItem.getRcsMsgState());
                 }
             }
         });
@@ -407,10 +398,11 @@ public class MessageListItem extends ZoomMessageListItem implements
 
     private void bindRcsNotBurnMessage() {
         mRcsContentType = RcsUtils.getContentTypeForMessageItem(mMessageItem);
-        switch (mMessageItem.mRcsType) {
+        switch (mMessageItem.getRcsMsgType()) {
             case RcsUtils.RCS_MSG_TYPE_VIDEO: {
-                mMessageItem.mBody = mMessageItem.mRcsFileSize / 1024 + "KB/ "
-                        + mMessageItem.mRcsPlayTime + "''";
+                String msgBody = mMessageItem.getRcsMsgFileSize() / 1024 + "KB/ "
+                        + mMessageItem.getMsgBody() + "''";
+                formatAndSetRcsCachedFormattedMessage(mMessageItem, msgBody);
                 mBodyTextView.setVisibility(View.VISIBLE);
                 break;
             }
@@ -424,8 +416,14 @@ public class MessageListItem extends ZoomMessageListItem implements
             }
             case RcsUtils.RCS_MSG_TYPE_AUDIO: {
                 mBodyTextView.setVisibility(View.VISIBLE);
-                mBodyTextView.setText(mMessageItem.mRcsPlayTime + "''");
-                mMessageItem.mBody = RcsUtils.getAudioBodyText(mMessageItem);
+                int audioDuration = 0;
+                String body = mMessageItem.getMsgBody();
+                if (body != null) {
+                    audioDuration = Integer.valueOf(body);
+                }
+                double displayDuration=(double)(Math.round(audioDuration/10)/100.0);
+                String dispayBody = displayDuration + "''";
+                formatAndSetRcsCachedFormattedMessage(mMessageItem, dispayBody);
                 break;
             }
             case RcsUtils.RCS_MSG_TYPE_PAID_EMO: {
@@ -435,19 +433,19 @@ public class MessageListItem extends ZoomMessageListItem implements
             case RcsUtils.RCS_MSG_TYPE_VCARD:{
                 mBodyTextView.setVisibility(View.VISIBLE);
                 mBodyTextView.setText(RcsUtils.disposeVcardMessage(
-                        getContext(), mMessageItem.mRcsId, mMessageItem.mRcsPath));
+                        getContext(), mMessageItem.getRcsPath()));
                 break;
             }
             case RcsUtils.RCS_MSG_TYPE_CAIYUNFILE:{
                 mBodyTextView.setVisibility(View.VISIBLE);
-                mMessageItem.mBody = RcsUtils.getCaiYunFileBodyText(
-                        getContext(), mMessageItem.mRcsId);
-                mBodyTextView.setText(mMessageItem.mBody);
+                String msgBody = RcsUtils.getCaiYunFileBodyText(
+                        getContext(), mMessageItem);
+                mBodyTextView.setText(msgBody);
                 break;
             }
         }
 
-        if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_TEXT) {
+        if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_TEXT) {
             mBodyTextView.setVisibility(View.VISIBLE);
             mRcsShowMmsView = false;
             showMmsView(false);
@@ -456,14 +454,14 @@ public class MessageListItem extends ZoomMessageListItem implements
             if (mSlideShowButton == null) {
                 mSlideShowButton = (ImageButton) findViewById(R.id.play_slideshow_button);
             }
-            if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VCARD) {
+            if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_VCARD) {
                 mImageView.setVisibility(View.GONE);
                 mVCardImageView.setVisibility(View.VISIBLE);
                 RcsUtils.setThumbnailForMessageItem(getContext(), mVCardImageView, mMessageItem);
             } else {
                 RcsUtils.setThumbnailForMessageItem(getContext(), mImageView, mMessageItem);
             }
-            if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO) {
+            if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_VIDEO) {
                 mSlideShowButton.setVisibility(View.VISIBLE);
                 mSlideShowButton.setFocusable(false);
                 FrameLayout.LayoutParams layoutParams =
@@ -480,7 +478,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 mVCardImageView.setOnClickListener(null);
             } else {
                 mSlideShowButton.setVisibility(View.GONE);
-                if (mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VCARD) {
+                if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_VCARD) {
                     RcsMessageOpenUtils.setRcsImageViewClickListener(
                             mVCardImageView, MessageListItem.this);
                     mImageView.setOnClickListener(null);
@@ -497,10 +495,6 @@ public class MessageListItem extends ZoomMessageListItem implements
 
     public ImageView getImageView(){
         return mImageView;
-    }
-
-    public boolean isDownloading() {
-        return mFileTrasnfer.containsKey(mMessageItem.mRcsMessageId);
     }
 
     private void toast(int resId) {
@@ -610,6 +604,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 mDownloadButton.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        mDownloading.setVisibility(View.VISIBLE);
                         try {
                             NotificationInd nInd = (NotificationInd) PduPersister.getPduPersister(
                                     mContext).load(mMessageItem.mMessageUri);
@@ -716,8 +711,8 @@ public class MessageListItem extends ZoomMessageListItem implements
                 } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
                     mAvatar.assignContactFromPhone(
                             MessageUtils.getWapPushNumber(contact.getNumber()), true);
-                } else if(mRcsGroupId != RcsUtils.SMS_DEFAULT_RCS_GROUP_ID){
-                    GroupMemberPhotoCache.loadGroupMemberPhoto(String.valueOf(mRcsGroupId),
+                } else if (mRcsGroupId != RcsUtils.SMS_DEFAULT_RCS_GROUP_ID) {
+                    GroupMemberPhotoCache.getInstance().loadGroupMemberPhoto(mRcsGroupId,
                             addr, mAvatar, sDefaultContactImage);
                     mAvatar.assignContactFromPhone(
                             MessageUtils.getWapPushNumber(contact.getNumber()), true);
@@ -802,8 +797,12 @@ public class MessageListItem extends ZoomMessageListItem implements
             mMessageItem.setCachedFormattedMessage(formattedMessage);
         }
         if (!sameItem || haveLoadedPdu) {
-            if (mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_VCARD) {
-                mBodyTextView.setText(formattedMessage);
+            if (mMessageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_VCARD) {
+                if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
+                    mBodyTextView.setText(RcsUtils.getCaiYunFileBodyText(mContext, mMessageItem));
+                } else {
+                    mBodyTextView.setText(formattedMessage);
+                }
             }
         }
         updateSimIndicatorView(mMessageItem.mPhoneId);
@@ -832,11 +831,13 @@ public class MessageListItem extends ZoomMessageListItem implements
                 MessagingPreferenceActivity.getMessageSendDelayDuration(mContext) > 0;
             int sendingTextResId = isCountingDown
                     ? R.string.sent_countdown : R.string.sending_message;
-            if (mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_IMAGE
-                    && mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_VIDEO
-                    && mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
+            int rcsMsgType = mMessageItem.getRcsMsgType();
+            if (rcsMsgType != RcsUtils.RCS_MSG_TYPE_IMAGE
+                    && rcsMsgType != RcsUtils.RCS_MSG_TYPE_VIDEO
+                    && rcsMsgType != RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
                 mDateView.setText(buildTimestampLine(mMessageItem.isSending() ? mContext
-                        .getResources().getString(sendingTextResId) : mMessageItem.mTimestamp));
+                        .getResources().getString(sendingTextResId)
+                        : mMessageItem.getTimestamp()));
             }
 
         }
@@ -906,44 +907,54 @@ public class MessageListItem extends ZoomMessageListItem implements
     private void bindCommonRcsMessage() {
         if (mMessageItem.isMe()) {
             mDateView.setText(RcsUtils.getRcsMessageStatusText(this, mMessageItem));
+        } else if (mMessageItem.isRcsBurnMessage()) {
+            mDateView.setText(mMessageItem.getTimestamp());
         } else {
-            if ((mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_IMAGE ||
-                    mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO
-                    || mMessageItem.mRcsType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE)) {
-                if (mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOAD_FALSE
-                        && mMessageItem.mRcsBurnFlag != RcsUtils.RCS_IS_BURN_TRUE) {
+            int rcsMsgType = mMessageItem.getRcsMsgType();
+            if (rcsMsgType == RcsUtils.RCS_MSG_TYPE_PAID_EMO) {
+                if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
+                    mDateView.setText(R.string.download_fail_please_download_again);
+                } else {
+                    mDateView.setText(mMessageItem.getTimestamp());
+                }
+            } else if ((rcsMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE
+                    || rcsMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO
+                    || rcsMsgType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE)) {
+                if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FALSE
+                        && !mMessageItem.isRcsBurnMessage()) {
                     mDateView.setText(R.string.message_download);
-                } else if (isDownloading() &&
-                        mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOADING) {
-                    if (mFileTrasnfer != null) {
-                        Long percent = mFileTrasnfer.get(mMessageItem.mRcsMessageId);
-                        if (percent != null) {
-                            if (!mMessageItem.isMe()) {
-                                mDateView.setText(getContext().getString(
-                                        R.string.downloading_percent, percent.intValue()));
-                            } else {
-                                mDateView.setText(getContext().getString(
-                                        R.string.uploading_percent, percent.intValue()));
-                            }
+                } else if (RcsFileTransferCache.getInstance()
+                        .hasFileTransferPercent(mMessageItem.getMessageId()) &&
+                        mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOADING) {
+                    Long percent = RcsFileTransferCache.getInstance()
+                            .getFileTransferPercent(mMessageItem.getMessageId());
+                    if (percent != null) {
+                        if (!mMessageItem.isMe()) {
+                            mDateView.setText(getContext().getString(
+                                    R.string.downloading_percent, percent.intValue()));
+                        } else {
+                            mDateView.setText(getContext().getString(
+                                    R.string.uploading_percent, percent.intValue()));
                         }
                     }
-                } else if (mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOAD_PAUSE &&
+                } else if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_PAUSE &&
                         !RcsUtils.isFileDownLoadoK(mMessageItem)) {
                     mDateView.setText(getContext().getString(R.string.stop_down_load));
-                } else if (mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOAD_OK) {
+                } else if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_OK) {
                     mDateView.setText(buildTimestampLine(mMessageItem.isSending() ? mContext
                             .getResources().getString(R.string.sending_message)
-                            : mMessageItem.mTimestamp));
-                } else if (mMessageItem.mRcsIsDownload == RcsUtils.RCS_IS_DOWNLOAD_FAIL
-                        && RcsUtils.isFileDownBeginButNotEnd(mMessageItem)){
+                            : mMessageItem.getTimestamp()));
+                } else if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FAIL
+                        && RcsUtils.isFileDownBeginButNotEnd(mMessageItem.getRcsPath(),
+                        mMessageItem.getRcsMsgFileSize())){
                     mDateView.setText(R.string.download_fail_please_download_again);
                 }
             }
         }
-        if (mMessageItem.mRcsMsgState == 0
-                && mMessageItem.mRcsType != SuntekMessageData.MSG_TYPE_TEXT
-                && mFileTrasnfer != null) {
-            Long percent = mFileTrasnfer.get(mMessageItem.mRcsMessageId);
+        if (mMessageItem.getRcsMsgState() == RcsUtils.MESSAGE_HAS_SENT_TO_SERVER
+                && mMessageItem.getRcsMsgType() != Constants.MessageConstants.CONST_MESSAGE_TEXT) {
+            Long percent = RcsFileTransferCache.getInstance()
+                    .getFileTransferPercent(mMessageItem.getMessageId());
             if (percent != null) {
                 if (!mMessageItem.isMe()) {
                     mDateView.setText(getContext().getString(R.string.downloading_percent,
@@ -1193,7 +1204,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 mMessageItem.isOutgoingMessage() &&
                 mMessageItem.isFailedMessage() ) {
             //if message is rcsMessage except text,return.
-            if( isRcsMessage() && mMessageItem.mRcsType != RcsUtils.RCS_MSG_TYPE_TEXT ){
+            if (isRcsMessage() && mMessageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_TEXT) {
                 return;
             }
             // Assuming the current message is a failed one, reload it into the compose view so
@@ -1453,19 +1464,20 @@ public class MessageListItem extends ZoomMessageListItem implements
         mDateView.setText(resId);
     }
 
-    public long getSendingPercent(String rcsMessageId) {
-        long percent = 0;
-        if (mFileTrasnfer != null && !TextUtils.isEmpty(rcsMessageId)
-                && mFileTrasnfer.containsKey(rcsMessageId)) {
-            percent = mFileTrasnfer.get(rcsMessageId);
-        }
-        return percent;
-    }
-
     public void setBodyTextSize(float size) {
         if (mBodyTextView != null
                 && mBodyTextView.getVisibility() == View.VISIBLE) {
             mBodyTextView.setTextSize(size);
         }
+    }
+
+    private void formatAndSetRcsCachedFormattedMessage(MessageItem messageItem, String body) {
+        CharSequence formattedMessage = formatMessage(messageItem,
+                body,
+                messageItem.mPhoneId,
+                messageItem.mSubject,
+                messageItem.mHighlight,
+                messageItem.mTextContentType);
+        messageItem.setCachedFormattedMessage(formattedMessage);
     }
 }

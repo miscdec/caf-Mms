@@ -85,4 +85,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         android:id="@+id/favourite"
         android:showAsAction="never|withText"
         android:title="@string/favorited"/>
+    <item
+        android:id="@+id/view_one_to_many_msg_status"
+        android:showAsAction="never|withText"
+        android:title="@string/menu_view_one_to_many_status"/>
 </menu>

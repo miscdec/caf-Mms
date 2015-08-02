@@ -41,7 +41,6 @@ import com.android.mms.data.Contact;
 import com.android.mms.data.Conversation;
 import com.android.mms.layout.LayoutManager;
 import com.android.mms.rcs.RcsApiManager;
-import com.android.mms.rcs.RcsMessageThreadMng;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsNoConfirmationSendActivity;
 import com.android.mms.transaction.MmsSystemEventReceiver;
@@ -111,8 +110,8 @@ public class MmsApp extends Application {
         RateController.init(this);
         LayoutManager.init(this);
         MessagingNotification.init(this);
-        activePendingMessages();
         RcsApiManager.init(this);
+        activePendingMessages();
         registerMobileDataObserver();
 
         int enablePlugger = getResources().getBoolean(R.bool.enablePlugger) ?
