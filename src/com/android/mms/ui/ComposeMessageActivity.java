@@ -1978,6 +1978,7 @@ public class ComposeMessageActivity extends Activity
                 && !ContentType.isVideoType(type)
                 && !ContentType.isAudioType(type)
                 && !(ContentType.TEXT_VCARD.toLowerCase().equals(type.toLowerCase()))
+                && !(ContentType.TEXT_VCALENDAR.toLowerCase().equals(type.toLowerCase()))
                 && !(ContentType.AUDIO_OGG.toLowerCase().equals(type.toLowerCase()))) {
             return true;    // we only save pictures, videos, and sounds. Skip the text parts,
                             // the app (smil) parts, and other type that we can't handle.
@@ -2548,7 +2549,9 @@ public class ComposeMessageActivity extends Activity
 
             // Ensure the "to" label is hidden when Subject editor shows
             TextView toLabel = (TextView) findViewById(R.id.to_label);
-            toLabel.setVisibility(View.GONE);
+            if (toLabel != null) {
+                toLabel.setVisibility(View.GONE);
+            }
         } else {
             mSubjectTextEditor.removeTextChangedListener(mSubjectEditorWatcher);
         }
@@ -4172,6 +4175,7 @@ public class ComposeMessageActivity extends Activity
                             REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD);
                 }
                 break;
+
             case AttachmentPagerAdapter.ADD_MAP:
                 if (mWorkingMessage.requiresMms()) {
                     toast(R.string.mms_does_not_support_location_sharing);
@@ -4192,10 +4196,12 @@ public class ComposeMessageActivity extends Activity
                             Toast.LENGTH_LONG).show();
                 }
                 break;
-            case AttachmentTypeSelectorAdapter.ADD_CALENDAR_EVENTS:
+
+            case AttachmentPagerAdapter.ADD_CALENDAR_EVENTS:
                 MessageUtils.selectCalendarEvents(this,
                         getMakRequestCode(replace, REQUEST_CODE_ADD_CALENDAR_EVENTS));
                 break;
+
             default:
                 break;
         }
