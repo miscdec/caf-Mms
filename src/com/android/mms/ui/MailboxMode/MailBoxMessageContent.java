@@ -94,6 +94,7 @@ import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 import com.suntek.mway.rcs.client.api.util.FileSuffixException;
 import com.suntek.mway.rcs.client.api.util.FileTransferException;
 import com.suntek.mway.rcs.client.api.util.FileDurationException;
@@ -118,6 +119,7 @@ public class MailBoxMessageContent extends Activity {
     private int mRcsId;
     // RCS Message API
     private MessageApi mMessageApi = RcsApiManager.getMessageApi();
+    private RcsSupportApi mSupportApi = RcsApiManager.getSupportApi();
     private int mRcsBurnFlag;
 
     private int mSubID = MessageUtils.SUB_INVALID;
@@ -324,10 +326,12 @@ public class MailBoxMessageContent extends Activity {
             menu.add(0, MENU_SAVE_TO_CONTACT, 0, R.string.menu_add_to_contacts);
         }
 
-        if (!RcsChatMessageUtils.isFavoritedMessage(this, mMsgId)) {
-            menu.add(0, MENU_FAVORITED, 0, R.string.favorited);
-        } else {
-            menu.add(0, MENU_UNFAVORITED, 0, R.string.unfavorited);
+        if (mSupportApi.isRcsSupported()) {
+            if (!RcsChatMessageUtils.isFavoritedMessage(this, mMsgId)) {
+                menu.add(0, MENU_FAVORITED, 0, R.string.favorited);
+            } else {
+                menu.add(0, MENU_UNFAVORITED, 0, R.string.unfavorited);
+            }
         }
 
         return true;
