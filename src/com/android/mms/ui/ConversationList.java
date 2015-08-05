@@ -599,7 +599,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         boolean filterEnabled =
                 getResources().getBoolean(R.bool.enable_filter_threads_by_sim);
 
-        if (filterEnabled && mgr.isMultiSimEnabled()) {
+        if (filterEnabled && MessageUtils.isMsimIccCardActive()) {
             mFilterSpinner.setAdapter(new MSimSpinnerAdapter(this));
             mFilterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
