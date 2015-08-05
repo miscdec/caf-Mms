@@ -1265,7 +1265,7 @@ public class MailBoxMessageList extends ListActivity implements
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             ListView listView = getListView();
             final int checkedCount = listView.getCheckedItemCount();
-            mode.setTitle(getString(R.string.selected_count,
+            mSelectionMenu.setTitle(getString(R.string.selected_count,
                     checkedCount));
             switch (item.getItemId()) {
                 case R.id.delete:
@@ -1315,7 +1315,7 @@ public class MailBoxMessageList extends ListActivity implements
             ListView listView = getListView();
             int checkedCount = listView.getCheckedItemCount();
 
-            mode.setTitle(getString(R.string.selected_count, checkedCount));
+            mSelectionMenu.setTitle(getString(R.string.selected_count, checkedCount));
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
             mListAdapter.notifyDataSetChanged();

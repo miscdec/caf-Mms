@@ -8545,7 +8545,7 @@ public class ComposeMessageActivity extends Activity
             mCheckedCount = getListView().getCheckedItemCount();
             updateStatics(position, checked);
             customMenuVisibility(mode, mCheckedCount, position, checked);
-            mode.setTitle(getString(R.string.selected_count, mCheckedCount));
+            mSelectionMenu.setTitle(getString(R.string.selected_count, mCheckedCount));
 
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
