@@ -28,6 +28,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
@@ -38,6 +39,7 @@ import android.text.method.HideReturnsTransformationMethod;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -60,6 +62,7 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
     private static final int BUFFER_SIZE = 8 * 1024;
     private static final int INCREMENT_NUMBER = 2;
     private static final String CONTACTS = "contacts";
+    private static final String COLUMN_CONTENT_TYPE = "ct";
 
     private TextView mTextPreview;
     private ImageView mImagePreview;
@@ -204,7 +207,7 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
         try {
             input = mContext.getContentResolver().openInputStream(attachmentUri);
             if (input instanceof FileInputStream) {
-                File saveFile = createSaveFile(attachmentName);
+                File saveFile = createSaveFile(attachmentUri, attachmentName);
                 File parentFile = saveFile.getParentFile();
                 if (!parentFile.exists() && !parentFile.mkdirs()) {
                     Log.e(TAG, "[MMS] copyPart: mkdirs for " + parentFile.getPath() + " failed!");
@@ -244,13 +247,32 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
         return saveUri;
     }
 
-    private File createSaveFile(String attachmentName) {
+    private File createSaveFile(Uri attachmentUri, String attachmentName) {
         String fileName = new File(attachmentName).getName();
         String extension = "";
         int index;
         if ((index = fileName.lastIndexOf('.')) != -1) {
             extension = fileName.substring(index + 1, fileName.length());
             fileName = fileName.substring(0, index);
+        } else {
+            Cursor cursor = null;
+            cursor = mContext.getContentResolver().query(attachmentUri, null,
+                    null, null, null);
+            try {
+                if (cursor != null && cursor.moveToFirst()) {
+                    String type = cursor.getString(cursor
+                            .getColumnIndexOrThrow(COLUMN_CONTENT_TYPE));
+                    extension = MimeTypeMap.getSingleton()
+                            .getExtensionFromMimeType(type);
+                }
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                    cursor = null;
+                }
+            }
         }
         fileName = fileName.replaceAll("^\\.", "");
 
