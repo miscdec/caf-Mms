@@ -796,12 +796,14 @@ public class MailBoxMessageList extends ListActivity implements
                 }
                 break;
             case R.id.action_mark_all_as_unread:
+                calculateSelectAll();
                 MarkMessagesReadStatusListener listener =
-                        new MarkMessagesReadStatusListener(null, "", "", false, this);
+                        new MarkMessagesReadStatusListener(null, mSmsWhereClause, mMmsWhereClause, false, this);
                 confirmMarkReadStatusDialog(listener, -1, false, this);
                 break;
             case R.id.action_mark_all_as_read:
-                listener = new MarkMessagesReadStatusListener(null, "", "", true, this);
+                calculateSelectAll();
+                listener = new MarkMessagesReadStatusListener(null, mSmsWhereClause, mMmsWhereClause, true, this);
                 confirmMarkReadStatusDialog(listener, -1, true, this);
                 break;
             case R.id.my_favorited:
@@ -907,11 +909,7 @@ public class MailBoxMessageList extends ListActivity implements
                                     }
                                 }, R.string.wait_progress_message);
                             } else {
-                                if (mRead) {
-                                    Conversation.startMarkAsReadAll(mActivity, null, 0, true);
-                                } else {
-                                    Conversation.startMarkAsUnreadAll(mActivity, null, 0, true);
-                                }
+                                markMessagesReadStatus(mSmsWhereUpdate, mMmsWhereUpdate, mRead);
                                 DraftCache.getInstance().refresh();
                             }
                         }
@@ -967,7 +965,7 @@ public class MailBoxMessageList extends ListActivity implements
     }
 
     private void confirmDeleteMessages() {
-        calcuteSelect();
+        calculateSelect();
         DeleteMessagesListener l = new DeleteMessagesListener();
         confirmDeleteDialog(l, mHasLockedMessage);
     }
@@ -1112,7 +1110,53 @@ public class MailBoxMessageList extends ListActivity implements
         mThreadIds.clear();
     }
 
-    private void calcuteSelect() {
+    private void calculateSelectAll() {
+        int count = mListAdapter.getCount();
+
+        if (count == 0) {
+            return;
+        }
+        String smsWhereDelete = "";
+        String mmsWhereDelete = "";
+        mThreadIds.clear();
+        boolean hasLocked = false;
+
+        for (int j = 0; j < count; j++) {
+            Cursor c = (Cursor) mListAdapter.getItem(j);
+            if (c == null) {
+                return;
+            }
+
+            String msgtype = "sms";
+            try {
+                msgtype = c.getString(COLUMN_MSG_TYPE);
+            } catch (Exception ex) {
+                continue;
+            }
+            if (msgtype.equals("sms")) {
+                String msgId = c.getString(COLUMN_ID);
+                int lockValue = c.getInt(COLUMN_SMS_LOCKED);
+                if (lockValue == 1) {
+                    hasLocked = true;
+                }
+                smsWhereDelete += msgId + ",";
+                mThreadIds.add(c.getLong(COLUMN_THREAD_ID));
+            } else if (msgtype.equals("mms")) {
+                int lockValue = c.getInt(COLUMN_MMS_LOCKED);
+                if (lockValue == 1) {
+                    hasLocked = true;
+                }
+                String msgId = c.getString(COLUMN_ID);
+                mmsWhereDelete += msgId + ",";
+            }
+            mThreadId = c.getLong(COLUMN_THREAD_ID);
+        }
+        mSmsWhereClause = smsWhereDelete;
+        mMmsWhereClause = mmsWhereDelete;
+        mHasLockedMessage = hasLocked;
+    }
+
+    private void calculateSelect() {
         int count = mListAdapter.getCount();
         SparseBooleanArray booleanArray = mListView.getCheckedItemPositions();
         int size = booleanArray.size();
@@ -1272,7 +1316,7 @@ public class MailBoxMessageList extends ListActivity implements
                     confirmDeleteMessages();
                     break;
                 case R.id.markAsUnread:
-                    calcuteSelect();
+                    calculateSelect();
                     MarkMessagesReadStatusListener listener =
                             new MarkMessagesReadStatusListener(mThreadIds, mSmsWhereClause,
                                    mMmsWhereClause, false, MailBoxMessageList.this);
@@ -1280,7 +1324,7 @@ public class MailBoxMessageList extends ListActivity implements
                                                 MailBoxMessageList.this);
                     return true;
                 case R.id.markAsRead:
-                    calcuteSelect();
+                    calculateSelect();
                     listener = new MarkMessagesReadStatusListener(mThreadIds, mSmsWhereClause,
                                        mMmsWhereClause, true, MailBoxMessageList.this);
                     confirmMarkReadStatusDialog(listener, checkedCount, true,
