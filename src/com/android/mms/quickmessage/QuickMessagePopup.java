@@ -302,7 +302,6 @@ public class QuickMessagePopup extends Activity {
 
         // Load and display the new message
         parseIntent(intent.getExtras(), true);
-        unlockScreen();
     }
 
     @Override
@@ -410,14 +409,8 @@ public class QuickMessagePopup extends Activity {
             return;
         }
 
-        // See if the screen is locked or if no lock set and the screen is off
-        // and get the wake lock to turn on the screen.
-        boolean isScreenOn = mPowerManager.isScreenOn();
-        boolean inKeyguardRestrictedInputMode = mKeyguardManager.inKeyguardRestrictedInputMode();
-        if (inKeyguardRestrictedInputMode || ((!inKeyguardRestrictedInputMode) && !isScreenOn)) {
-            ManageWakeLock.acquireFull(mContext);
-            mScreenUnlocked = true;
-        }
+        ManageWakeLock.acquireFull(mContext);
+        mScreenUnlocked = true;
     }
 
     /**
