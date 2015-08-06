@@ -405,6 +405,9 @@ public class SuggestionsProvider extends android.content.ContentProvider {
         }
 
         public boolean requery() {
+            if (mDatabaseCursor != null && !mDatabaseCursor.isClosed()) {
+                return mDatabaseCursor.requery();
+            }
             return false;
         }
 
