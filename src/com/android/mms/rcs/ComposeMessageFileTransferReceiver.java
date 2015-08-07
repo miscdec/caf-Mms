@@ -23,21 +23,27 @@
 
 package com.android.mms.rcs;
 
-import com.android.mms.ui.MessageListAdapter;
-import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
-import com.suntek.mway.rcs.client.api.util.log.LogHelper;
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.util.Log;
 
+import com.android.mms.MmsApp;
+import com.android.mms.ui.MessageListAdapter;
+import com.suntek.mway.rcs.client.aidl.constant.Parameter;
+import com.suntek.mway.rcs.client.aidl.constant.Actions;
+import com.suntek.rcs.ui.common.RcsLog;
+import com.suntek.rcs.ui.common.mms.RcsFileTransferCache;
+
 import java.util.HashMap;
+import java.util.Iterator;
 
 public class ComposeMessageFileTransferReceiver extends BroadcastReceiver {
 
-    private static final String LOG_TAG = "RCS_UI";
     private MessageListAdapter mMsgListAdapter;
 
     public ComposeMessageFileTransferReceiver(MessageListAdapter msgListAdapter) {
@@ -46,68 +52,85 @@ public class ComposeMessageFileTransferReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        ConnectivityManager manager = (ConnectivityManager) context
-                .getSystemService(Context.CONNECTIVITY_SERVICE);
-        HashMap<String, Long> fileProgressHashMap = mMsgListAdapter.getFileTrasnferHashMap();
-        String notifyMessageId = intent
-                .getStringExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_MESSAGE_ID);
-        NetworkInfo gprs = manager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-        NetworkInfo wifi = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        String action = intent.getAction();
 
-        if (!gprs.isConnected() && !wifi.isConnected()) {
-            fileProgressHashMap.clear();
-            mMsgListAdapter.notifyDataSetChanged();
-            if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId)
-                    != RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
-                RcsUtils.updateFileDownloadState(context, notifyMessageId,
-                        RcsUtils.RCS_IS_DOWNLOAD_FAIL);
+        if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
+            ConnectivityManager manager = (ConnectivityManager) context
+                    .getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo gprs = manager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+            NetworkInfo wifi = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            if (!gprs.isConnected() && !wifi.isConnected()) {
+                new updateFileDownloadTask(context, mMsgListAdapter).execute();
+                return;
             }
-            return;
-        }
-        long start = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_START, -1);
-        long end = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_END, -1);
-        long total = intent.getLongExtra(BroadcastConstants.BC_VAR_TRANSFER_PRG_TOTAL, -1);
-        LogHelper.trace("messageId =" + notifyMessageId + "start =" + start + ";end =" + end
-                + ";total =" + total);
-        if (notifyMessageId != null && start == end) {
-            LogHelper.trace("download finish ");
-            fileProgressHashMap.remove(notifyMessageId);
-            if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId) !=
-                    RcsUtils.RCS_IS_DOWNLOAD_OK){
-                RcsUtils.updateFileDownloadState(context, notifyMessageId,
-                        RcsUtils.RCS_IS_DOWNLOAD_OK);
-            }
-            mMsgListAdapter.notifyDataSetChanged();
-            return;
-        }
-        if (fileProgressHashMap != null && total != 0) {
-            Long lastProgress = fileProgressHashMap.get(notifyMessageId);
-            long temp = start * 100 / total;
-            if (temp == 100) {
-                fileProgressHashMap.remove(notifyMessageId);
-                Log.i(LOG_TAG, "100");
+        } else if (Actions.MessageAction.ACTION_MESSAGE_FILE_TRANSFER_PROGRESS.equals(action)) {
+            long notifyMessageId = intent.getLongExtra(Parameter.EXTRA_ID, -1);
+            long currentSize = intent.getLongExtra(Parameter.EXTRA_TRANSFER_CURRENT_SIZE, -1);
+            long totalSize = intent.getLongExtra(Parameter.EXTRA_TRANSFER_TOTAL_SIZE, -1);
+            if (notifyMessageId > 0 && currentSize == totalSize) {
+                RcsFileTransferCache.getInstance().removeFileTransferPercent(notifyMessageId);
                 if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId) !=
                         RcsUtils.RCS_IS_DOWNLOAD_OK){
                     RcsUtils.updateFileDownloadState(context, notifyMessageId,
                             RcsUtils.RCS_IS_DOWNLOAD_OK);
                 }
+                mMsgListAdapter.notifyDataSetChanged();
                 return;
             }
-            if (lastProgress != null) {
-                LogHelper.trace("file tranfer progress = " + temp + "% ; lastprogress = "
-                        + lastProgress + "% .");
-            }
-            if (lastProgress == null || temp - lastProgress >= 5) {
-                lastProgress = temp;
-                fileProgressHashMap.put(notifyMessageId, Long.valueOf(temp));
-                mMsgListAdapter.setsFileTrasnfer(fileProgressHashMap);
-                if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId) !=
-                        RcsUtils.RCS_IS_DOWNLOADING){
-                    RcsUtils.updateFileDownloadState(context, notifyMessageId,
-                            RcsUtils.RCS_IS_DOWNLOADING);
+            if (totalSize > 0) {
+                Long lastProgress = RcsFileTransferCache.getInstance()
+                        .getFileTransferPercent(notifyMessageId);
+                long temp = currentSize * 100 / totalSize;
+                if (temp == 100) {
+                    RcsFileTransferCache.getInstance().removeFileTransferPercent(notifyMessageId);
+                    if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId) !=
+                            RcsUtils.RCS_IS_DOWNLOAD_OK){
+                        RcsUtils.updateFileDownloadState(context, notifyMessageId,
+                                RcsUtils.RCS_IS_DOWNLOAD_OK);
+                    }
+                    return;
                 }
-                mMsgListAdapter.notifyDataSetChanged();
+                if (notifyMessageId > 0 && currentSize < totalSize) {
+                    lastProgress = temp;
+                    RcsFileTransferCache.getInstance()
+                            .addFileTransferPercent(notifyMessageId, Long.valueOf(temp));
+                    if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId) !=
+                            RcsUtils.RCS_IS_DOWNLOADING){
+                        RcsUtils.updateFileDownloadState(context, notifyMessageId,
+                                RcsUtils.RCS_IS_DOWNLOADING);
+                    }
+                    mMsgListAdapter.notifyDataSetChanged();
+                }
+            }
+        }
+    }
+
+    @SuppressLint("NewApi")
+    private class updateFileDownloadTask extends AsyncTask<Void, Void, Void> {
+        private Context mContext;
+        private MessageListAdapter mMessageListAdapter;
+
+        public updateFileDownloadTask(Context context, MessageListAdapter msgListAdapter) {
+            mMessageListAdapter = msgListAdapter;
+            mContext = MmsApp.getApplication().getApplicationContext();
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            Iterator<Long> iter = RcsFileTransferCache.getInstance()
+                    .getFileTransferPercentKeys();
+            while (iter.hasNext()) {
+                long key = iter.next();
+                RcsUtils.updateFileDownloadState(mContext, key);
+            }
+            return null;
+        }
+
+        protected void onPostExecute(Void result) {
+            if (mMessageListAdapter != null) {
+                mMessageListAdapter.notifyDataSetChanged();
             }
         }
     }
 }
+

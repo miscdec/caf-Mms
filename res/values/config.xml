@@ -112,4 +112,8 @@
     <bool name="config_ignore_sms_attributes">false</bool>
 
     <integer name="max_chips_parsed">15</integer>
+
+    <!-- configuration for CMCC rcs version-->
+    <bool name="config_rcs_sms_version">false</bool>
+
 </resources>

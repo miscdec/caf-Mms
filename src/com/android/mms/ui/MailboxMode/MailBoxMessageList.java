@@ -79,6 +79,8 @@ import com.android.mms.data.Contact;
 import com.android.mms.data.Conversation;
 import com.android.mms.LogTag;
 import com.android.mms.R;
+import com.android.mms.rcs.FavouriteMessageList;
+import com.android.mms.rcs.RcsSelectionMenu;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
@@ -90,6 +92,8 @@ import com.android.mms.ui.SearchActivityExtend;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.DraftCache;
 import com.google.android.mms.pdu.PduHeaders;
+
+import com.suntek.mway.rcs.client.api.support.SupportApi;
 
 import static com.android.mms.ui.MessageListAdapter.MAILBOX_PROJECTION;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MSG_TYPE;
@@ -112,13 +116,6 @@ import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_MESSAGE_BOX;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_DELIVERY_REPORT;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_SMS_LOCKED;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MMS_LOCKED;
-import com.android.mms.rcs.FavouriteMessageList;
-import com.android.mms.rcs.RcsApiManager;
-import com.android.mms.rcs.RcsSelectionMenu;
-
-import com.android.mms.data.Conversation;
-import com.android.mms.data.Conversation.ConversationQueryHandler;
-import java.util.Collection;
 
 /**
  * This activity provides a list view of MailBox-Mode.
@@ -726,7 +723,7 @@ public class MailBoxMessageList extends ListActivity implements
             item.setVisible(false);
         }
 
-        boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+        boolean isRcsSupported = SupportApi.getInstance().isRcsSupported();
         MenuItem myFavoriteItem = menu.findItem(R.id.my_favorited);
         if (myFavoriteItem != null) {
             myFavoriteItem.setVisible(isRcsSupported);

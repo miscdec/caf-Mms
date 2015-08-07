@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 pci-suntektech Technologies, Inc.  All Rights Reserved.
+ * Copyright (c) 2014-2015 pci-suntektech Technologies, Inc.  All Rights Reserved.
  * pci-suntektech Technologies Proprietary and Confidential.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,170 +22,28 @@
  */
 
 package com.android.mms.rcs;
-
-import com.suntek.mway.rcs.client.api.RCSServiceListener;
-import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
-import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
-import com.suntek.mway.rcs.client.api.impl.groupchat.ConfApi;
-import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
-import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
-import com.suntek.mway.rcs.client.api.capability.impl.CapabilityApi;
-import com.suntek.mway.rcs.client.api.emoticon.EmoticonApi;
-import com.suntek.mway.rcs.client.api.specialnumber.impl.SpecialServiceNumApi;
-import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
 import android.content.Context;
-import android.os.RemoteException;
-import android.util.Log;
+
+import com.suntek.mway.rcs.client.api.ClientApi;
+import com.suntek.mway.rcs.client.api.ServiceListener;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
+import com.suntek.rcs.ui.common.RcsLog;
 
 public class RcsApiManager {
-    private static final String TAG = "RCS_UI";
-
-    private static Context mContext;
-    private static ConfApi mConfApi = new ConfApi();
-    private static MessageApi mMessageApi = new MessageApi();
-    private static RcsAccountApi mRcsAccountApi = new RcsAccountApi();
-    private static CapabilityApi mCapabilityApi = new CapabilityApi();
-    private static McloudFileApi mMcloudFileApi = new McloudFileApi();
-    private static EmoticonApi mEmoticonApi = new EmoticonApi();
-    private static RcsSupportApi mSupportApi = new RcsSupportApi();
-    private static SpecialServiceNumApi mSpecialServiceNumApi = new SpecialServiceNumApi();
-    private static ProfileApi mProfileApi = new ProfileApi();
 
     public static void init(Context context) {
-        mContext = context;
-        mSupportApi.init(context);
-        if (!RcsSupportApi.isRcsServiceInstalled(context)) {
-            return;
-        }
-        Thread t = new Thread() {
+        SupportApi.getInstance().initApi(context);
+        ServiceListener listener = new ServiceListener() {
             @Override
-            public void run() {
-                rcsApiInit(mContext);
+            public void onServiceDisconnected() {
+                RcsLog.i("ClientApi disconnected");
+            }
+
+            @Override
+            public void onServiceConnected() {
+                RcsLog.i("ClientApi connected");
             }
         };
-        t.start();
-    }
-
-    private static void rcsApiInit(Context context) {
-        mMessageApi.init(context, new RCSServiceListener() {
-            @Override
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "MessageApi disconnected");
-            }
-
-            @Override
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "MessageApi connected");
-            }
-        });
-
-        mRcsAccountApi.init(context, new RCSServiceListener() {
-            @Override
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "RcsAccountApi disconnected");
-            }
-
-            @Override
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "RcsAccountApi connected");
-            }
-        });
-
-        mConfApi.init(context, new RCSServiceListener() {
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "ConfApi disconnected");
-            }
-
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "ConfApi connected");
-            }
-        });
-
-        mCapabilityApi.init(context, new RCSServiceListener() {
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "CapabilityApi disconnected");
-            }
-
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "CapabilityApi connected");
-            }
-        });
-
-        mMcloudFileApi.init(context,new RCSServiceListener() {
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "McloudFileApi disconnected");
-            }
-
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "McloudFileApi connected");
-            }
-        });
-
-        mEmoticonApi.init(context,new RCSServiceListener() {
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "EmoticonApi disconnected");
-            }
-
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "EmoticonApi connected");
-            }
-        });
-
-        mSpecialServiceNumApi.init(context,new RCSServiceListener() {
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "mSpecialServiceNumApi disconnected");
-            }
-
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "mSpecialServiceNumApi connected");
-            }
-        });
-
-        mProfileApi.init(context,new RCSServiceListener() {
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "mSpecialServiceNumApi disconnected");
-            }
-
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "mSpecialServiceNumApi connected");
-            }
-        });
-    }
-
-    public static McloudFileApi getMcloudFileApi(){
-        return mMcloudFileApi;
-    }
-
-    public static MessageApi getMessageApi() {
-        return mMessageApi;
-    }
-
-    public static RcsAccountApi getRcsAccountApi() {
-        return mRcsAccountApi;
-    }
-
-    public static ConfApi getConfApi() {
-        return mConfApi;
-    }
-
-    public static CapabilityApi getCapabilityApi() {
-        return mCapabilityApi;
-    }
-
-    public static EmoticonApi getEmoticonApi() {
-        return mEmoticonApi;
-    }
-
-    public static RcsSupportApi getSupportApi() {
-        return mSupportApi;
-    }
-
-    public static SpecialServiceNumApi getSpecialServiceNumApi() {
-        return mSpecialServiceNumApi;
-    }
-
-    public static ProfileApi getProfileApi() {
-        return mProfileApi;
+        new ClientApi().init(context, listener, listener);
     }
 }
