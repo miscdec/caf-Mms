@@ -136,6 +136,7 @@ import com.suntek.rcs.ui.common.mms.GeoLocationParser;
 import com.suntek.rcs.ui.common.PropertyNode;
 import com.suntek.rcs.ui.common.RcsEmojiStoreUtil;
 import com.suntek.rcs.ui.common.RcsLog;
+import com.suntek.rcs.ui.common.VNode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -302,51 +303,6 @@ public class RcsUtils {
                 });
     }
 
-    public static void updateState(Context context, String msgId, int rcsMsgState) {
-        ContentValues values = new ContentValues();
-
-        switch (rcsMsgState) {
-            case Constants.MessageConstants.CONST_STATUS_SEND_FAIL:
-                values.put(Sms.TYPE, Sms.MESSAGE_TYPE_FAILED);
-                break;
-            case Constants.MessageConstants.CONST_STATUS_SENDING:
-                values.put(Sms.TYPE, Sms.MESSAGE_TYPE_OUTBOX);
-                break;
-            case Constants.MessageConstants.CONST_STATUS_SENDED:
-                values.put(Sms.TYPE, Sms.MESSAGE_TYPE_SENT);
-                break;
-        }
-
-        String selection;
-        String[] selectionArgs;
-
-        values.put(RcsColumns.SmsRcsColumns.RCS_MSG_STATE, rcsMsgState);
-        if (rcsMsgState == -1) {
-            selection = Sms._ID + "=? and "
-                    + RcsColumns.SmsRcsColumns.RCS_CHAT_TYPE + "=?";
-                    selectionArgs = new String[] {
-                        msgId, String.valueOf(RCS_CHAT_TYPE_ONE_TO_ONE)
-                    };
-        } else {
-            selection = Sms._ID + "=?";
-            selectionArgs = new String[] {
-                    msgId
-            };
-        }
-
-        ContentResolver resolver = context.getContentResolver();
-        int result = resolver.update(Sms.CONTENT_URI, values, selection, selectionArgs);
-        if (result == 0) {
-            try {
-                Thread.sleep(3000);
-                int reresult = resolver.update(Sms.CONTENT_URI, values, selection, selectionArgs);
-            } catch (Exception e) {
-                // TODO: handle exception
-            }
-        }
-    }
-
-
     public static void updateFileDownloadState(Context context, long messageId) {
         if (messageId <= 0) {
             return;
@@ -402,39 +358,6 @@ public class RcsUtils {
             }
         }
         return -1;
-    }
-
-    public static void updateManyState(Context context, String msgId, String number,
-            int rcs_msg_state) {
-        ContentValues values = new ContentValues();
-
-        values.put(RcsColumns.SmsRcsColumns.RCS_MSG_STATE, rcs_msg_state);
-
-        number = number.replaceAll(" ", "");
-        String numberW86;
-        if (!number.startsWith("+86")) {
-            numberW86 = "+86" + number;
-        } else {
-            numberW86 = number;
-            number = number.substring(3);
-        }
-        String formatNumberWith2Space = getAndroidFormatNumberWith2Space(number);
-        String formatNumber = getAndroidFormatNumber(number);
-        ContentResolver resolver = context.getContentResolver();
-        String selection = Sms._ID + " = ?" + " and " +
-                "( address = ? OR address = ? OR address = ? OR address = ? )";
-        String[] selectionArgs = new String[] {
-                msgId, number, numberW86, formatNumber ,formatNumberWith2Space
-        };
-        int row = resolver.update(Sms.CONTENT_URI, values, selection, selectionArgs);
-        if(row == 0){
-            try {
-                Thread.sleep(3000);
-                int rerow = resolver.update(Sms.CONTENT_URI, values, selection, selectionArgs);
-            } catch (Exception e) {
-                RcsLog.w(e);
-            }
-        }
     }
 
     public static String getAndroidFormatNumberWith2Space(String number) {
@@ -524,7 +447,7 @@ public class RcsUtils {
         if (player == null) {
             return 0;
         }
-        return player.getDuration() / 1000;
+        return player.getDuration();
     }
 
     public static int getAudioDuration(Context context, Uri uri) {
@@ -1242,19 +1165,30 @@ public class RcsUtils {
             }
             case RCS_MSG_TYPE_VCARD: {
                 String vcardFilePath = messageItem.getRcsPath();
-                ArrayList<PropertyNode> propList = RcsMessageOpenUtils.openRcsVcardDetail(
-                        context, vcardFilePath);
-                if (propList != null) {
-                    for (PropertyNode propertyNode : propList) {
-                        if ("PHOTO".equals(propertyNode.propName)) {
-                            if (propertyNode.propValue_bytes != null) {
-                                byte[] bytes = propertyNode.propValue_bytes;
-                                bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                                bitmap = decodeInSampleSizeBitmap(bitmap);
+                List<VNode> contactList = RcsMessageOpenUtils.rcsVcardContactList
+                        (context, vcardFilePath);
+                if (contactList != null) {
+                    if (contactList.size() == 1) {
+                        ArrayList<PropertyNode> propList = RcsMessageOpenUtils.openRcsVcardDetail(
+                                context, vcardFilePath);
+                        if (propList != null) {
+                            for (PropertyNode propertyNode : propList) {
+                                if ("PHOTO".equals(propertyNode.propName)) {
+                                    if (propertyNode.propValue_bytes != null) {
+                                        byte[] bytes = propertyNode.propValue_bytes;
+                                        bitmap = BitmapFactory.decodeByteArray
+                                                (bytes, 0, bytes.length);
+                                        bitmap = decodeInSampleSizeBitmap(bitmap);
+                                    }
+                                }
                             }
                         }
+                    } else {
+                        bitmap = BitmapFactory.decodeResource(context.getResources(),
+                                R.drawable.rcs_group_vcard_image);
                     }
                 }
+
                 if (bitmap == null) {
                     bitmap = BitmapFactory.decodeResource(context.getResources(),
                             R.drawable.ic_attach_vcard);
@@ -1471,7 +1405,7 @@ public class RcsUtils {
         MessageApi messageApi = MessageApi.getInstance();
         CloudFileMessage cloudMessage = messageApi.parseCloudFileMessage(msgItem.getMsgBody());
         return context.getString(R.string.cloud_file_name) + cloudMessage.getFileName() +
-               context.getString(R.string.cloud_file_size) + cloudMessage.getFileSize();
+               context.getString(R.string.cloud_file_size) + cloudMessage.getFileSize() + "KB";
     }
 
    public static String saveRcsMassage(Context context, MessageItem msgItem) {
@@ -1933,58 +1867,72 @@ public class RcsUtils {
 
     public static String disposeVcardMessage(Context context, String str){
         String vcardFilePath = str;
-        ArrayList<PropertyNode> propList = RcsMessageOpenUtils.
-                openRcsVcardDetail(context, vcardFilePath);
-        if (propList == null) {
+        List<VNode> contactList = RcsMessageOpenUtils.rcsVcardContactList
+                (context, vcardFilePath);
+        if (contactList == null) {
             return "";
         }
-        String name = "";
-        String number = "";
-        String phoneNumber = null;
-        String homeNumber = null;
-        String workNumber = null;
-        for (PropertyNode propertyNode : propList) {
-            if ("FN".equals(propertyNode.propName)) {
-                if(!TextUtils.isEmpty(propertyNode.propValue)){
-                    name = propertyNode.propValue;
-                }
-            } else if ("TEL".equals(propertyNode.propName)) {
-                if(!TextUtils.isEmpty(propertyNode.propValue)){
-                    if (propertyNode.paramMap_TYPE.contains("CELL")
-                            && !propertyNode.paramMap_TYPE.contains("WORK")) {
-                        phoneNumber = context.getString(R.string.vcard_number)
-                                + propertyNode.propValue;
-                    } else if (propertyNode.paramMap_TYPE.contains("HOME")
-                            && !propertyNode.paramMap_TYPE.contains("FAX")){
-                        homeNumber = context.getString(R.string.vcard_number_home)
-                                + propertyNode.propValue;
-                    } else if(propertyNode.paramMap_TYPE.contains("WORK")
-                            && !propertyNode.paramMap_TYPE.contains("FAX")){
-                        workNumber = context.getString(R.string.vcard_number_work)
-                                + propertyNode.propValue;
-                    } else {
-                        number = RcsUtils.getPhoneNumberTypeStr(context, propertyNode);
+
+        if (contactList.size() == 1) {
+            ArrayList<PropertyNode> propList = RcsMessageOpenUtils.
+                    openRcsVcardDetail(context, vcardFilePath);
+            if (propList == null) {
+                return "";
+            }
+            String name = "";
+            String number = "";
+            String phoneNumber = null;
+            String homeNumber = null;
+            String workNumber = null;
+            for (PropertyNode propertyNode : propList) {
+                if ("FN".equals(propertyNode.propName)) {
+                    if(!TextUtils.isEmpty(propertyNode.propValue)){
+                        name = propertyNode.propValue;
+                    }
+                } else if ("TEL".equals(propertyNode.propName)) {
+                    if(!TextUtils.isEmpty(propertyNode.propValue)){
+                        if (propertyNode.paramMap_TYPE.contains("CELL")
+                                && !propertyNode.paramMap_TYPE.contains("WORK")) {
+                            phoneNumber = context.getString(R.string.vcard_number)
+                                    + propertyNode.propValue;
+                        } else if (propertyNode.paramMap_TYPE.contains("HOME")
+                                && !propertyNode.paramMap_TYPE.contains("FAX")){
+                            homeNumber = context.getString(R.string.vcard_number_home)
+                                    + propertyNode.propValue;
+                        } else if(propertyNode.paramMap_TYPE.contains("WORK")
+                                && !propertyNode.paramMap_TYPE.contains("FAX")){
+                            workNumber = context.getString(R.string.vcard_number_work)
+                                    + propertyNode.propValue;
+                        } else {
+                            number = RcsUtils.getPhoneNumberTypeStr(context, propertyNode);
+                        }
                     }
                 }
             }
+            if (!TextUtils.isEmpty(phoneNumber)) {
+                number = phoneNumber;
+            } else if (!TextUtils.isEmpty(homeNumber)) {
+                number = homeNumber;
+            } else if (!TextUtils.isEmpty(workNumber)) {
+                number = workNumber;
+            }
+            return "[Vcard]\n" + context.getString(R.string.vcard_name)
+                    + name + "\n" + number;
+        } else if (contactList.size() > 1) {
+            String contactDetail = String.format(
+                    context.getString(R.string.vcard), contactList.size());
+            return contactDetail;
+        } else {
+            return "";
         }
-        if (!TextUtils.isEmpty(phoneNumber)) {
-            number = phoneNumber;
-        } else if (!TextUtils.isEmpty(homeNumber)) {
-            number = homeNumber;
-        } else if (!TextUtils.isEmpty(workNumber)) {
-            number = workNumber;
-        }
-        return "[Vcard]\n" + context.getString(R.string.vcard_name)
-                + name + "\n" + number;
     }
 
     public static byte[] getBytesFromFile(File f) {
-        FileInputStream stream = null;
-        ByteArrayOutputStream out = null;
         if (f == null) {
             return null;
         }
+        FileInputStream stream = null;
+        ByteArrayOutputStream out = null;
         try {
             stream = new FileInputStream(f);
             out = new ByteArrayOutputStream(1000);
@@ -1995,7 +1943,7 @@ public class RcsUtils {
             }
             return out.toByteArray();
         } catch (IOException e) {
-
+            RcsLog.w(e);
         } finally {
             closeQuietly(out);
             closeQuietly(stream);
@@ -2032,6 +1980,9 @@ public class RcsUtils {
                 break;
             case RCS_MSG_TYPE_CAIYUNFILE:
                 snippet = context.getString(R.string.msg_type_CaiYun);
+                break;
+            case RCS_MSG_TYPE_PAID_EMO:
+                snippet = context.getString(R.string.msg_type_paid_emo);
                 break;
             default:
                 break;
@@ -2154,4 +2105,12 @@ public class RcsUtils {
         }
     }
 
+    public static long getFileSizes(Uri uri) throws Exception {
+        File f = new File(getPath(MmsApp.getApplication().getApplicationContext(), uri));
+        long s = 0;
+        if (f != null) {
+            s = f.length();
+        }
+        return s;
+    }
 }

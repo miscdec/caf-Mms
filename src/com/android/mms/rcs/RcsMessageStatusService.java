@@ -94,6 +94,7 @@ public class RcsMessageStatusService extends IntentService {
         if (Actions.MessageAction.ACTION_MESSAGE_NOTIFY.equals(action)){
             long threadId = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
             disposeGroupChatNewMessage(threadId);
+            notifyNewMessage(threadId);
         } else if (Actions.MessageAction.ACTION_MESSAGE_STATUS_CHANGED.equals(action)) {
             long id = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
             int status = intent.getIntExtra(Parameter.EXTRA_STATUS, DEFAULT_STATUS);
