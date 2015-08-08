@@ -154,8 +154,6 @@ public class MailBoxMessageContent extends Activity {
     private static final int FORWARD_CONVERSATION = 2;
     private static final int FORWARD_GROUP = 3;
 
-    public static final int REQUEST_CODE_PICK             = 109;
-
     private ContentResolver mContentResolver;
     private static final String[] SMS_LOCK_PROJECTION = {
         Sms._ID,
