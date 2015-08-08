@@ -731,7 +731,7 @@ public class ManageSimMessages extends Activity
         public void onItemCheckedStateChanged(ActionMode mode, int arg1, long arg2, boolean arg3) {
             final int checkedCount = getListView().getCheckedItemCount();
 
-            mode.setTitle(getString(R.string.selected_count, checkedCount));
+            mSelectionMenu.setTitle(getString(R.string.selected_count, checkedCount));
             if (checkedCount == 1) {
                 recoredCheckedItemPositions();
             }
