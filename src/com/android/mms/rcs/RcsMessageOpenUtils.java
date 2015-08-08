@@ -86,6 +86,8 @@ public class RcsMessageOpenUtils {
     private static final int VIEW_VCARD_DETAIL = 0;
     private static final int IMPORT_VCARD = 1;
     private static final int MERGE_VCARD_CONTACTS = 2;
+    private static final String ACTION_GROUP_VCARD =
+            "com.suntek.mway.rcs.nativeui.ACTION_GROUP_VCARD_DETAIL";
 
     public static void openRcsSlideShowMessage(MessageListItem messageListItem) {
         MessageItem messageItem = messageListItem.getMessageItem();
@@ -336,9 +338,18 @@ public class RcsMessageOpenUtils {
                 switch (which) {
                     case VIEW_VCARD_DETAIL:
                         String vcardFilePath = messageItem.getRcsPath();
-                        ArrayList<PropertyNode> propList =
-                                openRcsVcardDetail(context,vcardFilePath);
-                        showDetailVcard(context, propList);
+                        List<VNode> vnodeList = rcsVcardContactList(context, vcardFilePath);
+                        if (vnodeList != null) {
+                            if (vnodeList.size() == 1) {
+                                ArrayList<PropertyNode> propList =
+                                        openRcsVcardDetail(context,vcardFilePath);
+                                showDetailVcard(context, propList);
+                            } else {
+                                Intent intent = new Intent(ACTION_GROUP_VCARD);
+                                intent.putExtra("vcardFilePath", vcardFilePath);
+                                context.startActivity(intent);
+                            }
+                        }
                         break;
                     case IMPORT_VCARD:
                         try {
@@ -427,6 +438,26 @@ public class RcsMessageOpenUtils {
             List<VNode> vNodeList = builder.getVNodeList();
             ArrayList<PropertyNode> propList = vNodeList.get(0).propList;
             return propList;
+        } catch (Exception e) {
+            RcsLog.e(e);
+            return null;
+        }
+    }
+
+    public static List<VNode> rcsVcardContactList(Context context,String filePath) {
+        if (TextUtils.isEmpty(filePath)) {
+            return null;
+        }
+        try {
+            File file = new File(filePath);
+            FileInputStream fis = new FileInputStream(file);
+
+            VNodeBuilder builder = new VNodeBuilder();
+            VCardParser parser = new VCardParser_V21();
+            parser.addInterpreter(builder);
+            parser.parse(fis);
+            List<VNode> vNodeList = builder.getVNodeList();
+            return vNodeList;
         } catch (Exception e) {
             RcsLog.e(e);
             return null;

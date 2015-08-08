@@ -69,6 +69,7 @@ import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.TextModel;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsDualSimMananger;
 import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessageSender;
 import com.android.mms.transaction.MmsMessageSender;
@@ -234,6 +235,16 @@ public class WorkingMessage {
 
     private String mVcardPath;
 
+    private boolean mIsRequiringRcsAttachment;
+
+    public void setRequiringRcsAttachment(boolean requiringRcsAttachment) {
+        this.mIsRequiringRcsAttachment = requiringRcsAttachment;
+    }
+
+    public boolean requiringRcsAttachment() {
+        return this.mIsRequiringRcsAttachment;
+    }
+
     public String getCloudFileId() {
         return mCloudFileId;
     }
@@ -380,6 +391,7 @@ public class WorkingMessage {
         setLongitude(0);
         setLocation("");
         setCloudFileId("");
+        setRequiringRcsAttachment(false);
     }
 
     private void preSendRcsSmsWorker(Conversation conv, String msgText, String recipientsInUI,
@@ -1765,7 +1777,10 @@ public class WorkingMessage {
         // We need the recipient list for both SMS and MMS.
         final Conversation conv = mConversation;
         String msgTxt = mText.toString();
-
+        if (SupportApi.getInstance().isRcsSupported() && shouldSendMessageWithRcsPolicy()) {
+            sendRcsMessage(recipientsInUI);
+            return;
+        }
         if (requiresMms() || addressContainsEmailToMms(conv, msgTxt)) {
             // uaProfUrl setting in mms_config.xml must be present to send an MMS.
             // However, SMS service will still work in the absence of a uaProfUrl address.
@@ -1808,29 +1823,6 @@ public class WorkingMessage {
                 }
             }, "WorkingMessage.send MMS").start();
         } else {
-
-            if (SupportApi.getInstance().isRcsSupported()) {
-                String text = mText.toString();
-                final String msgText = text;
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            preSendRcsSmsWorker(conv, msgText, recipientsInUI,
-                                    mConversation.isGroupChat());
-                        } catch (Exception exception) {
-                            RcsUtils.disposeRcsSendMessageException(mActivity, exception,
-                                    getRcsType());
-                        }
-                        updateSendStats(conv);
-                    }
-                }, "WorkingMessage.send SMS").start();
-                RecipientIdCache.updateNumbers(conv.getThreadId(), conv.getRecipients());
-
-                mDiscarded = true;
-                return;
-            }
-
             // Same rules apply as above.
             // Add user's signature first if this feature is enabled.
             String text = mText.toString();
@@ -2510,6 +2502,86 @@ public class WorkingMessage {
         }
         if (!conv.getRecipients().isEmpty()) {
             conv.ensureThreadId();
+        }
+    }
+
+    public boolean shouldSendMessageWithRcsPolicy() {
+        return RcsDualSimMananger.shouldSendMessageWithRcsPolicy(mActivity,
+                mCurrentConvPhoneId, requiresMms(), mConversation.isGroupChat());
+    }
+
+    private boolean shouldSendGroupchatMessage() {
+        if (mConversation.isGroupChat()) {
+            int rcsOnlineSlot = RcsDualSimMananger.getCurrentRcsOnlineSlot();
+            if (requiresMms()) {
+                Toast.makeText(mActivity, R.string.group_chat_unsupport_sending_mms,
+                        Toast.LENGTH_LONG).show();
+                return false;
+            } else if (rcsOnlineSlot != mCurrentConvPhoneId) {
+                Toast.makeText(mActivity, R.string.group_chat_send_message_in_woring_card,
+                        Toast.LENGTH_LONG).show();
+                return false;
+            }
+            return true;
+        }
+        // Group chat should not send message, so here should return true
+        return true;
+    }
+
+    private void sendRcsMessage(final String recipientsInUI) {
+        if (!shouldSendGroupchatMessage()) {
+            return;
+        }
+        //1 V 1
+        final Conversation conv = mConversation;
+        if (conv == null) {
+            return;
+        }
+        if (mText.toString().getBytes().length > 900 && !RcsUtils.isRcsOnline()) {
+
+            Toast.makeText(mActivity, R.string.no_data_can_not_send, Toast.LENGTH_LONG)
+                    .show();
+
+        }
+        if (conv.getRecipients().size() == 1 || conv.isGroupChat()) {
+            String text = mText.toString();
+            final String msgText = text;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        preSendRcsSmsWorker(conv, msgText, recipientsInUI,
+                                mConversation.isGroupChat());
+                    } catch (Exception exception) {
+                        RcsUtils.disposeRcsSendMessageException(mActivity, exception,
+                                getRcsType());
+                    }
+                    updateSendStats(conv);
+                }
+            }, "WorkingMessage.send SMS").start();
+            RecipientIdCache.updateNumbers(conv.getThreadId(), conv.getRecipients());
+
+            mDiscarded = true;
+        } else if (conv.getRecipients().size() > 1 && RcsUtils.isRcsOnline()){
+            // 1VN and rcs Online
+            String text = mText.toString();
+            final String msgText = text;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        preSendRcsSmsWorker(conv, msgText, recipientsInUI,
+                                mConversation.isGroupChat());
+                    } catch (Exception exception) {
+                        RcsUtils.disposeRcsSendMessageException(mActivity, exception,
+                                getRcsType());
+                    }
+                    updateSendStats(conv);
+                }
+            }, "WorkingMessage.send SMS").start();
+            RecipientIdCache.updateNumbers(conv.getThreadId(), conv.getRecipients());
+
+            mDiscarded = true;
         }
     }
 }

@@ -51,6 +51,8 @@ import android.os.Handler;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.Message;
+import android.os.RemoteException;
+import android.os.SystemProperties;
 import android.os.Vibrator;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
@@ -71,6 +73,7 @@ import android.telephony.SmsManager;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -86,8 +89,6 @@ import android.widget.ImageView;
 import android.widget.SimpleAdapter;
 import android.widget.SimpleAdapter.ViewBinder;
 import android.widget.Toast;
-import android.util.Log;
-import android.os.SystemProperties;
 
 import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.telephony.TelephonyIntents;
@@ -97,7 +98,6 @@ import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.rcs.RcsUtils;
-import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.Recycler;
 import com.android.mms.QTIBackupMMS;
@@ -113,7 +113,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
+import com.suntek.mway.rcs.client.aidl.constant.Constants.MessageConstants;
+import com.suntek.mway.rcs.client.api.basic.BasicApi;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.message.MessageApi;
 import com.suntek.mway.rcs.client.api.support.SupportApi;
+import com.suntek.rcs.ui.common.RcsLog;
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -276,6 +281,14 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private CheckBoxPreference mEnableQmCloseAllPref;
     private CheckBoxPreference mEnableQmDarkThemePref;
 
+    public static final String ENABLE_RCS_MESSAGE_POLICY =
+            "pref_key_rcs_immediately_message_policy";
+    public static final String ENABLE_FAILURE_CHEANGE_TO_SMS =
+            "pref_key_rcs_message_failure_change_to_sms";
+
+    private CheckBoxPreference mEnableRcsMessagePref;
+    private CheckBoxPreference mEnableFailureChangeToSmsPref;
+
     // Blacklist
     private PreferenceScreen mBlacklist;
 
@@ -423,6 +436,14 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // SMS Sending Delay
         mMessageSendDelayPref = (ListPreference) findPreference(SEND_DELAY_DURATION);
         mMessageSendDelayPref.setSummary(mMessageSendDelayPref.getEntry());
+
+        //Rcs message send policy
+        if (SupportApi.getInstance().isRcsSupported()) {
+            mEnableRcsMessagePref = (CheckBoxPreference) findPreference(ENABLE_RCS_MESSAGE_POLICY);
+            mEnableFailureChangeToSmsPref =
+                    (CheckBoxPreference) findPreference(ENABLE_FAILURE_CHEANGE_TO_SMS);
+        }
+
         mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
 
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
@@ -504,7 +525,18 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 mSmsPrefCategory.removePreference(mSmsDeliveryReportPrefSub2);
             }
         }
-
+        //Rcs message send policy
+        if (!SupportApi.getInstance().isRcsSupported()) {
+            enableRcsMessagePloicy(false, this);
+            enableFailureChangeToSms(false, this);
+            PreferenceScreen keyRoot = (PreferenceScreen)findPreference("pref_key_root");
+            keyRoot.removePreference(findPreference("pref_key_rcs_send_policy_settings"));
+        } else {
+            mEnableRcsMessagePref.setChecked(getRcsMessagePloicyEnabled(this));
+            boolean isFailureEnable = getFailureChangeToSmsEnabled(this);
+            mEnableFailureChangeToSmsPref.setChecked(isFailureEnable);
+            setRcsServiceChangeToSmsPolicy(isFailureEnable);
+        }
         setMmsRelatedPref();
 
         setEnabledNotificationsPref();
@@ -1018,6 +1050,14 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         } else if (preference == mEnableQmLockscreenPref) {
             // Update the actual "enable quickmessage on lockscreen" value that is stored in secure settings.
             enableQmLockscreen(mEnableQmLockscreenPref.isChecked(), this);
+        } else if (preference == mEnableRcsMessagePref) {
+            enableRcsMessagePloicy(mEnableRcsMessagePref.isChecked(), this);
+            if (!mEnableRcsMessagePref.isChecked()) {
+                enableFailureChangeToSms(mEnableRcsMessagePref.isChecked(), this);
+                mEnableFailureChangeToSmsPref.setChecked(getFailureChangeToSmsEnabled(this));
+            }
+        } else if (preference == mEnableFailureChangeToSmsPref) {
+            enableFailureChangeToSms(mEnableFailureChangeToSmsPref.isChecked(), this);
         } else if (preference == mEnableQmCloseAllPref) {
             // Update the actual "enable close all" value that is stored in secure settings.
             enableQmCloseAll(mEnableQmCloseAllPref.isChecked(), this);
@@ -1482,6 +1522,47 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         editor.apply();
     }
 
+    private static boolean getRcsMessagePloicyEnabled(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean rcsMessageSendingPolicy =
+                prefs.getBoolean(ENABLE_RCS_MESSAGE_POLICY, true);
+        return rcsMessageSendingPolicy;
+    }
+
+    private static void enableRcsMessagePloicy(boolean enabled, Context context) {
+        SharedPreferences.Editor editor =
+                PreferenceManager.getDefaultSharedPreferences(context).edit();
+        editor.putBoolean(ENABLE_RCS_MESSAGE_POLICY, enabled);
+        editor.apply();
+    }
+
+    private static boolean getFailureChangeToSmsEnabled(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean failureChangeToSmsPolicy =
+                prefs.getBoolean(ENABLE_FAILURE_CHEANGE_TO_SMS, true);
+        return failureChangeToSmsPolicy;
+    }
+
+    private static void enableFailureChangeToSms(boolean enabled, Context context) {
+        setRcsServiceChangeToSmsPolicy(enabled);
+        SharedPreferences.Editor editor =
+                PreferenceManager.getDefaultSharedPreferences(context).edit();
+        editor.putBoolean(ENABLE_FAILURE_CHEANGE_TO_SMS, enabled);
+        editor.apply();
+    }
+
+    private static void setRcsServiceChangeToSmsPolicy(boolean enabled) {
+        try {
+            MessageApi.getInstance().setSendPolicy(enabled ? MessageConstants.
+                CONST_SEND_POLICY_FORWARD_SMS
+                : MessageConstants.CONST_SEND_POLICY_NOT_FORWARD_SMS);
+        } catch (RemoteException e) {
+            RcsLog.w(e);
+        } catch (ServiceDisconnectedException e) {
+            RcsLog.w(e);
+        }
+    }
+
     public static boolean getQmCloseAllEnabled(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         boolean qmCloseAllEnabled =
@@ -1872,7 +1953,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
 
     private void chooseFromGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setType("image/*");
+        intent.setType(RcsUtils.RCS_MSG_IMAGE_TYPE_ALL);
         startActivityForResult(
                 Intent.createChooser(intent, getString(R.string.intent_chooser_dialog_title)),
                 PICK_FROM_GALLERY);
