@@ -4589,8 +4589,6 @@ public class ComposeMessageActivity extends Activity
                 if (uri == null) {
                     uri = data.getData();
                 } else if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
-                    Toast.makeText(ComposeMessageActivity.this,
-                            getString(R.string.file_suffix_vaild_tip), 0).show();
                     break;
                 }
                 addAudio(uri, append);
@@ -8893,7 +8891,7 @@ public class ComposeMessageActivity extends Activity
                     if (uri == null) {
                         uri = data.getData();
                     } else if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
-                        break;
+                        return false;
                     }
                     mRcsAttachmentUri = uri;
                     mWorkingMessage.setRcsPath(RcsUtils.getPath(this, uri));
