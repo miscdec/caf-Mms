@@ -948,7 +948,7 @@ public class Conversation {
             for (long threadId : threadIds) {
                 Conversation c = Conversation.get(context,threadId,true);
                 if (c!=null) {
-                    c.markAsUnread(false);
+                    c.markAsUnread(true);
                 }
             }
         }
@@ -972,7 +972,7 @@ public class Conversation {
             for (long threadId : threadIds) {
                 Conversation c = Conversation.get(context,threadId,true);
                 if (c!=null) {
-                    c.markAsRead(true, false);
+                    c.markAsRead(true, true);
                 }
             }
         }
