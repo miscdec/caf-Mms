@@ -89,7 +89,7 @@ public class RcsCreateGroupChatActivity extends Activity implements
     private final static String MULTI_SELECT_CONV = "select_conversation";
     private static final int MENU_DONE = 0;
     public static final int REQUEST_CODE_CONTACTS_PICK = 100;
-    public static final int REQUEST_CODE_ADD_CONVERSATION = 124;
+    public static final int REQUEST_CODE_ADD_CONVERSATION = 123;
     private EditText mSubjectEdit;
     private RecipientsEditor mRecipientsEditor;
     private ContactList mRecipientList = new ContactList();
