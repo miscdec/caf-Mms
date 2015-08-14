@@ -8379,6 +8379,8 @@ public class ComposeMessageActivity extends Activity
                         mode.getMenu().findItem(R.id.forward).setVisible(false);
                     } else if (getResources().getBoolean(R.bool.config_forwardconv)) {
                         mode.getMenu().findItem(R.id.forward).setVisible(true);
+                    } else {
+                        mode.getMenu().findItem(R.id.forward).setVisible(false);
                     }
 
                     if (mIsRcsEnabled && mRcsMediaSelected > 0) {
