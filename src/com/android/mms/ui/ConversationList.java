@@ -1602,7 +1602,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 public void run() {
                     int token = MARK_CONVERSATION_UNREAD_TOKEN;
                     if (mThreadIds == null) {
-                        Conversation.startMarkAsUnreadAll(mContext,mHandler, token, false);
+                        Conversation.startMarkAsUnreadAll(mContext,mHandler, token, true);
                         DraftCache.getInstance().refresh();
                     } else {
                         Conversation.startMarkAsUnread(mContext,mHandler, token, mThreadIds);
@@ -1633,7 +1633,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         public void run() {
                             int token = MARK_CONVERSATION_READ_TOKEN;
                             if (mThreadIds == null) {
-                                Conversation.startMarkAsReadAll(mContext, mHandler, token, false);
+                                Conversation.startMarkAsReadAll(mContext, mHandler, token, true);
                                 DraftCache.getInstance().refresh();
                             } else {
                                 Conversation.startMarkAsRead(mContext, mHandler, token, mThreadIds);
