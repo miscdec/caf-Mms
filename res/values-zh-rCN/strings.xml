@@ -472,9 +472,6 @@
     <string name="type_draft">草稿</string>
     <!-- Spinner item of slot type in mailbox-mode -->
     <string name="slot_type_select">选择卡槽</string>
-    <string name="type_all">全部</string>
-    <string name="type_slot1">卡1</string>
-    <string name="type_slot2">卡2</string>
     <!-- String used in SearchActivityExtend.java -->
     <string name="search_title">"信息查找"</string>
     <string name="search_key">"查找关键字"</string>
