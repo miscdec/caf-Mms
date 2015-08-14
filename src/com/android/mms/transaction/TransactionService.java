@@ -415,6 +415,13 @@ public class TransactionService extends Service implements Observer {
                     PhoneConstants.APN_TYPE_MMS);
         }
         Log.d(TAG, "isMmsDataConnectivityPossible = " + flag + "subId = " + subId);
+
+        if ((!flag) && getResources().getBoolean(
+            com.android.internal.R.bool.config_regional_mms_via_wifi_enable)) {
+            flag = MessageUtils.shouldHandleMmsViaWifi(getApplicationContext());
+            Log.d(TAG, "shouldHandleMmsViaWifi = " + flag);
+        }
+
         return flag;
     }
 
