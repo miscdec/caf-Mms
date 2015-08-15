@@ -535,6 +535,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     } else {
                         mFilterSubId = position - 1;
                     }
+                    getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
                     startAsyncQuery();
                 }
 
