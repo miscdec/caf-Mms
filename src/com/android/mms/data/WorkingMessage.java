@@ -1929,6 +1929,10 @@ public class WorkingMessage {
 
             // Be paranoid and clean any draft SMS up.
             deleteDraftSmsMessage(threadId);
+            // Be paranoid and clean any draft MMS up.
+            if (mHasMmsDraft) {
+                asyncDeleteDraftMmsMessage(mConversation);
+            }
         }
     }
 
