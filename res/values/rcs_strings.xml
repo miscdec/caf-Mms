@@ -225,7 +225,7 @@
     <string name="message_restore_fail">Restore fail</string>
     <string name="forward_message_not_support">The message cannot be forwarded</string>
     <string name="save_message_not_support">The message cannot be saved</string>
-    <string name="confirm_complain_dialog_title">"Comfirm to complain the information?"</string>
+    <string name="confirm_complain_dialog_title">"Confirm to complain the information?"</string>
     <string name="del_image_action">Image manipulation</string>
     <string name="input_quality">Please enter the scaling quality</string>
     <string name="input_no_fit">Input is not legal</string>
