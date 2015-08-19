@@ -172,7 +172,9 @@ public class ManageSimMessages extends Activity
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
-
+        if (mDeleteDialog != null && mDeleteDialog.isShowing()) {
+            mDeleteDialog.dismiss();
+        }
         init();
     }
 
