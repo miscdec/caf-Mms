@@ -7949,15 +7949,25 @@ public class ComposeMessageActivity extends Activity
 
         private void saveMessage(MessageItem msgItem) {
             Cursor cursor = (Cursor)mMsgListAdapter.getItem(mSelectedPos.get(0));
-            if (cursor != null && isAttachmentSaveable(cursor)) {
-                if (!isRcsMessage(cursor)) {
+            boolean isRcsAvailable = mIsRcsEnabled && RcsUtils.isRcsOnline();
+            if (!isRcsAvailable) {
+                if (cursor != null && isAttachmentSaveable(cursor)) {
                     saveAttachment(cursor.getLong(COLUMN_ID));
-                }
-            } else if (cursor != null && isRcsMessage(cursor)) {
-                saveRcsAttachment(msgItem);
-            } else {
+                } else {
                 Toast.makeText(ComposeMessageActivity.this, R.string.copy_to_sdcard_fail,
                         Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                if (cursor != null && isAttachmentSaveable(cursor)) {
+                    if (!isRcsMessage(cursor)) {
+                        saveAttachment(cursor.getLong(COLUMN_ID));
+                    }
+                } else if (cursor != null && isRcsMessage(cursor)) {
+                    saveRcsAttachment(msgItem);
+                } else {
+                    Toast.makeText(ComposeMessageActivity.this, R.string.copy_to_sdcard_fail,
+                            Toast.LENGTH_SHORT).show();
+                }
             }
         }
 
