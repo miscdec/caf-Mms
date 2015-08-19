@@ -6151,6 +6151,9 @@ public class ComposeMessageActivity extends Activity
 
         if (conversationUri == null) {
             log("##### startMsgListQuery: conversationUri is null, bail!");
+            if (mMsgListAdapter != null && mMsgListAdapter.getCount() > 0) {
+                mMsgListAdapter.changeCursor(null);
+            }
             return;
         }
 
