@@ -41,6 +41,7 @@ import com.android.mms.ui.MessageListItem;
 import com.android.mms.R;
 import com.suntek.mway.rcs.client.aidl.constant.Constants;
 import com.suntek.mway.rcs.client.aidl.constant.Parameter;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
 import com.suntek.rcs.ui.common.mms.RcsFileTransferCache;
 
 import java.util.HashMap;
@@ -69,7 +70,8 @@ public class ComposeMessageCloudFileReceiver extends BroadcastReceiver {
                 .getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
         if (!gprs.isConnected() && !wifi.isConnected()) {
-            if (RcsUtils.queryRcsMsgDownLoadState(context, messageId)
+            if (SupportApi.getInstance().isRcsSupported()
+                    && RcsUtils.queryRcsMsgDownLoadState(context, messageId)
                     != RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
                 RcsUtils.updateFileDownloadState(context, messageId,
                         RcsUtils.RCS_IS_DOWNLOAD_FAIL);
