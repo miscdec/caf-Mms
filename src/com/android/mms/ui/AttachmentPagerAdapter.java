@@ -308,7 +308,7 @@ public class AttachmentPagerAdapter extends PagerAdapter {
 
         @Override
         public boolean isEnabled(int position) {
-            if (mCurrentPager == 0) {
+            if (getPager(mCurrentPager) == 0) {
                 if (!mIsReplace && mHasVcard) {
                     return false;
                 }
@@ -321,6 +321,10 @@ public class AttachmentPagerAdapter extends PagerAdapter {
                 }
             }
             return super.isEnabled(position);
+        }
+
+        private int getPager(int pager) {
+            return mIsRTL ? ((pager + 1) % 2) : pager;
         }
     }
 }
