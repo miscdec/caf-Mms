@@ -1929,6 +1929,10 @@ public class WorkingMessage {
 
             // Be paranoid and clean any draft SMS up.
             deleteDraftSmsMessage(threadId);
+            // Be paranoid and clean any draft MMS up.
+            if (mHasMmsDraft) {
+                asyncDeleteDraftMmsMessage(mConversation);
+            }
         }
     }
 
@@ -2090,6 +2094,13 @@ public class WorkingMessage {
         } catch (MmsException e1) {
             error = UNKNOWN_ERROR;
         }
+
+        if (mmsUri == null) {
+            error = FAILED_TO_QUERY_CONTACT;
+            mStatusListener.onAttachmentError(FAILED_TO_QUERY_CONTACT);
+            return;
+        }
+
         if (error != 0) {
             markMmsMessageWithError(mmsUri);
             mStatusListener.onAttachmentError(error);
@@ -2102,11 +2113,6 @@ public class WorkingMessage {
         } else {
             values.put(Mms.PHONE_ID, SubscriptionManager.getPhoneId(
                     SubscriptionManager.getDefaultDataSubId()));
-        }
-
-        if (mmsUri == null) {
-            mStatusListener.onAttachmentError(FAILED_TO_QUERY_CONTACT);
-            return;
         }
 
         SqliteWrapper.update(mActivity, mContentResolver, mmsUri, values, null, null);
@@ -2448,6 +2454,14 @@ public class WorkingMessage {
         }, "WorkingMessage.asyncDelete").start();
     }
 
+    public void asyncDeleteDraftMessage(Conversation conv) {
+        if (mHasSmsDraft) {
+            asyncDeleteDraftSmsMessage(conv);
+        } else {
+            asyncDeleteDraftMmsMessage(conv);
+        }
+    }
+
     public void asyncDeleteDraftSmsMessage(Conversation conv) {
         mHasSmsDraft = false;
 
@@ -2560,7 +2574,6 @@ public class WorkingMessage {
             RecipientIdCache.updateNumbers(conv.getThreadId(), conv.getRecipients());
 
             mDiscarded = true;
-            return;
         } else if (conv.getRecipients().size() > 1 && RcsUtils.isRcsOnline()){
             // 1VN and rcs Online
             String text = mText.toString();
@@ -2581,7 +2594,6 @@ public class WorkingMessage {
             RecipientIdCache.updateNumbers(conv.getThreadId(), conv.getRecipients());
 
             mDiscarded = true;
-            return;
         }
     }
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 /*
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -506,7 +506,7 @@
     <string name="download_dialog_title">确认下载信息？</string>
     <string name="menu_email">发送邮件</string>
     <string name="copy_to_sim">"复制到SIM卡"</string>
-    <string name="copy_to_sim_success">"复制短信到 SIM 卡，总数:%1$d, 成功:%2$d"</string>
+    <string name="copy_to_sim_success">"复制短信到SIM卡，总数:%1$d，成功:%2$d"</string>
     <string name="copy_to_sim_fail">"信息保存失败"</string>
     <string name="copy_to_phone_success">"信息已保存"</string>
     <string name="copy_to_phone_fail">"信息保存失败"</string>
@@ -586,7 +586,7 @@
     <string name="disk_storage_full_error">错误：存储卡满了</string>
     <string name="copy_empty_string">没有选择内容复制</string>
     <string name="pick_sms_backup_title">选择SMS备份</string>
-    <string name="wait_progress_message">请等待</string>
+    <string name="wait_progress_message">请等待\u2026</string>
     <string name="import_sms_title">导入SMS</string>
     <string name="delete_sms_toast">SMS 删除成功</string>
     <string name="prefs_title_import_sms_messages">导入SMS</string>

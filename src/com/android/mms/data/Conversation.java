@@ -464,7 +464,7 @@ public class Conversation {
                 mMarkAsUnreadTask = null;
                 return null;
             }
-        }.execute();
+        }.executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
     }
 
     /**
@@ -572,7 +572,7 @@ public class Conversation {
                 }
                 return null;
             }
-        }.execute();
+        }.executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
     }
 
     /**
@@ -995,7 +995,7 @@ public class Conversation {
             for (long threadId : threadIds) {
                 Conversation c = Conversation.get(context,threadId,true);
                 if (c!=null) {
-                    c.markAsUnread(false);
+                    c.markAsUnread(true);
                 }
             }
         }
@@ -1019,7 +1019,7 @@ public class Conversation {
             for (long threadId : threadIds) {
                 Conversation c = Conversation.get(context,threadId,true);
                 if (c!=null) {
-                    c.markAsRead(true, false);
+                    c.markAsRead(true, true);
                 }
             }
         }
@@ -2001,7 +2001,7 @@ public class Conversation {
                     return mContext.getString(R.string.group_chat_status_deleted);
                 case GroupChat.STATUS_PAUSE:
                     return mContext.getString(R.string.group_chat_status_offline);
-				default:
+                default:
                     break;
             }
         }

@@ -119,6 +119,7 @@ import android.provider.Telephony.Sms;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.ServiceState;
 import android.telephony.SubscriptionManager;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
@@ -173,6 +174,10 @@ import android.widget.Button;
 
 import com.android.contacts.common.util.MaterialColorMapUtils;
 import com.android.contacts.common.util.MaterialColorMapUtils.MaterialPalette;
+import com.android.ims.ImsConfig;
+import com.android.ims.ImsException;
+import com.android.ims.ImsManager;
+import com.android.ims.ImsConfigListener;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.TelephonyIntents;
@@ -210,7 +215,6 @@ import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
 import com.android.mms.ui.RecipientsEditor.RecipientContextMenuInfo;
 import com.android.mms.ui.zoom.ZoomGestureOverlayView;
 import com.android.mms.ui.zoom.ZoomGestureOverlayView.IZoomListener;
-import com.android.mms.ui.zoom.ZoomMessageListItem;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.IntentUtils;
 import com.android.mms.util.PhoneNumberFormatter;
@@ -296,7 +300,7 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_CREATE_SLIDESHOW = 106;
     public static final int REQUEST_CODE_ECM_EXIT_DIALOG  = 107;
     public static final int REQUEST_CODE_ADD_CONTACT      = 108;
-    public static final int REQUEST_CODE_PICK             = 109;
+    public static final int REQUEST_CODE_ADD_RECIPIENTS             = 109;
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_INFO     = 110;
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD    = 111;
     public static final int REQUEST_CODE_ATTACH_REPLACE_CONTACT_INFO = 112;
@@ -308,10 +312,9 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_SELECT_GROUP          = 118;
     public static final int REQUEST_CODE_VCARD_GROUP      = 119;
     public static final int REQUEST_CODE_SAIYUN           = 120;
-    public static final int REQUEST_CODE_ADD_RECIPIENTS   = 121;
-    public static final int REQUEST_SELECT_LOCAL_AUDIO    = 122;
-    public static final int REQUEST_CODE_EMOJI_STORE      = 123;
-    public static final int REQUEST_CODE_ADD_CONVERSATION = 124;
+    public static final int REQUEST_SELECT_LOCAL_AUDIO    = 121;
+    public static final int REQUEST_CODE_EMOJI_STORE      = 122;
+    public static final int REQUEST_CODE_ADD_CONVERSATION = 123;
 
     private static final String TAG = LogTag.TAG;
     private static final String RCS_TAG = "RCS_UI";
@@ -560,7 +563,8 @@ public class ComposeMessageActivity extends Activity
 
     private AsyncDialog mAsyncDialog;   // Used for background tasks.
 
-    private String mDebugRecipients;
+    private ContactList mRecipients;
+
     private int mLastSmoothScrollPosition;
     private boolean mScrollOnSend;      // Flag that we need to scroll the list to the end.
 
@@ -720,6 +724,8 @@ public class ComposeMessageActivity extends Activity
     private AddNumbersTask mAddNumbersTask;
 
     private boolean mSendMmsMobileDataOff = false;
+
+    private boolean mIsAvoidSavingDraft = false;
 
     //rcs image switch to mms resize
     private boolean mSendAfterResize = false;
@@ -1323,8 +1329,7 @@ public class ComposeMessageActivity extends Activity
             }
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
-            ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
-            mDebugRecipients = contacts.serialize();
+            mRecipients = mRecipientsEditor.constructContactsFromInput(false);
             sendMsimMessage(true, subscription);
         }
     }
@@ -1371,8 +1376,7 @@ public class ComposeMessageActivity extends Activity
             }
             // The recipients editor is still open. Make sure we use what's showing there
             // as the destination.
-            ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
-            mDebugRecipients = contacts.serialize();
+            mRecipients = mRecipientsEditor.constructContactsFromInput(false);
             if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
                 sendMsimMessage(true);
             } else {
@@ -2026,6 +2030,7 @@ public class ComposeMessageActivity extends Activity
                 && !ContentType.isVideoType(type)
                 && !ContentType.isAudioType(type)
                 && !(ContentType.TEXT_VCARD.toLowerCase().equals(type.toLowerCase()))
+                && !(ContentType.TEXT_VCALENDAR.toLowerCase().equals(type.toLowerCase()))
                 && !(ContentType.AUDIO_OGG.toLowerCase().equals(type.toLowerCase()))) {
             return true;    // we only save pictures, videos, and sounds. Skip the text parts,
                             // the app (smil) parts, and other type that we can't handle.
@@ -2261,15 +2266,21 @@ public class ComposeMessageActivity extends Activity
                     }
                     break;
                 }
-                default: {
+                case 2:
+                case 3:
                     // Handle multiple recipients
                     title = list.formatNames(", ");
                     subTitle = getResources().getQuantityString(R.plurals.recipient_count, cnt,
                             cnt);
                     break;
+                default: {
+                    // Handle many recipients
+                    title = getResources().getQuantityString(R.plurals.recipient_count, cnt,
+                            cnt);
+                    subTitle = null;
                 }
             }
-            mDebugRecipients = list.serialize();
+            mRecipients = list;
 
             if (cnt > 0 && !mAccentColorLoaded && !mLoadingAccentColor) {
                 final Contact contact = list.get(0);
@@ -2303,7 +2314,6 @@ public class ComposeMessageActivity extends Activity
                     updateAccentColorFromTheme(false);
                 }
             }
-
             // the cnt is already be added recipients count
             mExistsRecipientsCount = cnt;
         }
@@ -2477,6 +2487,8 @@ public class ComposeMessageActivity extends Activity
         }
 
         registerRcsReceiver();
+        registerReceiver(netAvailbaleReceiver,
+                new IntentFilter(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED));
     }
 
     @Override
@@ -2596,7 +2608,9 @@ public class ComposeMessageActivity extends Activity
 
             // Ensure the "to" label is hidden when Subject editor shows
             TextView toLabel = (TextView) findViewById(R.id.to_label);
-            toLabel.setVisibility(View.GONE);
+            if (toLabel != null) {
+                toLabel.setVisibility(View.GONE);
+            }
         } else {
             mSubjectTextEditor.removeTextChangedListener(mSubjectEditorWatcher);
         }
@@ -2689,8 +2703,6 @@ public class ComposeMessageActivity extends Activity
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             log("update title, mConversation=" + mConversation.toString());
         }
-
-        updateTitle(mConversation.getRecipients());
 
         if (isForwardedMessage && isRecipientsEditorVisible()) {
             // The user is forwarding the message to someone. Put the focus on the
@@ -2935,8 +2947,6 @@ public class ComposeMessageActivity extends Activity
             log("update title, mConversation=" + mConversation.toString());
         }
 
-        updateTitle(mConversation.getRecipients());
-
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         if (rcsShareVcardAddNumber) {
@@ -3049,7 +3059,8 @@ public class ComposeMessageActivity extends Activity
         mIsPickingContact = false;
         addRecipientsListeners();
 
-        if (isRecipientsEditorVisible()) {
+        if (isRecipientsEditorVisible() && (mAddNumbersTask == null ||
+                mAddNumbersTask.getStatus() == AsyncTask.Status.FINISHED)) {
             mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
         }
 
@@ -3148,12 +3159,16 @@ public class ComposeMessageActivity extends Activity
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             log("save draft");
         }
-        saveDraft(true);
+        if(!mIsAvoidSavingDraft)
+        {
+            saveDraft(true);
 
-        // set 'mShouldLoadDraft' to true, so when coming back to ComposeMessageActivity, we would
-        // load the draft, unless we are coming back to the activity after attaching a photo, etc,
-        // in which case we should set 'mShouldLoadDraft' to false.
-        mShouldLoadDraft = true;
+            // set 'mShouldLoadDraft' to true, so when coming back to ComposeMessageActivity, we would
+            // load the draft, unless we are coming back to the activity after attaching a photo, etc,
+            // in which case we should set 'mShouldLoadDraft' to false.
+            mShouldLoadDraft = true;
+            mIsAvoidSavingDraft = false;
+        }
 
         // Cleanup the BroadcastReceiver.
         unregisterReceiver(mHttpProgressReceiver);
@@ -3174,6 +3189,7 @@ public class ComposeMessageActivity extends Activity
             mZoomGestureOverlayView.removeZoomListener(this);
         }
         try {
+            unregisterReceiver(netAvailbaleReceiver);
             unregisterReceiver(mFileTranferReceiver);
             unregisterReceiver(mGroupReceiver);
             unregisterReceiver(mCloudFileReceiver);
@@ -4224,6 +4240,7 @@ public class ComposeMessageActivity extends Activity
                             REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD);
                 }
                 break;
+
             case AttachmentPagerAdapter.ADD_MAP:
                 if (mIsRcsEnabled && mWorkingMessage.requiresMms()) {
                     toast(R.string.mms_does_not_support_location_sharing);
@@ -4245,13 +4262,15 @@ public class ComposeMessageActivity extends Activity
                             Toast.LENGTH_LONG).show();
                 }
                 break;
-            case AttachmentTypeSelectorAdapter.ADD_CALENDAR_EVENTS:
+
+            case AttachmentPagerAdapter.ADD_CALENDAR_EVENTS:
                 if (mIsRcsEnabled) {
                     mWorkingMessage.setRequiringRcsAttachment(false);
                 }
                 MessageUtils.selectCalendarEvents(this,
                         getMakRequestCode(replace, REQUEST_CODE_ADD_CALENDAR_EVENTS));
                 break;
+
             default:
                 break;
         }
@@ -4468,10 +4487,6 @@ public class ComposeMessageActivity extends Activity
             mWorkingMessage.removeFakeMmsForDraft();
         }
 
-        if (requestCode == REQUEST_CODE_PICK) {
-            mWorkingMessage.asyncDeleteDraftSmsMessage(mConversation);
-        }
-
         if (requestCode == REQUEST_CODE_ADD_CONTACT) {
             // The user might have added a new contact. When we tell contacts to add a contact
             // and tap "Done", we're not returned to Messaging. If we back out to return to
@@ -4574,8 +4589,6 @@ public class ComposeMessageActivity extends Activity
                 if (uri == null) {
                     uri = data.getData();
                 } else if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
-                    Toast.makeText(ComposeMessageActivity.this,
-                            getString(R.string.file_suffix_vaild_tip), 0).show();
                     break;
                 }
                 addAudio(uri, append);
@@ -4592,12 +4605,6 @@ public class ComposeMessageActivity extends Activity
                 boolean outOfEmergencyMode = data.getBooleanExtra(EXIT_ECM_RESULT, false);
                 if (outOfEmergencyMode) {
                     sendMessage(false);
-                }
-                break;
-
-            case REQUEST_CODE_PICK:
-                if (data != null) {
-                    processPickResult(data);
                 }
                 break;
 
@@ -4658,7 +4665,7 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case REQUEST_CODE_ADD_RECIPIENTS:
-                mShouldLoadDraft = true;
+                mWorkingMessage.asyncDeleteDraftMessage(mConversation);
                 mAddNumbersTask = new AddNumbersTask();
                 mAddNumbersTask.execute(
                         data.getStringArrayListExtra(SelectRecipientsList.EXTRA_RECIPIENTS));
@@ -4883,7 +4890,9 @@ public class ComposeMessageActivity extends Activity
             super.onPreExecute();
             mPD = new ProgressDialog(ComposeMessageActivity.this);
             mPD.setMessage(getString(R.string.adding_selected_recipients_dialog_text));
+            mPD.setCancelable(false);
             mPD.show();
+            mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
         }
 
         @Override
@@ -4912,43 +4921,9 @@ public class ComposeMessageActivity extends Activity
             if (mPD != null && mPD.isShowing()) {
                 mPD.dismiss();
             }
+            mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
+            mRecipientsWatcher.afterTextChanged(mRecipientsEditor.getText());
         }
-    }
-
-    private void processPickResult(final Intent data) {
-        // The EXTRA_PHONE_URIS stores the phone's urls that were selected by user in the
-        // multiple phone picker.
-        Bundle bundle = data.getExtras().getBundle("result");
-        final Set<String> keySet = bundle.keySet();
-        final int recipientCount = (keySet != null) ? keySet.size() : 0;
-
-        // If total recipients count > recipientLimit,
-        // then forbid add reipients to RecipientsEditor
-        final int recipientLimit = MmsConfig.getRecipientLimit();
-        int totalRecipientsCount = mExistsRecipientsCount + recipientCount;
-        if (recipientLimit != Integer.MAX_VALUE && totalRecipientsCount > recipientLimit) {
-            new AlertDialog.Builder(this)
-                    .setMessage(getString(R.string.too_many_recipients, totalRecipientsCount,
-                            recipientLimit))
-                    .setPositiveButton(android.R.string.ok, new OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            // if already exists some recipients,
-                            // then new pick recipients with exists recipients count
-                            // can't more than recipient limit count.
-                            int newPickRecipientsCount = recipientLimit - mExistsRecipientsCount;
-                            if (newPickRecipientsCount <= 0) {
-                                return;
-                            }
-                            processAddRecipients(keySet, newPickRecipientsCount);
-                        }
-                    })
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .create().show();
-            return;
-        }
-
-        processAddRecipients(keySet, recipientCount);
     }
 
     private Uri[] buildUris(final Set<String> keySet, final int newPickRecipientsCount) {
@@ -4963,74 +4938,6 @@ public class ComposeMessageActivity extends Activity
             }
         }
         return newUris;
-    }
-
-    private void processAddRecipients(final Set<String> keySet, final int newPickRecipientsCount) {
-        // if process pick result that is pick recipients from Contacts
-        mIsProcessPickedRecipients = true;
-        final Handler handler = new Handler();
-        final ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setTitle(getText(R.string.pick_too_many_recipients));
-        progressDialog.setMessage(getText(R.string.adding_recipients));
-        progressDialog.setIndeterminate(true);
-        progressDialog.setCancelable(false);
-
-        final Runnable showProgress = new Runnable() {
-            @Override
-            public void run() {
-                progressDialog.show();
-            }
-        };
-        // Only show the progress dialog if we can not finish off parsing the return data in 1s,
-        // otherwise the dialog could flicker.
-        handler.postDelayed(showProgress, 1000);
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final ContactList list;
-                try {
-                    list = ContactList.blockingGetByUris(buildUris(keySet, newPickRecipientsCount));
-                } finally {
-                    handler.removeCallbacks(showProgress);
-                }
-                if (mRecipientsEditor != null) {
-                    ContactList exsitList = mRecipientsEditor.constructContactsFromInput(true);
-                    // Remove the repeat recipients.
-                    if (exsitList.equals(list)) {
-                        exsitList.clear();
-                        list.addAll(0, exsitList);
-                    } else {
-                        list.removeAll(exsitList);
-                        list.addAll(0, exsitList);
-                    }
-                }
-                // TODO: there is already code to update the contact header
-                // widget and recipients
-                // editor if the contacts change. we can re-use that code.
-                final Runnable populateWorker = new Runnable() {
-                    @Override
-                    public void run() {
-                        mRecipientsEditor.populate(list);
-                        // Set value for mRecipientsPickList and
-                        // mRecipientsWatcher will update the UI.
-                        mRecipientsPickList = list;
-                        updateTitle(list);
-                        // if process finished, then dismiss the progress dialog
-                        progressDialog.dismiss();
-
-                        // if populate finished, then recipients pick process
-                        // end
-                        mIsProcessPickedRecipients = false;
-
-                        if (rcsShareVcard) {
-                            rcsSend();
-                        }
-                    }
-                };
-                handler.post(populateWorker);
-            }
-        }, "ComoseMessageActivity.processPickResult").start();
     }
 
     private final ResizeImageResultCallback mResizeImageCallback = new ResizeImageResultCallback() {
@@ -5124,6 +5031,7 @@ public class ComposeMessageActivity extends Activity
                     title = res.getString(R.string.attach_add_contact_as_vcard);
                     message = res.getString(R.string.failed_to_add_media, title);
                     Toast.makeText(ComposeMessageActivity.this, message, Toast.LENGTH_SHORT).show();
+                    deleteLastMms();
                     return;
                 default:
                     throw new IllegalArgumentException("unknown error " + error);
@@ -5662,6 +5570,7 @@ public class ComposeMessageActivity extends Activity
                     Intent intent = new Intent(ComposeMessageActivity.this, ConversationList.class);
                     intent.putExtra(MULTI_SELECT_CONV, true);
                     startActivityForResult(intent, REQUEST_CODE_ADD_CONVERSATION);
+                    mIsAvoidSavingDraft = true;
                     break;
                 default:
                     break;
@@ -5678,11 +5587,16 @@ public class ComposeMessageActivity extends Activity
         mWorkingMessage.setIsBurn(mIsBurnMessage);
         mIsRTL = (v.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
-            if (mShowTwoButtons) {
-                confirmSendMessageIfNeeded(PhoneConstants.SUB1);
-            } else {
-                confirmSendMessageIfNeeded();
-            }
+            if (mWorkingMessage.getCacheRcsMessage()) {
+                rcsSend();
+                return;
+             }
+             send();
+             if (netStatus == ServiceState.STATE_OUT_OF_SERVICE
+                 && getResources().getBoolean(
+                    com.android.internal.R.bool.config_regional_pup_no_available_network)) {
+                checkCurrentNetStatus();
+             }
         } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
             mShowTwoButtons && isPreparedForSending()) {
             confirmSendMessageIfNeeded(PhoneConstants.SUB2);
@@ -5709,6 +5623,120 @@ public class ComposeMessageActivity extends Activity
             ViewStub viewStub = (ViewStub) findViewById(R.id.view_stub);
             showEmojiView(viewStub);
         }
+    }
+
+    public void checkCurrentNetStatus() {
+        ImsConfig imsConfig;
+        try {
+            ImsManager imsManager = ImsManager.getInstance(getBaseContext(),
+                    SubscriptionManager.getDefaultVoiceSubId());
+            imsConfig = imsManager.getConfigInterface();
+            if (imsConfig != null) {
+                imsConfig.getWifiCallingPreference(imsConfigListener);
+            }
+        } catch (ImsException e) {
+            imsConfig = null;
+            Log.e(TAG, "ImsService is not running");
+        }
+    }
+
+    private void send() {
+        if (mShowTwoButtons) {
+            confirmSendMessageIfNeeded(PhoneConstants.SUB1);
+        } else {
+            confirmSendMessageIfNeeded();
+        }
+    }
+
+    private static int netStatus = ServiceState.STATE_IN_SERVICE;
+    private BroadcastReceiver netAvailbaleReceiver = new BroadcastReceiver(){
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            if (intent.getAction().equals(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED)) {
+                ServiceState state = ServiceState.newFromBundle(intent.getExtras());
+                Log.i(TAG,"netAvailbaleReceiver state : " + state.getState());
+                netStatus = state.getState();
+            }
+        }
+    };
+
+    public void showWifiCallDialog() {
+        runOnUiThread(new Runnable() {
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
+                builder.setCancelable(false)
+                        .setPositiveButton(R.string.yes, new OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // TODO Auto-generated method stub
+                        startWifiSetting();
+                    }
+                })
+                .setNegativeButton(R.string.no, new OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // TODO Auto-generated method stub
+                    }
+
+                })
+                .setMessage(R.string.no_network_alert_when_send_message)
+                .show();
+             }
+         });
+    }
+
+    public void startWifiSetting() {
+        Intent intent = new Intent();
+        intent.setClassName("com.android.phone", "com.android.phone.WifiCallingSettings");
+        startActivity(intent);
+    }
+
+    private ImsConfigListener imsConfigListener = new ImsConfigListener.Stub() {
+        public void onGetVideoQuality(int status, int quality) {
+            // TODO not required as of now
+        }
+
+        public void onSetVideoQuality(int status) {
+            // TODO not required as of now
+        }
+
+        public void onGetFeatureResponse(int feature, int network, int value, int status) {
+            // TODO not required as of now
+        }
+
+        public void onSetFeatureResponse(int feature, int network, int value, int status) {
+            // TODO not required as of now
+        }
+
+        public void onGetPacketCount(int status, long packetCount) {
+            // TODO not required as of now
+        }
+
+        public void onGetPacketErrorCount(int status, long packetErrorCount) {
+            // TODO not required as of now
+        }
+
+        public void onGetWifiCallingPreference(int status, int wifiCallingStatus,
+                int wifiCallingPreference) {
+            if (hasRequestFailed(status)) {
+                wifiCallingStatus = ImsConfig.WifiCallingValueConstants.OFF;
+                showWifiCallDialog();
+                Log.e(TAG, "onGetWifiCallingPreference: failed. errorCode = " + status);
+            } else if (wifiCallingStatus == ImsConfig.WifiCallingValueConstants.OFF) {
+                showWifiCallDialog();
+            }
+        }
+
+        public void onSetWifiCallingPreference(int status) {
+
+        }
+    };
+
+    private boolean hasRequestFailed(int result) {
+        return (result != ImsConfig.OperationStatusConstants.SUCCESS);
     }
 
     private void showEmojiView(ViewStub emojiViewStub) {
@@ -5794,7 +5822,7 @@ public class ComposeMessageActivity extends Activity
         }
         try {
             mIsPickingContact = true;
-            startActivityForResult(intent, REQUEST_CODE_PICK);
+            startActivityForResult(intent, REQUEST_CODE_ADD_RECIPIENTS);
         } catch (ActivityNotFoundException ex) {
             Toast.makeText(this, R.string.contact_app_not_found, Toast.LENGTH_SHORT).show();
         }
@@ -6172,11 +6200,10 @@ public class ComposeMessageActivity extends Activity
      * Load the draft
      *
      * If mWorkingMessage has content in memory that's worth saving, return false.
-     * If mShouldLoadDraft is true, force the previous draft to load no matter what.
      * Otherwise, call the async operation to load draft and return true.
      */
     private boolean loadDraft() {
-        if (mWorkingMessage.isWorthSaving() && !mShouldLoadDraft) {
+        if (mWorkingMessage.isWorthSaving()) {
             Log.w(TAG, "CMA.loadDraft: called with non-empty working message, bail");
             return false;
         }
@@ -6369,15 +6396,17 @@ public class ComposeMessageActivity extends Activity
             mTextEditor.requestFocus();
         }
 
+        String mCurrentRecipients = mRecipients.serialize();
+
         if (!mSendingMessage) {
             if (LogTag.SEVERE_WARNING) {
                 String sendingRecipients = mConversation.getRecipients().serialize();
-                if (!sendingRecipients.equals(mDebugRecipients)) {
+                if (DEBUG && !sendingRecipients.equals(mCurrentRecipients)) {
                     String workingRecipients = mWorkingMessage.getWorkingRecipients();
-                    if (mDebugRecipients != null && !mDebugRecipients.equals(workingRecipients)) {
+                    if (!mCurrentRecipients.equals(workingRecipients)) {
                         LogTag.warnPossibleRecipientMismatch("ComposeMessageActivity.sendMessage" +
                                 " recipients in window: \"" +
-                                mDebugRecipients + "\" differ from recipients from conv: \"" +
+                                mCurrentRecipients + "\" differ from recipients from conv: \"" +
                                 sendingRecipients + "\" and working recipients: " +
                                 workingRecipients, this);
                     }
@@ -6393,7 +6422,7 @@ public class ComposeMessageActivity extends Activity
                 // If resend sms recipient is more than one, use mResendSmsRecipient
                 mWorkingMessage.send(mResendSmsRecipient);
             } else {
-                mWorkingMessage.send(mDebugRecipients);
+                mWorkingMessage.send(mCurrentRecipients);
             }
 
             mSentMessage = true;
@@ -6734,7 +6763,6 @@ public class ComposeMessageActivity extends Activity
                 }
             }
         }
-        addRecipientsListeners();
         updateThreadIdIfRunning();
 
         mSendDiscreetMode = intent.getBooleanExtra(KEY_EXIT_ON_SENT, false);
@@ -7131,7 +7159,9 @@ public class ComposeMessageActivity extends Activity
                     log("[CMA] onUpdate contact updated: " + updated);
                     log("[CMA] onUpdate recipients: " + recipients);
                 }
-                updateTitle(recipients);
+                if (recipients.size() > 0) {
+                    updateTitle(recipients);
+                }
 
                 // The contact information for one (or more) of the recipients has changed.
                 // Rebuild the message list so each MessageItem will get the last contact info.
@@ -8451,7 +8481,7 @@ public class ComposeMessageActivity extends Activity
             mCheckedCount = getListView().getCheckedItemCount();
             updateStatics(position, checked);
             customMenuVisibility(mode, mCheckedCount, position, checked);
-            mode.setTitle(getString(R.string.selected_count, mCheckedCount));
+            mSelectionMenu.setTitle(getString(R.string.selected_count, mCheckedCount));
 
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
@@ -8613,6 +8643,30 @@ public class ComposeMessageActivity extends Activity
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void deleteLastMms() {
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                // delete the last failed mms
+                Cursor cursor =
+                        (Cursor) mMsgListAdapter.getItem(mMsgListAdapter.getCount() - 1);
+                if (cursor != null) {
+                    long msgId = cursor.getLong(COLUMN_ID);
+                    cursor.close();
+                    Uri uri = ContentUris.withAppendedId(Mms.CONTENT_URI, msgId);
+                    try {
+                        SqliteWrapper.delete(ComposeMessageActivity.this,
+                                mContentResolver, uri, null, null);
+                    } catch (SQLiteException e) {
+                        Log.e(TAG, "Unable to delete unsent vcard mms", e);
+                    }
+                }
+            }
+        };
+        Thread t = new Thread(r);
+        t.run();
     }
 
     private void showProgressDialog(Context context, int progress, String title, int total) {
@@ -8848,7 +8902,7 @@ public class ComposeMessageActivity extends Activity
                     if (uri == null) {
                         uri = data.getData();
                     } else if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
-                        break;
+                        return false;
                     }
                     mRcsAttachmentUri = uri;
                     mWorkingMessage.setRcsPath(RcsUtils.getPath(this, uri));
@@ -8889,7 +8943,7 @@ public class ComposeMessageActivity extends Activity
                     break;
                 case REQUEST_CODE_VCARD_GROUP:
                         ArrayList<String> numbers = data.
-                                getStringArrayListExtra(SelectRecipientsList.EXTRA_RECIPIENTS);
+                            getStringArrayListExtra(SelectRecipientsList.EXTRA_RECIPIENTS);
                         ContactList list = ContactList.getByNumbers(numbers, true);
                         StringBuffer buffer = new StringBuffer();
                         for (Contact contact : list) {
@@ -8902,8 +8956,9 @@ public class ComposeMessageActivity extends Activity
                         }
                         String subStringbuffer = buffer.substring(0, buffer.lastIndexOf(":"));
                         Uri multiVcardUri = Uri.withAppendedPath(Contacts.CONTENT_MULTI_VCARD_URI,
-                                Uri.encode(subStringbuffer));
-                        String vcardPath = RcsUtils.createVcardFile(ComposeMessageActivity.this, multiVcardUri);
+                            Uri.encode(subStringbuffer));
+                        String vcardPath = RcsUtils.createVcardFile(ComposeMessageActivity.this,
+                            multiVcardUri);
                         mWorkingMessage.setVcardPath(vcardPath);
                         mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_VCARD);
                     break;

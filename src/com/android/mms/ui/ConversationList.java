@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
  *
@@ -43,6 +46,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -52,6 +57,8 @@ import android.provider.ContactsContract.Contacts;
 import android.provider.Telephony;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Threads;
+import android.telephony.ServiceState;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.ActionMode;
@@ -78,6 +85,11 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.ims.ImsConfig;
+import com.android.ims.ImsException;
+import com.android.ims.ImsManager;
+import com.android.ims.ImsConfigListener;
+import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
@@ -421,7 +433,110 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         registerReceiver(groupReceiver,
                 new IntentFilter(Actions.GroupChatAction.ACTION_GROUP_CHAT_MANAGE_NOTIFY));
+        registerReceiver(netAvailbaleReceiver,
+                new IntentFilter(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED));
     }
+
+    public void checkCurrentNetStatus() {
+        ImsConfig imsConfig;
+        try {
+            ImsManager imsManager = ImsManager.getInstance(getBaseContext(),
+                    SubscriptionManager.getDefaultVoiceSubId());
+            imsConfig = imsManager.getConfigInterface();
+            if (imsConfig != null) {
+                imsConfig.getWifiCallingPreference(imsConfigListener);
+            }
+        } catch (ImsException e) {
+            imsConfig = null;
+            Log.e(TAG, "ImsService is not running");
+        }
+    }
+
+    private BroadcastReceiver netAvailbaleReceiver = new BroadcastReceiver(){
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            if (intent.getAction().equals(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED)) {
+                context.unregisterReceiver(netAvailbaleReceiver);
+                ServiceState state = ServiceState.newFromBundle(intent.getExtras());
+                Log.i(TAG,"netAvailbaleReceiver state : " + state.getState());
+                if (state.getState() == ServiceState.STATE_OUT_OF_SERVICE
+                        && getResources()
+                        .getBoolean(com.android.internal
+                        .R.bool.config_regional_pup_no_available_network)) {
+                    checkCurrentNetStatus();
+                }
+            }
+        }
+    };
+
+    public void showWifiCallDialog() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(true)
+                .setPositiveButton(R.string.yes, new OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // TODO Auto-generated method stub
+                        startWifiSetting();
+                    }
+                })
+                .setNegativeButton(R.string.no,null)
+                .setMessage(R.string.no_cellular_coverage_alert)
+                .show();
+    }
+
+    public void startWifiSetting() {
+        Intent intent = new Intent();
+        intent.setClassName("com.android.phone","com.android.phone.WifiCallingSettings");
+        startActivity(intent);
+    }
+
+    private boolean hasRequestFailed(int result) {
+        return (result != ImsConfig.OperationStatusConstants.SUCCESS);
+    }
+
+    private ImsConfigListener imsConfigListener = new ImsConfigListener.Stub() {
+        public void onGetVideoQuality(int status, int quality) {
+            // TODO not required as of now
+        }
+
+        public void onSetVideoQuality(int status) {
+            // TODO not required as of now
+        }
+
+        public void onGetFeatureResponse(int feature, int network, int value, int status) {
+            // TODO not required as of now
+        }
+
+        public void onSetFeatureResponse(int feature, int network, int value, int status) {
+            // TODO not required as of now
+        }
+
+        public void onGetPacketCount(int status, long packetCount) {
+            // TODO not required as of now
+        }
+
+        public void onGetPacketErrorCount(int status, long packetErrorCount) {
+            // TODO not required as of now
+        }
+
+        public void onGetWifiCallingPreference(int status, int wifiCallingStatus,
+                int wifiCallingPreference) {
+            if (hasRequestFailed(status)) {
+                wifiCallingStatus = ImsConfig.WifiCallingValueConstants.OFF;
+                showWifiCallDialog();
+                Log.e(TAG, "onGetWifiCallingPreference: failed. errorCode = " + status);
+            } else if (wifiCallingStatus == ImsConfig.WifiCallingValueConstants.OFF) {
+                showWifiCallDialog();
+            }
+        }
+
+        public void onSetWifiCallingPreference(int status) {
+
+        }
+    };
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
@@ -524,7 +639,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         boolean filterEnabled =
                 getResources().getBoolean(R.bool.enable_filter_threads_by_sim);
 
-        if (filterEnabled && mgr.isMultiSimEnabled()) {
+        if (filterEnabled && MessageUtils.isMsimIccCardActive()) {
             mFilterSpinner.setAdapter(new MSimSpinnerAdapter(this));
             mFilterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
@@ -535,6 +650,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     } else {
                         mFilterSubId = position - 1;
                     }
+                    getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
                     startAsyncQuery();
                 }
 
@@ -1488,7 +1604,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 public void run() {
                     int token = MARK_CONVERSATION_UNREAD_TOKEN;
                     if (mThreadIds == null) {
-                        Conversation.startMarkAsUnreadAll(mContext,mHandler, token, false);
+                        Conversation.startMarkAsUnreadAll(mContext,mHandler, token, true);
                         DraftCache.getInstance().refresh();
                     } else {
                         Conversation.startMarkAsUnread(mContext,mHandler, token, mThreadIds);
@@ -1519,7 +1635,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         public void run() {
                             int token = MARK_CONVERSATION_READ_TOKEN;
                             if (mThreadIds == null) {
-                                Conversation.startMarkAsReadAll(mContext, mHandler, token, false);
+                                Conversation.startMarkAsReadAll(mContext, mHandler, token, true);
                                 DraftCache.getInstance().refresh();
                             } else {
                                 Conversation.startMarkAsRead(mContext, mHandler, token, mThreadIds);
