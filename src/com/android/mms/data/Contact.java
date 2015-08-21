@@ -1368,8 +1368,12 @@ public class Contact {
         }
     }
 
-    public void setChecked(boolean mIsChecked) {
-        this.mIsChecked = mIsChecked;
+    public boolean isChecked() {
+        return mIsChecked;
+    }
+
+    public void setChecked(boolean isChecked) {
+        this.mIsChecked = isChecked;
     }
 
     private static void log(String msg) {

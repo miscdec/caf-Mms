@@ -22,11 +22,11 @@ package com.android.mms.ui;
 
 import android.app.ActionBar;
 import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
-import android.app.AlertDialog.Builder;
 import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
 import android.content.BroadcastReceiver;
@@ -46,8 +46,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.drawable.Drawable;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -57,8 +55,6 @@ import android.provider.ContactsContract.Contacts;
 import android.provider.Telephony;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Threads;
-import android.telephony.ServiceState;
-import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.ActionMode;
@@ -85,11 +81,6 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.ims.ImsConfig;
-import com.android.ims.ImsException;
-import com.android.ims.ImsManager;
-import com.android.ims.ImsConfigListener;
-import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
@@ -163,8 +154,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private static final int PROGRESS_TOTAL = 0;
 
     // Backup and Restore messages
-    private static final String BACKUP_ALL_MESSAGES  = "com.suntek.mway.rcs.BACKUP_ALL_MESSAGE";
-    private static final String RESTORE_ALL_MESSAGES = "com.suntek.mway.rcs.RESTORE_ALL_MESSAGE";
+    private static final String BACKUP_ALL_MESSAGES  = Actions.MessageAction.ACTION_MESSAGE_BACKUP;
+    private static final String RESTORE_ALL_MESSAGES = Actions.MessageAction.ACTION_MESSAGE_RESTORE;
 
     // Backup and Restore messages Dialog item
     public static final int ITME_BACKUP_ALL_MESSAGES = 0;
@@ -333,6 +324,19 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         mSaveOrBackProgressDialog.show();
                     }
                     break;
+                case RESTORE_ALL_MESSAGE_SUCCESS:
+                    if (mSaveOrBackProgressDialog != null){
+                        mSaveOrBackProgressDialog.dismiss();
+                        mSaveOrBackProgressDialog = null;
+                    }
+                    if (mStartSaveProgressDialog != null) {
+                        mStartSaveProgressDialog.dismiss();
+                        mStartSaveProgressDialog = null;
+                    }
+                    unregisterReceiver(restoreAllMessageReceiver);
+                    Toast.makeText(context, R.string.message_restore_ok,
+                            Toast.LENGTH_SHORT).show();
+                    break;
                 case RESTORE_ALL_MESSAGE_FAIL:
                     if (mSaveOrBackProgressDialog != null){
                         mSaveOrBackProgressDialog.dismiss();
@@ -433,110 +437,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         registerReceiver(groupReceiver,
                 new IntentFilter(Actions.GroupChatAction.ACTION_GROUP_CHAT_MANAGE_NOTIFY));
-        registerReceiver(netAvailbaleReceiver,
-                new IntentFilter(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED));
     }
-
-    public void checkCurrentNetStatus() {
-        ImsConfig imsConfig;
-        try {
-            ImsManager imsManager = ImsManager.getInstance(getBaseContext(),
-                    SubscriptionManager.getDefaultVoiceSubId());
-            imsConfig = imsManager.getConfigInterface();
-            if (imsConfig != null) {
-                imsConfig.getWifiCallingPreference(imsConfigListener);
-            }
-        } catch (ImsException e) {
-            imsConfig = null;
-            Log.e(TAG, "ImsService is not running");
-        }
-    }
-
-    private BroadcastReceiver netAvailbaleReceiver = new BroadcastReceiver(){
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // TODO Auto-generated method stub
-            if (intent.getAction().equals(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED)) {
-                context.unregisterReceiver(netAvailbaleReceiver);
-                ServiceState state = ServiceState.newFromBundle(intent.getExtras());
-                Log.i(TAG,"netAvailbaleReceiver state : " + state.getState());
-                if (state.getState() == ServiceState.STATE_OUT_OF_SERVICE
-                        && getResources()
-                        .getBoolean(com.android.internal
-                        .R.bool.config_regional_pup_no_available_network)) {
-                    checkCurrentNetStatus();
-                }
-            }
-        }
-    };
-
-    public void showWifiCallDialog() {
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setCancelable(true)
-                .setPositiveButton(R.string.yes, new OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // TODO Auto-generated method stub
-                        startWifiSetting();
-                    }
-                })
-                .setNegativeButton(R.string.no,null)
-                .setMessage(R.string.no_cellular_coverage_alert)
-                .show();
-    }
-
-    public void startWifiSetting() {
-        Intent intent = new Intent();
-        intent.setClassName("com.android.phone","com.android.phone.WifiCallingSettings");
-        startActivity(intent);
-    }
-
-    private boolean hasRequestFailed(int result) {
-        return (result != ImsConfig.OperationStatusConstants.SUCCESS);
-    }
-
-    private ImsConfigListener imsConfigListener = new ImsConfigListener.Stub() {
-        public void onGetVideoQuality(int status, int quality) {
-            // TODO not required as of now
-        }
-
-        public void onSetVideoQuality(int status) {
-            // TODO not required as of now
-        }
-
-        public void onGetFeatureResponse(int feature, int network, int value, int status) {
-            // TODO not required as of now
-        }
-
-        public void onSetFeatureResponse(int feature, int network, int value, int status) {
-            // TODO not required as of now
-        }
-
-        public void onGetPacketCount(int status, long packetCount) {
-            // TODO not required as of now
-        }
-
-        public void onGetPacketErrorCount(int status, long packetErrorCount) {
-            // TODO not required as of now
-        }
-
-        public void onGetWifiCallingPreference(int status, int wifiCallingStatus,
-                int wifiCallingPreference) {
-            if (hasRequestFailed(status)) {
-                wifiCallingStatus = ImsConfig.WifiCallingValueConstants.OFF;
-                showWifiCallDialog();
-                Log.e(TAG, "onGetWifiCallingPreference: failed. errorCode = " + status);
-            } else if (wifiCallingStatus == ImsConfig.WifiCallingValueConstants.OFF) {
-                showWifiCallDialog();
-            }
-        }
-
-        public void onSetWifiCallingPreference(int status) {
-
-        }
-    };
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
@@ -1142,10 +1043,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             public void onClick(DialogInterface arg0, int arg1) {
                 switch (arg1) {
                     case ITME_BACKUP_ALL_MESSAGES:
+                        registerReceiver(backupAllMessageReceiver, new IntentFilter(
+                                BACKUP_ALL_MESSAGES));
                         new Thread(new Runnable() {
                             public void run() {
-                                registerReceiver(backupAllMessageReceiver, new IntentFilter(
-                                        BACKUP_ALL_MESSAGES));
                                 try {
                                     MessageApi.getInstance().backupAll();
                                 } catch (ServiceDisconnectedException e) {
@@ -1974,7 +1875,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     unTopItem.setVisible(false);
                 }
                 if (RcsUtils.showFirewallMenu(ConversationList.this,
-                    mConversation.getRecipients(), true)) {
+                    mConversation.getRecipients(), true) && !mConversation.isGroupChat()) {
                     addBlackItem.setVisible(true);
                 } else {
                     addBlackItem.setVisible(false);

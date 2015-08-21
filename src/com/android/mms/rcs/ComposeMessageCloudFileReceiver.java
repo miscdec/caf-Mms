@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 pci-suntektech Technologies, Inc.  All Rights Reserved.
+ * Copyright (c) 2014-2015 pci-suntektech Technologies, Inc.  All Rights Reserved.
  * pci-suntektech Technologies Proprietary and Confidential.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -35,6 +35,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.mms.MmsConfig;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessageListAdapter;
 import com.android.mms.ui.MessageListItem;
@@ -58,6 +59,9 @@ public class ComposeMessageCloudFileReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (!MmsConfig.getIsRcsVersion()) {
+            return;
+        }
         ConnectivityManager manager = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
 

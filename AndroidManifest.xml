@@ -500,13 +500,9 @@
 
         <receiver android:name=".rcs.RcsMessageStatusReceiver" >
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="com.suntek.mway.rcs.ACTION_UI_MESSAGE_TRANSFER_SMS" />
+                <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_SMS_POLICY_NOT_SET" />
+                <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_FILE_TRANSFER_PROGRESS" />
                 <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_STATUS_CHANGED" />
-                <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_SEND_FAILED" />
-                <action android:name="com.suntek.mway.rcs.ACTION_UI_SHOW_RECV_REPORT_INFO" />
-                <action android:name="com.suntek.mway.rcs.app.service.ACTION_GROUP_CHAT_MANAGE_NOTIFY" />
-                <action android:name="com.suntek.mway.rcs.UI_DOWNLOADING_FILE_CHANGE" />
                 <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_NOTIFY" />
             </intent-filter>
         </receiver>
@@ -563,7 +559,16 @@
                 <data android:mimeType="vnd.android/mms" />
             </intent-filter>
         </activity>
-
+        <activity
+            android:name="com.android.mms.rcs.RcsConfirmDialogActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/confirmdialog" >
+            <intent-filter>
+                <action android:name="com.suntek.mway.rcs.ACTION_LUNCHER_CONFRMDIALOG" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
         <service android:name="com.android.mms.transaction.MmsNoConfirmationSendService">
             <intent-filter>
                 <action android:name="com.android.mms.transaction.MmsNoConfirmationSendService"/>

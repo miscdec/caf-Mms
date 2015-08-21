@@ -32,11 +32,14 @@ import android.provider.Telephony.Sms.Conversations;
 import android.util.Log;
 
 import com.android.mms.LogTag;
+import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
 
 import com.google.android.mms.pdu.PduHeaders;
+
+import com.suntek.mway.rcs.client.api.message.MessageApi;
 
 /**
  * The recycler is responsible for deleting old messages.
@@ -222,7 +225,29 @@ public abstract class Recycler {
                // Move to the keep limit and then delete everything older than that one.
                 cursor.move(keep);
                 long latestDate = cursor.getLong(COLUMN_SMS_DATE);
-
+                Cursor idCursor = null;
+                if (MmsConfig.getIsRcsVersion()) {
+                    try {
+                        // get the id to delete the RcsMessage attachment
+                        idCursor = SqliteWrapper.query(context, resolver,
+                                ContentUris.withAppendedId(Sms.Conversations.CONTENT_URI, threadId),
+                                new String[] {
+                                    BaseColumns._ID
+                                }, "locked=0 AND date<" + latestDate, null, "date DESC");
+                        if (idCursor != null && idCursor.moveToFirst()) {
+                            int delCount = idCursor.getColumnCount();
+                            for (int i = 0; i < delCount; i++) {
+                                MessageApi.getInstance().deleteMessage(idCursor.getLong(i));
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Rcs: deleteRcsMessageAttachment exception", e);
+                    } finally {
+                        if (idCursor != null) {
+                            idCursor.close();
+                        }
+                    }
+                }
                 long cntDeleted = SqliteWrapper.delete(context, resolver,
                         ContentUris.withAppendedId(Sms.Conversations.CONTENT_URI, threadId),
                         "locked=0 AND date<" + latestDate,

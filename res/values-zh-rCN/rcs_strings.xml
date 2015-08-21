@@ -100,7 +100,7 @@
     <string name="del_image_action">图片操作</string>
     <string name="input_quality">请输入缩放质量值</string>
     <string name="input_no_fit">输入不合法</string>
-    <string name="send_comfirm_ok">确定</string>
+    <string name="send_confirm_ok">确定</string>
     <string name="send_comfirm_cancel">取消</string>
     <string name="top_conversation">置顶</string>
     <string name="cancel_top_conversation">取消置顶</string>
@@ -137,6 +137,11 @@
     <string name="message_restoring">消息恢复中</string>
     <string name="message_restore_ok">恢复完成</string>
     <string name="not_online_message_too_big">非在线状态，文本过大</string>
+    <string name="rcs_offline_forwards_not_support">融合通信不在线，不支持融合通信消息类型的转发</string>
+    <string name="rcs_sending_policy_not_support_forwarding">融合通信发送策略设置错误，不支持融合通信消息类型的转发</string>
+    <string name="rcs_sending_policy_wrong">融合通信发送设置策略错误，请重新设置后发送。</string>
+    <string name="rcs_offline_unable_to_send">融合通信不在线，发送失败。</string>
+    <string name="rcs_message_sent_first_time">这是您第一次发送融合通信消息，您可以直接发送或到设置里面设置融合通信的发送策略。</string>
     <string name="on_airplain_mode">飞行模式无法转发</string>
     <string name="rcs_mcloud_share_file">彩云文件分享</string>
     <string name="please_set_my_profile">请先设置我的信息</string>
@@ -164,6 +169,7 @@
     <string name="message_content_image">图片</string>
     <string name="message_content_map">位置</string>
     <string name="message_content_vcard">电子名片</string>
+    <string name="message_content_other_file">暂不支持的消息类型</string>
     <string name="not_download_image">图片未下载，请先下载图片！</string>
     <string name="not_download_video">视频未下载，请先下载视频！</string>
     <string name="not_download_cloudFile">彩云未下载，请先下载彩云文件！</string>
@@ -255,4 +261,17 @@
     <string name="group_chat_send_message_in_woring_card">短信优选卡与当前注册的融合通信卡不匹配，请重新选择短信优选卡。</string>
     <string name="rcs_msgtype_only">仅RCS支持的消息类型</string>
     <string name="time_length_unit">秒</string>
+    <string name="rcs_tip">提示</string>
+    <string name="rcs_delete_burn_message">是否删除该阅后即焚消息?</string>
+    <string name="rcs_confirm">确定</string>
+    <string name="rcs_cancel">取消</string>
+    <string name="rcs_message_send_fail_send_by_policy">融合通信消息发送失败，将以短信形式发送。</string>
+    <string name="set_poliy">设置策略</string>
+    <string name="group_chat_create_failed">群聊创建失败</string>
+    <string name="create_failed">创建失败</string>
+    <string name="file_error_reselect">文件错误，请重新选择。</string>
+    <string name="file_size_error_reselect">文件大小超出发送限制，请重新选择。</string>
+    <string name="image_file_size_error_reselect">图片文件大小超出发送限制，请重新选择。</string>
+    <string name="audio_file_size_error_reselect">音频文件大小超出发送限制，请重新选择。</string>
+    <string name="vido_file_size_error_reselect">视频文件大小超出发送限制，请重新选择。</string>
 </resources>

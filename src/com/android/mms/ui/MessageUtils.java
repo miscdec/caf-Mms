@@ -83,8 +83,8 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.MediaStore;
-import android.provider.MediaStore.Audio.Media;
 import android.provider.MediaStore.Audio;
+import android.provider.MediaStore.Audio.Media;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Mms.Part;
@@ -157,7 +157,7 @@ import static android.telephony.SmsMessage.MAX_USER_DATA_SEPTETS;
 import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
 import com.suntek.mway.rcs.client.api.basic.BasicApi;
 import com.suntek.mway.rcs.client.api.support.SupportApi;
-
+import com.suntek.rcs.ui.common.RcsFileController;
 /**
  * An utility class for managing messages.
  */
@@ -857,7 +857,8 @@ public class MessageUtils {
                 "com.android.soundrecorder.SoundRecorder");
         // add RCS recordSound time add size limit
         if (requringRcsAttachment) {
-            long durationLimit = RcsUtils.getAudioMaxTime();
+            long durationLimit = RcsFileController.getRcsTransferFileMaxDuration(
+                    RcsUtils.RCS_MSG_TYPE_AUDIO);
             intent.putExtra(Media.EXTRA_MAX_BYTES, (long)((ARM_BIT / 8) * (durationLimit + 1)));
         } else {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
@@ -873,7 +874,9 @@ public class MessageUtils {
             Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
             intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 10.0);
             intent.putExtra("android.intent.extra.sizeLimit", sizeLimit*1024);
-            intent.putExtra("android.intent.extra.durationLimit", (int)RcsUtils.getVideoMaxTime());
+            int durationLimit = (int)RcsFileController.getRcsTransferFileMaxDuration(
+                    RcsUtils.RCS_MSG_TYPE_VIDEO);
+            intent.putExtra("android.intent.extra.durationLimit", durationLimit);
             intent.putExtra(MediaStore.EXTRA_OUTPUT, TempFileProvider.SCRAP_CONTENT_URI);
             activity.startActivityForResult(intent, requestCode);
             return;
@@ -1576,7 +1579,11 @@ public class MessageUtils {
         String[] number = address.split(":");
         int index = MmsApp.getApplication().getResources()
                 .getInteger(R.integer.wap_push_address_index);
-        return number[index];
+        if (number.length <= index) {
+            return number[0];
+        } else {
+            return number[index];
+        }
     }
 
     /**

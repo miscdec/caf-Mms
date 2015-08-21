@@ -35,13 +35,15 @@ import java.util.concurrent.TimeUnit;
 import com.android.mms.R;
 import com.android.mms.MmsApp;
 import com.android.mms.transaction.MessagingNotification;
-
+import com.android.mms.util.Recycler;
 import com.suntek.mway.rcs.client.aidl.constant.Actions;
 import com.suntek.mway.rcs.client.aidl.constant.Parameter;
 import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
 import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.message.MessageApi;
 import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
+import com.suntek.rcs.ui.common.mms.RcsFileTransferCache;
+import com.suntek.rcs.ui.common.mms.RcsMessageForwardToSmsCache;
 import com.suntek.rcs.ui.common.RcsLog;
 
 public class RcsMessageStatusService extends IntentService {
@@ -55,6 +57,8 @@ public class RcsMessageStatusService extends IntentService {
     private static long DEFAULT_THREAD_ID = -1;
     private static long DEFAULT_THREAD_SIZE = -1;
     private static int DEFAULT_STATUS = -11;
+    private static final String ACTION_START_DIALOG =
+            "com.suntek.mway.rcs.ACTION_LUNCHER_CONFRMDIALOG";
 
     static {
         NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors();
@@ -91,22 +95,36 @@ public class RcsMessageStatusService extends IntentService {
         final int currentRunningId = ++runningId;
 
         String action = intent.getAction();
-        if (Actions.MessageAction.ACTION_MESSAGE_NOTIFY.equals(action)){
+        if (Actions.MessageAction.ACTION_MESSAGE_NOTIFY.equals(action)) {
             long threadId = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
             disposeGroupChatNewMessage(threadId);
-            notifyNewMessage(threadId);
+            Recycler.getSmsRecycler().deleteOldMessagesByThreadId(RcsMessageStatusService.this,
+                    threadId);
         } else if (Actions.MessageAction.ACTION_MESSAGE_STATUS_CHANGED.equals(action)) {
             long id = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
             int status = intent.getIntExtra(Parameter.EXTRA_STATUS, DEFAULT_STATUS);
             if (status == RcsUtils.MESSAGE_FAIL) {
                 RcsNotifyManager.sendMessageFailNotif(MmsApp.getApplication(), status, id, true);
             }
+        } else if (Actions.MessageAction.ACTION_MESSAGE_SMS_POLICY_NOT_SET.equals(action)) {
+            long messageId = intent.getLongExtra(Parameter.EXTRA_ID, -1);
+            long threadId = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, -1);
+            int phoneId = intent.getIntExtra("phoneId", -1);
+            String numbers = intent.getStringExtra(Parameter.EXTRA_NUMBER);
+            String content = intent.getStringExtra(Parameter.EXTRA_CONTENT);
+            RcsMessageForwardToSmsCache.getInstance().addSendMessage(
+                    new Long[]{messageId, threadId},
+                    new String[] {numbers, content, String.valueOf(phoneId)});
+            Intent startIntent = new Intent();
+            startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startIntent.setAction(ACTION_START_DIALOG);
+            startActivity(startIntent);
         }
         pool.execute(new Runnable() {
             public void run() {
                 runningCount++;
-                RcsLog.i("pool.execute: runningId=" + currentRunningId + ", countOfRunning=" + runningCount
-                        + ", taskCount=" + taskCount + ", Begin");
+                RcsLog.i("pool.execute: runningId=" + currentRunningId + "," + " countOfRunning="
+                        + runningCount + ", taskCount=" + taskCount + ", Begin");
 
                 String action = intent.getAction();
                 if (Actions.MessageAction.ACTION_MESSAGE_FILE_TRANSFER_PROGRESS.equals(action)) {
@@ -115,9 +133,14 @@ public class RcsMessageStatusService extends IntentService {
                             DEFAULT_THREAD_SIZE);
                     long totalSize = intent.getLongExtra(Parameter.EXTRA_TRANSFER_TOTAL_SIZE,
                             DEFAULT_THREAD_SIZE);
-                    if (totalSize > 0 && currentSize == totalSize) {
+                    long temp = currentSize * 100 / totalSize;
+                    if (totalSize > 0 && currentSize == totalSize || temp == 100) {
+                        RcsFileTransferCache.getInstance().removeFileTransferPercent(msgId);
                         RcsUtils.updateFileDownloadState(RcsMessageStatusService.this,
                                 msgId, RcsUtils.RCS_IS_DOWNLOAD_OK);
+                    } else {
+                        RcsFileTransferCache.getInstance()
+                                .addFileTransferPercent(msgId, Long.valueOf(temp));
                     }
                 }
 
@@ -131,7 +154,8 @@ public class RcsMessageStatusService extends IntentService {
 
     private void notifyNewMessage(long threadId) {
         if (threadId != DEFAULT_THREAD_ID && threadId != MessagingNotification
-                .getCurrentlyDisplayedThreadId()) {
+                .getCurrentlyDisplayedThreadId() && !RcsChatMessageUtils
+                .isPublicAccountMessage(RcsMessageStatusService.this, threadId)) {
             MessagingNotification.blockingUpdateNewMessageIndicator(
                     RcsMessageStatusService.this, threadId, true);
         }

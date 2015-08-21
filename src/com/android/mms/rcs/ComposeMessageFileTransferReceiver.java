@@ -33,9 +33,11 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import com.android.mms.MmsApp;
+import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessageListAdapter;
-import com.suntek.mway.rcs.client.aidl.constant.Parameter;
 import com.suntek.mway.rcs.client.aidl.constant.Actions;
+import com.suntek.mway.rcs.client.aidl.constant.Constants;
+import com.suntek.mway.rcs.client.aidl.constant.Parameter;
 import com.suntek.rcs.ui.common.RcsLog;
 import com.suntek.rcs.ui.common.mms.RcsFileTransferCache;
 
@@ -53,13 +55,21 @@ public class ComposeMessageFileTransferReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-
+        if (!MmsConfig.getIsRcsVersion()) {
+            return;
+        }
         if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
             ConnectivityManager manager = (ConnectivityManager) context
                     .getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo gprs = manager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
             NetworkInfo wifi = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
             if (!gprs.isConnected() && !wifi.isConnected()) {
+                new updateFileDownloadTask(context, mMsgListAdapter).execute();
+                return;
+            }
+        } else if (Actions.ACTION_ERROR.equals(action)) {
+            int errorType = intent.getIntExtra(Parameter.EXTRA_ERROR_EVENT, 0);
+            if (errorType == Constants.CONST_ERROR_EVENT_DOWNLOAD_FILE) {
                 new updateFileDownloadTask(context, mMsgListAdapter).execute();
                 return;
             }
@@ -78,8 +88,6 @@ public class ComposeMessageFileTransferReceiver extends BroadcastReceiver {
                 return;
             }
             if (totalSize > 0) {
-                Long lastProgress = RcsFileTransferCache.getInstance()
-                        .getFileTransferPercent(notifyMessageId);
                 long temp = currentSize * 100 / totalSize;
                 if (temp == 100) {
                     RcsFileTransferCache.getInstance().removeFileTransferPercent(notifyMessageId);
@@ -91,7 +99,6 @@ public class ComposeMessageFileTransferReceiver extends BroadcastReceiver {
                     return;
                 }
                 if (notifyMessageId > 0 && currentSize < totalSize) {
-                    lastProgress = temp;
                     RcsFileTransferCache.getInstance()
                             .addFileTransferPercent(notifyMessageId, Long.valueOf(temp));
                     if (RcsUtils.queryRcsMsgDownLoadState(context, notifyMessageId) !=

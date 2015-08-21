@@ -119,7 +119,6 @@ import android.provider.Telephony.Sms;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
 import android.telephony.PhoneNumberUtils;
-import android.telephony.ServiceState;
 import android.telephony.SubscriptionManager;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
@@ -174,10 +173,6 @@ import android.widget.Button;
 
 import com.android.contacts.common.util.MaterialColorMapUtils;
 import com.android.contacts.common.util.MaterialColorMapUtils.MaterialPalette;
-import com.android.ims.ImsConfig;
-import com.android.ims.ImsException;
-import com.android.ims.ImsManager;
-import com.android.ims.ImsConfigListener;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.TelephonyIntents;
@@ -254,6 +249,7 @@ import com.suntek.rcs.ui.common.mms.RcsContactsUtils;
 import com.suntek.rcs.ui.common.RcsEmojiInitialize;
 import com.suntek.rcs.ui.common.RcsEmojiInitialize.EmojiResources;
 import com.suntek.rcs.ui.common.RcsEmojiInitialize.ViewOnClickListener;
+import com.suntek.rcs.ui.common.RcsFileController;
 import com.suntek.rcs.ui.common.RcsLog;
 
 import java.io.File;
@@ -401,6 +397,12 @@ public class ComposeMessageActivity extends Activity
     private static final int FORWARD_CONTACTS = 1;
     private static final int FORWARD_CONVERSATION = 2;
     private static final int FORWARD_CONTACT_GROUP = 3;
+
+    // RCS photo operation.
+    private static final int RCS_PHOTO_CUT = 0;
+    private static final int RCS_PHOTO_ZOOM = 1;
+    private static final int RCS_PHOTO_ORIGINAL = 2;
+    private static final int RCS_PHOTO_CANCEL = 3;
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
     private static final int RCS_MAX_SMS_LENGHTH = 900;
@@ -2487,8 +2489,6 @@ public class ComposeMessageActivity extends Activity
         }
 
         registerRcsReceiver();
-        registerReceiver(netAvailbaleReceiver,
-                new IntentFilter(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED));
     }
 
     @Override
@@ -2960,6 +2960,7 @@ public class ComposeMessageActivity extends Activity
         IntentFilter fileFilter = new IntentFilter();
         fileFilter.addAction(Actions.MessageAction.ACTION_MESSAGE_FILE_TRANSFER_PROGRESS);
         fileFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        fileFilter.addAction(Actions.ACTION_ERROR);
         registerReceiver(mFileTranferReceiver, fileFilter);
 
         registerReceiver(mGroupReceiver, new IntentFilter(
@@ -3076,9 +3077,20 @@ public class ComposeMessageActivity extends Activity
             public void run() {
                 ContactList recipients = isRecipientsEditorVisible() ?
                         mRecipientsEditor.constructContactsFromInput(false) : getRecipients();
+                if (mConversation.isGroupChat()) {
+                    try {
+                        long groupId = mConversation.getGroupChat().getId();
+                        GroupChat groupChat = mGroupChatApi.getGroupChatById(groupId);
+                        mConversation.setGroupChat(groupChat);
+                    } catch (ServiceDisconnectedException e) {
+                        Log.e(RCS_TAG, "Exception onResume()" + e);
+                    } catch (RemoteException e) {
+                        Log.w(RCS_TAG, "Exception" + e);
+                    }
+                }
                 updateTitle(recipients);
             }
-        }, 100);
+        }, 1000);
 
         mIsRunning = true;
         updateThreadIdIfRunning();
@@ -3189,7 +3201,6 @@ public class ComposeMessageActivity extends Activity
             mZoomGestureOverlayView.removeZoomListener(this);
         }
         try {
-            unregisterReceiver(netAvailbaleReceiver);
             unregisterReceiver(mFileTranferReceiver);
             unregisterReceiver(mGroupReceiver);
             unregisterReceiver(mCloudFileReceiver);
@@ -4187,7 +4198,8 @@ public class ComposeMessageActivity extends Activity
             case AttachmentPagerAdapter.RECORD_VIDEO: {
                 long sizeLimit = 0;
                 if (mIsRcsEnabled && mWorkingMessage.requiringRcsAttachment()) {
-                    sizeLimit = RcsUtils.getVideoFtMaxSize();
+                    sizeLimit = RcsFileController.getRcsTransferFileMaxSize(
+                            RcsUtils.RCS_MSG_TYPE_VIDEO);
                 } else {
                     sizeLimit = computeAttachmentSizeLimit(slideShow, currentSlideSize);
                 }
@@ -4359,7 +4371,13 @@ public class ComposeMessageActivity extends Activity
         mAttachmentPagerAdapter.setExistAttachmentType(mWorkingMessage.hasAttachment(),
                 mWorkingMessage.hasVcard(), mWorkingMessage.hasSlideshow(), replace);
         if (mIsRcsEnabled) {
-             setRcsAttachment();
+            if (RcsUtils.isRcsOnline() && RcsDualSimMananger.getUserIsUseRcsPolicy(this)) {
+                setRcsAttachment();
+            } else if (mConversation.isGroupChat()) {
+                mWorkingMessage.setRequiringRcsAttachment(true);
+            } else {
+                mWorkingMessage.setRequiringRcsAttachment(false);
+            }
         }
         mAttachmentPagerAdapter.setGridItemClickListener(new OnItemClickListener() {
             @Override
@@ -4452,22 +4470,40 @@ public class ComposeMessageActivity extends Activity
 
     public void rcsSend() {
         try {
-            if (isPreparedForSending() || mIsRcsEnabled && RcsUtils.isRcsOnline()) {
-                String account = mBasicApi.getAccount();
-                if (account == null || account.length() > 0) {
-                    mWorkingMessage.setIsBurn(mIsBurnMessage);
-                    confirmSendMessageIfNeeded();
+            if (isPreparedForSending() || mIsRcsEnabled) {
+                if (RcsDualSimMananger.getUserIsUseRcsPolicy(ComposeMessageActivity.this)) {
+                    if (RcsUtils.isRcsOnline()) {
+                        if (!RcsDualSimMananger.getDefaultSendingConfirmValue(
+                                ComposeMessageActivity.this)) {
+                            RcsDualSimMananger.setDefaultSendingConfirmValue(
+                                    ComposeMessageActivity.this);
+                            showSetRcsPolicyDialog();
+                            return;
+                        }
+                        mWorkingMessage.setIsBurn(mIsBurnMessage);
+                        confirmSendMessageIfNeeded();
+                    } else {
+                        if (!mConversation.isGroupChat() && mWorkingMessage.hasText()
+                                && !mWorkingMessage.getCacheRcsMessage()) {
+                            confirmSendMessageIfNeeded();
+                            return;
+                        }
+                        toast(R.string.rcs_offline_unable_to_send);
+                    }
                     if (mWorkingMessage.getCacheRcsMessage()) {
                         cancelRcsMessageCache();
                     }
+                } else {
+                    if (!mConversation.isGroupChat() && mWorkingMessage.hasText()
+                            && !mWorkingMessage.getCacheRcsMessage()) {
+                        confirmSendMessageIfNeeded();
+                        return;
+                    }
+                    toast(R.string.rcs_sending_policy_wrong);
                 }
             }
-        } catch (ServiceDisconnectedException e) {
-            Log.e(RCS_TAG, "Exception" + e);
-        } catch (NumberFormatException  e) {
-            Log.e(RCS_TAG, "Exception" + e);
-        } catch (RemoteException  e) {
-            Log.e(RCS_TAG, "Exception" + e);
+        } catch (Exception e) {
+            Log.w(RCS_TAG, "Exception" + e);
         }
     }
 
@@ -4738,21 +4774,25 @@ public class ComposeMessageActivity extends Activity
             public void onClick(DialogInterface dialog, int which) {
                 isDisposeImage = false;
                 switch (which) {
-                    case 0:
+                    case RCS_PHOTO_CUT:
                         File mCurrentPhotoFile = new File(photoPath);
                         doCropPhoto(mCurrentPhotoFile);
                         dialog.dismiss();
                         break;
-                    case 1:
+                    case RCS_PHOTO_ZOOM:
                         showQualityDialog(photoPath);
                         break;
-                    case 2:
+                    case RCS_PHOTO_ORIGINAL:
+                        if (!isAttachmentFileLegality(photoPath, RcsUtils.RCS_MSG_TYPE_IMAGE)) {
+                            dialog.dismiss();
+                            return;
+                        }
                         mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_IMAGE);
                         mWorkingMessage.setRcsPath(photoPath);
                         cacheWorkingMessage();
                         dialog.dismiss();
                         break;
-                    case 3:
+                    case RCS_PHOTO_CANCEL:
                         dialog.dismiss();
                         break;
                     default:
@@ -4803,7 +4843,7 @@ public class ComposeMessageActivity extends Activity
         AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
         builder.setTitle(R.string.input_quality);
         builder.setView(editText);
-        builder.setPositiveButton(R.string.send_comfirm_ok, new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.send_confirm_ok, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String quality = editText.getText().toString().trim();
@@ -5584,19 +5624,18 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     public void onClick(View v) {
-        mWorkingMessage.setIsBurn(mIsBurnMessage);
         mIsRTL = (v.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
-            if (mWorkingMessage.getCacheRcsMessage()) {
-                rcsSend();
-                return;
-             }
-             send();
-             if (netStatus == ServiceState.STATE_OUT_OF_SERVICE
-                 && getResources().getBoolean(
-                    com.android.internal.R.bool.config_regional_pup_no_available_network)) {
-                checkCurrentNetStatus();
-             }
+            if (mShowTwoButtons) {
+                confirmSendMessageIfNeeded(PhoneConstants.SUB1);
+            } else {
+                if (mIsRcsEnabled && (mWorkingMessage.getCacheRcsMessage()
+                        || (!mWorkingMessage.requiresMms() && mWorkingMessage.hasText()))) {
+                    rcsSend();
+                } else {
+                    confirmSendMessageIfNeeded();
+                }
+            }
         } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
             mShowTwoButtons && isPreparedForSending()) {
             confirmSendMessageIfNeeded(PhoneConstants.SUB2);
@@ -5623,120 +5662,6 @@ public class ComposeMessageActivity extends Activity
             ViewStub viewStub = (ViewStub) findViewById(R.id.view_stub);
             showEmojiView(viewStub);
         }
-    }
-
-    public void checkCurrentNetStatus() {
-        ImsConfig imsConfig;
-        try {
-            ImsManager imsManager = ImsManager.getInstance(getBaseContext(),
-                    SubscriptionManager.getDefaultVoiceSubId());
-            imsConfig = imsManager.getConfigInterface();
-            if (imsConfig != null) {
-                imsConfig.getWifiCallingPreference(imsConfigListener);
-            }
-        } catch (ImsException e) {
-            imsConfig = null;
-            Log.e(TAG, "ImsService is not running");
-        }
-    }
-
-    private void send() {
-        if (mShowTwoButtons) {
-            confirmSendMessageIfNeeded(PhoneConstants.SUB1);
-        } else {
-            confirmSendMessageIfNeeded();
-        }
-    }
-
-    private static int netStatus = ServiceState.STATE_IN_SERVICE;
-    private BroadcastReceiver netAvailbaleReceiver = new BroadcastReceiver(){
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // TODO Auto-generated method stub
-            if (intent.getAction().equals(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED)) {
-                ServiceState state = ServiceState.newFromBundle(intent.getExtras());
-                Log.i(TAG,"netAvailbaleReceiver state : " + state.getState());
-                netStatus = state.getState();
-            }
-        }
-    };
-
-    public void showWifiCallDialog() {
-        runOnUiThread(new Runnable() {
-            public void run() {
-                AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
-                builder.setCancelable(false)
-                        .setPositiveButton(R.string.yes, new OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // TODO Auto-generated method stub
-                        startWifiSetting();
-                    }
-                })
-                .setNegativeButton(R.string.no, new OnClickListener() {
-
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // TODO Auto-generated method stub
-                    }
-
-                })
-                .setMessage(R.string.no_network_alert_when_send_message)
-                .show();
-             }
-         });
-    }
-
-    public void startWifiSetting() {
-        Intent intent = new Intent();
-        intent.setClassName("com.android.phone", "com.android.phone.WifiCallingSettings");
-        startActivity(intent);
-    }
-
-    private ImsConfigListener imsConfigListener = new ImsConfigListener.Stub() {
-        public void onGetVideoQuality(int status, int quality) {
-            // TODO not required as of now
-        }
-
-        public void onSetVideoQuality(int status) {
-            // TODO not required as of now
-        }
-
-        public void onGetFeatureResponse(int feature, int network, int value, int status) {
-            // TODO not required as of now
-        }
-
-        public void onSetFeatureResponse(int feature, int network, int value, int status) {
-            // TODO not required as of now
-        }
-
-        public void onGetPacketCount(int status, long packetCount) {
-            // TODO not required as of now
-        }
-
-        public void onGetPacketErrorCount(int status, long packetErrorCount) {
-            // TODO not required as of now
-        }
-
-        public void onGetWifiCallingPreference(int status, int wifiCallingStatus,
-                int wifiCallingPreference) {
-            if (hasRequestFailed(status)) {
-                wifiCallingStatus = ImsConfig.WifiCallingValueConstants.OFF;
-                showWifiCallDialog();
-                Log.e(TAG, "onGetWifiCallingPreference: failed. errorCode = " + status);
-            } else if (wifiCallingStatus == ImsConfig.WifiCallingValueConstants.OFF) {
-                showWifiCallDialog();
-            }
-        }
-
-        public void onSetWifiCallingPreference(int status) {
-
-        }
-    };
-
-    private boolean hasRequestFailed(int result) {
-        return (result != ImsConfig.OperationStatusConstants.SUCCESS);
     }
 
     private void showEmojiView(ViewStub emojiViewStub) {
@@ -7632,6 +7557,7 @@ public class ComposeMessageActivity extends Activity
                         }
                         mSelectedRcsMsgId.add(msgId);
                         SimpleMessage sm = new SimpleMessage();
+                        sm.setMessageRowId(msgId);
                         if (!msgItem.isRcsMessage() && msgItem.isSms()) {
                             sm.setStoreType(Constants.MessageConstants.CONST_STORE_TYPE_SMS);
                         } else if (msgItem.isMms()) {
@@ -7840,7 +7766,7 @@ public class ComposeMessageActivity extends Activity
                             } else {
                                 Toast.makeText(ComposeMessageActivity.this,
                                         ComposeMessageActivity.this.getString(
-                                        R.string.copy_to_sdcard_success, filePath),
+                                        R.string.copy_to_sdcard_success_path, filePath),
                                         Toast.LENGTH_LONG).show();
                             }
                         }
@@ -8005,30 +7931,45 @@ public class ComposeMessageActivity extends Activity
                 mRcsForwardItems.clear();
                 mRcsForwardItems.add(msgItem);
                 boolean isRcsOnline = RcsUtils.isRcsOnline();
-                if (msgItem != null && msgItem.getRcsMsgType()
+                boolean isRcsPolicyEnable = RcsDualSimMananger
+                        .getUserIsUseRcsPolicy(ComposeMessageActivity.this);
+
+                if (isRcsPolicyEnable) {
+                    if (msgItem != null && msgItem.getRcsMsgType()
                             == Constants.MessageConstants.CONST_MESSAGE_PAID_EMOTICON) {
-                    if (emotItemCheck(msgItem)) {
+                        if (emotItemCheck(msgItem)) {
+                            RcsChatMessageUtils.forwardContactOrConversation(
+                                    ComposeMessageActivity.this, new ForwardClickListener());
+                            return true;
+                        } else {
+                            toast(R.string.forward_message_not_support);
+                            return true;
+                        }
+                    }
+                    if (!isRcsOnline && msgItem != null) {
+                        if (msgItem.getRcsMsgType()
+                                == Constants.MessageConstants.CONST_MESSAGE_TEXT) {
+                            RcsChatMessageUtils.forwardContactOrConversation(
+                                  ComposeMessageActivity.this, new ForwardClickListener());
+                        } else if (msgItem.isSms()) {
+                            forwardMessage();
+                        } else {
+                            toast(R.string.rcs_offline_forwards_not_support);
+                        }
+                    } else if (isRcsOnline && msgItem != null) {
                         RcsChatMessageUtils.forwardContactOrConversation(
                                 ComposeMessageActivity.this, new ForwardClickListener());
-                        return true;
                     } else {
                         toast(R.string.forward_message_not_support);
-                        return true;
                     }
-                }
-
-                if (!isRcsOnline && msgItem != null) {
-                    if (msgItem.getRcsMsgType() == Constants.MessageConstants.CONST_MESSAGE_TEXT) {
-                        RcsChatMessageUtils.forwardContactOrConversation(
-                              ComposeMessageActivity.this, new ForwardClickListener());
-                    } else if (msgItem.isSms()) {
-                        forwardMessage();
-                    }
-                } else if (isRcsOnline) {
-                    RcsChatMessageUtils.forwardContactOrConversation(
-                            ComposeMessageActivity.this, new ForwardClickListener());
                 } else {
-                    toast(R.string.not_online_message_too_big);
+                    if (msgItem != null && msgItem.isRcsMessage()) {
+                        toast(R.string.rcs_sending_policy_not_support_forwarding);
+                    } else if (msgItem != null && msgItem.isSms()) {
+                        forwardMessage();
+                    } else {
+                        toast(R.string.forward_message_not_support);
+                    }
                 }
             }
             return true;
@@ -8063,7 +8004,7 @@ public class ComposeMessageActivity extends Activity
                   viewInent.putExtra(EXTRA_VIEW_ONE_TO_MANY_MSG_STATUS_MSG_ID,
                           cursor.getLong(COLUMN_ID));
                   viewInent.putExtra(EXTRA_VIEW_ONE_TO_MANY_MSG_STATUS_MSG_BODY,
-                          cursor.getLong(COLUMN_SMS_BODY));
+                          cursor.getString(COLUMN_SMS_BODY));
                   startActivity(viewInent);
               }
         }
@@ -8338,7 +8279,12 @@ public class ComposeMessageActivity extends Activity
 
             boolean noMmsSelected = mMmsSelected == 0;
             boolean noRcsSelected = mRcsSelected == 0;
-            menu.findItem(R.id.copy_to_sim).setVisible(noMmsSelected);
+            boolean noRcsMediaSelected = mRcsMediaSelected == 0;
+            if (mIsRcsEnabled) {
+                menu.findItem(R.id.copy_to_sim).setVisible(noMmsSelected && noRcsMediaSelected);
+            } else {
+                menu.findItem(R.id.copy_to_sim).setVisible(noMmsSelected);
+            }
 
             if (checkedCount > 1) {
                 // no detail
@@ -8842,52 +8788,73 @@ public class ComposeMessageActivity extends Activity
                     if (cropData == null) {
                         break;
                     }
-                    String mRcs_cropPath = getRealPathFromURI(cropData);
+                    String cropPath = getRealPathFromURI(cropData);
+                    if (!isAttachmentFileLegality(cropPath, RcsUtils.RCS_MSG_TYPE_IMAGE)) {
+                        return true;
+                    }
                     mWorkingMessage.setIsBurn(mIsBurnMessage);
-                    mWorkingMessage.setRcsPath(mRcs_cropPath);
+                    mWorkingMessage.setRcsPath(cropPath);
                     break;
                 case REQUEST_CODE_ATTACH_IMAGE:
                     Uri uriData = data.getData();
                     mRcsAttachmentUri = uriData;
-                    String mRcs_path = RcsUtils.getPath(this, uriData);
-                    if(TextUtils.isEmpty(mRcs_path))
-                        return true;
-                    if (mRcs_path.toLowerCase().endsWith("gif")) {
+                    String imagePath = RcsFileController.getFilePath(this, uriData);
+
+                    if (imagePath.toLowerCase().endsWith("gif")) {
+                        if (!isAttachmentFileLegality(imagePath, RcsUtils.RCS_MSG_TYPE_IMAGE)) {
+                            return true;
+                        }
                         mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_IMAGE);
                         mWorkingMessage.setIsBurn(mIsBurnMessage);
-                        mWorkingMessage.setRcsPath(mRcs_path);
+                        mWorkingMessage.setRcsPath(imagePath);
                     } else {
-                        imageDispose(mRcs_path);
-                        mRcsLargeImagePath = mRcs_path;
-                    }
-                    break;
-                case REQUEST_CODE_TAKE_PICTURE:
-                    String imagePath = TempFileProvider.getScrapPath(this);
-                    if (!TextUtils.isEmpty(imagePath)) {
-                        File file = new File(TempFileProvider.getScrapPath(this));
-                        mRcsAttachmentUri = Uri.fromFile(file);
                         imageDispose(imagePath);
                         mRcsLargeImagePath = imagePath;
                     }
                     break;
+                case REQUEST_CODE_TAKE_PICTURE:
+                    Uri pictureUri = TempFileProvider.renameScrapFile(".jpg",
+                            String.valueOf(System.currentTimeMillis()), this);
+                    if (pictureUri == null) {
+                        return true;
+                    }
+                    String takePictureImagePath = RcsFileController.getFilePath(this, pictureUri);
+                    if (!TextUtils.isEmpty(takePictureImagePath)) {
+                        mRcsAttachmentUri = pictureUri;
+                        imageDispose(takePictureImagePath);
+                        mRcsLargeImagePath = takePictureImagePath;
+                    }
+                    break;
                 case REQUEST_CODE_ATTACH_VIDEO:
                     mRcsAttachmentUri = data.getData();
+                    String videoPtch = RcsFileController.getFilePath(this, data.getData());
+                    if (!isAttachmentFileLegality(videoPtch, RcsUtils.RCS_MSG_TYPE_VIDEO)) {
+                        return true;
+                    }
                     mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_VIDEO);
-                    mWorkingMessage.setRcsPath(RcsUtils.getPath(this, data.getData()));
+                    mWorkingMessage.setRcsPath(videoPtch);
                     mWorkingMessage.setDuration(RcsUtils.getDuration(this, data.getData()));
                     mWorkingMessage.setIsRecord(false);
                     break;
                 case REQUEST_CODE_TAKE_VIDEO:
-                    Uri videoUri = TempFileProvider.renameScrapFile(".3gp", null,
+                    Uri videoUri = TempFileProvider.renameScrapFile(".3gp",
+                            String.valueOf(System.currentTimeMillis()),
                             ComposeMessageActivity.this);
-                    if(videoUri == null){
+                    if (videoUri == null) {
                         return true;
                     }
                     mRcsAttachmentUri = videoUri;
-                    int videoDuration = RcsUtils.getDuration(ComposeMessageActivity.this, videoUri);
+                    int videoDuration = RcsUtils.getDuration(
+                            ComposeMessageActivity.this, videoUri);
+
+                    String takeVideoPtch = RcsFileController.getFilePath(this, videoUri);
+
+                    if (!isAttachmentFileLegality(takeVideoPtch, RcsUtils.RCS_MSG_TYPE_VIDEO)) {
+                        return true;
+                    }
                     if (videoDuration >= 1) {
                         mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_VIDEO);
-                        mWorkingMessage.setRcsPath(RcsUtils.getPath(this, videoUri));
+                        mWorkingMessage.setRcsPath(takeVideoPtch);
                         mWorkingMessage.setDuration(videoDuration);
                         mWorkingMessage.setIsRecord(true);
                     } else {
@@ -8897,24 +8864,31 @@ public class ComposeMessageActivity extends Activity
                     break;
                 case REQUEST_CODE_ATTACH_SOUND:
                     // Attempt to add the audio to the attachment.
-                    Uri uri = (Uri)data
-                            .getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+                    Uri uri = (Uri)data.getParcelableExtra(
+                            RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
                     if (uri == null) {
                         uri = data.getData();
                     } else if (Settings.System.DEFAULT_RINGTONE_URI.equals(uri)) {
-                        return false;
+                        break;
                     }
                     mRcsAttachmentUri = uri;
-                    mWorkingMessage.setRcsPath(RcsUtils.getPath(this, uri));
+                    String audioPath = RcsFileController.getFilePath(this, uri);
+                    if (!isAttachmentFileLegality(audioPath, RcsUtils.RCS_MSG_TYPE_AUDIO)) {
+                        return true;
+                    }
+                    mWorkingMessage.setRcsPath(audioPath);
                     mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_AUDIO);
-                    mWorkingMessage.setDuration(RcsUtils.getAudioDuration(this, uri));
+                    mWorkingMessage.setDuration(RcsUtils.getDuration(this, uri));
                     mWorkingMessage.setIsRecord(false);
                     break;
                 case REQUEST_SELECT_LOCAL_AUDIO:
                     if (data != null) {
                         Uri selectUri = data.getData();
                         mRcsAttachmentUri = selectUri;
-                        String path = RcsUtils.getPath(this, selectUri);
+                        String path = RcsFileController.getFilePath(this, selectUri);
+                        if (!isAttachmentFileLegality(path, RcsUtils.RCS_MSG_TYPE_AUDIO)) {
+                            return true;
+                        }
                         if(!TextUtils.isEmpty(path) && path.contains(".")){
                             String endsWith = path.substring(path.lastIndexOf("."),
                                     path.length()).toLowerCase();
@@ -8924,7 +8898,7 @@ public class ComposeMessageActivity extends Activity
                                 mWorkingMessage.setRcsPath(path);
                                 mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_AUDIO);
                                 mWorkingMessage.setDuration(
-                                        RcsUtils.getAudioDuration(this, selectUri));
+                                        RcsUtils.getDuration(this, selectUri));
                                 mWorkingMessage.setIsRecord(false);
                             } else {
                                 toast(R.string.audio_file_error);
@@ -8935,15 +8909,19 @@ public class ComposeMessageActivity extends Activity
                 case REQUEST_CODE_RECORD_SOUND:
                     Uri audioUri = data.getData();
                     mRcsAttachmentUri = audioUri;
-                    int audioDuration = RcsUtils.getAudioDuration(this, audioUri);
+                    audioPath = RcsFileController.getFilePath(this, audioUri);
+                    if (!isAttachmentFileLegality(audioPath, RcsUtils.RCS_MSG_TYPE_AUDIO)) {
+                        return true;
+                    }
+                    int audioDuration = RcsUtils.getDuration(this, audioUri);
                     mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_AUDIO);
-                    mWorkingMessage.setRcsPath(RcsUtils.getPath(this, audioUri));
+                    mWorkingMessage.setRcsPath(audioPath);
                     mWorkingMessage.setDuration(audioDuration);
                     mWorkingMessage.setIsRecord(true);
                     break;
                 case REQUEST_CODE_VCARD_GROUP:
                         ArrayList<String> numbers = data.
-                            getStringArrayListExtra(SelectRecipientsList.EXTRA_RECIPIENTS);
+                                getStringArrayListExtra(SelectRecipientsList.EXTRA_RECIPIENTS);
                         ContactList list = ContactList.getByNumbers(numbers, true);
                         StringBuffer buffer = new StringBuffer();
                         for (Contact contact : list) {
@@ -8956,9 +8934,9 @@ public class ComposeMessageActivity extends Activity
                         }
                         String subStringbuffer = buffer.substring(0, buffer.lastIndexOf(":"));
                         Uri multiVcardUri = Uri.withAppendedPath(Contacts.CONTENT_MULTI_VCARD_URI,
-                            Uri.encode(subStringbuffer));
+                                Uri.encode(subStringbuffer));
                         String vcardPath = RcsUtils.createVcardFile(ComposeMessageActivity.this,
-                            multiVcardUri);
+                                multiVcardUri);
                         mWorkingMessage.setVcardPath(vcardPath);
                         mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_VCARD);
                     break;
@@ -9011,7 +8989,8 @@ public class ComposeMessageActivity extends Activity
     private void setRcsAttachment() {
         int attachmentState = RcsDualSimMananger.getAttachmentState(
                 ComposeMessageActivity.this);
-        if (attachmentState == RcsDualSimMananger.RCS_ATTACHMENT) {
+        if (attachmentState == RcsDualSimMananger.RCS_ATTACHMENT &&
+                !mWorkingMessage.requiresMms()) {
             mWorkingMessage.setRequiringRcsAttachment(true);
         } else if (attachmentState == RcsDualSimMananger.DEFAULT_ATTACHMENT) {
             mWorkingMessage.setRequiringRcsAttachment(false);
@@ -9026,14 +9005,14 @@ public class ComposeMessageActivity extends Activity
         if (shouldSendmsgWithRcsPolicy) {
             return false;
         } else if (!shouldSendmsgWithRcsPolicy && mWorkingMessage.requiringRcsAttachment()) {
-            // TODO need implement convert to default message and send.
             mWorkingMessage.setRequiringRcsAttachment(false);
             try {
                 long mRcsType = mWorkingMessage.getRcsType();
                 if (mRcsType == RcsUtils.RCS_MSG_TYPE_AUDIO
                         || mRcsType == RcsUtils.RCS_MSG_TYPE_IMAGE
                         || mRcsType == RcsUtils.RCS_MSG_TYPE_VIDEO) {
-                    long attachFilesize = RcsUtils.getFileSizes(mRcsAttachmentUri);
+                    long attachFilesize = RcsFileController.getFileSizes(
+                            MmsApp.getApplication().getApplicationContext(), mRcsAttachmentUri);
                     if (attachFilesize / BYTE_TO_KB > MMS_LIMIT_SIZE) {
                         if (mWorkingMessage.getRcsType() == RcsUtils.RCS_MSG_TYPE_IMAGE) {
                             mSendAfterResize = true;
@@ -9084,4 +9063,55 @@ public class ComposeMessageActivity extends Activity
         return false;
     }
 
+    private boolean isAttachmentFileLegality(String filePath, int fileType) {
+        int checkedResult = RcsFileController.checkFileLegality(filePath, fileType);
+        if (checkedResult == RcsFileController.FILE_NOT_EXCEEDED_RCS_LIMIT) {
+            return true;
+        } else if (checkedResult == RcsFileController.FILE_EXCEEDED_RCS_LIMIT) {
+            int resId = R.string.file_size_error_reselect;
+            switch(fileType) {
+                case RcsUtils.RCS_MSG_TYPE_AUDIO:
+                    resId = R.string.audio_file_size_error_reselect;
+                    break;
+                case RcsUtils.RCS_MSG_TYPE_IMAGE:
+                    resId = R.string.image_file_size_error_reselect;
+                    break;
+                case RcsUtils.RCS_MSG_TYPE_VIDEO:
+                    resId = R.string.vido_file_size_error_reselect;
+                    break;
+                default:
+                    break;
+            }
+            toast(resId);
+            return false;
+        } else {
+            toast(R.string.file_error_reselect);
+            return false;
+        }
+    }
+
+    private void showSetRcsPolicyDialog() {
+        AlertDialog alert = new AlertDialog.Builder(this)
+        .setMessage(R.string.rcs_message_sent_first_time)
+        .setPositiveButton(R.string.send_confirm_ok, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int arg1) {
+                    rcsSend();
+                    dialog.dismiss();
+                }
+            })
+        .setNegativeButton(R.string.set_poliy, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int arg1) {
+                    Intent intent = new Intent(ComposeMessageActivity.this,
+                            MessagingPreferenceActivity.class);
+                    startActivity(intent);
+                    dialog.dismiss();
+                }
+            })
+        .create();
+        alert.setCanceledOnTouchOutside(false);
+        alert.setCancelable(false);
+        alert.show();
+    }
 }

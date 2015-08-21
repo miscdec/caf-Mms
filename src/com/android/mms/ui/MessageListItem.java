@@ -54,6 +54,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.RemoteException;
 import android.provider.Browser;
 import android.provider.ContactsContract.Profile;
 import android.provider.MediaStore;
@@ -294,6 +295,7 @@ public class MessageListItem extends ZoomMessageListItem implements
 
     public void bind(MessageItem msgItem, int accentColor,
             boolean convHasMultiRecipients, int position, boolean selected, long rcsGroupId) {
+        mRcsShowMmsView = false;
         if (DEBUG) {
             Log.v(TAG, "bind for item: " + position + " old: " +
                    (mMessageItem != null ? mMessageItem.toString() : "NULL" ) +
@@ -318,11 +320,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                                 // clicks first.
 
         if (isRcsMessage()) {
-            if (mSimIndicatorView != null)
-                mSimIndicatorView.setVisibility(View.GONE);
-                bindRcsMessage();
-        } else {
-            showMmsView(false);
+            bindRcsMessage();
         }
         switch (msgItem.mMessageType) {
             case PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND:
@@ -395,6 +393,29 @@ public class MessageListItem extends ZoomMessageListItem implements
                 }
             }
         });
+        mImageView.setOnLongClickListener(new OnLongClickListener() {
+
+            @Override
+            public boolean onLongClick(View v) {
+                new AlertDialog.Builder(getContext()).setTitle(R.string.rcs_tip)
+                        .setMessage(R.string.rcs_delete_burn_message)
+                        .setCancelable(true)
+                        .setPositiveButton(R.string.rcs_confirm,
+                                new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                try {
+                                    MessageApi.getInstance().deleteMessage(
+                                            mMessageItem.getMessageId());
+                                } catch (RemoteException e) {
+                                    // TODO: handle exception
+                                } catch (ServiceDisconnectedException e) {
+                                }
+                            }
+                        }).setNegativeButton(R.string.rcs_cancel, null).show();
+                return false;
+            }
+        });
 
         mBodyTextView.setVisibility(View.GONE);
     }
@@ -451,6 +472,10 @@ public class MessageListItem extends ZoomMessageListItem implements
                 String msgBody = RcsUtils.getCaiYunFileBodyText(
                         getContext(), mMessageItem);
                 mBodyTextView.setText(msgBody);
+                break;
+            }
+            case RcsUtils.RCS_MSG_TYPE_OTHER_FILE: {
+                mBodyTextView.setVisibility(View.VISIBLE);
                 break;
             }
         }
@@ -810,6 +835,8 @@ public class MessageListItem extends ZoomMessageListItem implements
             if (mMessageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_VCARD) {
                 if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
                     mBodyTextView.setText(RcsUtils.getCaiYunFileBodyText(mContext, mMessageItem));
+                } else if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_OTHER_FILE) {
+                    mBodyTextView.setText(R.string.message_content_other_file);
                 } else {
                     mBodyTextView.setText(formattedMessage);
                 }

@@ -49,6 +49,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
@@ -78,6 +79,7 @@ import com.android.mms.data.Conversation;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.rcs.RcsChatMessageUtils;
+import com.android.mms.rcs.RcsDualSimMananger;
 import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessageSender;
 import com.android.mms.transaction.MessagingNotification;
@@ -144,6 +146,8 @@ public class MailBoxMessageContent extends Activity {
     private static final int FORWARD_CONTACTS = 1;
     private static final int FORWARD_CONVERSATION = 2;
     private static final int FORWARD_GROUP = 3;
+
+    public static final int REQUEST_CODE_PICK             = 109;
 
     private ContentResolver mContentResolver;
     private static final String[] SMS_LOCK_PROJECTION = {
@@ -338,8 +342,17 @@ public class MailBoxMessageContent extends Activity {
                 break;
             case MENU_FORWARD:
                 if (isRcsMessage()) {
-                    RcsChatMessageUtils.forwardContactOrConversation(this,
-                            new ForwardClickListener());
+                    boolean isEnableRcsSendingPolicy = RcsDualSimMananger
+                            .getUserIsUseRcsPolicy(MailBoxMessageContent.this);
+                    if (isEnableRcsSendingPolicy) {
+                        RcsChatMessageUtils.forwardContactOrConversation(this,
+                                new ForwardClickListener());
+                    } else {
+                        Toast.makeText(MailBoxMessageContent.this,
+                                R.string.rcs_sending_policy_not_support_forwarding,
+                                Toast.LENGTH_SHORT).show();
+                    }
+
                 } else {
                     Intent intentForward = new Intent(this, ComposeMessageActivity.class);
                     intentForward.putExtra("sms_body", mMsgText);

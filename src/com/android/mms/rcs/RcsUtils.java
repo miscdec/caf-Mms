@@ -187,6 +187,8 @@ public class RcsUtils {
             Constants.MessageConstants.CONST_MESSAGE_CLOUD_FILE;
     public static final int RCS_MSG_TYPE_PAID_EMO =
             Constants.MessageConstants.CONST_MESSAGE_PAID_EMOTICON;
+    public static final int RCS_MSG_TYPE_OTHER_FILE =
+            Constants.MessageConstants.CONST_MESSAGE_OTHER_FILE;
 
     public static final String GROUP_CHAT_NOTIFICATION_KEY_WORDS_CREATED = "create_not_active";
     public static final String GROUP_CHAT_NOTIFICATION_KEY_WORDS_ACTIVE = "create";
@@ -450,142 +452,6 @@ public class RcsUtils {
         return player.getDuration();
     }
 
-    public static int getAudioDuration(Context context, Uri uri) {
-        MediaPlayer player = MediaPlayer.create(context, uri);
-        if (player == null) {
-            return 0;
-        }
-        return player.getDuration();
-    }
-
-    /**
-     * Get a file path from a Uri. This will get the the path for Storage Access
-     * Framework Documents, as well as the _data field for the MediaStore and
-     * other file-based ContentProviders.
-     *
-     * @param context The context.
-     * @param uri The Uri to query.
-     * @author paulburke
-     */
-    public static String getPath(final Context context, final Uri uri) {
-
-        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
-
-        // DocumentProvider
-        if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
-            // ExternalStorageProvider
-            if (isExternalStorageDocument(uri)) {
-                final String docId = DocumentsContract.getDocumentId(uri);
-                final String[] split = docId.split(":");
-                final String type = split[0];
-
-                if ("primary".equalsIgnoreCase(type)) {
-                    return Environment.getExternalStorageDirectory() + "/" + split[1];
-                }
-
-                // TODO handle non-primary volumes
-            }
-            // DownloadsProvider
-            else if (isDownloadsDocument(uri)) {
-
-                final String id = DocumentsContract.getDocumentId(uri);
-                final Uri contentUri = ContentUris.withAppendedId(
-                        Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
-
-                return getDataColumn(context, contentUri, null, null);
-            }
-            // MediaProvider
-            else if (isMediaDocument(uri)) {
-                final String docId = DocumentsContract.getDocumentId(uri);
-                final String[] split = docId.split(":");
-                final String type = split[0];
-
-                Uri contentUri = null;
-                if ("image".equals(type)) {
-                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-                } else if ("video".equals(type)) {
-                    contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
-                } else if ("audio".equals(type)) {
-                    contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-                }
-
-                final String selection = "_id=?";
-                final String[] selectionArgs = new String[] {
-                    split[1]
-                };
-
-                return getDataColumn(context, contentUri, selection, selectionArgs);
-            }
-        }
-        // MediaStore (and general)
-        else if ("content".equalsIgnoreCase(uri.getScheme())) {
-            return getDataColumn(context, uri, null, null);
-        }
-        // File
-        else if ("file".equalsIgnoreCase(uri.getScheme())) {
-            return uri.getPath();
-        }
-
-        return null;
-    }
-
-    /**
-     * Get the value of the data column for this Uri. This is useful for
-     * MediaStore Uris, and other file-based ContentProviders.
-     *
-     * @param context The context.
-     * @param uri The Uri to query.
-     * @param selection (Optional) Filter used in the query.
-     * @param selectionArgs (Optional) Selection arguments used in the query.
-     * @return The value of the _data column, which is typically a file path.
-     */
-    public static String getDataColumn(Context context, Uri uri, String selection,
-            String[] selectionArgs) {
-
-        Cursor cursor = null;
-        final String column = "_data";
-        final String[] projection = {
-            column
-        };
-
-        try {
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
-                    null);
-            if (cursor != null && cursor.moveToFirst()) {
-                final int column_index = cursor.getColumnIndexOrThrow(column);
-                return cursor.getString(column_index);
-            }
-        } finally {
-            if (cursor != null)
-                cursor.close();
-        }
-        return null;
-    }
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is ExternalStorageProvider.
-     */
-    public static boolean isExternalStorageDocument(Uri uri) {
-        return "com.android.externalstorage.documents".equals(uri.getAuthority());
-    }
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is DownloadsProvider.
-     */
-    public static boolean isDownloadsDocument(Uri uri) {
-        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
-    }
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is MediaProvider.
-     */
-    public static boolean isMediaDocument(Uri uri) {
-        return "com.android.providers.media.documents".equals(uri.getAuthority());
-    }
-
     /**
      * Launch the RCS group chat detail activity.
      */
@@ -732,6 +598,8 @@ public class RcsUtils {
                 body = context.getString(R.string.group_chat_gone);
             } else if (body.startsWith(GROUP_CHAT_NOTIFICATION_KEY_WORDS_ACCEPT)) {
                 body = context.getString(R.string.group_chat_accept);
+            } else if (body.startsWith(GroupChatConstants. CONST_NOTIFY_FAILED)) {
+                body = context.getString(R.string.group_chat_create_failed);
             }
         }
         return body;
@@ -788,6 +656,7 @@ public class RcsUtils {
 
             context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri
                     .fromFile(file)));
+
         } catch (IOException e) {
             RcsLog.w(e);
         } finally {
@@ -829,12 +698,13 @@ public class RcsUtils {
 
     public static Bitmap decodeInSampleSizeBitmap(Bitmap bitmap) {
         int inSampleSize = 200/bitmap.getHeight();
-        if (inSampleSize >= 0){
+        if (inSampleSize >= 0) {
             return bitmap;
-        }else{
+        } else {
             Matrix matrix = new Matrix();
             matrix.postScale(inSampleSize,inSampleSize);
-            Bitmap resizeBmp = Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);
+            Bitmap resizeBmp = Bitmap.createBitmap(bitmap, 0, 0,
+                    bitmap.getWidth(), bitmap.getHeight(), matrix, true);
             return resizeBmp;
         }
     }
@@ -850,54 +720,6 @@ public class RcsUtils {
             return new NinePatchDrawable(context.getResources(), np);
         }
         return new BitmapDrawable(bitmap);
-    }
-
-    public static long getImageFtMaxSize(){
-        try {
-            return MessageApi.getInstance().getImageMaxSize();
-        } catch (ServiceDisconnectedException exception) {
-            exception.printStackTrace();
-            return 0;
-        } catch (RemoteException e) {
-            RcsLog.w(e);
-            return 0;
-        }
-    }
-
-    public static long getAudioMaxTime() {
-        try {
-            return MessageApi.getInstance().getAudioMaxDuration();
-        } catch (ServiceDisconnectedException exception) {
-            exception.printStackTrace();
-            return 0;
-        } catch (RemoteException e) {
-            RcsLog.w(e);
-            return 0;
-        }
-    }
-
-    public static long getVideoMaxTime() {
-        try {
-            return MessageApi.getInstance().getVideoMaxDuration();
-        } catch (ServiceDisconnectedException exception) {
-            exception.printStackTrace();
-            return 0;
-        } catch (RemoteException e) {
-            RcsLog.w(e);
-            return 0;
-        }
-    }
-
-    public static long getVideoFtMaxSize() {
-        try {
-            return MessageApi.getInstance().getVideoMaxSize();
-        } catch (ServiceDisconnectedException exception) {
-            exception.printStackTrace();
-            return 0;
-        } catch (RemoteException e) {
-            RcsLog.w(e);
-            return 0;
-        }
     }
 
     public static boolean isLoading(String filePath, long fileSize) {
@@ -2105,12 +1927,4 @@ public class RcsUtils {
         }
     }
 
-    public static long getFileSizes(Uri uri) throws Exception {
-        File f = new File(getPath(MmsApp.getApplication().getApplicationContext(), uri));
-        long s = 0;
-        if (f != null) {
-            s = f.length();
-        }
-        return s;
-    }
 }

@@ -22,7 +22,7 @@ LOCAL_PACKAGE_NAME := Mms
 # Builds against the public SDK
 #LOCAL_SDK_VERSION := current
 
-LOCAL_JAVA_LIBRARIES := telephony-common ims-common
+LOCAL_JAVA_LIBRARIES := telephony-common
 LOCAL_JAVA_LIBRARIES += rcs_service_api
 
 LOCAL_STATIC_JAVA_LIBRARIES += android-common jsr305
