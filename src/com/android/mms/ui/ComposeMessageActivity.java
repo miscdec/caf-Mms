@@ -4893,6 +4893,7 @@ public class ComposeMessageActivity extends Activity
             mPD.setCancelable(false);
             mPD.show();
             mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
         }
 
         @Override
@@ -4923,6 +4924,7 @@ public class ComposeMessageActivity extends Activity
             }
             mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
             mRecipientsWatcher.afterTextChanged(mRecipientsEditor.getText());
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
         }
     }
 
