@@ -707,6 +707,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         if (isSelf || !TextUtils.isEmpty(addr)) {
             Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
             contact.bindAvatar(mAvatar);
+            contact.clearAvatarCache();
             Drawable avatarDrawable = new BitmapDrawable(contact.getAvatar(getContext()));
             if (isSelf) {
                 mAvatar.assignContactUri(Profile.CONTENT_URI);

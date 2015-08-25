@@ -234,6 +234,7 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         if (mConversation.getRecipients().size() == 1) {
             Contact contact = mConversation.getRecipients().get(0);
             contact.bindAvatar(mAvatarView);
+            contact.clearAvatarCache();
             avatarDrawable = new BitmapDrawable(contact.getAvatar(mContext));
 
             if (contact.existsInDatabase()) {
