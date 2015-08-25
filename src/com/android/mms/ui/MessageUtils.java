@@ -1784,7 +1784,7 @@ public class MessageUtils {
         return TelephonyManager.getDefault().isMultiSimEnabled();
     }
 
-    private static boolean isCDMAPhone(int subscription) {
+    public static boolean isCDMAPhone(int subscription) {
         boolean isCDMA = false;
         int activePhone = isMultiSimEnabledMms()
                 ? TelephonyManager.getDefault().getCurrentPhoneType(subscription)
