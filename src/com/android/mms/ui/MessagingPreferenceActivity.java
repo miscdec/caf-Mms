@@ -1575,7 +1575,12 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         }
         int count = TelephonyManager.getDefault().getPhoneCount();
         for (int i = 0; i < count; i++) {
-            setSMSCPrefState(i, !isAirPlaneModeOn() &&
+            boolean isCDMA = false;
+            int subId[] = SubscriptionManager.getSubId(i);
+            if (subId != null && subId.length != 0) {
+                isCDMA = MessageUtils.isCDMAPhone(subId[0]);
+            }
+            setSMSCPrefState(i, !isCDMA && !isAirPlaneModeOn() &&
                     (TelephonyManager.getDefault().isMultiSimEnabled()
                     ? MessageUtils.isIccCardActivated(i)
                     : TelephonyManager.getDefault().hasIccCard()));
