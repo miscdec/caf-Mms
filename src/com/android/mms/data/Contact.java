@@ -1380,6 +1380,10 @@ public class Contact {
        return mPersonId;
     }
 
+    public void clearAvatarCache() {
+        sContactPhotoManager.refreshCache();
+    }
+
     public synchronized String getName(boolean bname) {
         if (TextUtils.isEmpty(mName)) {
             return null;
