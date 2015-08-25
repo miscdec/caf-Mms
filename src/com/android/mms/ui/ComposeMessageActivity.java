@@ -136,6 +136,7 @@ import android.text.method.TextKeyListener;
 import android.text.style.URLSpan;
 import android.text.util.Linkify;
 import android.util.Log;
+import android.util.Pair;
 import android.util.SparseBooleanArray;
 import android.view.ActionMode;
 import android.view.ContextMenu;
@@ -268,6 +269,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -5041,11 +5043,58 @@ public class ComposeMessageActivity extends Activity
                 default:
                     throw new IllegalArgumentException("unknown error " + error);
                 }
-
-                MessageUtils.showErrorDialog(ComposeMessageActivity.this, title, message);
+                if (addAttachmentErrorDialogInfo(title, message)) {
+                    ErrorDialogDismissListener dismissListener =
+                            new ErrorDialogDismissListener(title, message);
+                    MessageUtils.showErrorDialog(ComposeMessageActivity.this, title,
+                            message, dismissListener);
+                }
             }
         });
     }
+
+    private final LinkedList<Pair<String, String>> mAddAttachmentErrorDialogList =
+            new LinkedList<Pair<String, String>>();
+
+    private boolean addAttachmentErrorDialogInfo(String title, String message) {
+        synchronized (mAddAttachmentErrorDialogList) {
+            for (Pair<String, String> info : mAddAttachmentErrorDialogList) {
+                if (info.first.equals(title) && info.second.equals(message)) {
+                    return false;
+                }
+            }
+
+            mAddAttachmentErrorDialogList.add(new Pair<String, String>(title, message));
+            return true;
+        }
+    }
+
+    private void removeAttachmentErrorDialogInfo(String title, String message) {
+        synchronized (mAddAttachmentErrorDialogList) {
+            for (Pair<String, String> info : mAddAttachmentErrorDialogList) {
+                if (info.first.equals(title) && info.second.equals(message)) {
+                    mAddAttachmentErrorDialogList.remove(info);
+                    return;
+                }
+            }
+        }
+    }
+
+    private class ErrorDialogDismissListener implements DialogInterface.OnDismissListener {
+        String mTitle;
+        String mMessage;
+
+        public ErrorDialogDismissListener(String title, String message) {
+            mTitle = title;
+            mMessage = message;
+        }
+
+        @Override
+        public void onDismiss(DialogInterface dialog) {
+            removeAttachmentErrorDialogInfo(mTitle, mMessage);
+        }
+    }
+
 
     private void addImageAsync(final Uri uri, final boolean append) {
         mInAsyncAddAttathProcess = true;
