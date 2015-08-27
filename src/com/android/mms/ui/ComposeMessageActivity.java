@@ -1296,8 +1296,7 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
         } else {
-            if (getResources().getBoolean(com.android.internal.R.bool.config_regional_mms_via_wifi_enable)
-                    && !TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
+            if (!TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
                     && isMms
                     && checkForMmsRecipients(getString(R.string.mms_recipient_Limit), true)) {
                 return;
@@ -1336,8 +1335,7 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
         } else {
-            if (getResources().getBoolean(com.android.internal.R.bool.config_regional_mms_via_wifi_enable)
-                    && !TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
+            if (!TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
                     && isMms
                     && checkForMmsRecipients(getString(R.string.mms_recipient_Limit), true)) {
                 return;
@@ -1480,8 +1478,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void checkForTooManyRecipients() {
-        if (getResources().getBoolean(com.android.internal.R.bool.config_regional_mms_via_wifi_enable)
-                && !TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
+        if (!TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
                 && checkForMmsRecipients(getString(R.string.mms_recipient_Limit), false)) {
             return;
         }
