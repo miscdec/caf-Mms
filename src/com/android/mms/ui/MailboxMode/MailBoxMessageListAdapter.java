@@ -287,10 +287,10 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
             addr = recipientIds;
             if (!TextUtils.isEmpty(recipientIds)) {
                 addr = MessageUtils.getRecipientsByIds(context, recipientIds, true);
-                nameContact = Contact.get(addr, true).getName();
+                nameContact = getContactNamesByRecipientIds(addr);
             } else if (threadId > 0) {
                 addr = MessageUtils.getAddressByThreadId(context, threadId);
-                nameContact = Contact.get(addr, true).getName();
+                nameContact = getContactNamesByRecipientIds(addr);
             } else {
                 addr = "";
                 nameContact = "";
@@ -393,5 +393,21 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
 
     public interface OnListContentChangedListener {
         void onListContentChanged();
+    }
+
+    private String getContactNamesByRecipientIds(String addr) {
+        if (!TextUtils.isEmpty(addr)) {
+            if (addr.contains(";")) {
+                String[] recipientIds = addr.split(";");
+                String[] names = new String[recipientIds.length];
+                int i = 0;
+                for (String id : recipientIds) {
+                    names[i++] = Contact.get(id, true).getName();
+                }
+                return TextUtils.join(",", names);
+            }
+            return Contact.get(addr, true).getName();
+        }
+        return addr;
     }
 }
