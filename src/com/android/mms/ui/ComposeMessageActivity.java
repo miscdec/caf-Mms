@@ -6395,15 +6395,17 @@ public class ComposeMessageActivity extends Activity
                 && !mWorkingMessage.requiresMms()) {
             mTextEditor.requestFocus();
         }
-
-        String mCurrentRecipients = mRecipients.serialize();
-
+        String mCurrentRecipients = null;
+        if (mRecipients != null) {
+            mCurrentRecipients = mRecipients.serialize();
+        }
         if (!mSendingMessage) {
             if (LogTag.SEVERE_WARNING) {
                 String sendingRecipients = mConversation.getRecipients().serialize();
                 if (DEBUG && !sendingRecipients.equals(mCurrentRecipients)) {
                     String workingRecipients = mWorkingMessage.getWorkingRecipients();
-                    if (!mCurrentRecipients.equals(workingRecipients)) {
+                    if (mCurrentRecipients != null && !mCurrentRecipients.
+                            equals(workingRecipients)) {
                         LogTag.warnPossibleRecipientMismatch("ComposeMessageActivity.sendMessage" +
                                 " recipients in window: \"" +
                                 mCurrentRecipients + "\" differ from recipients from conv: \"" +
