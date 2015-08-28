@@ -243,7 +243,6 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
             if (contact.existsInDatabase()) {
                 mAvatarView.assignContactUri(contact.getUri());
-                mAvatarView.setImageDrawable(avatarDrawable);
             } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
                 mAvatarView.assignContactFromPhone(
                         MessageUtils.getWapPushNumber(contact.getNumber()), true);
