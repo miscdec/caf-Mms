@@ -9023,7 +9023,8 @@ public class ComposeMessageActivity extends Activity
     private void setRcsAttachment() {
         int attachmentState = RcsDualSimMananger.getAttachmentState(
                 ComposeMessageActivity.this);
-        if (attachmentState == RcsDualSimMananger.RCS_ATTACHMENT) {
+        if (attachmentState == RcsDualSimMananger.RCS_ATTACHMENT &&
+                !mWorkingMessage.requiresMms()) {
             mWorkingMessage.setRequiringRcsAttachment(true);
         } else if (attachmentState == RcsDualSimMananger.DEFAULT_ATTACHMENT) {
             mWorkingMessage.setRequiringRcsAttachment(false);
