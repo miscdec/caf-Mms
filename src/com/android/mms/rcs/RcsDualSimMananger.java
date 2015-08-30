@@ -84,6 +84,9 @@ public class RcsDualSimMananger {
 
     public static boolean shouldSendMessageWithRcsPolicy(Context context,
             int defaultPhoneId, boolean requiresMms, boolean isGroupChat) {
+        if (!RcsUtils.isRcsOnline()) {
+             return false;
+        }
         if (isGroupChat) {
             return true;
         }
