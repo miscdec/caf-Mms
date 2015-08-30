@@ -582,14 +582,19 @@ public class MessageUtils {
 
         // Message Type: Text message.
         details.append(res.getString(R.string.message_type_label));
-        int rcsChatType = cursor.getInt(cursor.getColumnIndexOrThrow(
-                 RcsColumns.SmsRcsColumns.RCS_CHAT_TYPE));
-        boolean isRcsMessage = RcsUtils.isRcsMessage(rcsChatType);
-        if (isRcsMessage)
-            details.append(res.getString(R.string.rcs_text_message));
-        else
+        boolean isRcsAvailable = RcsUtils.isRcsOnline();
+        if (isRcsAvailable && cursor != null) {
+            int rcsChatType = cursor.getInt(cursor
+                    .getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_CHAT_TYPE));
+            boolean isRcsMessage = RcsUtils.isRcsMessage(rcsChatType);
+            if (isRcsMessage) {
+                details.append(res.getString(R.string.rcs_text_message));
+            } else {
+                details.append(res.getString(R.string.text_message));
+            }
+        } else {
             details.append(res.getString(R.string.text_message));
-
+        }
         if (isAppendContentType) {
             details.append('\n');
             details.append(res.getString(R.string.message_content_type));
