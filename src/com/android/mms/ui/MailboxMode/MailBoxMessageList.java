@@ -1275,14 +1275,12 @@ public class MailBoxMessageList extends ListActivity implements
                         @Override
                         public boolean onPopupItemClick(int itemId) {
                             if (itemId == RcsSelectionMenu.SELECT_OR_DESELECT) {
-                                if (mHasSelectAll) {
+                                if (allItemsSelected()) {
                                     unCheckAll();
-                                    mHasSelectAll = false;
                                 } else {
                                     checkAll();
-                                    mHasSelectAll = true;
                                 }
-                                mSelectionMenu.updateSelectAllMode(mHasSelectAll);
+                                mSelectionMenu.updateSelectAllMode(allItemsSelected());
                             }
                             return true;
                         }
@@ -1357,6 +1355,7 @@ public class MailBoxMessageList extends ListActivity implements
             int checkedCount = listView.getCheckedItemCount();
 
             mSelectionMenu.setTitle(getString(R.string.selected_count, checkedCount));
+            mSelectionMenu.updateSelectAllMode(allItemsSelected());
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
             mListAdapter.notifyDataSetChanged();
