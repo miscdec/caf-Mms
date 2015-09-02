@@ -609,9 +609,6 @@ public class MailBoxMessageList extends ListActivity implements
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
             synchronized (mCursorLock) {
                 if (cursor != null) {
-                    if (mCursor != null) {
-                        mCursor.close();
-                    }
                     mCursor = cursor;
                     TextView emptyView = (TextView) findViewById(R.id.emptyview);
                     if (mListAdapter == null) {
