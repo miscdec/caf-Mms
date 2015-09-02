@@ -497,7 +497,12 @@ public class SelectRecipientsList extends Activity implements
                 buffer.append(lookup + ":");
             }
         }
-        return buffer.substring(0, buffer.lastIndexOf(":"));
+
+        int lastColonIndex = buffer.lastIndexOf(":");
+
+        if(lastColonIndex < 0)
+            return "";
+        return buffer.substring(0, lastColonIndex);
     }
 
     private String getCheckedNumbersAsText() {
