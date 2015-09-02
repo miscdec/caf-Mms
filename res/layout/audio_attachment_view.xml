@@ -97,7 +97,9 @@
             android:layout_width="100dip"
             android:layout_height="45dip"
             android:textColor="@android:color/black"
-            android:text="@string/replace" />
+            android:text="@string/replace"
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp" />
 
         <Button
             android:id="@+id/remove_audio_button"
