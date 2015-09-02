@@ -210,6 +210,10 @@ public class SelectRecipientsList extends Activity implements
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         mMobileOnly = sharedPreferences.getBoolean(PREF_MOBILE_NUMBERS_ONLY, true);
 
+        if (mContactFragment != null) {
+            mContactFragment.setIsMobileOnly(mMobileOnly);
+        }
+
         menu.add(0, MENU_DONE, 0, R.string.menu_done)
              .setIcon(R.drawable.ic_menu_done)
              .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS
