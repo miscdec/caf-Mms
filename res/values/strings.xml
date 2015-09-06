@@ -995,9 +995,6 @@
     <string name="type_draft">Drafts</string>
     <!-- Spinner item of slot type in mailbox-mode -->
     <string name="slot_type_select">Select slot</string>
-    <string name="type_all">All</string>
-    <string name="type_slot1">Card1</string>
-    <string name="type_slot2">Card2</string>
     <!-- String used in SearchActivityExtend.java -->
     <string name="search_title">"Message search"</string>
     <string name="search_key">Search keyword</string>
