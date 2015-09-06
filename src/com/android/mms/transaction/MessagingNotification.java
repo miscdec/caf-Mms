@@ -356,7 +356,8 @@ public class MessagingNotification {
                         ", newMsgThreadId=" + newMsgThreadId);
             }
 
-            if (isInCurrentConversation(newMsgThreadId, threads)) {
+            if (!MessageUtils.isMailboxMode()
+                    && isInCurrentConversation(newMsgThreadId, threads)) {
                 if (DEBUG) {
                     Log.d(TAG, "blockingUpdateNewMessageIndicator: newMsgThreadId == " +
                             "sCurrentlyDisplayedThreadId so NOT showing notification," +
@@ -381,19 +382,11 @@ public class MessagingNotification {
     }
 
     private static boolean isInCurrentConversation(long newMsgThreadId, Set<Long> threads) {
-        if (MessageUtils.isMailboxMode()) {
-            // For mail box mode, only message with the same tpye will not show the notification.
-            synchronized (sCurrentlyDisplayedMsgTypeLock) {
-                return (sCurrentlyDisplayedMsgType == MailBoxMessageList.TYPE_INBOX) &&
-                        (newMsgThreadId != THREAD_NONE);
-            }
-        } else {
-            // For conversation mode, only incomming unread message with the same valid thread id
-            // will not show the notification.
-            synchronized (sCurrentlyDisplayedThreadLock) {
-                return (newMsgThreadId > 0 && newMsgThreadId == sCurrentlyDisplayedThreadId &&
-                        threads.contains(newMsgThreadId));
-            }
+        // For conversation mode, only incomming unread message with the same valid thread id
+        // will not show the notification.
+        synchronized (sCurrentlyDisplayedThreadLock) {
+            return (newMsgThreadId > 0 && newMsgThreadId == sCurrentlyDisplayedThreadId &&
+                    threads.contains(newMsgThreadId));
         }
     }
 
