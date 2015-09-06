@@ -76,6 +76,7 @@ import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
 import com.android.mms.LogTag;
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.rcs.RcsUtils;
@@ -150,7 +151,23 @@ public class MailBoxMessageContent extends Activity {
         Sms._ID,
         Sms.LOCKED
     };
-    private static final String[] SMS_DETAIL_PROJECTION = new String[] {
+
+    private static final String[] SMS_PROJECTION = new String[] {
+        Sms.THREAD_ID,
+        Sms.DATE,
+        Sms.ADDRESS,
+        Sms.BODY,
+        Sms.PHONE_ID,
+        Sms.LOCKED,
+        Sms.DATE_SENT,
+        Sms.TYPE,
+        Sms.ERROR_CODE,
+        Sms._ID,
+        Sms.STATUS,
+        Sms.READ
+    };
+
+    private static final String[] RCS_SMS_DETAIL_PROJECTION = new String[] {
         Sms.THREAD_ID,
         Sms.DATE,
         Sms.ADDRESS,
@@ -170,6 +187,9 @@ public class MailBoxMessageContent extends Activity {
         RcsColumns.SmsRcsColumns.RCS_FILENAME,
         RcsColumns.SmsRcsColumns.RCS_FILE_SIZE
     };
+
+    private static final String[] SMS_DETAIL_PROJECTION = MmsConfig.getIsRcsVersion() ?
+            RCS_SMS_DETAIL_PROJECTION : SMS_PROJECTION;
 
     private static final int COLUMN_THREAD_ID = 0;
     private static final int COLUMN_DATE = 1;
@@ -608,8 +628,10 @@ public class MailBoxMessageContent extends Activity {
         mMsgstatus = cursor.getInt(COLUMN_STATUS);
         mSubID = cursor.getInt(COLUMN_SMS_SUBID);
         mMsgId = cursor.getInt(COLUMN_ID);
-        mRcsMsgState = cursor.getInt(COLUMN_RCS_MSG_STATE);
-        mRcsChatType = cursor.getInt(COLUMN_RCS_CHAT_TYPE);
+        if (MmsConfig.getIsRcsVersion()) {
+            mRcsMsgState = cursor.getInt(COLUMN_RCS_MSG_STATE);
+            mRcsChatType = cursor.getInt(COLUMN_RCS_CHAT_TYPE);
+        }
     }
 
     private void startQuerySmsContent() {

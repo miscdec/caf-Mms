@@ -72,6 +72,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.rcs.RcsMessageOpenUtils;
@@ -119,8 +120,10 @@ public class MessageDetailAdapter extends PagerAdapter {
 
         TextView bodyText = (TextView) content.findViewById(R.id.textViewBody);
         LinearLayout mLinearLayout = (LinearLayout)content.findViewById(R.id.other_type_layout);
-
-        mMsgType = mCursor.getInt(mCursor.getColumnIndex(RcsColumns.SmsRcsColumns.RCS_MSG_TYPE));
+        if (MmsConfig.getIsRcsVersion()) {
+            mMsgType = mCursor
+                    .getInt(mCursor.getColumnIndex(RcsColumns.SmsRcsColumns.RCS_MSG_TYPE));
+        }
         if (mMsgType == RcsUtils.RCS_MSG_TYPE_TEXT) {
             initTextMsgView(bodyText);
         } else {
