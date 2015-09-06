@@ -5880,7 +5880,9 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
             if (s.toString().getBytes().length <= SUBJECT_MAX_LENGTH) {
-                mWorkingMessage.setSubject(s, true);
+                if (s.toString().getBytes().length > 0) {
+                    mWorkingMessage.setSubject(s, true);
+                }
                 updateSendButtonState();
                 if (s.toString().getBytes().length == SUBJECT_MAX_LENGTH
                         && before < SUBJECT_MAX_LENGTH) {
