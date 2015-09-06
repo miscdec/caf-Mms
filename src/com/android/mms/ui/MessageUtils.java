@@ -677,14 +677,6 @@ public class MessageUtils {
             }
         }
 
-        // Error code: ***
-        int errorCode = cursor.getInt(cursor.getColumnIndexOrThrow(Sms.ERROR_CODE));
-        if (errorCode != 0) {
-            details.append('\n')
-                .append(res.getString(R.string.error_code_label))
-                .append(errorCode);
-        }
-
         return details.toString();
     }
 
