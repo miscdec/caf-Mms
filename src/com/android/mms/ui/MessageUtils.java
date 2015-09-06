@@ -34,6 +34,8 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1055,6 +1057,10 @@ public class MessageUtils {
      */
     public static final int MESSAGE_OVERHEAD = 5000;
 
+    private static final int POOL_SIZE = 2;
+
+    private static ExecutorService mExecutorPool = Executors.newFixedThreadPool(POOL_SIZE);
+
     public static void resizeImageAsync(final Context context,
             final Uri imageUri, final int currentMsgSize, final Handler handler,
             final ResizeImageResultCallback cb,
@@ -1073,7 +1079,7 @@ public class MessageUtils {
         // Schedule it for one second from now.
         handler.postDelayed(showProgress, 1000);
 
-        new Thread(new Runnable() {
+        mExecutorPool.execute(new Runnable() {
             @Override
             public void run() {
                 final PduPart part;
@@ -1119,7 +1125,7 @@ public class MessageUtils {
                     }
                 });
             }
-        }, "MessageUtils.resizeImageAsync").start();
+        });
     }
 
     public static void showDiscardDraftConfirmDialog(Context context,
