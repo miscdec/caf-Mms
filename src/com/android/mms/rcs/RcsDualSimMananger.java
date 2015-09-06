@@ -49,9 +49,6 @@ public class RcsDualSimMananger {
     public static final String ENABLE_RCS_MESSAGE_POLICY =
             "pref_key_rcs_immediately_message_policy";
 
-    public static final String DEFAULT_SENDING_CONFIRM_VALUE =
-            "default_sending_confirm_value";
-
     /**
      * @return
      * 0 default sending sim is slot 1.
@@ -79,21 +76,10 @@ public class RcsDualSimMananger {
         }
     }
 
-    public static boolean getUserIsUseRcsPolicy(Context context) {
+    private static boolean getUserIsUseRcsPolicy(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        return prefs.getBoolean(ENABLE_RCS_MESSAGE_POLICY, true);
-    }
-
-    public static boolean getDefaultSendingConfirmValue(Context context) {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        return prefs.getBoolean(DEFAULT_SENDING_CONFIRM_VALUE, false);
-    }
-
-    public static void setDefaultSendingConfirmValue(Context context) {
-        SharedPreferences.Editor editor =
-                PreferenceManager.getDefaultSharedPreferences(context).edit();
-        editor.putBoolean(DEFAULT_SENDING_CONFIRM_VALUE, true);
-        editor.apply();
+        boolean qmLockscreenEnabled = prefs.getBoolean(ENABLE_RCS_MESSAGE_POLICY, true);
+        return qmLockscreenEnabled;
     }
 
     public static boolean shouldSendMessageWithRcsPolicy(Context context,
@@ -102,7 +88,7 @@ public class RcsDualSimMananger {
              return false;
         }
         if (isGroupChat) {
-            return getUserIsUseRcsPolicy(context);
+            return true;
         }
         int rcsOnlineSlot = getCurrentRcsOnlineSlot();
         if (defaultPhoneId == rcsOnlineSlot) {

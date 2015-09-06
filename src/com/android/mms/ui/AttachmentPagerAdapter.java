@@ -47,7 +47,6 @@ import android.widget.SimpleAdapter;
 
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
-import com.android.mms.rcs.RcsDualSimMananger;
 import com.android.mms.rcs.RcsUtils;
 
 import com.suntek.mway.rcs.client.api.support.SupportApi;
@@ -166,8 +165,8 @@ public class AttachmentPagerAdapter extends PagerAdapter {
         int index = 0;
         mIndexOfAttachmentTypes.clear();
         boolean isRcsSupported = SupportApi.getInstance().isRcsSupported();
-        boolean isEnableRcsPolisy = RcsDualSimMananger.getUserIsUseRcsPolicy(mContext);
-        boolean isRcsAttachment = isRcsSupported && isEnableRcsPolisy;
+        boolean isRcsOneline = RcsUtils.isRcsOnline();
+        boolean isRcsAttachment = isRcsSupported && isRcsOneline;
 
         List<IconListItem> list = new ArrayList<IconListItem>(10);
         list.add(new IconListItem(mContext.getString(R.string.attach_image),

@@ -26,6 +26,7 @@ package com.android.mms.rcs;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import com.android.mms.rcs.RcsMessageStatusService;
 
 public class RcsMessageStatusReceiver extends BroadcastReceiver {

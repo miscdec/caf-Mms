@@ -149,11 +149,6 @@
     <string name="message_restoring">Message restoring</string>
     <string name="message_restore_ok">restore ok</string>
     <string name="not_online_message_too_big">Off-line, the text is oversized</string>
-    <string name="rcs_offline_forwards_not_support">Rcs offline, it does not support forwarding Rcs message.</string>
-    <string name="rcs_sending_policy_not_support_forwarding">Rcs sending policy set wrong, it does not support forwarding Rcs message.</string>
-    <string name="rcs_sending_policy_wrong">Rcs sending policy wrong, please go to set the rcs sending policy and resend.</string>
-    <string name="rcs_offline_unable_to_send">Rcs offline unable to send</string>
-    <string name="rcs_message_sent_first_time">This is the first time you send rcs message, you can sent it directly or go to set the sending policy.</string>
     <string name="on_airplain_mode">Unable to be forwarded in airplane mode</string>
     <string name="rcs_mcloud_share_file">mClould file share</string>
     <string name="please_set_my_profile">Please define My Profile first</string>
@@ -182,7 +177,6 @@
     <string name="message_content_image">Image</string>
     <string name="message_content_map">Geolocation</string>
     <string name="message_content_vcard">vCard</string>
-    <string name="message_content_other_file">Not support message type</string>
     <string name="not_download_image">Please download the image first since it has not been downloaded yet! </string>
     <string name="not_download_video">Please download the video first since it has not been downloaded yet! </string>
     <string name="not_download_cloudFile">Please download the cloudFile first since it has not been downloaded yet!</string>
@@ -235,7 +229,7 @@
     <string name="del_image_action">Image manipulation</string>
     <string name="input_quality">Please enter the scaling quality</string>
     <string name="input_no_fit">Input is not legal</string>
-    <string name="send_confirm_ok">determine</string>
+    <string name="send_comfirm_ok">determine</string>
     <string name="send_comfirm_cancel">cancel</string>
     <string name="cloud_file_name">Name:</string>
     <string name="cloud_file_size">,Size:</string>
@@ -276,17 +270,4 @@
     <string name="group_chat_send_message_in_woring_card">Sending message preferred card is not matching for group chat card, please reselect preferred card.</string>
     <string name="rcs_msgtype_only">RCS message type only</string>
     <string name="time_length_unit">"s"</string>
-    <string name="rcs_tip">Tip</string>
-    <string name="rcs_delete_burn_message">Confirm delete the burn message?</string>
-    <string name="rcs_confirm">Confirm</string>
-    <string name="rcs_cancel">Cancel</string>
-    <string name="rcs_message_send_fail_send_by_policy">Rcs message sent fail, we will send this message via sms.</string>
-    <string name="set_poliy">Set Policy</string>
-    <string name="group_chat_create_failed">Group chat create failed</string>
-    <string name="create_failed">Create failed</string>
-    <string name="file_error_reselect">File error, Please reselect.</string>
-    <string name="file_size_error_reselect">File size exceeded sending limit, please reselect.</string>
-    <string name="image_file_size_error_reselect">Image file size exceeded sending limit, please reselect.</string>
-    <string name="audio_file_size_error_reselect">Audio file size exceeded sending limit, please reselect.</string>
-    <string name="vido_file_size_error_reselect">Video file size exceeded sending limit, please reselect.</string>
 </resources>

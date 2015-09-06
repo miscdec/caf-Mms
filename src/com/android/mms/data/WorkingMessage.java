@@ -452,6 +452,7 @@ public class WorkingMessage {
             FileSuffixException, FileDurationException, FileTooLargeException,
             FileNotExistsException {
         String[] dests = TextUtils.split(semiSepRecipients, ";");
+        Recycler.getSmsRecycler().deleteOldMessagesByThreadId(mActivity, threadId);
         MessageApi messageApi = MessageApi.getInstance();
         CloudFileApi cloudFileApi = CloudFileApi.getInstance();
         switch (mRcsType) {
@@ -491,7 +492,6 @@ public class WorkingMessage {
                 break;
         }
         mStatusListener.onMessageSent();
-        Recycler.getSmsRecycler().deleteOldMessagesByThreadId(mActivity, threadId);
         MmsWidgetProvider.notifyDatasetChanged(mActivity);
     }
 

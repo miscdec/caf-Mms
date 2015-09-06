@@ -691,7 +691,6 @@
     <string name="copy_to_sdcard">Save attachment</string>
     <!-- Toast message on successful copy to shared storage [CHAR LIMIT=30] -->
     <string name="copy_to_sdcard_success">Attachment saved.</string>
-    <string name="copy_to_sdcard_success_path">Attachment saved to %1$s </string>
     <!-- Toast message on failed copy to shared storage [CHAR LIMIT=30] -->
     <string name="copy_to_sdcard_fail">Couldn\'t save attachment.</string>
     <!-- Menu title to save a sound as a ringtone -->
@@ -996,9 +995,6 @@
     <string name="type_draft">Drafts</string>
     <!-- Spinner item of slot type in mailbox-mode -->
     <string name="slot_type_select">Select slot</string>
-    <string name="type_all">All</string>
-    <string name="type_slot1">Card1</string>
-    <string name="type_slot2">Card2</string>
     <!-- String used in SearchActivityExtend.java -->
     <string name="search_title">"Message search"</string>
     <string name="search_key">Search keyword</string>
@@ -1133,4 +1129,6 @@
     <string name="default_sms_validity_period">-1</string>
     <string name="emergency_call_number">911</string>
     <string name="default_mms_validity_period">0</string>
+    <string name="no_cellular_coverage_alert">Connect to Wi-Fi for Messaging.</string>
+    <string name="no_network_alert_when_send_message">No cellular network available.  Connect to available Wi-Fi for messaging.</string>
 </resources>

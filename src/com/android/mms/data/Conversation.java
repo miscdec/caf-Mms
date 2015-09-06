@@ -52,6 +52,7 @@ import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
 import com.suntek.mway.rcs.client.aidl.constant.Constants.MessageConstants;
 import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
 import com.suntek.mway.rcs.client.api.message.MessageApi;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
 import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
 
@@ -217,8 +218,16 @@ public class Conversation {
      */
     public static Conversation getNewConversation
             (Context context, long threadId, boolean allowQuery) {
-        Cache.remove(threadId);
-        Conversation conv = get(context, threadId, allowQuery);
+
+        Conversation conv = new Conversation(context, threadId, allowQuery);
+        try {
+            Cache.put(conv);
+        } catch (IllegalStateException e) {
+            LogTag.error("Tried to add duplicate Conversation to Cache (from threadId): " + conv);
+            if (!Cache.replace(conv)) {
+                LogTag.error("get by threadId cache.replace failed on " + conv);
+            }
+        }
         return conv;
     }
 
@@ -1990,12 +1999,8 @@ public class Conversation {
                     return mContext.getString(R.string.group_chat_status_deleted);
                 case GroupChat.STATUS_QUITED:
                     return mContext.getString(R.string.group_chat_status_deleted);
-                case GroupChat.STATUS_BOOTED:
-                    return mContext.getString(R.string.group_chat_status_deleted);
                 case GroupChat.STATUS_PAUSE:
                     return mContext.getString(R.string.group_chat_status_offline);
-                case GroupChat.STATUS_FAILED:
-                    return mContext.getString(R.string.create_failed);
                 default:
                     break;
             }

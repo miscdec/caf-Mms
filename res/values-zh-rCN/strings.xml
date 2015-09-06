@@ -330,7 +330,6 @@
     <string name="external_audio_item">"外部存储的音频"</string>
     <string name="copy_to_sdcard" msgid="757028609638184856">"保存附件"</string>
     <string name="copy_to_sdcard_success" msgid="7948625615155992014">"已保存附件。"</string>
-    <string name="copy_to_sdcard_success_path">附件已保存在：%1$s</string>
     <string name="copy_to_sdcard_fail" msgid="4944606369631916737">"无法保存附件。"</string>
     <string name="save_ringtone" msgid="2310157075045201051">"另存为铃声"</string>
     <string name="saved_ringtone" msgid="3847363932276708626">"已保存铃声。"</string>
@@ -473,9 +472,6 @@
     <string name="type_draft">草稿</string>
     <!-- Spinner item of slot type in mailbox-mode -->
     <string name="slot_type_select">选择卡槽</string>
-    <string name="type_all">全部</string>
-    <string name="type_slot1">卡1</string>
-    <string name="type_slot2">卡2</string>
     <!-- String used in SearchActivityExtend.java -->
     <string name="search_title">"信息查找"</string>
     <string name="search_key">"查找关键字"</string>
@@ -507,7 +503,7 @@
     <string name="download_dialog_title">确认下载信息？</string>
     <string name="menu_email">发送邮件</string>
     <string name="copy_to_sim">"复制到SIM卡"</string>
-    <string name="copy_to_sim_success">"复制短信到 SIM 卡，总数:%1$d, 成功:%2$d"</string>
+    <string name="copy_to_sim_success">"复制短信到SIM卡，总数:%1$d，成功:%2$d"</string>
     <string name="copy_to_sim_fail">"信息保存失败"</string>
     <string name="copy_to_phone_success">"信息已保存"</string>
     <string name="copy_to_phone_fail">"信息保存失败"</string>

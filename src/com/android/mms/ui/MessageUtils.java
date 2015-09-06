@@ -34,6 +34,8 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,8 +85,8 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.MediaStore;
-import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.Media;
+import android.provider.MediaStore.Audio;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Mms.Part;
@@ -157,7 +159,7 @@ import static android.telephony.SmsMessage.MAX_USER_DATA_SEPTETS;
 import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
 import com.suntek.mway.rcs.client.api.basic.BasicApi;
 import com.suntek.mway.rcs.client.api.support.SupportApi;
-import com.suntek.rcs.ui.common.RcsFileController;
+
 /**
  * An utility class for managing messages.
  */
@@ -582,14 +584,19 @@ public class MessageUtils {
 
         // Message Type: Text message.
         details.append(res.getString(R.string.message_type_label));
-        int rcsChatType = cursor.getInt(cursor.getColumnIndexOrThrow(
-                 RcsColumns.SmsRcsColumns.RCS_CHAT_TYPE));
-        boolean isRcsMessage = RcsUtils.isRcsMessage(rcsChatType);
-        if (isRcsMessage)
-            details.append(res.getString(R.string.rcs_text_message));
-        else
+        boolean isRcsAvailable = RcsUtils.isRcsOnline();
+        if (isRcsAvailable && cursor != null) {
+            int rcsChatType = cursor.getInt(cursor
+                    .getColumnIndexOrThrow(RcsColumns.SmsRcsColumns.RCS_CHAT_TYPE));
+            boolean isRcsMessage = RcsUtils.isRcsMessage(rcsChatType);
+            if (isRcsMessage) {
+                details.append(res.getString(R.string.rcs_text_message));
+            } else {
+                details.append(res.getString(R.string.text_message));
+            }
+        } else {
             details.append(res.getString(R.string.text_message));
-
+        }
         if (isAppendContentType) {
             details.append('\n');
             details.append(res.getString(R.string.message_content_type));
@@ -668,14 +675,6 @@ public class MessageUtils {
                 details.append(res.getString(R.string.delivered_label));
                 details.append(MessageUtils.formatTimeStampString(context, dateDelivered, true));
             }
-        }
-
-        // Error code: ***
-        int errorCode = cursor.getInt(cursor.getColumnIndexOrThrow(Sms.ERROR_CODE));
-        if (errorCode != 0) {
-            details.append('\n')
-                .append(res.getString(R.string.error_code_label))
-                .append(errorCode);
         }
 
         return details.toString();
@@ -857,8 +856,7 @@ public class MessageUtils {
                 "com.android.soundrecorder.SoundRecorder");
         // add RCS recordSound time add size limit
         if (requringRcsAttachment) {
-            long durationLimit = RcsFileController.getRcsTransferFileMaxDuration(
-                    RcsUtils.RCS_MSG_TYPE_AUDIO);
+            long durationLimit = RcsUtils.getAudioMaxTime();
             intent.putExtra(Media.EXTRA_MAX_BYTES, (long)((ARM_BIT / 8) * (durationLimit + 1)));
         } else {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
@@ -874,9 +872,7 @@ public class MessageUtils {
             Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
             intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 10.0);
             intent.putExtra("android.intent.extra.sizeLimit", sizeLimit*1024);
-            int durationLimit = (int)RcsFileController.getRcsTransferFileMaxDuration(
-                    RcsUtils.RCS_MSG_TYPE_VIDEO);
-            intent.putExtra("android.intent.extra.durationLimit", durationLimit);
+            intent.putExtra("android.intent.extra.durationLimit", (int)RcsUtils.getVideoMaxTime());
             intent.putExtra(MediaStore.EXTRA_OUTPUT, TempFileProvider.SCRAP_CONTENT_URI);
             activity.startActivityForResult(intent, requestCode);
             return;
@@ -1053,6 +1049,10 @@ public class MessageUtils {
      */
     public static final int MESSAGE_OVERHEAD = 5000;
 
+    private static final int POOL_SIZE = 2;
+
+    private static ExecutorService mExecutorPool = Executors.newFixedThreadPool(POOL_SIZE);
+
     public static void resizeImageAsync(final Context context,
             final Uri imageUri, final int currentMsgSize, final Handler handler,
             final ResizeImageResultCallback cb,
@@ -1071,7 +1071,7 @@ public class MessageUtils {
         // Schedule it for one second from now.
         handler.postDelayed(showProgress, 1000);
 
-        new Thread(new Runnable() {
+        mExecutorPool.execute(new Runnable() {
             @Override
             public void run() {
                 final PduPart part;
@@ -1117,7 +1117,7 @@ public class MessageUtils {
                     }
                 });
             }
-        }, "MessageUtils.resizeImageAsync").start();
+        });
     }
 
     public static void showDiscardDraftConfirmDialog(Context context,
@@ -1579,11 +1579,7 @@ public class MessageUtils {
         String[] number = address.split(":");
         int index = MmsApp.getApplication().getResources()
                 .getInteger(R.integer.wap_push_address_index);
-        if (number.length <= index) {
-            return number[0];
-        } else {
-            return number[index];
-        }
+        return number[index];
     }
 
     /**

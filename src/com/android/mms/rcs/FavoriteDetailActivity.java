@@ -183,9 +183,8 @@ public class FavoriteDetailActivity  extends Activity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
-        if (RcsDualSimMananger.getUserIsUseRcsPolicy(FavoriteDetailActivity.this)) {
-            menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
-        }
+
+        menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
         if (!Contact.get(mMsgFrom, false).existsInDatabase()) {
             menu.add(0, MENU_SAVE_TO_CONTACT, 0, R.string.menu_add_to_contacts);
         }
