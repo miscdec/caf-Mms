@@ -212,6 +212,7 @@ public class FavoriteDetailActivity  extends Activity {
                 break;
             case MENU_UNFAVORITED:
                 RcsChatMessageUtils.favoritedOneMessage(this, mMsgId, isRcsMessage(), false);
+                finish();
                 break;
             case android.R.id.home:
                 finish();

@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 
 import android.app.AlertDialog;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
@@ -266,4 +267,22 @@ public class RcsChatMessageUtils {
         builder.show();
     }
 
+    public static boolean isPublicAccountMessage(Context context, long threadId) {
+        boolean isPAMessage = false;
+        ContentResolver resolver = context.getContentResolver();
+        Cursor cursor = resolver.query(Constants.ThreadProvider.CONST_THREAD_URI, new String[]{
+                "msg_chat_type" }, "_id = ?", new String[]{ String.valueOf(threadId) }, null);
+        try {
+            if (cursor != null && cursor.moveToFirst() &&
+                     cursor.getInt(cursor.getColumnIndex(RcsColumns.SmsRcsColumns.RCS_CHAT_TYPE)) ==
+                    RcsUtils.RCS_CHAT_TYPE_PUBLIC_MESSAGE) {
+                isPAMessage = true;
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return isPAMessage;
+    }
 }

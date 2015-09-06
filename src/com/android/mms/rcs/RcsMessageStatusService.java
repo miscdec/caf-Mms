@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import com.android.mms.R;
 import com.android.mms.MmsApp;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.mms.util.Recycler;
 
 import com.suntek.mway.rcs.client.aidl.constant.Actions;
 import com.suntek.mway.rcs.client.aidl.constant.Parameter;
@@ -53,6 +54,7 @@ public class RcsMessageStatusService extends IntentService {
     private static int runningId = 0;
     private static long taskCount = 0;
     private static long DEFAULT_THREAD_ID = -1;
+    private static long DEFAULT_ROW_ID = -1;
     private static long DEFAULT_THREAD_SIZE = -1;
     private static int DEFAULT_STATUS = -11;
 
@@ -95,10 +97,17 @@ public class RcsMessageStatusService extends IntentService {
             long threadId = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
             disposeGroupChatNewMessage(threadId);
             notifyNewMessage(threadId);
+            Recycler.getSmsRecycler().deleteOldMessagesByThreadId(RcsMessageStatusService.this,
+                    threadId);
         } else if (Actions.MessageAction.ACTION_MESSAGE_STATUS_CHANGED.equals(action)) {
             long id = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
             int status = intent.getIntExtra(Parameter.EXTRA_STATUS, DEFAULT_STATUS);
+            long rowId = intent.getLongExtra(Parameter.EXTRA_ID, DEFAULT_ROW_ID);
             if (status == RcsUtils.MESSAGE_FAIL) {
+                if (rowId != DEFAULT_ROW_ID && id != DEFAULT_THREAD_ID
+                        && id != MessagingNotification.getCurrentlyDisplayedThreadId()) {
+                    RcsUtils.updateFaildRcsMessageReadState(MmsApp.getApplication(), rowId);
+                }
                 RcsNotifyManager.sendMessageFailNotif(MmsApp.getApplication(), status, id, true);
             }
         }
@@ -131,7 +140,8 @@ public class RcsMessageStatusService extends IntentService {
 
     private void notifyNewMessage(long threadId) {
         if (threadId != DEFAULT_THREAD_ID && threadId != MessagingNotification
-                .getCurrentlyDisplayedThreadId()) {
+                .getCurrentlyDisplayedThreadId() && !RcsChatMessageUtils
+                .isPublicAccountMessage(RcsMessageStatusService.this, threadId)) {
             MessagingNotification.blockingUpdateNewMessageIndicator(
                     RcsMessageStatusService.this, threadId, true);
         }
