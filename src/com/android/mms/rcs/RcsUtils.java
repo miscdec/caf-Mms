@@ -303,6 +303,15 @@ public class RcsUtils {
                 });
     }
 
+    public static void updateFaildRcsMessageReadState(Context context, long msgId) {
+        ContentValues values = new ContentValues();
+        values.put(Sms.READ, 0);
+        context.getContentResolver().update(Sms.CONTENT_URI, values, Sms._ID + " = ?",
+                new String[] {
+                    String.valueOf(msgId)
+                });
+    }
+
     public static void updateFileDownloadState(Context context, long messageId) {
         if (messageId <= 0) {
             return;

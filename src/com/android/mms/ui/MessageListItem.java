@@ -317,11 +317,10 @@ public class MessageListItem extends ZoomMessageListItem implements
                                 // clicks first.
 
         if (isRcsMessage()) {
-            if (mSimIndicatorView != null)
+            if (mSimIndicatorView != null) {
                 mSimIndicatorView.setVisibility(View.GONE);
-                bindRcsMessage();
-        } else {
-            showMmsView(false);
+            }
+            bindRcsMessage();
         }
         switch (msgItem.mMessageType) {
             case PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND:
