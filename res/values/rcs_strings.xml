@@ -45,10 +45,12 @@
     <string name="group_chat_status_active">(Active)</string>
     <string name="group_chat_status_inactive">(Inactive)</string>
     <string name="group_chat_status_deleted">(Deleted)</string>
+    <string name="group_chat_status_offline">(Offline)</string>
 
     <!-- Group chat notification. -->
     <string name="group_chat_created">New group chat created.</string>
     <string name="group_chat_active">Group chat became active.</string>
+    <string name="group_chat_accept">You have agreed to group chat invitation.</string>
     <string name="group_chat_update_chairman">%1$s has became the chairman of the group.</string>
     <string name="group_chat_join">%1$s has joined the group.</string>
     <string name="group_chat_subject">Subject has been updated to %1$s.</string>
@@ -85,12 +87,6 @@
     <string name="message_downloaded">Download complete</string>
     <string name="message_send_fail_resend">Failed to be sent, click to resume</string>
     <!-- RCS -->
-    <string name="image_downloading">Downloading: %1$d %%</string>
-    <string name="audio_length">Audio duration: </string>
-    <string name="message_is_play_over">All messages are played</string>
-    <string name="video_length">Video duration: </string>
-    <string name="image_msg_load_fail_tip">Load fail</string>
-    <string name="open_file_fail">Failed to open the file</string>
     <string name="message_is_burnd">Burnt</string>
     <string name="downloading_percent">Downloading: %1$d %%</string>
     <string name="uploading_percent">Sending: %1$d %%</string>
@@ -108,6 +104,7 @@
     <string name="file_suffix_vaild_tip">Invalid file format! </string>
     <string name="file_size_over">The file size has exceeded the limit, which is unable to be sent! </string>
     <string name="not_intent">No app is available to perform this operation. </string>
+    <string name="file_not_exist">File does not exist</string>
     <string name="please_input_1_100_int">Please input an integer which is between1~100</string>
     <string name="video_record_out_time">The recorded video has exceeded the max limit, the max duration is %1$s s</string>
     <string name="audio_record_out_time">The recorded voice message has exceeded the max limit, the max duration is %1$s s</string>
@@ -136,6 +133,7 @@
     <string name="forward_conversation">Conversation</string>
     <string name="forward_contact_group">Contact group</string>
     <string name="my_vcard">My vCard</string>
+    <string name="vcard">Vcard(%1$s)</string>
     <string name="select_contact_conversation">Select contact or conversation</string>
     <string name="file_share">mCloud file share</string>
     <string name="download_mcloud_file_fail">Failed to download, please download again</string>
@@ -227,8 +225,7 @@
     <string name="vcard_compony_name">COMPONY NAME</string>
     <string name="vcard_detail_info">VCARD DETAIL INFO</string>
     <string name="vcard_import">IMPORT VCARD</string>
-    <string name="burn_all_message">Burn all BurnFlagMessage</string>
-    <string name="name_not_fix">File Name not Fit</string>
+    <string name="name_not_fix">File name not fit</string>
     <string name="file_is_too_larger">File too large</string>
     <string name="please_install_application">Please install the application</string>
     <string name="emotion_download_fail">download fail emotion.</string>
@@ -254,11 +251,30 @@
     <string name="msg_type_contact">vCard</string>
     <string name="msg_type_location">geolocation</string>
     <string name="msg_type_CaiYun">Mcloud</string>
-    <string name="msg_type_burnMessage">Burn after Read</string>
+    <string name="msg_type_burnMessage">Burn after read</string>
+    <string name="msg_type_paid_emo">Paid emoticon</string>
     <string name="merge_contacts">Merge Contacts</string>
     <string name="mms_does_not_support_location_sharing">MMS does not support location sharing, please re select</string>
-    <string name="mms_does_not_support_rcs_cachemessage_send">MMS does not support Rcs cachemessage send, please re select</string>
+    <string name="mms_does_not_support_rcs_cachemessage_send">MMS does not support Rcs cachemessage send, please select again</string>
     <string name="Group_name_not_fit">Group name not fit</string>
     <string name="download_fail_please_download_again">Dowanload fail,please click download again</string>
-    <string name="copy_rcs_message_to_sdcard_success">Attachment is kept in:<xliff:g id="path">%s</xliff:g></string>
+    <string name="menu_view_one_to_many_status">View Message Status</string>
+
+    <string name="message_send_policy">Message send policy</string>
+    <string name="rcs_immediately_message_title">RCS IM message</string>
+    <string name="rcs_immediately_message_summary">When RCS is online, RCS function will be given priority to send message</string>
+    <string name="rcs_message_failure_change_to_sms_title">Convert to SMS if sent failure occurs</string>
+    <string name="rcs_message_failure_change_to_sms_summary"> Convert to SMS if IM message failed to be sent</string>
+
+    <string name="frou_g_talk">Conference Call</string>
+    <string name="add_nuber_to_contects">Add the phone number from the contects</string>
+    <string name="contects">Contects</string>
+    <string name="start_call">Call</string>
+    <string name="no_data_can_not_send">No data, please open it.</string>
+    <string name="rcs_offline_not_support_attachment">Rcs offline and sending policy is RCS ONLY not support attachment.</string>
+    <string name="rcs_offline_not_support_sending">RCS is not online and the sending policy is RCS only, unable to send</string>
+    <string name="group_chat_unsupport_sending_mms">Group chat unsupport sending mms.</string>
+    <string name="group_chat_send_message_in_woring_card">Sending message preferred card is not matching for group chat card, please reselect preferred card.</string>
+    <string name="rcs_msgtype_only">RCS message type only</string>
+    <string name="time_length_unit">"s"</string>
 </resources>

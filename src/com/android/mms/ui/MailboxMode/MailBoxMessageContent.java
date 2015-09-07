@@ -77,7 +77,6 @@ import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
 import com.android.mms.LogTag;
 import com.android.mms.R;
-import com.android.mms.rcs.RcsApiManager;
 import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessageSender;
@@ -87,23 +86,18 @@ import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.ConversationList;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.SelectRecipientsList;
+
 import com.google.android.mms.MmsException;
-import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 
-import android.provider.ContactsContract.CommonDataKinds.Phone;
-
-import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
-import com.suntek.mway.rcs.client.api.util.FileSuffixException;
-import com.suntek.mway.rcs.client.api.util.FileTransferException;
-import com.suntek.mway.rcs.client.api.util.FileDurationException;
-import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
+import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
+import com.suntek.mway.rcs.client.api.message.MessageApi;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
 
 
 public class MailBoxMessageContent extends Activity {
     private static final String TAG = "MessageDetailActivity";
     private Uri mMessageUri;
-    private int mMsgId;
+    private long mMsgId;
     private long mMsgThreadId;// threadid of message
     private String mMsgText;// Text of message
     private String mMsgFrom;
@@ -113,12 +107,11 @@ public class MailBoxMessageContent extends Activity {
     private int mMsgType = Sms.MESSAGE_TYPE_INBOX;
     private boolean mLock = false;
     private boolean mIsConvMode;
-    private int mIsFavouriteMessage;
-    private int mIsRcs;
-    private int mRcsId;
+    private int mRcsChatType;
+    private int mRcsMsgState;
     // RCS Message API
-    private MessageApi mMessageApi = RcsApiManager.getMessageApi();
-    private int mRcsBurnFlag;
+    private MessageApi mMessageApi = MessageApi.getInstance();
+    private SupportApi mSupportApi = SupportApi.getInstance();
 
     private int mSubID = MessageUtils.SUB_INVALID;
     private Cursor mCursor = null;
@@ -152,8 +145,6 @@ public class MailBoxMessageContent extends Activity {
     private static final int FORWARD_CONVERSATION = 2;
     private static final int FORWARD_GROUP = 3;
 
-    public static final int REQUEST_CODE_PICK             = 109;
-
     private ContentResolver mContentResolver;
     private static final String[] SMS_LOCK_PROJECTION = {
         Sms._ID,
@@ -172,15 +163,12 @@ public class MailBoxMessageContent extends Activity {
         Sms._ID,
         Sms.STATUS,
         Sms.READ,
-        "favourite",
-        "rcs_msg_type",
-        "rcs_file_size",
-        "rcs_path",
-        "rcs_id",
-        "rcs_mime_type",
-        "rcs_thumb_path",
-        "is_rcs",
-        "rcs_burn_flag"
+        RcsColumns.SmsRcsColumns.RCS_MSG_STATE,
+        RcsColumns.SmsRcsColumns.RCS_CHAT_TYPE,
+        RcsColumns.SmsRcsColumns.RCS_MSG_TYPE,
+        RcsColumns.SmsRcsColumns.RCS_THUMB_PATH,
+        RcsColumns.SmsRcsColumns.RCS_FILENAME,
+        RcsColumns.SmsRcsColumns.RCS_FILE_SIZE
     };
 
     private static final int COLUMN_THREAD_ID = 0;
@@ -195,10 +183,12 @@ public class MailBoxMessageContent extends Activity {
     private static final int COLUMN_ID = 9;
     private static final int COLUMN_STATUS = 10;
     private static final int COLUMN_SMS_READ = 11;
-    private static final int COLUMN_SMS_ISFAV = 12;
-    private static final int COULUMN_RCS_ID = 16;
-    private static final int COULUMN_IS_RCS = 19;
-    private static final int COLUMN_RCS_BURN_FLAG = 20;
+    private static final int COLUMN_RCS_MSG_STATE = 12;
+    private static final int COLUMN_RCS_CHAT_TYPE = 13;
+    private static final int COLUMN_RCS_MSG_TYPE = 14;
+    private static final int COLUMN_RCS_THUMB_PATH = 15;
+    private static final int COLUMN_RCS_FILENAME = 16;
+    private static final int COLUMN_RCS_FILE_SIZE = 17;
 
     private static final int SMS_ADDRESS_INDEX = 0;
     private static final int SMS_BODY_INDEX = 1;
@@ -287,7 +277,7 @@ public class MailBoxMessageContent extends Activity {
                     .setTitle(R.string.menu_call)
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
-        if (mRcsBurnFlag == RcsUtils.RCS_IS_BURN_TRUE) {
+        if (mRcsMsgState == RcsUtils.MESSAGE_HAS_BURNED) {
             menu.clear();
             menu.add(0, MENU_DELETE, 0, R.string.menu_delete_msg);
             return true;
@@ -299,13 +289,13 @@ public class MailBoxMessageContent extends Activity {
         } else if (mMsgType == Sms.MESSAGE_TYPE_FAILED
                 || mMsgType == Sms.MESSAGE_TYPE_OUTBOX) {
             menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
-            if (mRcsId == RcsUtils.SMS_DEFAULT_RCS_ID) {
+            if (!isRcsMessage()) {
                 menu.add(0, MENU_RESEND, 0, R.string.menu_resend);
             }
             menu.add(0, MENU_DELETE, 0, R.string.menu_delete_msg);
         } else if (mMsgType == Sms.MESSAGE_TYPE_SENT) {
             menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
-            if (mRcsId == RcsUtils.SMS_DEFAULT_RCS_ID) {
+            if (!isRcsMessage()) {
                 menu.add(0, MENU_RESEND, 0, R.string.menu_resend);
             }
             menu.add(0, MENU_DELETE, 0, R.string.menu_delete_msg);
@@ -324,10 +314,12 @@ public class MailBoxMessageContent extends Activity {
             menu.add(0, MENU_SAVE_TO_CONTACT, 0, R.string.menu_add_to_contacts);
         }
 
-        if (!RcsChatMessageUtils.isFavoritedMessage(this, mMsgId)) {
-            menu.add(0, MENU_FAVORITED, 0, R.string.favorited);
-        } else {
-            menu.add(0, MENU_UNFAVORITED, 0, R.string.unfavorited);
+        if (mSupportApi.isRcsSupported()) {
+            if (!RcsChatMessageUtils.isFavoritedMessage(this, mMsgId)) {
+                menu.add(0, MENU_FAVORITED, 0, R.string.favorited);
+            } else {
+                menu.add(0, MENU_UNFAVORITED, 0, R.string.unfavorited);
+            }
         }
 
         return true;
@@ -345,8 +337,7 @@ public class MailBoxMessageContent extends Activity {
                 confirmDeleteDialog(l, mLock);
                 break;
             case MENU_FORWARD:
-                if (mIsRcs != RcsUtils.SMS_DEFAULT_RCS_ID) {
-                    Log.i("RCS_UI", "IS RCS MESSAGE");
+                if (isRcsMessage()) {
                     RcsChatMessageUtils.forwardContactOrConversation(this,
                             new ForwardClickListener());
                 } else {
@@ -375,11 +366,10 @@ public class MailBoxMessageContent extends Activity {
                 saveToContact();
                 break;
             case MENU_FAVORITED:
-                RcsChatMessageUtils.favoritedMessage(this, mMsgId);
+                RcsChatMessageUtils.favoritedOneMessage(this, mMsgId, isRcsMessage(), true);
                 break;
             case MENU_UNFAVORITED:
-                Log.i("RCS_UI","mMsgId="+mMsgId);
-                RcsChatMessageUtils.unFavoritedMessage(this, mMsgId);
+                RcsChatMessageUtils.favoritedOneMessage(this, mMsgId, isRcsMessage(), false);
                 break;
             case android.R.id.home:
                 finish();
@@ -449,17 +439,21 @@ public class MailBoxMessageContent extends Activity {
 
     private void forwardRcsMessage(ArrayList<String> numbers) {
         ContactList list = ContactList.getByNumbers(numbers, true);
-        long a = -1;
         boolean success = false;
         try {
-            ChatMessage message = mMessageApi.getMessageById(String.valueOf(mRcsId));
-            success = RcsChatMessageUtils.forwardMessage(a, Arrays.asList(list.getNumbers()),
-                    message);
-            Toast.makeText(MailBoxMessageContent.this, success ? R.string.forward_message_success :
-                    R.string.forward_message_fail, Toast.LENGTH_SHORT).show();
+            success = RcsChatMessageUtils.sendRcsForwardMessage(
+                    MailBoxMessageContent.this, numbers,
+                    null, mMsgId);
+            if (success) {
+                Toast.makeText(MailBoxMessageContent.this,
+                        R.string.forward_message_success,Toast.LENGTH_SHORT ).show();
+            } else {
+                Toast.makeText(MailBoxMessageContent.this,
+                        R.string.forward_message_fail,Toast.LENGTH_SHORT ).show();
+            }
         } catch (Exception e) {
-            Toast.makeText(MailBoxMessageContent.this, R.string.forward_message_fail,
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(MailBoxMessageContent.this,
+                    R.string.forward_message_fail,Toast.LENGTH_SHORT ).show();
         }
     }
 
@@ -470,16 +464,16 @@ public class MailBoxMessageContent extends Activity {
         }
         switch (requestCode) {
             case REQUEST_CODE_RCS_PICK:
-                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId,
-                        MailBoxMessageContent.this);
+                RcsChatMessageUtils.sendRcsForwardMessage(
+                        MailBoxMessageContent.this, null, data, mMsgId);
                 break;
             case REQUEST_SELECT_CONV:
-                RcsChatMessageUtils.sendRcsFavoritedMessage(MailBoxMessageContent.this, data,
-                        mRcsId);
+                RcsChatMessageUtils.sendRcsForwardMessage(
+                        MailBoxMessageContent.this, null, data, mMsgId);
                 break;
             case REQUEST_SELECT_GROUP:
-                RcsChatMessageUtils.sendForwardRcsMessage(data, mRcsId,
-                        MailBoxMessageContent.this);
+                RcsChatMessageUtils.sendRcsForwardMessage(
+                        MailBoxMessageContent.this, null, data, mMsgId);
                 break;
             default:
                 break;
@@ -614,10 +608,8 @@ public class MailBoxMessageContent extends Activity {
         mMsgstatus = cursor.getInt(COLUMN_STATUS);
         mSubID = cursor.getInt(COLUMN_SMS_SUBID);
         mMsgId = cursor.getInt(COLUMN_ID);
-        mIsFavouriteMessage = cursor.getInt(COLUMN_SMS_ISFAV);
-        mIsRcs = cursor.getInt(COULUMN_IS_RCS);
-        mRcsId = cursor.getInt(COULUMN_RCS_ID);
-        mRcsBurnFlag = cursor.getInt(COLUMN_RCS_BURN_FLAG);
+        mRcsMsgState = cursor.getInt(COLUMN_RCS_MSG_STATE);
+        mRcsChatType = cursor.getInt(COLUMN_RCS_CHAT_TYPE);
     }
 
     private void startQuerySmsContent() {
@@ -662,10 +654,10 @@ public class MailBoxMessageContent extends Activity {
         invalidateOptionsMenu();
     }
 
-    private Cursor moveCursorToCurrentMsg(Cursor cursor, int id) {
+    private Cursor moveCursorToCurrentMsg(Cursor cursor, long id) {
         if (cursor != null && cursor.moveToFirst()) {
             do {
-                if (id == cursor.getInt(COLUMN_ID)) {
+                if (id == cursor.getLong(COLUMN_ID)) {
                     return cursor;
                 }
             } while (cursor.moveToNext());
@@ -806,5 +798,10 @@ public class MailBoxMessageContent extends Activity {
             Log.e(TAG, "There's no sms uri!");
             finish();
         }
+    }
+
+    private boolean isRcsMessage() {
+        return mRcsChatType > RcsUtils.RCS_CHAT_TYPE_DEFAULT
+                && mRcsChatType < RcsUtils.RCS_CHAT_TYPE_PUBLIC_MESSAGE;
     }
 }

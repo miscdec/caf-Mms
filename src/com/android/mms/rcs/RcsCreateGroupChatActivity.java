@@ -44,6 +44,7 @@ import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Intents;
@@ -59,29 +60,36 @@ import android.widget.ImageView;
 import android.widget.Toast;
 import android.widget.Toolbar;
 
-import com.android.mms.rcs.GroupChatManagerReceiver.GroupChatNotifyCallback;
-import com.android.mms.ui.ChipsRecipientAdapter;
-import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
+import com.android.mms.LogTag;
+import com.android.mms.ui.ChipsRecipientAdapter;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.ConversationList;
 import com.android.mms.ui.RecipientsEditor;
 import com.android.mms.ui.SelectRecipientsList;
-import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
-import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+
+import com.suntek.mway.rcs.client.aidl.constant.Actions;
+import com.suntek.mway.rcs.client.aidl.constant.Parameter;
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
+import com.suntek.mway.rcs.client.api.basic.BasicApi;
+import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver;
+import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver.GroupChatNotifyCallback;
+import com.suntek.rcs.ui.common.mms.RcsEditTextInputFilter;
 
 public class RcsCreateGroupChatActivity extends Activity implements
         View.OnClickListener {
 
+    private static final String RCS_TAG = "RCS_UI";
     public static final String EXTRA_RECIPIENTS = "recipients";
     private final static String MULTI_SELECT_CONV = "select_conversation";
     private static final int MENU_DONE = 0;
     public static final int REQUEST_CODE_CONTACTS_PICK = 100;
-    public static final int REQUEST_CODE_ADD_CONVERSATION = 124;
+    public static final int REQUEST_CODE_ADD_CONVERSATION = 123;
     private EditText mSubjectEdit;
     private RecipientsEditor mRecipientsEditor;
     private ContactList mRecipientList = new ContactList();
@@ -100,7 +108,7 @@ public class RcsCreateGroupChatActivity extends Activity implements
         }
         initView();
         registerReceiver(mRcsGroupChatReceiver,
-                new IntentFilter(BroadcastConstants.UI_GROUP_MANAGE_NOTIFY));
+                new IntentFilter(Actions.GroupChatAction.ACTION_GROUP_CHAT_MANAGE_NOTIFY));
     }
 
     private void getIntentData(){
@@ -189,19 +197,21 @@ public class RcsCreateGroupChatActivity extends Activity implements
             confirmCreateGroupChat();
         } catch (ServiceDisconnectedException e) {
             toast(R.string.rcs_service_is_not_available);
-            Log.w("RCS_UI", e);
+            Log.w(RCS_TAG, e);
+        } catch (RemoteException e){
+            Log.w(RCS_TAG,e);
         }
     }
 
-    private void confirmCreateGroupChat() throws ServiceDisconnectedException {
-        if (RcsApiManager.getRcsAccountApi().isOnline()) {
+    private void confirmCreateGroupChat() throws ServiceDisconnectedException, RemoteException {
+        if (RcsUtils.isRcsOnline()) {
             createGroupChat();
         } else {
             toast(R.string.rcs_service_is_not_available);
         }
     }
 
-    private void createGroupChat() throws ServiceDisconnectedException {
+    private void createGroupChat() throws ServiceDisconnectedException, RemoteException {
         List<String> list = mRecipientsEditor.getNumbers();
         if (list != null && list.size() > 0) {
             String subject = mSubjectEdit.getText().toString();
@@ -218,8 +228,9 @@ public class RcsCreateGroupChatActivity extends Activity implements
                 mCreateGroupChatCallback = new ComposeMessageCreateGroupChatCallback(this);
             }
             mCreateGroupChatCallback.onBegin();
-            String result = RcsApiManager.getConfApi().createGroupChat(subject, list);
-            if (TextUtils.isEmpty(result)) {
+            // TODO: Need to implement later
+            long result = GroupChatApi.getInstance().create(subject, list);
+            if (result == -1) {
                 if (mCreateGroupChatCallback != null) {
                     mCreateGroupChatCallback.onDone(true);
                     mCreateGroupChatCallback.onEnd();
@@ -232,7 +243,8 @@ public class RcsCreateGroupChatActivity extends Activity implements
             new GroupChatNotifyCallback() {
 
                 @Override
-                public void onNewSubject(Bundle extras) {
+                public void onGroupChatCreate(Bundle extras) {
+                    handleRcsGroupChatCreateNotActive(extras);
                 }
 
                 @Override
@@ -257,7 +269,7 @@ public class RcsCreateGroupChatActivity extends Activity implements
 
                 @Override
                 public void onCreateNotActive(Bundle extras) {
-                    handleRcsGroupChatCreateNotActive(extras);
+
                 }
 
                 @Override
@@ -277,10 +289,8 @@ public class RcsCreateGroupChatActivity extends Activity implements
                     mCreateGroupChatCallback.onDone(true);
                     mCreateGroupChatCallback.onEnd();
                 }
-                String groupId = extras
-                        .getString(BroadcastConstants.BC_VAR_GROUP_ID, "-1");
-                long threadId = RcsUtils.getThreadIdByGroupId(
-                        RcsCreateGroupChatActivity.this, groupId);
+                long groupId = extras.getLong(Parameter.EXTRA_GROUP_CHAT_ID);
+                long threadId = extras.getLong(Parameter.EXTRA_THREAD_ID);
                 startActivity(ComposeMessageActivity.createIntent(
                         RcsCreateGroupChatActivity.this, threadId));
                 RcsCreateGroupChatActivity.this.finish();

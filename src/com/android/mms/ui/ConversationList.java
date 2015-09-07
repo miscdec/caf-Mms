@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
  *
@@ -23,6 +26,7 @@ import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
+import android.app.AlertDialog.Builder;
 import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
 import android.content.BroadcastReceiver;
@@ -30,7 +34,6 @@ import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.app.AlertDialog.Builder;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -43,14 +46,19 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.Telephony;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Threads;
+import android.telephony.ServiceState;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.ActionMode;
@@ -77,6 +85,11 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.ims.ImsConfig;
+import com.android.ims.ImsException;
+import com.android.ims.ImsManager;
+import com.android.ims.ImsConfigListener;
+import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.rcs.FavouriteMessageList;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
@@ -86,11 +99,12 @@ import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
 import com.android.mms.data.Conversation.ConversationQueryHandler;
 import com.android.mms.data.RecipientIdCache;
-import com.android.mms.rcs.RcsApiManager;
+import com.android.mms.LogTag;
+import com.android.mms.MmsConfig;
+import com.android.mms.R;
+import com.android.mms.rcs.FavouriteMessageList;
 import com.android.mms.rcs.RcsUtils;
-import com.android.mms.rcs.GroupChatManagerReceiver;
 import com.android.mms.rcs.RcsSelectionMenu;
-import com.android.mms.rcs.GroupChatManagerReceiver.GroupChatNotifyCallback;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.SmsRejectedReceiver;
 import com.android.mms.ui.ConversationListAdapter.DataEmptyListener;
@@ -99,11 +113,13 @@ import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.pdu.PduHeaders;
-import com.suntek.mway.rcs.client.aidl.constant.BroadcastConstants;
-import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
-import com.suntek.mway.rcs.client.aidl.provider.model.ChatMessage;
-import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.aidl.constant.Actions;
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.message.MessageApi;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
+import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver;
+import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver.GroupChatNotifyCallback;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -195,11 +211,12 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private Toast mComposeDisabledToast;
     private static long mLastDeletedThread = -1;
     private final static String MULTI_SELECT_CONV = "select_conversation";
+    private boolean mMultiChoiceMode = false;
     private GroupChatManagerReceiver groupReceiver = new GroupChatManagerReceiver(
             new GroupChatNotifyCallback() {
 
                 @Override
-                public void onNewSubject(Bundle extras) {
+                public void onGroupChatCreate(Bundle extras) {
                     if (mListAdapter != null) {
                         mListAdapter.notifyDataSetChanged();
                     }
@@ -319,79 +336,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         mSaveOrBackProgressDialog.show();
                     }
                     break;
-                case RESTORE_ALL_MESSAGE_SUCCESS:
-                    List<ChatMessage> cMsgList = new ArrayList<ChatMessage>();
-                    try {
-                        String smsJsonMessageList = intent.getStringExtra("restoreSmsList");
-                        Log.i("RCS_UI", "smsJsonMessageList->" + smsJsonMessageList);
-                        JSONArray jsonObjs = new JSONArray(smsJsonMessageList);
-                        for(int i = 0; i < jsonObjs.length(); i++){
-                            JSONObject jsonObj = (JSONObject)jsonObjs.getJSONObject(i);
-                            ChatMessage cMsg = new ChatMessage();
-                            cMsg.setData(jsonObj.getString("body"));
-                            cMsg.setIsRead(jsonObj.getInt("read"));
-                            cMsg.setMsgType(jsonObj.getInt("type"));
-                            cMsg.setTime(jsonObj.getLong("date"));
-                            cMsg.setMsgState(jsonObj.getInt("status"));
-                            cMsg.setContact(jsonObj.getString("address"));
-                            cMsg.setThreadId(jsonObj.getLong("thread_id"));
-                            cMsg.setId(jsonObj.getInt("_id"));
-                            cMsgList.add(cMsg);
-                            Log.i("RCS_UI", "jsonObecj body ->" + jsonObj.getString("body"));
-                        }
-                        RcsUtils.rcsInsertMany(ConversationList.this, cMsgList, true);
-                    } catch (Exception e) {
-                        Log.e("RCS_UI",e.toString());
-                    }
-
-                    cMsgList.clear();
-                    String rcsJsonMessageId = intent.getStringExtra("restoreRcsMsgIdList");
-                    String rcsMessageId = rcsJsonMessageId.replaceAll("\"", "");
-                    String[] messageId = rcsMessageId.split(",");
-                    try {
-                        MessageApi messageApi = RcsApiManager.getMessageApi();
-                        int length = messageId.length;
-                        for (int i = 0; i < length; i++) {
-                            if (i == 0) {
-                                String messageIndex = messageId[0].substring(1);
-                                if (length == 1) {
-                                    messageIndex = messageIndex.substring(0,
-                                            messageId[0].lastIndexOf("]") - 1);
-                                }
-                                ChatMessage indexMsg = messageApi.getMessageById(messageIndex);
-                                if (indexMsg != null) {
-                                    cMsgList.add(indexMsg);
-                                }
-                            } else if (i == length - 1) {
-                                String messageEnd = messageId[i].substring(0,
-                                        messageId[i].lastIndexOf("]"));
-                                ChatMessage endMsg = messageApi.getMessageById(messageEnd);
-                                if (endMsg != null) {
-                                    cMsgList.add(endMsg);
-                                }
-                            } else {
-                                ChatMessage cMsg = messageApi.getMessageById(messageId[i]);
-                                if (cMsg != null) {
-                                    cMsgList.add(cMsg);
-                                }
-                            }
-                        }
-                        RcsUtils.rcsInsertMany(ConversationList.this, cMsgList, false);
-                    } catch (Exception e) {
-                        Log.e("RCS_UI",e.toString());
-                    }
-                    if (mSaveOrBackProgressDialog != null) {
-                        mSaveOrBackProgressDialog.dismiss();
-                        mSaveOrBackProgressDialog = null;
-                    }
-                    if (mStartSaveProgressDialog != null) {
-                        mStartSaveProgressDialog.dismiss();
-                        mStartSaveProgressDialog = null;
-                    }
-                    unregisterReceiver(restoreAllMessageReceiver);
-                    Toast.makeText(context, R.string.message_restore_ok,
-                            Toast.LENGTH_SHORT).show();
-                    break;
                 case RESTORE_ALL_MESSAGE_FAIL:
                     if (mSaveOrBackProgressDialog != null){
                         mSaveOrBackProgressDialog.dismiss();
@@ -493,8 +437,112 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         actionButton.setOnClickListener(mComposeClickHandler);
 
         registerReceiver(groupReceiver,
-                new IntentFilter(BroadcastConstants.UI_GROUP_MANAGE_NOTIFY));
+                new IntentFilter(Actions.GroupChatAction.ACTION_GROUP_CHAT_MANAGE_NOTIFY));
+        registerReceiver(netAvailbaleReceiver,
+                new IntentFilter(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED));
+
     }
+
+    public void checkCurrentNetStatus() {
+        ImsConfig imsConfig;
+        try {
+            ImsManager imsManager = ImsManager.getInstance(getBaseContext(),
+                    SubscriptionManager.getDefaultVoiceSubId());
+            imsConfig = imsManager.getConfigInterface();
+            if (imsConfig != null) {
+                imsConfig.getWifiCallingPreference(imsConfigListener);
+            }
+        } catch (ImsException e) {
+            imsConfig = null;
+            Log.e(TAG, "ImsService is not running");
+        }
+    }
+
+    private BroadcastReceiver netAvailbaleReceiver = new BroadcastReceiver(){
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            if (intent.getAction().equals(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED)) {
+                context.unregisterReceiver(netAvailbaleReceiver);
+                ServiceState state = ServiceState.newFromBundle(intent.getExtras());
+                Log.i(TAG,"netAvailbaleReceiver state : " + state.getState());
+                if (state.getState() == ServiceState.STATE_OUT_OF_SERVICE
+                        && getResources()
+                        .getBoolean(com.android.internal
+                        .R.bool.config_regional_pup_no_available_network)) {
+                    checkCurrentNetStatus();
+                }
+            }
+        }
+    };
+
+    public void showWifiCallDialog() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(true)
+                .setPositiveButton(R.string.yes, new OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // TODO Auto-generated method stub
+                        startWifiSetting();
+                    }
+                })
+                .setNegativeButton(R.string.no,null)
+                .setMessage(R.string.no_cellular_coverage_alert)
+                .show();
+    }
+
+    public void startWifiSetting() {
+        Intent intent = new Intent();
+        intent.setClassName("com.android.phone","com.android.phone.WifiCallingSettings");
+        startActivity(intent);
+    }
+
+    private boolean hasRequestFailed(int result) {
+        return (result != ImsConfig.OperationStatusConstants.SUCCESS);
+    }
+
+    private ImsConfigListener imsConfigListener = new ImsConfigListener.Stub() {
+        public void onGetVideoQuality(int status, int quality) {
+            // TODO not required as of now
+        }
+
+        public void onSetVideoQuality(int status) {
+            // TODO not required as of now
+        }
+
+        public void onGetFeatureResponse(int feature, int network, int value, int status) {
+            // TODO not required as of now
+        }
+
+        public void onSetFeatureResponse(int feature, int network, int value, int status) {
+            // TODO not required as of now
+        }
+
+        public void onGetPacketCount(int status, long packetCount) {
+            // TODO not required as of now
+        }
+
+        public void onGetPacketErrorCount(int status, long packetErrorCount) {
+            // TODO not required as of now
+        }
+
+        public void onGetWifiCallingPreference(int status, int wifiCallingStatus,
+                int wifiCallingPreference) {
+            if (hasRequestFailed(status)) {
+                wifiCallingStatus = ImsConfig.WifiCallingValueConstants.OFF;
+                showWifiCallDialog();
+                Log.e(TAG, "onGetWifiCallingPreference: failed. errorCode = " + status);
+            } else if (wifiCallingStatus == ImsConfig.WifiCallingValueConstants.OFF) {
+                showWifiCallDialog();
+            }
+        }
+
+        public void onSetWifiCallingPreference(int status) {
+
+        }
+    };
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
@@ -530,7 +578,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             invalidateOptionsMenu();
         }
         // Check if the RCS service is installed.
-        mIsRcsEnabled = RcsApiManager.getSupportApi().isRcsSupported();
+        mIsRcsEnabled = SupportApi.getInstance().isRcsSupported();
 
         // Multi-select is used to delete conversations. It is disabled if we are not the sms app.
         ListView listView = getListView();
@@ -581,7 +629,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         actionBar.setCustomView(v,
                 new ActionBar.LayoutParams(ActionBar.LayoutParams.WRAP_CONTENT,
                         ActionBar.LayoutParams.WRAP_CONTENT,
-                        Gravity.CENTER_VERTICAL | Gravity.RIGHT));
+                        Gravity.CENTER_VERTICAL | Gravity.END));
 
         mUnreadConvCount = (TextView)v.findViewById(R.id.unread_conv_count);
     }
@@ -594,7 +642,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         boolean filterEnabled =
                 getResources().getBoolean(R.bool.enable_filter_threads_by_sim);
 
-        if (filterEnabled && mgr.isMultiSimEnabled()) {
+        if (filterEnabled && MessageUtils.isMsimIccCardActive()) {
             mFilterSpinner.setAdapter(new MSimSpinnerAdapter(this));
             mFilterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
@@ -1101,9 +1149,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                                 registerReceiver(backupAllMessageReceiver, new IntentFilter(
                                         BACKUP_ALL_MESSAGES));
                                 try {
-                                    RcsApiManager.getMessageApi().backupAllMessage();
+                                    MessageApi.getInstance().backupAll();
                                 } catch (ServiceDisconnectedException e) {
-                                    e.printStackTrace();
+                                    Log.w(TAG, e);
+                                } catch (RemoteException e) {
+                                    Log.w(TAG, e);
                                 }
                             }
                         }).start();
@@ -1116,9 +1166,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                                 registerReceiver(restoreAllMessageReceiver, new IntentFilter(
                                         RESTORE_ALL_MESSAGES));
                                 try {
-                                    RcsApiManager.getMessageApi().restoreAllMessage();
+                                    MessageApi.getInstance().restoreAll();
                                 } catch (ServiceDisconnectedException e) {
-                                    e.printStackTrace();
+                                    Log.w(TAG, e);
+                                } catch (RemoteException e) {
+                                    Log.w(TAG, e);
                                 }
 
                             }
@@ -1145,7 +1197,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     try {
-                        RcsApiManager.getMessageApi().cancelBackup();
+                        MessageApi.getInstance().cancelBackup();
                     } catch (Exception e) {
                         Log.e("RCS_UI", e.toString());
                     } finally {
@@ -1182,7 +1234,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     try {
-                        RcsApiManager.getMessageApi().cancelBackup();
+                        MessageApi.getInstance().cancelBackup();
                     } catch (Exception e) {
                         Log.e("RCS_UI", e.toString());
                     } finally {
@@ -1241,9 +1293,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             Intent intent = new Intent();
             intent.putExtra("selectThreadId", tid);
             intent.putExtra("numbers", conv.getRecipients().getNumbers());
-            GroupChatModel groupChatModel = conv.getGroupChat();
-            if (groupChatModel != null) {
-                intent.putExtra("groupChatModel", groupChatModel);
+            GroupChat groupChat = conv.getGroupChat();
+            if (groupChat != null) {
+                intent.putExtra("groupChatId", groupChat.getId());
             }
             setResult(RESULT_OK,intent);
             finish();
@@ -1357,6 +1409,21 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         super.onConfigurationChanged(newConfig);
         if (DEBUG) Log.v(TAG, "onConfigurationChanged: " + newConfig);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_SEARCH && !mMultiChoiceMode) {
+            if (getResources().getBoolean(R.bool.config_classify_search)) {
+                Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                startActivityIfNeeded(searchintent, -1);
+            } else if (mSearchView != null) {
+                mSearchView.setIconified(false);
+            }
+            return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
     }
 
     /**
@@ -1535,7 +1602,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 public void run() {
                     int token = MARK_CONVERSATION_UNREAD_TOKEN;
                     if (mThreadIds == null) {
-                        Conversation.startMarkAsUnreadAll(mContext,mHandler, token, false);
+                        Conversation.startMarkAsUnreadAll(mContext,mHandler, token, true);
                         DraftCache.getInstance().refresh();
                     } else {
                         Conversation.startMarkAsUnread(mContext,mHandler, token, mThreadIds);
@@ -1566,7 +1633,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         public void run() {
                             int token = MARK_CONVERSATION_READ_TOKEN;
                             if (mThreadIds == null) {
-                                Conversation.startMarkAsReadAll(mContext, mHandler, token, false);
+                                Conversation.startMarkAsReadAll(mContext, mHandler, token, true);
                                 DraftCache.getInstance().refresh();
                             } else {
                                 Conversation.startMarkAsRead(mContext, mHandler, token, mThreadIds);
@@ -1611,14 +1678,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         ((ConversationList)mContext).unbindListeners(mThreadIds);
                     }
                     if (mThreadIds == null) {
+                        RcsUtils.deleteGroupchatByThreadIds(mContext, mThreadIds,
+                                mDeleteLockedMessages, true);
                         Conversation.startDeleteAll(mHandler, token, mDeleteLockedMessages);
-                        if (RcsApiManager.getSupportApi().isRcsSupported()) {
-                            try {
-                                RcsApiManager.getMessageApi().removeAllMessage();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
                         DraftCache.getInstance().refresh();
                     } else {
                         int size = mThreadIds.size();
@@ -1627,6 +1689,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                             // And cancel deleting dialog after this thread been deleted.
                             mLastDeletedThread = (mThreadIds.toArray(new Long[size]))[size - 1];
                         }
+                        RcsUtils.deleteGroupchatByThreadIds(mContext, mThreadIds,
+                                mDeleteLockedMessages, false);
                         Conversation.startDelete(mHandler, token, mDeleteLockedMessages,
                                 mThreadIds);
                     }
@@ -1858,6 +1922,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             MenuInflater inflater = getMenuInflater();
             mSelectedThreadIds = new HashSet<Long>();
             inflater.inflate(R.menu.conversation_multi_select_menu, menu);
+            mMultiChoiceMode = true;
 
             if (mMultiSelectActionBarView == null) {
                 mMultiSelectActionBarView = LayoutInflater.from(ConversationList.this).inflate(
@@ -1998,6 +2063,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                  adapter.uncheckAll();
                  mSelectedThreadIds = null;
                  mSelectionMenu.dismiss();
+                 mMultiChoiceMode = false;
              }
         }
 

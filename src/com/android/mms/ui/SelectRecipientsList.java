@@ -69,6 +69,7 @@ public class SelectRecipientsList extends Activity implements
     public static final int MODE_DEFAULT = 0;
     public static final int MODE_INFO = 1;
     public static final int MODE_VCARD = 2;
+    public static final int MODE_TALK = 3;
 
     public static final String EXTRA_INFO = "info";
     public static final String EXTRA_VCARD = "vcard";
@@ -180,6 +181,9 @@ public class SelectRecipientsList extends Activity implements
                 break;
             case MODE_VCARD:
                 setTitle(R.string.attach_add_contact_as_vcard);
+                break;
+            case MODE_TALK:
+                setTitle(R.string.contects);
                 break;
             default:
                 // leave it be
@@ -431,7 +435,7 @@ public class SelectRecipientsList extends Activity implements
     }
 
     private void putExtraWithContact(Intent intent) {
-        if (mMode == MODE_DEFAULT) {
+        if (mMode == MODE_DEFAULT || mMode == MODE_TALK) {
             ArrayList<String> numbers = new ArrayList<String>();
             for (PhoneNumber phoneNumber : mCheckedPhoneNumbers) {
                 if (phoneNumber.isChecked()) {
@@ -455,16 +459,18 @@ public class SelectRecipientsList extends Activity implements
         }
     }
 
-    private String getContactString (ArrayList<String> numbers) {
+    private String getContactString(ArrayList<String> numbers) {
         ContactList list = ContactList.getByNumbers(numbers, true);
         StringBuffer buffer = new StringBuffer();
         for (Contact contact : list) {
-            Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI,
-                    contact.getPersonId());
-            String lookup = Uri.encode(Contacts.getLookupUri(
-                    this.getContentResolver(), contactUri).
-                    getPathSegments().get(2));
-            buffer.append(lookup + ":");
+            if (contact.getPersonId() != 0) {
+                Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI,
+                        contact.getPersonId());
+                String lookup = Uri.encode(Contacts
+                        .getLookupUri(this.getContentResolver(), contactUri).getPathSegments()
+                        .get(2));
+                buffer.append(lookup + ":");
+            }
         }
         return buffer.substring(0, buffer.lastIndexOf(":"));
     }

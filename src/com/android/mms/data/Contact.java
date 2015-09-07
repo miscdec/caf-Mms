@@ -119,6 +119,7 @@ public class Contact {
     private Bitmap mAvatar;
     private byte [] mAvatarData;
     private int mAccentColor;
+    private boolean mIsChecked = true;
     private boolean mIsStale;
     private boolean mQueryPending;
     private boolean mIsMe;          // true if this contact is me!
@@ -556,10 +557,12 @@ public class Contact {
         private static final String[] SELF_PROJECTION = new String[] {
                 Phone._ID,                      // 0
                 Phone.DISPLAY_NAME,             // 1
+                Phone.PHOTO_ID,                 // 2
         };
 
         private static final int SELF_ID_COLUMN = 0;
         private static final int SELF_NAME_COLUMN = 1;
+        private static final int SELF_PHOTO_ID_COLUMN = 2;
 
         // query params for contact lookup by email
         private static final Uri EMAIL_WITH_PRESENCE_URI = Data.CONTENT_URI;
@@ -1109,6 +1112,7 @@ public class Contact {
                     log("fillSelfContact: name=" + contact.mName + ", number="
                             + contact.mNumber);
                 }
+                contact.mPhotoId = cursor.getLong(SELF_PHOTO_ID_COLUMN);
             }
             byte[] data = loadAvatarData(contact);
 
@@ -1362,6 +1366,10 @@ public class Contact {
                 }
             }
         }
+    }
+
+    public void setChecked(boolean mIsChecked) {
+        this.mIsChecked = mIsChecked;
     }
 
     private static void log(String msg) {

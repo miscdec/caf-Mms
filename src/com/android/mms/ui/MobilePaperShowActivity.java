@@ -230,7 +230,7 @@ public class MobilePaperShowActivity extends Activity {
 
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (ev.getPointerCount() > 1) {
-            mScaleDetector.onTouchEvent(ev);
+            return mScaleDetector.onTouchEvent(ev);
         }
         return super.dispatchTouchEvent(ev);
     }
@@ -310,7 +310,6 @@ public class MobilePaperShowActivity extends Activity {
 
                 @Override
                 public boolean onTouchEvent(MotionEvent ev) {
-                    mScaleDetector.onTouchEvent(ev);
                     final int action = ev.getAction();
                     switch (action) {
                         case MotionEvent.ACTION_DOWN: {
@@ -332,7 +331,6 @@ public class MobilePaperShowActivity extends Activity {
 
                 @Override
                 public boolean onInterceptTouchEvent(MotionEvent ev) {
-                    mScaleDetector.onTouchEvent(ev);
                     final int action = ev.getAction();
                     switch (action) {
                         case MotionEvent.ACTION_DOWN: {
