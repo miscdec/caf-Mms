@@ -1943,7 +1943,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     unTopItem.setVisible(false);
                 }
                 if (RcsUtils.showFirewallMenu(ConversationList.this,
-                    mConversation.getRecipients(), true)) {
+                    mConversation.getRecipients(), true) && mConversation.getRecipients() != null
+                        && mConversation.getRecipients().size() == 1
+                        && !mConversation.isGroupChat()) {
                     addBlackItem.setVisible(true);
                 } else {
                     addBlackItem.setVisible(false);

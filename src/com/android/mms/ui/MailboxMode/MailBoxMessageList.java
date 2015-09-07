@@ -1296,11 +1296,15 @@ public class MailBoxMessageList extends ListActivity implements
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
             MenuItem topItem = menu.findItem(R.id.topConversation);
             MenuItem unTopItem = menu.findItem(R.id.cancelTopConversation);
+            MenuItem addBlackItem = menu.findItem(R.id.addBlackList);
             if (topItem != null) {
                 topItem.setVisible(false);
             }
             if (unTopItem != null) {
                 unTopItem.setVisible(false);
+            }
+            if (addBlackItem != null) {
+                addBlackItem.setVisible(false);
             }
             mActionMode = mode;
             return true;
