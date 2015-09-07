@@ -1363,6 +1363,12 @@ public class MailBoxMessageList extends ListActivity implements
             mode.getMenu().findItem(R.id.selection_toggle).setTitle(getString(
                     allItemsSelected() ? R.string.deselected_all : R.string.selected_all));
             mListAdapter.notifyDataSetChanged();
+            if (getListView().getCount() == checkedCount) {
+                mHasSelectAll = true;
+            } else {
+                mHasSelectAll = false;
+            }
+            mSelectionMenu.updateSelectAllMode(mHasSelectAll);
         }
 
         private boolean allItemsSelected() {
