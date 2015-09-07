@@ -5067,6 +5067,7 @@ public class ComposeMessageActivity extends Activity
             }
 
             updateMmsSizeIndicator();
+            drawBottomPanel();
             handleAddAttachmentError(result, R.string.type_picture);
         }
     };
