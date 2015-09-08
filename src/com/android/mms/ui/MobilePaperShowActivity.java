@@ -88,6 +88,7 @@ public class MobilePaperShowActivity extends Activity {
 
     // If the finger move over 100px, we don't think it's for click.
     private static final int CLICK_LIMIT = 100;
+    private static final int SINGLE_SLIDE = 1;
 
     private int mMailboxId = -1;
 
@@ -368,6 +369,15 @@ public class MobilePaperShowActivity extends Activity {
         drawRootView();
     }
 
+    private boolean isAllowPlaySlideShow() {
+        if (mSlideModel != null && mSlideModel.size() == SINGLE_SLIDE) {
+            SlideModel model = mSlideModel.get(0);
+            return !(model.hasVcard() || model.hasVCal());
+        }
+
+        return true;
+    }
+
     private boolean isAllowForwardMessage() {
         int messageSize = mSlideModel.getTotalMessageSize();
         int forwardStrSize = getString(R.string.forward_prefix).getBytes().length;
@@ -388,7 +398,9 @@ public class MobilePaperShowActivity extends Activity {
             }
         }
         menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
-        menu.add(0, MENU_SLIDESHOW, 0, R.string.view_slideshow);
+        if (isAllowPlaySlideShow()) {
+            menu.add(0, MENU_SLIDESHOW, 0, R.string.view_slideshow);
+        }
         return true;
     }
 
