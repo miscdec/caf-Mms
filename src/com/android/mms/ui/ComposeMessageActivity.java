@@ -4373,7 +4373,8 @@ public class ComposeMessageActivity extends Activity
             mAttachmentPagerAdapter = new AttachmentPagerAdapter(this);
         }
         mAttachmentPagerAdapter.setExistAttachmentType(mWorkingMessage.hasAttachment(),
-                mWorkingMessage.hasVcard(), mWorkingMessage.hasSlideshow(), replace);
+                (mWorkingMessage.hasVcard() || mWorkingMessage.hasVcal()),
+                mWorkingMessage.hasSlideshow(), replace);
         if (mIsRcsEnabled) {
              setRcsAttachment();
         }

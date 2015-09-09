@@ -81,7 +81,7 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     private HashMap<Integer, Integer> mIndexOfAttachmentTypes = new HashMap<Integer, Integer>();
 
     private boolean mHasAttachment;
-    private boolean mHasVcard;
+    private boolean mHasPDIAttachment;
     private boolean mHasSlideshow;
     private boolean mIsReplace;
     private Context mContext;
@@ -171,33 +171,33 @@ public class AttachmentPagerAdapter extends PagerAdapter {
 
         List<IconListItem> list = new ArrayList<IconListItem>(10);
         list.add(new IconListItem(mContext.getString(R.string.attach_image),
-                (!mIsReplace && mHasVcard) ? R.drawable.ic_attach_picture_disable
+                (!mIsReplace && mHasPDIAttachment) ? R.drawable.ic_attach_picture_disable
                         : R.drawable.ic_attach_picture_holo_light));
         mIndexOfAttachmentTypes.put(index++, ADD_IMAGE);
         list.add(new IconListItem(mContext.getString(R.string.attach_take_photo),
-                (!mIsReplace && mHasVcard) ? R.drawable.ic_attach_capture_picture_disable
+                (!mIsReplace && mHasPDIAttachment) ? R.drawable.ic_attach_capture_picture_disable
                         : R.drawable.ic_attach_capture_picture_holo_light));
         mIndexOfAttachmentTypes.put(index++, TAKE_PICTURE);
         list.add(new IconListItem(mContext.getString(R.string.attach_video),
-                (!mIsReplace && mHasVcard) ? R.drawable.ic_attach_video_disable
+                (!mIsReplace && mHasPDIAttachment) ? R.drawable.ic_attach_video_disable
                         : R.drawable.ic_attach_video_holo_light));
         mIndexOfAttachmentTypes.put(index++, ADD_VIDEO);
         list.add(new IconListItem(mContext.getString(R.string.attach_record_video),
-                (!mIsReplace && mHasVcard) ? R.drawable.ic_attach_capture_video_disable
+                (!mIsReplace && mHasPDIAttachment) ? R.drawable.ic_attach_capture_video_disable
                         : R.drawable.ic_attach_capture_video_holo_light));
         mIndexOfAttachmentTypes.put(index++, RECORD_VIDEO);
         if (MmsConfig.getAllowAttachAudio()) {
             list.add(new IconListItem(mContext.getString(R.string.attach_sound),
-                    (!mIsReplace && mHasVcard) ? R.drawable.ic_attach_audio_disable
+                    (!mIsReplace && mHasPDIAttachment) ? R.drawable.ic_attach_audio_disable
                             : R.drawable.ic_attach_audio_holo_light));
             mIndexOfAttachmentTypes.put(index++, ADD_SOUND);
         }
         list.add(new IconListItem(mContext.getString(R.string.attach_record_sound),
-                (!mIsReplace && mHasVcard) ? R.drawable.ic_attach_capture_audio_disable
+                (!mIsReplace && mHasPDIAttachment) ? R.drawable.ic_attach_capture_audio_disable
                         : R.drawable.ic_attach_capture_audio_holo_light));
         mIndexOfAttachmentTypes.put(index++, RECORD_SOUND);
         list.add(new IconListItem(mContext.getString(R.string.attach_slideshow),
-                (!mIsReplace && mHasVcard) ? R.drawable.ic_attach_slideshow_disable
+                (!mIsReplace && mHasPDIAttachment) ? R.drawable.ic_attach_slideshow_disable
                         : R.drawable.ic_attach_slideshow_holo_light));
         mIndexOfAttachmentTypes.put(index++, ADD_SLIDESHOW);
         boolean config_vcard = mContext.getResources().getBoolean(R.bool.config_vcard);
@@ -239,10 +239,10 @@ public class AttachmentPagerAdapter extends PagerAdapter {
         mGridItemClickListener = l;
     }
 
-    public void setExistAttachmentType(boolean hasAttachment, boolean hasVcard,
+    public void setExistAttachmentType(boolean hasAttachment, boolean hasPDIAttachment,
             boolean hasSlideshow, boolean isReplace) {
         mHasAttachment = hasAttachment;
-        mHasVcard = hasVcard;
+        mHasPDIAttachment = hasPDIAttachment;
         mHasSlideshow = hasSlideshow;
         mIsReplace = isReplace;
     }
@@ -309,12 +309,12 @@ public class AttachmentPagerAdapter extends PagerAdapter {
 
         @Override
         public boolean isEnabled(int position) {
-            if (getPager(mCurrentPager) == 0) {
-                if (!mIsReplace && mHasVcard) {
+            if (mCurrentPager == 0) {
+                if (!mIsReplace && mHasPDIAttachment) {
                     return false;
                 }
             } else {
-                if (!mIsReplace && ((mHasVcard && position == SLIDESHOW_ITEM_POSITION)
+                if (!mIsReplace && ((mHasPDIAttachment && position == SLIDESHOW_ITEM_POSITION)
                         || (mHasSlideshow && position == CONTACT_INFO_ITEM_POSITION)
                         || (mHasAttachment && position == VCARD_ITEM_POSITION)
                         || (mHasAttachment && position == VCAL_ITEM_POSITION))) {
