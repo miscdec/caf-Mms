@@ -4259,8 +4259,8 @@ public class ComposeMessageActivity extends Activity
             mAttachmentPagerAdapter = new AttachmentPagerAdapter(this);
         }
         mAttachmentPagerAdapter.setExistAttachmentType(mWorkingMessage.hasAttachment(),
-                mWorkingMessage.hasVcard(), mWorkingMessage.hasSlideshow(), replace);
-
+                (mWorkingMessage.hasVcard() || mWorkingMessage.hasVcal()),
+                mWorkingMessage.hasSlideshow(), replace);
         mAttachmentPagerAdapter.setGridItemClickListener(new OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {

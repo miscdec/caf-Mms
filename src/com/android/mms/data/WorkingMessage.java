@@ -1151,7 +1151,9 @@ public class WorkingMessage {
             boolean hasImage = slide.hasImage();
             boolean hasVideo = slide.hasVideo();
             boolean hasAudio = slide.hasAudio();
-            if (hasVideo || (hasImage && hasAudio)
+            boolean hasVcard = slide.hasVcard();
+            boolean hasVCal = slide.hasVCal();
+            if (hasVideo || hasVcard || hasVCal || (hasImage && hasAudio)
                     || (hasImage && (type == IMAGE || type == VIDEO))
                     || (hasAudio && (type == VIDEO))
                     || (hasAudio && (type == AUDIO))) {
@@ -1263,6 +1265,10 @@ public class WorkingMessage {
 
     public boolean hasVcard() {
         return mAttachmentType == VCARD;
+    }
+
+    public boolean hasVcal() {
+        return mAttachmentType == VCAL;
     }
 
     /**
