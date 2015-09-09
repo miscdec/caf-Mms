@@ -277,4 +277,5 @@
     <string name="group_chat_send_message_in_woring_card">Sending message preferred card is not matching for group chat card, please reselect preferred card.</string>
     <string name="rcs_msgtype_only">RCS message type only</string>
     <string name="time_length_unit">"s"</string>
+    <string name="not_online_in_group_chat">Offline, can not send message in group chat</string>
 </resources>

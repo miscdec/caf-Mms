@@ -255,4 +255,5 @@
     <string name="group_chat_send_message_in_woring_card">短信优选卡与当前注册的融合通信卡不匹配，请重新选择短信优选卡。</string>
     <string name="rcs_msgtype_only">仅RCS支持的消息类型</string>
     <string name="time_length_unit">秒</string>
+    <string name="not_online_in_group_chat">您已离线,不能发送消息</string>
 </resources>
