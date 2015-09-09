@@ -7045,7 +7045,7 @@ public class ComposeMessageActivity extends Activity
                     // get the focus.
                     if (isRecipientsEditorVisible()) {
                         mRecipientsEditor.requestFocus();
-                    } else {
+                    } else if (mAttachmentSelector.getVisibility() != View.VISIBLE) {
                         mTextEditor.requestFocus();
                     }
 
