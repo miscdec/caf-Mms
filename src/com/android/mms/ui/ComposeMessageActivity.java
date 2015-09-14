@@ -8335,6 +8335,10 @@ public class ComposeMessageActivity extends Activity
                     mode.getMenu().findItem(R.id.forward).setVisible(true);
                 }
 
+                if (mUnlockedCount == 0) {
+                    mode.getMenu().findItem(R.id.forward).setVisible(false);
+                }
+
                 if (mMmsSelected > 0) {
                     mode.getMenu().findItem(R.id.copy_to_sim).setVisible(false);
                 } else {
