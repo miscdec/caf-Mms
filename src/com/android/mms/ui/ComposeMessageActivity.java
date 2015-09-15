@@ -609,8 +609,8 @@ public class ComposeMessageActivity extends Activity
     // sure we notice if the user has changed the default SMS app.
     private boolean mIsSmsEnabled;
 
-    private static int mIsAirplain = 0;
-    // Whether or not the RCS Service is installed and the Sim is supported RCS.
+    private boolean mIsAirplaneModeOn = false;
+    // Whether or not the RCS Service is installed.
     private boolean mIsRcsEnabled;
 
     private static boolean rcsShareVcard = false;
@@ -2481,6 +2481,9 @@ public class ComposeMessageActivity extends Activity
 
         updateAccentColorFromTheme(true);
         initialize(savedInstanceState, 0);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        registerReceiver(mAirplaneModeBroadcastReceiver, intentFilter);
 
         if (TRACE) {
             android.os.Debug.startMethodTracing("compose");
@@ -3090,8 +3093,7 @@ public class ComposeMessageActivity extends Activity
         if (!mSendDiscreetMode) {
             mConversation.markAsRead(true, false);
         }
-        mIsAirplain = Settings.System.getInt(ComposeMessageActivity.this.getContentResolver(),
-                Settings.System.AIRPLANE_MODE_ON, 0) ;
+        mIsAirplaneModeOn = MessageUtils.isAirplaneModeOn(this);
 
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
             setBackgroundWallpaper();
@@ -3204,6 +3206,7 @@ public class ComposeMessageActivity extends Activity
             Log.w(RCS_TAG, e);
         }
 
+        unregisterReceiver(mAirplaneModeBroadcastReceiver);
         if (mMsgListAdapter != null) {
             mMsgListAdapter.changeCursor(null);
             mMsgListAdapter.cancelBackgroundLoading();
@@ -6274,6 +6277,10 @@ public class ComposeMessageActivity extends Activity
     }
 
     private boolean isPreparedForSending() {
+        if (mIsAirplaneModeOn) {
+            return false;
+        }
+
         int recipientCount = recipientCount();
 
         if (mConversation.isGroupChat()) {
@@ -6300,6 +6307,17 @@ public class ComposeMessageActivity extends Activity
 
         }
     }
+
+    private BroadcastReceiver mAirplaneModeBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
+                mIsAirplaneModeOn = intent.getBooleanExtra("state", false);
+                updateSendButtonState();
+            }
+        }
+    };
 
     private boolean isCdmaNVMode() {
         if (TelephonyManager.getDefault().isMultiSimEnabled()) {
@@ -7997,7 +8015,7 @@ public class ComposeMessageActivity extends Activity
                     return false;
                 }
                 forwardMessage();
-            } else if (mIsAirplain == 1) {
+            } else if (mIsAirplaneModeOn) {
                 toast(R.string.on_airplain_mode);
             } else {
                 int position = mSelectedPos.get(0).intValue();
