@@ -38,6 +38,7 @@ import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.AcknowledgeInd;
 import com.google.android.mms.pdu.EncodedStringValue;
+import com.google.android.mms.pdu.NotifyRespInd;
 import com.google.android.mms.pdu.PduComposer;
 import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduParser;
@@ -160,6 +161,7 @@ public class RetrieveTransaction extends Transaction implements Runnable {
             }
 
             Uri msgUri = null;
+            byte[] originalTransactionId = null;
             if (isDuplicateMessage(mContext, retrieveConf, mContentLocation)) {
                 // Mark this transaction as failed to prevent duplicate
                 // notification to user.
@@ -185,6 +187,7 @@ public class RetrieveTransaction extends Transaction implements Runnable {
                             int phoneId = c.getInt(c.getColumnIndex(Mms.PHONE_ID));
                             Log.d(TAG, "RetrieveTransaction: phoneId value is " + phoneId);
                             values.put(Mms.PHONE_ID, phoneId);
+                            originalTransactionId = c.getBlob(c.getColumnIndex(Mms.TRANSACTION_ID));
                         }
                     } finally {
                         c.close();
@@ -220,6 +223,11 @@ public class RetrieveTransaction extends Transaction implements Runnable {
             // MM successfully.
             // Don't mark the transaction as failed if we failed to send it.
             sendAcknowledgeInd(retrieveConf);
+            if (originalTransactionId != null) {
+                Log.d(TAG, "SendNotifyRespInd for TransactionId "
+                                + originalTransactionId.toString());
+                sendNotifyRespInd(originalTransactionId, PduHeaders.STATUS_RETRIEVED);
+            }
         } catch (Throwable t) {
             Log.e(TAG, Log.getStackTraceString(t));
         } finally {
@@ -337,6 +345,21 @@ public class RetrieveTransaction extends Transaction implements Runnable {
         values.put(Mms.LOCKED, locked);     // preserve the state of the M-Notification.ind lock.
         SqliteWrapper.update(context, context.getContentResolver(),
                              uri, values, null, null);
+    }
+
+    private void sendNotifyRespInd(byte[] transactionId, int status)
+            throws MmsException, IOException {
+        // Create the M-NotifyResp.ind
+        NotifyRespInd notifyRespInd = new NotifyRespInd(
+                PduHeaders.CURRENT_MMS_VERSION, transactionId, status);
+
+        // Pack M-NotifyResp.ind and send it
+        if (MmsConfig.getNotifyWapMMSC()) {
+            sendPdu(new PduComposer(mContext, notifyRespInd).make(),
+                    mContentLocation);
+        } else {
+            sendPdu(new PduComposer(mContext, notifyRespInd).make());
+        }
     }
 
     @Override
