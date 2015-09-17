@@ -452,7 +452,6 @@ public class WorkingMessage {
             FileSuffixException, FileDurationException, FileTooLargeException,
             FileNotExistsException {
         String[] dests = TextUtils.split(semiSepRecipients, ";");
-        Recycler.getSmsRecycler().deleteOldMessagesByThreadId(mActivity, threadId);
         MessageApi messageApi = MessageApi.getInstance();
         CloudFileApi cloudFileApi = CloudFileApi.getInstance();
         switch (mRcsType) {
@@ -492,6 +491,7 @@ public class WorkingMessage {
                 break;
         }
         mStatusListener.onMessageSent();
+        Recycler.getSmsRecycler().deleteOldMessagesByThreadId(mActivity, threadId);
         MmsWidgetProvider.notifyDatasetChanged(mActivity);
     }
 
@@ -2547,12 +2547,6 @@ public class WorkingMessage {
         final Conversation conv = mConversation;
         if (conv == null) {
             return;
-        }
-        if (mText.toString().getBytes().length > 900 && !RcsUtils.isRcsOnline()) {
-
-            Toast.makeText(mActivity, R.string.no_data_can_not_send, Toast.LENGTH_LONG)
-                    .show();
-
         }
         if (conv.getRecipients().size() == 1 || conv.isGroupChat()) {
             String text = mText.toString();

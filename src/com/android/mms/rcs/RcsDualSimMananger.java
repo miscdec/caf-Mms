@@ -76,7 +76,7 @@ public class RcsDualSimMananger {
         }
     }
 
-    private static boolean getUserIsUseRcsPolicy(Context context) {
+    public static boolean getUserIsUseRcsPolicy(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         boolean qmLockscreenEnabled = prefs.getBoolean(ENABLE_RCS_MESSAGE_POLICY, true);
         return qmLockscreenEnabled;
@@ -88,7 +88,7 @@ public class RcsDualSimMananger {
              return false;
         }
         if (isGroupChat) {
-            return true;
+            return getUserIsUseRcsPolicy(context);
         }
         int rcsOnlineSlot = getCurrentRcsOnlineSlot();
         if (defaultPhoneId == rcsOnlineSlot) {

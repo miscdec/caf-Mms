@@ -2489,7 +2489,9 @@ public class ComposeMessageActivity extends Activity
             android.os.Debug.startMethodTracing("compose");
         }
 
-        registerRcsReceiver();
+        if (SupportApi.getInstance().isRcsSupported()) {
+            registerRcsReceiver();
+        }
         registerReceiver(netAvailbaleReceiver,
                 new IntentFilter(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED));
     }
@@ -8991,9 +8993,9 @@ public class ComposeMessageActivity extends Activity
                             String lookup = Uri.encode(Contacts.getLookupUri(
                                     this.getContentResolver(), contactUri).
                                     getPathSegments().get(2));
-                            buffer.append(lookup+":");
+                            buffer.append(lookup + "&");
                         }
-                        String subStringbuffer = buffer.substring(0, buffer.lastIndexOf(":"));
+                        String subStringbuffer = buffer.substring(0, buffer.lastIndexOf("&"));
                         Uri multiVcardUri = Uri.withAppendedPath(Contacts.CONTENT_MULTI_VCARD_URI,
                             Uri.encode(subStringbuffer));
                         String vcardPath = RcsUtils.createVcardFile(ComposeMessageActivity.this,
