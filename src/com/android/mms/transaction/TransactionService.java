@@ -655,19 +655,6 @@ public class TransactionService extends Service implements Observer {
             Log.v(TAG, "onNetworkUnavailable: sid=" + serviceId + ", type=" + transactionType);
         }
 
-       if (transactionType == Transaction.NOTIFICATION_TRANSACTION
-               && !DownloadManager.getInstance().isAuto()) {
-           // Not trigger next retry for retrieval MMS if user not initiate it.
-           return;
-       }
-
-        // Need the RetryScheduler first to update the retry index and result,
-        // then set the toast type accordingly.
-        if (getResources().getBoolean(R.bool.config_retry_always)) {
-            RetryScheduler.scheduleRetry(getApplicationContext(), uri);
-            RetryScheduler.setRetryAlarm(getApplicationContext(), uri);
-        }
-
         int toastType = TOAST_NONE;
         if (transactionType == Transaction.RETRIEVE_TRANSACTION) {
             toastType = TOAST_DOWNLOAD_LATER;
