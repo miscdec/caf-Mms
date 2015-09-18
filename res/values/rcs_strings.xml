@@ -92,6 +92,7 @@
     <string name="uploading_percent">Sending: %1$d %%</string>
     <string name="downloading_finish">Download complete</string>
     <string name="burn_message_flag">Burn after Reading</string>
+    <string name="downloading_message">Downloading</string>
     <!--
          Command name to open a Compose screen; displays in conversation list.
          Also used as accessibility text for widget's new group chat button
