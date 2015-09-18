@@ -902,9 +902,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FALSE
                         && !mMessageItem.isRcsBurnMessage()) {
                     mDateView.setText(R.string.message_download);
-                } else if (RcsFileTransferCache.getInstance()
-                        .hasFileTransferPercent(mMessageItem.getMessageId()) &&
-                        mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOADING) {
+                } else if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOADING) {
                     Long percent = RcsFileTransferCache.getInstance()
                             .getFileTransferPercent(mMessageItem.getMessageId());
                     if (percent != null) {
@@ -914,6 +912,14 @@ public class MessageListItem extends ZoomMessageListItem implements
                         } else {
                             mDateView.setText(getContext().getString(
                                     R.string.uploading_percent, percent.intValue()));
+                        }
+                    } else {
+                        if (!mMessageItem.isMe()) {
+                            mDateView.setText(getContext().getString(
+                                    R.string.downloading_message));
+                        } else {
+                            mDateView.setText(getContext()
+                                    .getString(R.string.message_adapte_sening));
                         }
                     }
                 } else if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_PAUSE &&
@@ -927,20 +933,6 @@ public class MessageListItem extends ZoomMessageListItem implements
                         && RcsUtils.isFileDownBeginButNotEnd(mMessageItem.getRcsPath(),
                         mMessageItem.getRcsMsgFileSize())) {
                     mDateView.setText(R.string.download_fail_please_download_again);
-                }
-            }
-        }
-        if (mMessageItem.getRcsMsgState() == RcsUtils.MESSAGE_HAS_SENT_TO_SERVER
-                && mMessageItem.getRcsMsgType() != Constants.MessageConstants.CONST_MESSAGE_TEXT) {
-            Long percent = RcsFileTransferCache.getInstance()
-                    .getFileTransferPercent(mMessageItem.getMessageId());
-            if (percent != null) {
-                if (!mMessageItem.isMe()) {
-                    mDateView.setText(getContext().getString(R.string.downloading_percent,
-                            percent.intValue()));
-                } else {
-                    mDateView.setText(getContext().getString(R.string.uploading_percent,
-                            percent.intValue()));
                 }
             }
         }
