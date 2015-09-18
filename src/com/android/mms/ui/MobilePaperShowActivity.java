@@ -223,8 +223,8 @@ public class MobilePaperShowActivity extends Activity {
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
+    protected void onPause() {
+        super.onPause();
         MessageUtils.saveTextFontSize(this, mFontSizeForSave);
     }
 
