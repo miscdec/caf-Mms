@@ -6885,6 +6885,7 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onContentChanged(MessageListAdapter adapter) {
             startMsgListQuery();
+            mConversation.markAsRead(true, false);
         }
     };
 
