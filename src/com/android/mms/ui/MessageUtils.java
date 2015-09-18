@@ -1013,7 +1013,8 @@ public class MessageUtils {
     }
 
     public static void showErrorDialog(Activity activity,
-            String title, String message) {
+            String title, String message,
+            DialogInterface.OnDismissListener dismissListener) {
         if (activity.isFinishing()) {
             return;
         }
@@ -1030,7 +1031,15 @@ public class MessageUtils {
                 }
             }
         });
+        if (dismissListener != null) {
+            builder.setOnDismissListener(dismissListener);
+        }
         builder.show();
+    }
+
+    public static void showErrorDialog(Activity activity,
+            String title, String message) {
+        showErrorDialog(activity, title, message, null);
     }
 
     /**
