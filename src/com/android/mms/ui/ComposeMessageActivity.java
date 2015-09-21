@@ -2996,8 +2996,12 @@ public class ComposeMessageActivity extends Activity
         // Don't let any markAsRead DB updates occur before we've loaded the messages for
         // the thread. Unblocking occurs when we're done querying for the conversation
         // items.
-        mConversation.blockMarkAsRead(true);
-        mConversation.markAsRead(true, false);         // dismiss any notifications for this convo
+        if (!MessageUtils.isMailboxMode()) {
+            // dismiss any notifications for this conversation
+            mConversation.blockMarkAsRead(true);
+            mConversation.markAsRead(true, false);
+        }
+
         startMsgListQuery();
         updateSendFailedNotification();
     }
@@ -3094,7 +3098,7 @@ public class ComposeMessageActivity extends Activity
 
         mIsRunning = true;
         updateThreadIdIfRunning();
-        if (!mSendDiscreetMode) {
+        if (!mSendDiscreetMode && !MessageUtils.isMailboxMode()) {
             mConversation.markAsRead(true, false);
         }
         mIsAirplaneModeOn = MessageUtils.isAirplaneModeOn(this);
@@ -3142,7 +3146,7 @@ public class ComposeMessageActivity extends Activity
             Log.v(TAG, "onPause: mSavedScrollPosition=" + mSavedScrollPosition);
         }
 
-        if (!mSendDiscreetMode) {
+        if (!mSendDiscreetMode && !MessageUtils.isMailboxMode()) {
             mConversation.markAsRead(true, false);
         }
         mIsRunning = false;
