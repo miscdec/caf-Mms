@@ -3644,8 +3644,7 @@ public class ComposeMessageActivity extends Activity
     private void dialRecipient() {
         if (isRecipientCallable()) {
             if (mConversation != null && mConversation.isGroupChat()) {
-                //TODO Temporary unrealized
-                return;
+                RcsUtils.dialGroupChat(this, mConversation.getGroupChat());
             } else {
                 ContactList recipients = getRecipients();
                 int size = recipients.size();
