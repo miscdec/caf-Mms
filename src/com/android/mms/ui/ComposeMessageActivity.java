@@ -3644,8 +3644,7 @@ public class ComposeMessageActivity extends Activity
     private void dialRecipient() {
         if (isRecipientCallable()) {
             if (mConversation != null && mConversation.isGroupChat()) {
-                //TODO Temporary unrealized
-                return;
+                RcsUtils.dialGroupChat(this, mConversation.getGroupChat());
             } else {
                 ContactList recipients = getRecipients();
                 int size = recipients.size();
@@ -6460,6 +6459,10 @@ public class ComposeMessageActivity extends Activity
 
     private void sendMessage(boolean bCheckEcmMode) {
         if (mIsRcsEnabled && hasConvertRcsAttachmentToMmsAndSent()) {
+            return;
+        }
+        if (mIsRcsEnabled && mConversation.isGroupChat() && !RcsUtils.isRcsOnline()) {
+            toast(R.string.not_online_in_group_chat);
             return;
         }
         // Check message size, if >= max message size, do not send message.
