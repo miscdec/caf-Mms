@@ -2825,19 +2825,22 @@ public class ComposeMessageActivity extends Activity
         // (we cannot just compare thread ids because there is a case where mConversation
         // has a stale/obsolete thread id (=1) that could collide against the new thread_id(=1),
         // even though the recipient lists are different)
-        sameThread = ((conversation.getThreadId() == mConversation.getThreadId() ||
-                mConversation.getThreadId() == 0) &&
-                conversation.equals(mConversation));
+        sameThread = (conversation.getThreadId() == mConversation.getThreadId()
+                && mConversation.getThreadId() != 0 && conversation.equals(mConversation));
 
-        if (sameThread) {
-            log("onNewIntent: same conversation");
-            if (mConversation.getThreadId() == 0) {
+        if (!sameThread) {
+            if (mConversation.getThreadId() == 0 || conversation.getThreadId() == 0) {
                 mConversation = conversation;
                 mWorkingMessage.setConversation(mConversation);
                 updateThreadIdIfRunning();
                 invalidateOptionsMenu();
+                mMessagesAndDraftLoaded = false;
+                if (mMsgListAdapter != null) {
+                    mMsgListAdapter.changeCursor(null);
+                    mMsgListAdapter.cancelBackgroundLoading();
+                }
             }
-        } else {
+
             if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 log("onNewIntent: different conversation");
             }
