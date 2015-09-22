@@ -19,6 +19,7 @@ package com.android.mms.ui;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -56,6 +57,7 @@ import com.android.mms.dom.smil.SmilPlayer;
 import com.android.mms.dom.smil.parser.SmilXmlSerializer;
 import com.android.mms.model.LayoutModel;
 import com.android.mms.model.RegionModel;
+import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.SmilHelper;
 import com.google.android.mms.ContentType;
@@ -174,7 +176,8 @@ public class SlideshowActivity extends Activity implements EventListener {
         final SlideshowModel model;
 
         try {
-            model = SlideshowModel.createFromMessageUri(this, msg);
+            model = ignoreCalendarOrVcardSlide(
+                    SlideshowModel.createFromMessageUri(this, msg));
             mSlideCount = model.size();
         } catch (MmsException e) {
             Log.e(TAG, "Cannot present the slide show.", e);
@@ -245,6 +248,19 @@ public class SlideshowActivity extends Activity implements EventListener {
                 mSmilPlayer.play();
             }
         });
+    }
+
+    private SlideshowModel ignoreCalendarOrVcardSlide(SlideshowModel model) {
+        if (model != null) {
+            Iterator<SlideModel> iterator = model.iterator();
+            while (iterator.hasNext()) {
+                SlideModel slide = iterator.next();
+                if (slide.hasVcard() || slide.hasVCal()) {
+                    iterator.remove();
+                }
+            }
+        }
+        return model;
     }
 
     private void initMediaController() {
