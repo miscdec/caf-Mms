@@ -122,6 +122,9 @@
                       android:title="@string/pref_title_edit_signature"
                       android:maxLength="64"/>
   </PreferenceCategory>
+  <PreferenceCategory android:title="@string/pref_smsc_title"
+                      android:key="pref_key_smsc" >
+  </PreferenceCategory>
   </PreferenceScreen>
   <PreferenceScreen android:key="pref_key_mms_settings_screen"
                       android:title="@string/pref_mms_settings_title" >
@@ -172,7 +175,7 @@
                     android:defaultValue="3"
                     android:title="@string/pref_title_notification_creation_mode"
                     android:entries="@array/pref_entries_creation_mode"
-                    android:entryValues="@array/pref_entries_creation_mode"
+                    android:entryValues="@array/pref_values_creation_mode"
                     android:dialogTitle="@string/pref_dialog_title_creation_mode"
                     android:summary="@string/pref_summary_creation_mode" />
     <Preference
@@ -197,15 +200,6 @@
                         android:title="@string/pref_title_notification_vibrateWhen"
                         android:dependency="pref_key_enable_notifications"
                         android:defaultValue="false" />
-  </PreferenceCategory>
-  <PreferenceCategory android:title="@string/pref_smsc_title"
-                      android:key="pref_key_smsc" >
-  </PreferenceCategory>
-  <PreferenceCategory android:title="@string/pref_wap_push_title">
-    <CheckBoxPreference android:key="pref_key_enable_wap_push"
-                        android:title="@string/pref_title_wap_push_enabled"
-                        android:summary="@string/pref_summary_wap_push_enabled"
-                        android:defaultValue="@bool/def_wap_push_enabled" />
   </PreferenceCategory>
   </PreferenceScreen>
   <!-- QuickMessage settings -->
