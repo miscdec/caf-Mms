@@ -1306,6 +1306,9 @@ public class ComposeMessageActivity extends Activity
             showDisableLTEOnlyDialog(subscription);
             return;
         }
+        if (mIsRcsEnabled && isBurnMessageOffline()) {
+            return;
+        }
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
             if (isMms && mSendMmsMobileDataOff &&
@@ -1341,7 +1344,9 @@ public class ComposeMessageActivity extends Activity
             mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_VCARD);
             rcsShareVcard = false;
         }
-
+        if (mIsRcsEnabled && isBurnMessageOffline()) {
+            return;
+        }
         int slot = SubscriptionManager.getSlotId(SmsManager.getDefault().getDefaultSmsSubscriptionId());
         if ((TelephonyManager.getDefault().isMultiSimEnabled() &&
                 isLTEOnlyMode(slot))
@@ -3650,7 +3655,7 @@ public class ComposeMessageActivity extends Activity
                     String number = getRecipients().get(0).getNumber();
                     if (mIsRcsEnabled && RcsUtils.isDeletePrefixSpecailNumberAvailable(this)) {
                         try {
-                         boolean success = SpecialServiceNumApi.getInstance()
+                            number = SpecialServiceNumApi.getInstance()
                                     .deleteSsnPrefix(number);
                         } catch (ServiceDisconnectedException e){
                             Log.w(RCS_TAG,"delSpecialPreNum error");
@@ -9188,4 +9193,16 @@ public class ComposeMessageActivity extends Activity
         return false;
     }
 
+    private boolean isBurnMessageOffline() {
+       if (!RcsUtils.isRcsOnline() && mIsBurnMessage) {
+            mIsBurnMessage = false;
+            if (mWorkingMessage.getCacheRcsMessage()) {
+                cancelRcsMessageCache();
+            }
+            mWorkingMessage.setIsBurn(false);
+            toast(R.string.rcs_offline_can_not_send_burn_message);
+            return true;
+        }
+        return false;
+    }
 }

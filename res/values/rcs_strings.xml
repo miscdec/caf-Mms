@@ -237,6 +237,7 @@
     <string name="favorite_fail">Collection of failure</string>
     <string name="temp_group_chat">Temp group chat</string>
     <string name="rcs_offline_on_groupchat">You have been offline,group chat can not send multimedia messages.</string>
+    <string name="rcs_offline_can_not_send_burn_message">You have been offline, burn message is unable to send and it will send message via sms next time.</string>
     <string name="merge_contacts">Merge Contacts</string>
     <string name="msg_type_audio">audio</string>
     <string name="msg_type_image">image</string>
