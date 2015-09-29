@@ -523,9 +523,11 @@ public class MailBoxMessageList extends ListActivity implements
                 mQueryDone = false;
                 String selStr = null;
                 if (mQuerySlotType == TYPE_SLOT_ONE) {
-                    selStr = "phone_id = " + MessageUtils.SUB1;
+                    int subId = SubscriptionManager.getSubId(MessageUtils.SUB1)[0];
+                    selStr = "sub_id = " + subId;
                 } else if (mQuerySlotType == TYPE_SLOT_TWO) {
-                    selStr = "phone_id = " + MessageUtils.SUB2;
+                    int subId = SubscriptionManager.getSubId(MessageUtils.SUB2)[0];
+                    selStr = "sub_id = " + subId;
                 }
                 if (mIsInSearchMode) {
                     Uri queryUri = SEARCH_URI.buildUpon().appendQueryParameter(
