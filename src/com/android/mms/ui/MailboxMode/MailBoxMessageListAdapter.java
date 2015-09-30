@@ -199,7 +199,19 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
 
     @Override
     public long getItemId(int position) {
-        return position;
+        long id = super.getItemId(position);
+        try {
+            if (mDataValid && mCursor != null) {
+                mCursor.moveToPosition(position);
+                String type = mCursor.getString(COLUMN_MSG_TYPE);
+                if ("mms".equals(type)) {
+                    id = -id;
+                }
+            }
+        } catch (android.database.CursorIndexOutOfBoundsException e) {
+            Log.e(TAG, "getItemId : ", e);
+        }
+        return id;
     }
 
     public void updateItemBackgroud(int position) {
