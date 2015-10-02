@@ -474,7 +474,7 @@ public class SelectRecipientsList extends Activity implements
             }
 
             intent.putExtra(EXTRA_RECIPIENTS, numbers);
-            intent.putExtra(EXTRA_NUMBERS, getContactString(numbers));
+            //intent.putExtra(EXTRA_NUMBERS, getContactString(numbers));
         } else if (mMode == MODE_INFO) {
             intent.putExtra(EXTRA_INFO, getCheckedNumbersAsText());
         } else if (mMode == MODE_VCARD) {
