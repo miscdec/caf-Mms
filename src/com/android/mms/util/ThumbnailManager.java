@@ -17,6 +17,7 @@
 package com.android.mms.util;
 
 import android.content.Context;
+import android.drm.OmaDrmHelper;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
@@ -480,7 +481,14 @@ public class ThumbnailManager extends BackgroundLoaderManager {
             closeSilently(inputStream);
 
             if (result == null) {
-                return null;
+                // Check for DRM file
+                String filePath = OmaDrmHelper.getFilePath(mContext, uri);
+                if (OmaDrmHelper.isDrmFile(filePath)) {
+                    result = OmaDrmHelper.getBitmap(mContext, filePath, uri, options);
+                }
+                if (result == null){
+                    return null;
+                }
             }
 
             // We need to resize down if the decoder does not support inSampleSize.
