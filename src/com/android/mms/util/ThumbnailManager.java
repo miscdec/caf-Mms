@@ -211,6 +211,20 @@ public class ThumbnailManager extends BackgroundLoaderManager {
         }
     }
 
+    public void removeBackingStoreThumbnail(Uri uri) {
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "removeBackingStoreThumbnail: " + uri);
+        }
+        if (uri != null) {
+            ImageCacheService cacheService = getImageCacheService();
+            UriImage uriImage = new UriImage(mContext, uri);
+            String path = uriImage.getPath();
+            if (path != null) {
+                cacheService.clearImageData(path, TYPE_THUMBNAIL);
+            }
+        }
+    }
+
     @Override
     public String getTag() {
         return TAG;
