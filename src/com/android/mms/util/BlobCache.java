@@ -74,6 +74,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
 import java.util.zip.Adler32;
 
 import android.util.Log;
@@ -582,6 +583,16 @@ public class BlobCache implements Closeable {
         } catch (Throwable t) {
             Log.w(TAG, "sync data file 1 failed", t);
         }
+    }
+
+    public void clearEntry(long key) throws IOException {
+        if (!lookupInternal(key, mActiveHashStart)) {
+            return; // Nothing to clear
+        }
+        byte[] header = mBlobHeader;
+        Arrays.fill(header, (byte) 0);
+        mActiveDataFile.seek(mFileOffset);
+        mActiveDataFile.write(header);
     }
 
     // This is for testing only.
