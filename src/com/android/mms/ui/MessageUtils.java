@@ -594,24 +594,26 @@ public class MessageUtils {
         } else {
             details.append(res.getString(R.string.text_message));
         }
+
         if (isAppendContentType) {
             details.append('\n');
             details.append(res.getString(R.string.message_content_type));
-            int msgType = cursor.getInt(cursor.getColumnIndex(
-                    RcsColumns.SmsRcsColumns.RCS_MSG_TYPE));
-            if (msgType == RcsUtils.RCS_MSG_TYPE_IMAGE)
-                details.append(res.getString(R.string.message_content_image));
-            else if (msgType == RcsUtils.RCS_MSG_TYPE_AUDIO)
-                details.append(res.getString(R.string.message_content_audio));
-            else if (msgType == RcsUtils.RCS_MSG_TYPE_VIDEO)
-                details.append(res.getString(R.string.message_content_video));
-            else if (msgType == RcsUtils.RCS_MSG_TYPE_MAP)
-                details.append(res.getString(R.string.message_content_map));
-            else if (msgType == RcsUtils.RCS_MSG_TYPE_VCARD)
-                details.append(res.getString(R.string.message_content_vcard));
-            else if (msgType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE)
-                details.append(res.getString(R.string.msg_type_CaiYun));
-            else
+            if (isRcsAvailable && cursor != null) {
+                int msgType = cursor.getInt(cursor
+                        .getColumnIndex(RcsColumns.SmsRcsColumns.RCS_MSG_TYPE));
+                if (msgType == RcsUtils.RCS_MSG_TYPE_IMAGE)
+                    details.append(res.getString(R.string.message_content_image));
+                else if (msgType == RcsUtils.RCS_MSG_TYPE_AUDIO)
+                    details.append(res.getString(R.string.message_content_audio));
+                else if (msgType == RcsUtils.RCS_MSG_TYPE_VIDEO)
+                    details.append(res.getString(R.string.message_content_video));
+                else if (msgType == RcsUtils.RCS_MSG_TYPE_MAP)
+                    details.append(res.getString(R.string.message_content_map));
+                else if (msgType == RcsUtils.RCS_MSG_TYPE_VCARD)
+                    details.append(res.getString(R.string.message_content_vcard));
+                else if (msgType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE)
+                    details.append(res.getString(R.string.msg_type_CaiYun));
+            } else
                 details.append(res.getString(R.string.message_content_text));
         }
         // Address: ***
