@@ -167,6 +167,10 @@ public class SlideListItemView extends LinearLayout implements SlideViewInterfac
                                     intent.setDataAndType(mAttachmentUri,
                                             ContentType.TEXT_VCARD.toLowerCase());
                                     intent.putExtra(MessageUtils.VIEW_VCARD, true);
+                                } else if (mAttachmentName != null &&
+                                            mAttachmentName.contains(".vcs")) {
+                                    intent.setDataAndType(mAttachmentUri,
+                                            ContentType.TEXT_VCALENDAR.toLowerCase());
                                 } else {
                                     if (mLookupUri != null) {
                                         intent.setData(mLookupUri);
