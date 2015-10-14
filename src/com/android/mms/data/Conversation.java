@@ -108,7 +108,7 @@ public class Conversation {
     private static Handler sToastHandler = new Handler();
 
     private Conversation(Context context) {
-        mContext = context;
+        mContext = context.getApplicationContext();
         mRecipients = new ContactList();
         mThreadId = 0;
     }
@@ -117,7 +117,7 @@ public class Conversation {
         if (DEBUG) {
             Log.v(TAG, "Conversation constructor threadId: " + threadId);
         }
-        mContext = context;
+        mContext = context.getApplicationContext();
         if (!loadFromThreadId(threadId, allowQuery)) {
             mRecipients = new ContactList();
             mThreadId = 0;
@@ -128,7 +128,7 @@ public class Conversation {
         if (DEBUG) {
             Log.v(TAG, "Conversation constructor cursor, allowQuery: " + allowQuery);
         }
-        mContext = context;
+        mContext = context.getApplicationContext();
         fillFromCursor(context, this, cursor, allowQuery);
     }
 
