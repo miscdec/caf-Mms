@@ -5506,6 +5506,9 @@ public class ComposeMessageActivity extends Activity
         mWorkingMessage.setIsBurn(mIsBurnMessage);
         mIsRTL = (v.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
+            if (MessageUtils.pupConnectWifiAlertDialog(getContext())) {
+                return;
+            }
             if (mShowTwoButtons) {
                 confirmSendMessageIfNeeded(PhoneConstants.SUB1);
             } else {
