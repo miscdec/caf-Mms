@@ -916,7 +916,8 @@ public class Conversation {
         // mmssms.db|2.253 ms|SELECT _id, date, message_count, recipient_ids, snippet, snippet_cs,
         // read, error, has_attachment FROM threads ORDER BY  date DESC
 
-        Uri uri = sAllThreadsUri;
+        Uri uri = sAllThreadsUri.buildUpon()
+                .appendQueryParameter("obsolete", "true").build();
         if (subId != null) {
             // currently the mms app treats phone_id as slot_id, so that is what we must
             // pass here, but we need to redesign this in the future
