@@ -78,6 +78,7 @@
     <string name="uploading_percent">发送中：%1$d %%</string>
     <string name="downloading_finish">下载完成</string>
     <string name="burn_message_flag">阅后即焚</string>
+    <string name="downloading_message">下载中</string>
     <!--
          Command name to open a Compose screen; displays in conversation list.
          Also used as accessibility text for widget's new group chat button
