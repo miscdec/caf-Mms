@@ -89,6 +89,20 @@ public class ImageCacheService {
         }
     }
 
+    public void clearImageData(String path, int type) {
+        byte[] key = makeKey(path, type);
+        long cacheKey = crc64Long(key);
+        if (mCache != null) {
+            synchronized (mCache) {
+                try {
+                    mCache.clearEntry(cacheKey);
+                } catch (IOException ex) {
+                    // ignore.
+                }
+            }
+        }
+    }
+
     public void clear() {
         CacheManager.clear(mContext);
     }

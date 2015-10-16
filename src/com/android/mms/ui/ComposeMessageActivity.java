@@ -5341,6 +5341,8 @@ public class ComposeMessageActivity extends Activity
             getAsyncDialog().runAsync(new Runnable() {
                     @Override
                     public void run() {
+                        MmsApp.getApplication().getThumbnailManager().removeThumbnail(uri);
+                        MmsApp.getApplication().getThumbnailManager().removeBackingStoreThumbnail(uri);
                         addAttachment(mimeType, uri, false);
                     }
                 }, null, R.string.adding_attachments_title);
