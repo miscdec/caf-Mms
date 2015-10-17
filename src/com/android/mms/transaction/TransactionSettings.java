@@ -63,10 +63,10 @@ public class TransactionSettings {
     public TransactionSettings(Context context, String apnName, int subId) {
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
             Log.v(TAG, "TransactionSettings: apnName: " + apnName +
-                    "subId: " + subId);
+                    " subId: " + subId);
         }
         String numeric = TelephonyManager.getDefault().getIccOperatorNumeric(subId);
-        String selection = "numeric=" + numeric;
+        String selection = "numeric= '" + numeric + "'";
         String[] selectionArgs = null;
         Uri contentUri = Uri.withAppendedPath(Telephony.Carriers.CONTENT_URI, "/subId/" + subId);
         if (!TextUtils.isEmpty(apnName)) {
