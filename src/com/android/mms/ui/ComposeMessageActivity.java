@@ -6463,6 +6463,10 @@ public class ComposeMessageActivity extends Activity
         if (mIsRcsEnabled && hasConvertRcsAttachmentToMmsAndSent()) {
             return;
         }
+        if (mIsRcsEnabled && mConversation.isGroupChat() && !RcsUtils.isRcsOnline()) {
+            toast(R.string.not_online_in_group_chat);
+            return;
+        }
         // Check message size, if >= max message size, do not send message.
         if(checkMessageSizeExceeded()){
             return;
