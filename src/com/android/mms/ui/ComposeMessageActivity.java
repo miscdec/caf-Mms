@@ -162,6 +162,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Button;
 
+import com.android.internal.telephony.ConfigResourceUtil;
 import com.android.internal.telephony.IExtTelephony;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.RILConstants;
@@ -2209,8 +2210,9 @@ public class ComposeMessageActivity extends Activity
         // Create a new empty working message.
         mWorkingMessage = WorkingMessage.createEmpty(this);
 
-        mSendMmsMobileDataOff = false;/*getResources().getBoolean(
-                com.android.internal.R.bool.config_enable_mms_with_mobile_data_off);*/
+        ConfigResourceUtil configResUtil = new ConfigResourceUtil();
+        mSendMmsMobileDataOff = configResUtil.getBooleanValue(this,
+                "config_enable_mms_with_mobile_data_off");
 
         // Read parameters or previously saved state of this activity. This will load a new
         // mConversation
