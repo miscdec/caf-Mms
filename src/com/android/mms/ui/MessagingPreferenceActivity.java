@@ -906,22 +906,28 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private void setMmsExpiryPref() {
         PreferenceCategory mmsSettings =
                 (PreferenceCategory)findPreference("pref_key_mms_settings");
-        if (MessageUtils.isMultiSimEnabledMms()) {
-            mmsSettings.removePreference(mMmsExpiryPref);
-            if (!MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
-                mMmsExpiryCard1Pref.setEnabled(false);
+        if (getResources().getBoolean(R.bool.config_mms_validity)) {
+            if (MessageUtils.isMultiSimEnabledMms()) {
+                mmsSettings.removePreference(mMmsExpiryPref);
+                if (!MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
+                    mMmsExpiryCard1Pref.setEnabled(false);
+                } else {
+                    setMmsExpirySummary(PhoneConstants.SUB1);
+                }
+                if (!MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
+                    mMmsExpiryCard2Pref.setEnabled(false);
+                } else {
+                    setMmsExpirySummary(PhoneConstants.SUB2);
+                }
             } else {
-                setMmsExpirySummary(PhoneConstants.SUB1);
-            }
-            if (!MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
-                mMmsExpiryCard2Pref.setEnabled(false);
-            } else {
-                setMmsExpirySummary(PhoneConstants.SUB2);
+                mmsSettings.removePreference(mMmsExpiryCard1Pref);
+                mmsSettings.removePreference(mMmsExpiryCard2Pref);
+                setMmsExpirySummary(MessageUtils.SUB_INVALID);
             }
         } else {
+            mmsSettings.removePreference(mMmsExpiryPref);
             mmsSettings.removePreference(mMmsExpiryCard1Pref);
             mmsSettings.removePreference(mMmsExpiryCard2Pref);
-            setMmsExpirySummary(MessageUtils.SUB_INVALID);
         }
     }
 

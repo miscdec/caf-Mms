@@ -87,6 +87,7 @@
     <bool name="config_classify_search">false</bool>
 
     <bool name="config_sms_validity">true</bool>
+    <bool name="config_mms_validity">true</bool>
 
     <integer name="wap_push_address_index">1</integer>
 
