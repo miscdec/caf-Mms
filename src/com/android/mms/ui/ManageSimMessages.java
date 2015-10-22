@@ -69,6 +69,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.internal.telephony.IccCardConstants;
+import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
 import com.android.mms.R;
@@ -134,14 +135,17 @@ public class ManageSimMessages extends Activity
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
-                int subId = intent.getIntExtra(MessageUtils.SUBSCRIPTION_KEY,
-                        MessageUtils.SUB_INVALID);
-                int currentSubId = SubscriptionManager.getSubId(mSlotId)[0];
-                Log.d(TAG, "receive sim state change, subscription id: " + subId);
-                if (!MessageUtils.isMultiSimEnabledMms() ||
-                        subId == currentSubId) {
-                    refreshMessageList();
+                Log.d(TAG, "receive broadcast ACTION_SIM_STATE_CHANGED");
+                if (MessageUtils.isMultiSimEnabledMms()) {
+                    int subId = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                            SubscriptionManager.getDefaultSubId());
+                    int currentSubId = SubscriptionManager.getSubId(mSlotId)[0];
+                    Log.d(TAG, "subId: " + subId + " currentSubId: "+currentSubId);
+                    if (subId != currentSubId) {
+                        return;
+                    }
                 }
+                refreshMessageList();
             }
         }
     };
@@ -179,7 +183,7 @@ public class ManageSimMessages extends Activity
     private void init() {
         MessagingNotification.cancelNotification(getApplicationContext(),
                 SIM_FULL_NOTIFICATION_ID);
-        mSlotId = getIntent().getIntExtra(MessageUtils.SUBSCRIPTION_KEY,
+        mSlotId = getIntent().getIntExtra(PhoneConstants.SLOT_KEY,
                 MessageUtils.SUB_INVALID);
         mIccUri = MessageUtils.getIccUriBySubscription(mSlotId);
         updateState(SHOW_BUSY);

@@ -1509,7 +1509,7 @@ public class MessageUtils {
         if (!Mms.isEmailAddress(address)) {
             Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + address));
             if (isMultiSimEnabledMms()) {
-                dialIntent.putExtra(SUBSCRIPTION_KEY, subscription);
+                dialIntent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, subscription);
             }
             context.startActivity(dialIntent);
         }

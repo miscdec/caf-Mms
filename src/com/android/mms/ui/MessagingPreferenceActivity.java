@@ -874,11 +874,11 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             startActivity(new Intent(this, ManageSimMessages.class));
         } else if (preference == mManageSim1Pref) {
             Intent intent = new Intent(this, ManageSimMessages.class);
-            intent.putExtra(MessageUtils.SUBSCRIPTION_KEY, MessageUtils.SUB1);
+            intent.putExtra(PhoneConstants.SLOT_KEY, PhoneConstants.SUB1);
             startActivity(intent);
         } else if (preference == mManageSim2Pref) {
             Intent intent = new Intent(this, ManageSimMessages.class);
-            intent.putExtra(MessageUtils.SUBSCRIPTION_KEY, MessageUtils.SUB2);
+            intent.putExtra(PhoneConstants.SLOT_KEY, PhoneConstants.SUB2);
             startActivity(intent);
         } else if (preference == mClearHistoryPref) {
             showDialog(CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG);
