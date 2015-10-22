@@ -42,6 +42,7 @@ import android.util.Log;
 import com.android.mms.transaction.PduParserUtil;
 
 import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.GenericPdu;
 import com.google.android.mms.pdu.PduComposer;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
@@ -296,27 +297,24 @@ public class QTIBackupMMS {
         SendReq sendReq = null;
         RetrieveConf retrieveConf = null;
         byte[] mmData = null;
-        PduComposer composer = null;
 
-        if(Telephony.Mms.MESSAGE_BOX_INBOX == Long.parseLong ( mms.getMsg_box())) {
-            try{
-                retrieveConf = (RetrieveConf) persister.load(uri);
-                composer = new PduComposer(mContext, retrieveConf);
-                mmData = composer.make();
-            } catch(MmsException e){
-                Log.e(TAG, e.getLocalizedMessage());
-            } catch(ClassCastException e){
-                Log.e(TAG, e.getLocalizedMessage());
-            } catch(Exception e){
-                Log.e(TAG, e.getLocalizedMessage());
+        try {
+            GenericPdu gPdu = persister.load(uri);
+            if (Telephony.Mms.MESSAGE_BOX_INBOX == Long.parseLong ( mms.getMsg_box())) {
+                retrieveConf = (RetrieveConf) gPdu;
+                mmData = new PduComposer(mContext, retrieveConf).make();
+             } else {
+                if (gPdu instanceof SendReq) {
+                    sendReq = (SendReq) gPdu;
+                    mmData = new PduComposer(mContext, sendReq).make();
+                }
             }
-        } else{
-            try {
-                sendReq = (SendReq) persister.load(uri);
-                mmData = new PduComposer(mContext, sendReq).make();
-            } catch(MmsException e){
-                Log.e(TAG, e.getLocalizedMessage());
-            }
+        } catch(MmsException e) {
+            Log.e(TAG, e.getLocalizedMessage());
+        } catch(ClassCastException e) {
+            Log.e(TAG, e.getLocalizedMessage());
+        } catch(Exception e) {
+            Log.e(TAG, e.getLocalizedMessage());
         }
 
         mms.setMmData(mmData);
