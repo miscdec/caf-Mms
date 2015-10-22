@@ -1621,6 +1621,9 @@ public class ComposeMessageActivity extends Activity
     }
 
     private boolean isAllowForwardMessage(MessageItem msgItem) {
+        if (msgItem.getSlideshow() == null) {
+            return false;
+        }
         int messageSize = msgItem.getSlideshow().getTotalMessageSize();
         int smilSize = msgItem.getSlideshow().getSMILSize();
         int forwardStrSize = getString(R.string.forward_prefix).getBytes().length;
