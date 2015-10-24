@@ -92,7 +92,7 @@ public class NoConfirmationSendService extends IntentService {
             // provider looks up the threadId based on the recipient(s).
             long threadId = 0;
             SmsMessageSender smsMessageSender = new SmsMessageSender(this, dests, message, threadId,
-                    SubscriptionManager.getPhoneId(sub));
+                    sub);
             try {
                 // This call simply puts the message on a queue and sends a broadcast to start
                 // a service to send the message. In queing up the message, however, it does

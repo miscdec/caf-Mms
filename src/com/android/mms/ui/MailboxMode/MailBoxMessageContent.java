@@ -149,7 +149,7 @@ public class MailBoxMessageContent extends Activity {
 
     private static final int SMS_ADDRESS_INDEX = 0;
     private static final int SMS_BODY_INDEX = 1;
-    private static final int SMS_PHONE_ID_INDEX = 2;
+    private static final int SMS_SUB_ID_INDEX = 2;
 
     private float mFontSizeForSave = MessageUtils.FONT_SIZE_DEFAULT;
 
@@ -342,7 +342,7 @@ public class MailBoxMessageContent extends Activity {
 
     private void resendShortMessage(long threadId, Uri uri) {
         Cursor cursor = SqliteWrapper.query(this, getContentResolver(), uri, new String[] {
-                Sms.ADDRESS, Sms.BODY, "phone_id"/*Sms.PHONE_ID*/
+                Sms.ADDRESS, Sms.BODY, Sms.SUBSCRIPTION_ID
         }, null, null, null);
 
         if (cursor != null) {
@@ -352,7 +352,7 @@ public class MailBoxMessageContent extends Activity {
                             new String[] {cursor.getString(SMS_ADDRESS_INDEX)},
                             cursor.getString(SMS_BODY_INDEX),
                             threadId,
-                            cursor.getInt(SMS_PHONE_ID_INDEX));
+                            cursor.getInt(SMS_SUB_ID_INDEX));
                     sender.sendMessage(threadId);
 
                     // Delete the undelivered message since the sender will
