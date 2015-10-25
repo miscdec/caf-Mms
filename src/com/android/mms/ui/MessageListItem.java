@@ -320,8 +320,6 @@ public class MessageListItem extends ZoomMessageListItem implements
             if (mSimIndicatorView != null)
                 mSimIndicatorView.setVisibility(View.GONE);
                 bindRcsMessage();
-        } else {
-            showMmsView(false);
         }
         switch (msgItem.mMessageType) {
             case PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND:
