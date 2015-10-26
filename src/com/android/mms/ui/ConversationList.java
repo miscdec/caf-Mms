@@ -440,7 +440,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 new IntentFilter(Actions.GroupChatAction.ACTION_GROUP_CHAT_MANAGE_NOTIFY));
         registerReceiver(netAvailbaleReceiver,
                 new IntentFilter(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED));
-
+        MessageUtils.pupConnectWifiNotification(this);
     }
 
     public void checkCurrentNetStatus() {

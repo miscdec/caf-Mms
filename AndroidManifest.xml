@@ -63,6 +63,11 @@
     <!-- Needed for OMA Client Provisioning -->
     <uses-permission android:name="org.codeaurora.omacp.permission.SHOW_CONFIGURATION_MESSAGE" />
 
+    <!-- wifi -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application android:name="MmsApp"
             android:label="@string/app_label"
             android:icon="@mipmap/ic_launcher_smsmms"

@@ -45,6 +45,9 @@ import java.util.zip.ZipOutputStream;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -68,6 +71,8 @@ import android.media.CamcorderProfile;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.NetworkInfo.State;
+import android.net.wifi.WifiManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
@@ -93,6 +98,7 @@ import android.provider.Telephony.Threads;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telephony.CellInfo;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -2819,4 +2825,98 @@ public class MessageUtils {
         wifiActive = (info != null && info.isConnected());
         return wifiActive;
     }
+
+    public static boolean pupConnectWifiAlertDialog(final Context context) {
+        if (SystemProperties.getBoolean("persist.sys.wificall.turnon", false)
+                && !cellularNetworkAvailable(context)
+                && (isWifiOn(context) && !isWifiConnected(context))) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            builder.setCancelable(true);
+            builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    Intent intent = new Intent();
+                    intent.setAction(android.provider.Settings.ACTION_WIFI_SETTINGS);
+                    context.startActivity(intent);
+                }
+            });
+            builder.setMessage(R.string.no_network_alert_when_send_message);
+            builder.show();
+            return true;
+        }
+        return false;
+    }
+
+    public static void pupConnectWifiNotification(final Context context) {
+        if (SystemProperties.getBoolean("persist.sys.wificall.turnon", false)
+                && !cellularNetworkAvailable(context)
+                && (isWifiOn(context) && !isWifiConnected(context))) {
+            final NotificationManager notiManager =
+                    (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+            Intent intent = new Intent();
+            intent.setAction(android.provider.Settings.ACTION_WIFI_SETTINGS);
+            PendingIntent pendingIntent =
+                    PendingIntent.getActivity(
+                            context, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+            Notification.Builder builder = new Notification.Builder(context);
+            builder.setOngoing(false);
+            builder.setWhen(0);
+            builder.setContentIntent(pendingIntent);
+            builder.setAutoCancel(true);
+            builder.setSmallIcon(R.drawable.wifi_calling_on_notification);
+            builder.setContentTitle(
+                    context.getResources().getString(R.string.no_network_alert_when_send_message));
+            builder.setContentText(
+                    context.getResources().getString(R.string.no_network_alert_when_send_message));
+            notiManager.notify(1, builder.build());
+            new Thread() {
+                public void run() {
+                    try {
+                        Thread.currentThread().sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    notiManager.cancel(1);
+                }
+            }.start();
+        }
+    }
+
+    private static boolean isWifiOn(Context context) {
+        WifiManager mWifiManager = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
+        if (mWifiManager.isWifiEnabled())
+            return true;
+        return false;
+    }
+
+    private static boolean isWifiConnected(Context context) {
+        ConnectivityManager mConnectivityManager = (ConnectivityManager) context.
+                                                    getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo mWifiNetworkInfo = mConnectivityManager.getNetworkInfo(
+                                                    ConnectivityManager.TYPE_WIFI);
+        if (mWifiNetworkInfo != null) {
+            State wifi = mWifiNetworkInfo.getState();
+            if (wifi == State.CONNECTED)
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean cellularNetworkAvailable(Context context) {
+        boolean available = false;
+        TelephonyManager tm = (TelephonyManager) context.
+                getSystemService(Context.TELEPHONY_SERVICE);
+        List<CellInfo> cellInfoList = tm.getAllCellInfo();
+
+        if (cellInfoList != null) {
+            for (CellInfo cellinfo : cellInfoList) {
+                if (cellinfo.isRegistered()) {
+                    available = true;
+                }
+            }
+        }
+        return available;
+    }
+
 }
