@@ -489,6 +489,9 @@ public class SlideshowModel extends Model
      * Get SMIL size when create and edit MMS. Not used for received MMS.
      */
     public int getSMILSize() {
+        if (toPduBody().getPart(0).getData() == null) {
+            return 0;
+        }
         // first pdu part is SMIL
         return toPduBody().getPart(0).getData().length;
     }
