@@ -109,7 +109,8 @@ public class RcsMessageOpenUtils {
                         RcsUtils.updateFileDownloadState(messageListItem.getContext(),
                                 messageItem.getMessageId(), RcsUtils.RCS_IS_DOWNLOAD_PAUSE);
                         messageApi.pauseDownload(messageItem.getMessageId());
-                    } else {
+                    } else if (messageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_PAUSE
+                            || messageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FALSE){
                         RcsUtils.updateFileDownloadState(messageListItem.getContext(),
                                 messageItem.getMessageId(), RcsUtils.RCS_IS_DOWNLOADING);
                         messageApi.download(messageItem.getMessageId());
