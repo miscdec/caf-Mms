@@ -864,7 +864,9 @@ public class MessageUtils {
         // add RCS recordSound time add size limit
         if (requringRcsAttachment) {
             long durationLimit = RcsUtils.getAudioMaxTime();
-            intent.putExtra(Media.EXTRA_MAX_BYTES, (long)((ARM_BIT / 8) * (durationLimit + 1)));
+            intent.setClassName("com.suntek.mway.rcs.nativeui",
+                    "com.suntek.mway.rcs.nativeui.ui.RcsRecorderActivity");
+            intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, durationLimit);
         } else {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
         }
