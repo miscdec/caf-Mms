@@ -4930,7 +4930,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private boolean isPreparedForSending() {
-        if (mIsAirplaneModeOn) {
+        if (mIsAirplaneModeOn && !TelephonyManager.getDefault().isImsRegistered()) {
             return false;
         }
 
