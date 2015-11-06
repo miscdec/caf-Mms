@@ -466,14 +466,14 @@ public class SmsReceiverService extends Service {
                 if (saveSuccess) {
                     int subId = TelephonyManager.getDefault().isMultiSimEnabled()
                             ? sms.getSubId() : (int)MessageUtils.SUB_INVALID;
+                    int phoneId = SubscriptionManager.getPhoneId(subId);
                     String address = MessageUtils.convertIdp(this,
-                            sms.getDisplayOriginatingAddress(), subId);
+                            sms.getDisplayOriginatingAddress(), phoneId);
                     MessagingNotification.blockingUpdateNewIccMessageIndicator(
                             this, address, sms.getDisplayMessageBody(),
-                            SubscriptionManager.getPhoneId(subId),
-                            sms.getTimestampMillis());
+                            subId, sms.getTimestampMillis());
                     getContentResolver().notifyChange(MessageUtils.getIccUriBySubscription(
-                            SubscriptionManager.getPhoneId(subId)), null);
+                            phoneId), null);
                 } else {
                     mToastHandler.post(new Runnable() {
                         public void run() {
