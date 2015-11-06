@@ -72,6 +72,7 @@ import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
@@ -396,7 +397,8 @@ public class MessagingNotification {
 
     public static void blockingUpdateNewIccMessageIndicator(Context context, String address,
             String message, int subId, long timeMillis) {
-        if (MessageUtils.getSimThreadByPhoneId(subId) == sCurrentlyDisplayedThreadId) {
+        int phoneId = SubscriptionManager.getPhoneId(subId);
+        if (MessageUtils.getSimThreadByPhoneId(phoneId) == sCurrentlyDisplayedThreadId) {
             // We are already diplaying the messages list view, no need to send notification.
             // Just play notification sound.
             Log.d(TAG, "blockingUpdateNewIccMessageIndicator displaying sim messages now");
@@ -415,13 +417,13 @@ public class MessagingNotification {
 //        TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(context);
         // Update the notification.
         PendingIntent pendingIntent;
-        if (subId == MessageUtils.SUB_INVALID) {
+        if (phoneId == MessageUtils.SUB_INVALID) {
             pendingIntent = PendingIntent.getActivity(context, 0, info.mClickIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT);
         } else {
             // Use requestCode to avoid updating all intents of previous notifications
             pendingIntent = PendingIntent.getActivity(context,
-                    NEW_ICC_NOTIFICATION_ID[subId], info.mClickIntent,
+                    NEW_ICC_NOTIFICATION_ID[phoneId], info.mClickIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT);
         }
         String title = info.mTitle;
@@ -491,10 +493,10 @@ public class MessagingNotification {
 
         notifyUserIfFullScreen(context, title);
 
-        if (subId == MessageUtils.SUB_INVALID) {
+        if (phoneId == MessageUtils.SUB_INVALID) {
             nm.notify(ICC_NOTIFICATION_ID, notification);
         } else {
-            nm.notify(NEW_ICC_NOTIFICATION_ID[subId], notification);
+            nm.notify(NEW_ICC_NOTIFICATION_ID[phoneId], notification);
         }
 
     }
@@ -1026,7 +1028,7 @@ public class MessagingNotification {
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-        clickIntent.putExtra(MessageUtils.SUBSCRIPTION_KEY, subId);
+        clickIntent.putExtra(PhoneConstants.SLOT_KEY, SubscriptionManager.getPhoneId(subId));
         String senderInfo = buildTickerMessage(
                 context, address, null, null, subId).toString();
         String senderInfoName = senderInfo.substring(
