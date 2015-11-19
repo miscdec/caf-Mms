@@ -6118,6 +6118,10 @@ public class ComposeMessageActivity extends Activity
     private boolean loadDraft() {
         if (mWorkingMessage.isWorthSaving()) {
             Log.w(TAG, "CMA.loadDraft: called with non-empty working message, bail");
+            if (mConversation.hasDraft() &&
+                    mConversation.getMessageCount() == 0) {
+                mWorkingMessage.asyncDeleteDraftSmsMessage(mConversation);
+            }
             return false;
         }
 
