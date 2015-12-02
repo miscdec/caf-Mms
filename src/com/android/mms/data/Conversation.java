@@ -490,6 +490,47 @@ public class Conversation {
                 new String[] { Long.toString(mThreadId) });
     }
 
+    private boolean checkThreadReadStatus() {
+        boolean needUpdate = false;
+        if (mThreadId > 0) {
+            String selection = "(read=0 AND _id=" + mThreadId + ")";
+            Cursor c = mContext.getContentResolver().query(sAllThreadsUri,
+                    UNREAD_PROJECTION, selection, null, null);
+            if (c != null) {
+                try {
+                    needUpdate = c.getCount() == 1;
+                } finally {
+                    c.close();
+                }
+            }
+        }
+        return needUpdate;
+    }
+
+    private boolean updateReadForThread(final Uri threadUri) {
+        LogTag.debug("markAsRead: update read/seen for thread uri: " +
+                threadUri);
+        try {
+            mContext.getContentResolver().update(threadUri,
+                    sReadContentValues, UNREAD_SELECTION, null);
+        } catch (SQLiteFullException e) {
+            Log.e(TAG, "Database is full");
+            e.printStackTrace();
+            showStorageFullToast(mContext);
+            return false;
+        }
+        return true;
+    }
+
+    public void updateReadIfNeed() {
+        if (checkThreadReadStatus()) {
+            final Uri threadUri = getUri();
+            if (threadUri != null) {
+                updateReadForThread(threadUri);
+            }
+        }
+    }
+
     /**
      * Marks all messages in this conversation as read and updates
      * relevant notifications.  This method returns immediately;
@@ -544,13 +585,8 @@ public class Conversation {
                         sendReadReport(mContext, mThreadId, PduHeaders.READ_STATUS_READ);
                         LogTag.debug("markAsRead: update read/seen for thread uri: " +
                                 threadUri);
-                        try {
-                            mContext.getContentResolver().update(threadUri,
-                                    sReadContentValues, UNREAD_SELECTION, null);
-                        } catch (SQLiteFullException e) {
-                            Log.e(TAG, "Database is full");
-                            e.printStackTrace();
-                            showStorageFullToast(mContext);
+                        if (!updateReadForThread(threadUri)) {
+                            // throw an exception.
                             return null;
                         }
 
