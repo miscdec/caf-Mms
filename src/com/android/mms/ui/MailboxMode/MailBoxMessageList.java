@@ -76,7 +76,10 @@ import android.view.ViewGroup;
 import com.android.mms.data.Contact;
 import com.android.mms.data.Conversation;
 import com.android.mms.LogTag;
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
+import com.android.mms.rcs.FavouriteMessageList;
+import com.android.mms.rcs.RcsSelectionMenu;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
@@ -90,6 +93,7 @@ import com.android.mms.util.DownloadManager;
 import com.android.mms.util.DraftCache;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.pdu.PduHeaders;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
 
 import static com.android.mms.ui.MessageListAdapter.MAILBOX_PROJECTION;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_MSG_TYPE;
@@ -172,6 +176,7 @@ public class MailBoxMessageList extends ListActivity implements
     private Spinner mSlotSpinner = null;
     private Spinner mBoxSpinner;
     private ModeCallback mModeCallback = null;
+    private ActionMode mActionMode = null;
     // mark whether comes into MultiChoiceMode or not.
     private boolean mMultiChoiceMode = false;
     private MenuItem mSearchItem;
@@ -200,7 +205,8 @@ public class MailBoxMessageList extends ListActivity implements
         mListView = getListView();
         getListView().setItemsCanFocus(true);
         mModeCallback = new ModeCallback();
-
+        TextView emptyView = (TextView) findViewById(R.id.emptyview);
+        mListView.setEmptyView(emptyView);
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(false);
         setupActionBar();
@@ -703,6 +709,16 @@ public class MailBoxMessageList extends ListActivity implements
         if (item != null) {
             item.setVisible(false);
         }
+        boolean isRcsEnabled = MmsConfig.isRcsEnabled();
+        MenuItem myFavoriteItem = menu.findItem(R.id.my_favorited);
+        if (myFavoriteItem != null) {
+            myFavoriteItem.setVisible(isRcsEnabled);
+        }
+        MenuItem saveOrBackItem = menu.findItem(R.id.saveorbackmessage);
+        if (saveOrBackItem != null) {
+            saveOrBackItem.setVisible(isRcsEnabled);
+        }
+
         return true;
     }
 
@@ -712,7 +728,10 @@ public class MailBoxMessageList extends ListActivity implements
         if (item != null) {
             item.setVisible(false);
         }
-
+        MenuItem saveOrBackItem = menu.findItem(R.id.saveorbackmessage);
+        if (saveOrBackItem != null) {
+            saveOrBackItem.setVisible(false);
+        }
         // if mQueryText is not null,so restore it.
         if (mQueryText != null && mSearchView != null) {
             mSearchView.setQuery(mQueryText, false);
@@ -759,6 +778,14 @@ public class MailBoxMessageList extends ListActivity implements
                 } catch (ActivityNotFoundException e) {
                     Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
                 }
+                break;
+
+            case R.id.my_favorited:
+                Intent favouriteIntent = new Intent(this, FavouriteMessageList.class);
+                favouriteIntent.putExtra("favorited", true);
+                startActivityIfNeeded(favouriteIntent, -1);
+                MessageUtils.setMailboxMode(true);
+                break;
             default:
                 return true;
         }

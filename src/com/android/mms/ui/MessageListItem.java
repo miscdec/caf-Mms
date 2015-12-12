@@ -29,14 +29,17 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Paint.FontMetricsInt;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.os.RemoteException;
 import android.provider.Browser;
 import android.provider.ContactsContract.Profile;
 import android.provider.Telephony.Sms;
@@ -68,6 +71,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
@@ -78,6 +82,10 @@ import com.android.mms.data.WorkingMessage;
 import com.android.mms.model.LayoutModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
+import com.android.mms.rcs.RcsMessageOpenUtils;
+import com.android.mms.rcs.RcsUtils;
+import com.android.mms.rcs.RcsChatMessageUtils;
+import com.android.mms.transaction.SmsReceiverService;
 import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
 import com.android.mms.transaction.TransactionService;
@@ -85,12 +93,22 @@ import com.android.mms.ui.WwwContextMenuActivity;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ThumbnailManager.ImageLoaded;
+
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.NotificationInd;
 import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
 
+import com.suntek.rcs.ui.common.mms.RcsFileTransferCache;
+import com.suntek.mway.rcs.client.aidl.constant.Constants;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.message.MessageApi;
+import com.suntek.rcs.ui.common.mms.GeoLocation;
+import com.suntek.rcs.ui.common.mms.GroupMemberPhotoCache;
+import com.suntek.rcs.ui.common.mms.RcsContactsUtils;
+import com.suntek.rcs.ui.common.mms.RcsMyProfileCache;
+import com.suntek.rcs.ui.common.PropertyNode;
 /**
  * This class provides view of a message in the messages list.
  */
@@ -142,12 +160,33 @@ public class MessageListItem extends LinearLayout implements
     private boolean mMultiRecipients;
     private int mManageMode;
 
+    /* Begin add for RCS */
+    private static final int MEDIA_IS_DOWNING = 2;
+    private boolean mRcsIsStopDown = false;
+    private ImageView mVCardImageView;
+    private static Drawable sRcsBurnFlagImage;
+    private static Drawable sRcsBurnMessageHasBurnImage;
+    private TextView downloadTextView;
+    private TextView mNameView;
+    private boolean mRcsShowMmsView = false;
+    private long mRcsGroupId;
+    private String mRcsContentType = "";
+    /* End add for RCS */
+
     public MessageListItem(Context context) {
         super(context);
+        Resources res = context.getResources();
         mDefaultCountryIso = MmsApp.getApplication().getCurrentCountryIso();
 
         if (sDefaultContactImage == null) {
             sDefaultContactImage = context.getResources().getDrawable(R.drawable.ic_contact_picture);
+        }
+        if (sRcsBurnFlagImage == null) {
+            sRcsBurnFlagImage = res.getDrawable(R.drawable.rcs_burn_flag);
+        }
+        if (sRcsBurnMessageHasBurnImage == null) {
+            sRcsBurnMessageHasBurnImage = res.getDrawable(
+                    R.drawable.rcs_burnmessage_has_burn);
         }
     }
 
@@ -157,9 +196,16 @@ public class MessageListItem extends LinearLayout implements
         int color = mContext.getResources().getColor(R.color.timestamp_color);
         mColorSpan = new ForegroundColorSpan(color);
         mDefaultCountryIso = MmsApp.getApplication().getCurrentCountryIso();
-
+        Resources res = context.getResources();
         if (sDefaultContactImage == null) {
             sDefaultContactImage = context.getResources().getDrawable(R.drawable.ic_contact_picture);
+        }
+        if (sRcsBurnFlagImage == null) {
+            sRcsBurnFlagImage = res.getDrawable(R.drawable.rcs_burn_flag);
+        }
+        if (sRcsBurnMessageHasBurnImage == null) {
+            sRcsBurnMessageHasBurnImage = res.getDrawable(
+                    R.drawable.rcs_burnmessage_has_burn);
         }
     }
 
@@ -181,6 +227,7 @@ public class MessageListItem extends LinearLayout implements
         mSimMessageAddress = (TextView) findViewById(R.id.sim_message_address);
         mMmsLayout = (LinearLayout) findViewById(R.id.mms_layout_view_parent);
         mChecked = (CheckBox) findViewById(R.id.selected_check);
+        mNameView = (TextView) findViewById(R.id.name_view);
     }
 
     // add for setting the background according to whether the item is selected
@@ -208,10 +255,14 @@ public class MessageListItem extends LinearLayout implements
             mBodyTopTextView.setVisibility(View.GONE);
             mBodyTextView = mBodyButtomTextView;
         }
-        mBodyTextView.setVisibility(View.VISIBLE);
+        if (!isRcsMessage()) {
+            mBodyTextView.setVisibility(View.VISIBLE);
+        }
     }
 
-    public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position) {
+    public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position,
+            long rcsGroupId) {
+        mRcsShowMmsView = false;
         if (DEBUG) {
             Log.v(TAG, "bind for item: " + position + " old: " +
                    (mMessageItem != null ? mMessageItem.toString() : "NULL" ) +
@@ -223,6 +274,7 @@ public class MessageListItem extends LinearLayout implements
         updateBodyTextView();
 
         mPosition = position;
+        mRcsGroupId = rcsGroupId;
         mMultiRecipients = convHasMultiRecipients;
 
         setLongClickable(false);
@@ -231,6 +283,9 @@ public class MessageListItem extends LinearLayout implements
                                 // to this listitem. We always want the listview to handle the
                                 // clicks first.
 
+        if (isRcsMessage()) {
+            bindRcsMessage();
+        }
         switch (msgItem.mMessageType) {
             case PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND:
                 bindNotifInd();
@@ -444,13 +499,23 @@ public class MessageListItem extends LinearLayout implements
         if (isSelf || !TextUtils.isEmpty(addr)) {
             Contact contact = isSelf ? Contact.getMe(false) : Contact.get(addr, false);
             avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
-
             if (isSelf) {
                 mAvatar.assignContactUri(Profile.CONTENT_URI);
+                if (avatarDrawable.equals(sDefaultContactImage) && MmsConfig.isRcsEnabled()) {
+                    Bitmap bitmap = RcsMyProfileCache.getInstance(mAvatar).getMyHeadPic();
+                    if (bitmap != null) {
+                        avatarDrawable = new BitmapDrawable(bitmap);
+                    }
+                }
             } else {
                 if (contact.existsInDatabase()) {
                     mAvatar.assignContactUri(contact.getUri());
                 } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
+                    mAvatar.assignContactFromPhone(
+                            MessageUtils.getWapPushNumber(contact.getNumber()), true);
+                } else if (mRcsGroupId != RcsUtils.SMS_DEFAULT_RCS_GROUP_ID) {
+                    GroupMemberPhotoCache.getInstance().loadGroupMemberPhoto(mRcsGroupId,
+                            addr, mAvatar, sDefaultContactImage);
                     mAvatar.assignContactFromPhone(
                             MessageUtils.getWapPushNumber(contact.getNumber()), true);
                 } else {
@@ -481,7 +546,9 @@ public class MessageListItem extends LinearLayout implements
             mBodyTextView = mBodyButtomTextView;
             mBodyTopTextView.setVisibility(View.GONE);
         }
-        mBodyTextView.setVisibility(View.VISIBLE);
+        if (!isRcsMessage()) {
+            mBodyTextView.setVisibility(View.VISIBLE);
+        }
 
         // Since the message text should be concatenated with the sender's
         // address(or name), I have to display it here instead of
@@ -533,7 +600,18 @@ public class MessageListItem extends LinearLayout implements
             mMessageItem.setCachedFormattedMessage(formattedMessage);
         }
         if (!sameItem || haveLoadedPdu) {
-            mBodyTextView.setText(formattedMessage);
+            if (MmsConfig.isRcsEnabled()
+                    && mMessageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_VCARD) {
+                if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
+                    mBodyTextView.setText(RcsUtils.getCaiYunFileBodyText(mContext, mMessageItem));
+                } else if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_OTHER_FILE) {
+                    mBodyTextView.setText(R.string.message_content_other_file);
+                } else {
+                    mBodyTextView.setText(formattedMessage);
+                }
+            } else {
+                mBodyTextView.setText(formattedMessage);
+            }
         }
         updateSimIndicatorView(mMessageItem.mSubId);
         // Debugging code to put the URI of the image attachment in the body of the list item.
@@ -557,14 +635,29 @@ public class MessageListItem extends LinearLayout implements
         // If we're in the process of sending a message (i.e. pending), then we show a "SENDING..."
         // string in place of the timestamp.
         if (!sameItem || haveLoadedPdu) {
-            mDateView.setText(buildTimestampLine(mMessageItem.isSending() ?
-                    mContext.getResources().getString(R.string.sending_message) :
-                        mMessageItem.mTimestamp));
+            if (MmsConfig.isRcsEnabled()) {
+                int rcsMsgType = mMessageItem.getRcsMsgType();
+                if (rcsMsgType != RcsUtils.RCS_MSG_TYPE_IMAGE
+                        && rcsMsgType != RcsUtils.RCS_MSG_TYPE_VIDEO
+                        && rcsMsgType != RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
+                    mDateView.setText(buildTimestampLine(mMessageItem.isSending() ? mContext
+                            .getResources().getString(R.string.sending_message)
+                            : mMessageItem.mTimestamp));
+                }
+            } else {
+                mDateView.setText(buildTimestampLine(mMessageItem.isSending() ? mContext
+                        .getResources().getString(R.string.sending_message)
+                        : mMessageItem.mTimestamp));
+            }
         }
-        if (mMessageItem.isSms()) {
-            showMmsView(false);
-            mMessageItem.setOnPduLoaded(null);
-        } else {
+        if (isRcsMessage()) {
+            bindCommonRcsMessage();
+        }
+        if (!mRcsShowMmsView) {
+            if (mMessageItem.isSms()) {
+                showMmsView(false);
+                mMessageItem.setOnPduLoaded(null);
+            } else {
             if (DEBUG) {
                 Log.v(TAG, "bindCommonMessage for item: " + mPosition + " " +
                         mMessageItem.toString() +
@@ -614,6 +707,7 @@ public class MessageListItem extends LinearLayout implements
                 }
                 mPresenter.present(mImageLoadedCallback);
             }
+        }
         }
         drawRightStatusIndicator(mMessageItem);
 
@@ -708,6 +802,9 @@ public class MessageListItem extends LinearLayout implements
             }
             if (mSlideShowButton == null) {
                 mSlideShowButton = (ImageButton) findViewById(R.id.play_slideshow_button);
+            }
+            if (MmsConfig.isRcsEnabled() && mVCardImageView == null) {
+                mVCardImageView = (ImageView) findViewById(R.id.vcard_image_view);
             }
             mMmsView.setVisibility(visible ? View.VISIBLE : View.GONE);
             mImageView.setVisibility(visible ? View.VISIBLE : View.GONE);
@@ -845,7 +942,10 @@ public class MessageListItem extends LinearLayout implements
         if (mMessageItem != null &&
                 mMessageItem.isOutgoingMessage() &&
                 mMessageItem.isFailedMessage() ) {
-
+            //if message is rcsMessage except text,return.
+            if (isRcsMessage() && mMessageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_TEXT) {
+                return;
+            }
             // Assuming the current message is a failed one, reload it into the compose view so
             // the user can resend it.
             sendMessage(mMessageItem, MSG_LIST_EDIT);
@@ -1071,4 +1171,285 @@ public class MessageListItem extends LinearLayout implements
             mBodyTextView.setTextSize(size);
         }
     }
+
+    /* Begin add for RCS */
+    public boolean getRcsIsStopDown() {
+        return mRcsIsStopDown;
+    }
+
+    public void setRcsIsStopDown(boolean rcsIsStopDown) {
+            mRcsIsStopDown = rcsIsStopDown;
+    }
+
+    public String getRcsContentType() {
+        return mRcsContentType;
+    }
+
+    public void setDateViewText(int resId) {
+        mDateView.setText(resId);
+    }
+
+    private void updateGroupMemberDisplayName() {
+        if (mNameView != null) {
+            mNameView.setText(RcsContactsUtils.getGroupChatMemberDisplayName(getContext(),
+                    mRcsGroupId, mMessageItem.mAddress));
+            mNameView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void formatAndSetRcsCachedFormattedMessage(MessageItem messageItem, String body) {
+        CharSequence formattedMessage = formatMessage(messageItem,
+                body,
+                messageItem.mSubId,
+                messageItem.mSubject,
+                messageItem.mHighlight,
+                messageItem.mTextContentType);
+        messageItem.setCachedFormattedMessage(formattedMessage);
+    }
+
+    private boolean isRcsMessage() {
+        return mMessageItem.isRcsMessage();
+    }
+
+    private void bindRcsMessage() {
+        if (mMessageItem.isGroupChatMessageWithoutNotification()) {
+            updateGroupMemberDisplayName();
+        }
+
+        if (mMessageItem.isRcsBurnMessage()) {
+            bindRcsBurnMessage();
+        } else {
+            bindRcsNotBurnMessage();
+        }
+    }
+
+    private void bindRcsBurnMessage() {
+        setLongClickable(true);
+        setClickable(true);
+        mRcsContentType = "";
+        mRcsShowMmsView = true;
+        showMmsView(true);
+        if (mSlideShowButton != null) {
+            mSlideShowButton.setVisibility(View.GONE);
+        }
+        if (mMessageItem.getRcsMsgState() == RcsUtils.MESSAGE_HAS_BURNED) {
+            mImageView.setImageDrawable(sRcsBurnMessageHasBurnImage);
+        } else {
+            mImageView.setImageDrawable(sRcsBurnFlagImage);
+        }
+        mImageView.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                if (mMessageItem.getRcsMsgState() == RcsUtils.MESSAGE_FAIL) {
+                    RcsMessageOpenUtils.retransmisMessage(mMessageItem);
+                } else {
+                    RcsChatMessageUtils.startBurnMessageActivity(mContext, mMessageItem.mMsgId,
+                            mMessageItem.getRcsMsgState());
+                }
+            }
+        });
+        mImageView.setOnLongClickListener(new OnLongClickListener() {
+
+            @Override
+            public boolean onLongClick(View v) {
+                new AlertDialog.Builder(getContext()).setTitle(R.string.rcs_tip)
+                        .setMessage(R.string.rcs_delete_burn_message)
+                        .setCancelable(true)
+                        .setPositiveButton(R.string.rcs_confirm,
+                                new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                try {
+                                    MessageApi.getInstance().deleteMessage(
+                                            mMessageItem.getMessageId());
+                                } catch (RemoteException e) {
+                                    // TODO: handle exception
+                                } catch (ServiceDisconnectedException e) {
+                                }
+                            }
+                        }).setNegativeButton(R.string.rcs_cancel, null).show();
+                return false;
+            }
+        });
+
+        mBodyTextView.setVisibility(View.GONE);
+    }
+
+    private void bindRcsNotBurnMessage() {
+        mRcsContentType = RcsUtils.getContentTypeForMessageItem(mMessageItem);
+        switch (mMessageItem.getRcsMsgType()) {
+            case RcsUtils.RCS_MSG_TYPE_VIDEO: {
+                int videoDuration = 0;
+                String body = mMessageItem.getMsgBody();
+                if (body != null) {
+                    videoDuration = Integer.valueOf(body);
+                }
+                double displayDuration = (double)(Math.round(videoDuration/10)/100.0);
+                String msgBody = mMessageItem.getRcsMsgFileSize() / 1024 + "KB/ "
+                        + displayDuration + "s";
+                formatAndSetRcsCachedFormattedMessage(mMessageItem, msgBody);
+                mBodyTextView.setVisibility(View.VISIBLE);
+                break;
+            }
+            case RcsUtils.RCS_MSG_TYPE_MAP: {
+                mBodyTextView.setVisibility(View.VISIBLE);
+                break;
+            }
+            case RcsUtils.RCS_MSG_TYPE_IMAGE: {
+                mBodyTextView.setVisibility(View.GONE);
+                break;
+            }
+            case RcsUtils.RCS_MSG_TYPE_AUDIO: {
+                mBodyTextView.setVisibility(View.VISIBLE);
+                int audioDuration = 0;
+                String body = mMessageItem.getMsgBody();
+                if (body != null) {
+                    audioDuration = Integer.valueOf(body);
+                }
+                double displayDuration = (double)(Math.round(audioDuration/10)/100.0);
+                String dispayBody = displayDuration +
+                        mContext.getString(R.string.time_length_unit);
+                formatAndSetRcsCachedFormattedMessage(mMessageItem, dispayBody);
+                break;
+            }
+            case RcsUtils.RCS_MSG_TYPE_PAID_EMO: {
+                mBodyTextView.setVisibility(View.GONE);
+                break;
+            }
+            case RcsUtils.RCS_MSG_TYPE_VCARD:{
+                mBodyTextView.setVisibility(View.VISIBLE);
+                mBodyTextView.setText(RcsUtils.disposeVcardMessage(
+                        getContext(), mMessageItem.getRcsPath()));
+                break;
+            }
+            case RcsUtils.RCS_MSG_TYPE_CAIYUNFILE:{
+                mBodyTextView.setVisibility(View.VISIBLE);
+                String msgBody = RcsUtils.getCaiYunFileBodyText(
+                        getContext(), mMessageItem);
+                mBodyTextView.setText(msgBody);
+                break;
+            }
+            case RcsUtils.RCS_MSG_TYPE_OTHER_FILE: {
+                mBodyTextView.setVisibility(View.VISIBLE);
+                break;
+            }
+        }
+
+        if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_TEXT) {
+            mBodyTextView.setVisibility(View.VISIBLE);
+            mRcsShowMmsView = false;
+            showMmsView(false);
+        } else {
+            showMmsView(true);
+            if (mSlideShowButton == null) {
+                mSlideShowButton = (ImageButton) findViewById(R.id.play_slideshow_button);
+            }
+            if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_VCARD) {
+                mImageView.setVisibility(View.GONE);
+                mVCardImageView.setVisibility(View.VISIBLE);
+                RcsUtils.setThumbnailForMessageItem(getContext(), mVCardImageView, mMessageItem);
+            } else {
+                RcsUtils.setThumbnailForMessageItem(getContext(), mImageView, mMessageItem);
+            }
+            if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_VIDEO) {
+                mSlideShowButton.setVisibility(View.VISIBLE);
+                mSlideShowButton.setFocusable(false);
+                mSlideShowButton.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        RcsMessageOpenUtils.openRcsSlideShowMessage(MessageListItem.this);
+                    }
+                });
+                mImageView.setOnClickListener(null);
+                mVCardImageView.setOnClickListener(null);
+            } else {
+                mSlideShowButton.setVisibility(View.GONE);
+                if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_VCARD) {
+                    RcsMessageOpenUtils.setRcsImageViewClickListener(
+                            mVCardImageView, MessageListItem.this);
+                    mImageView.setOnClickListener(null);
+                } else {
+                    RcsMessageOpenUtils.setRcsImageViewClickListener(
+                            mImageView, MessageListItem.this);
+                    mVCardImageView.setOnClickListener(null);
+                }
+                mSlideShowButton.setOnClickListener(null);
+            }
+            mRcsShowMmsView = true;
+        }
+    }
+
+    public ImageView getImageView(){
+        return mImageView;
+    }
+
+    private void toast(int resId) {
+        Toast.makeText(mContext, resId, Toast.LENGTH_LONG).show();
+    }
+
+    private void bindCommonRcsMessage() {
+        if (mMessageItem.isMe()) {
+            mDateView.setText(RcsUtils.getRcsMessageStatusText(this, mMessageItem));
+        } else if (mMessageItem.isRcsBurnMessage()) {
+            mDateView.setText(mMessageItem.getTimestamp());
+        } else {
+            int rcsMsgType = mMessageItem.getRcsMsgType();
+            if (rcsMsgType == RcsUtils.RCS_MSG_TYPE_PAID_EMO) {
+                if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FAIL) {
+                    mDateView.setText(R.string.download_fail_please_download_again);
+                } else {
+                    mDateView.setText(mMessageItem.getTimestamp());
+                }
+            } else if ((rcsMsgType == RcsUtils.RCS_MSG_TYPE_IMAGE
+                    || rcsMsgType == RcsUtils.RCS_MSG_TYPE_VIDEO
+                    || rcsMsgType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE)) {
+                if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FALSE
+                        && !mMessageItem.isRcsBurnMessage()) {
+                    mDateView.setText(R.string.message_download);
+                } else if (RcsFileTransferCache.getInstance()
+                        .hasFileTransferPercent(mMessageItem.getMessageId()) &&
+                        mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOADING) {
+                    Long percent = RcsFileTransferCache.getInstance()
+                            .getFileTransferPercent(mMessageItem.getMessageId());
+                    if (percent != null) {
+                        if (!mMessageItem.isMe()) {
+                            mDateView.setText(getContext().getString(
+                                    R.string.downloading_percent, percent.intValue()));
+                        } else {
+                            mDateView.setText(getContext().getString(
+                                    R.string.uploading_percent, percent.intValue()));
+                        }
+                    }
+                } else if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_PAUSE &&
+                        !RcsUtils.isFileDownLoadoK(mMessageItem)) {
+                    mDateView.setText(getContext().getString(R.string.stop_down_load));
+                } else if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_OK) {
+                    mDateView.setText(buildTimestampLine(mMessageItem.isSending() ? mContext
+                            .getResources().getString(R.string.sending_message)
+                            : mMessageItem.getTimestamp()));
+                } else if (mMessageItem.getMsgDownlaodState() == RcsUtils.RCS_IS_DOWNLOAD_FAIL
+                        && RcsUtils.isFileDownBeginButNotEnd(mMessageItem.getRcsPath(),
+                        mMessageItem.getRcsMsgFileSize())) {
+                    mDateView.setText(R.string.download_fail_please_download_again);
+                }
+            }
+        }
+        if (mMessageItem.getRcsMsgState() == RcsUtils.MESSAGE_HAS_SENT_TO_SERVER
+                && mMessageItem.getRcsMsgType() != Constants.MessageConstants.CONST_MESSAGE_TEXT) {
+            Long percent = RcsFileTransferCache.getInstance()
+                    .getFileTransferPercent(mMessageItem.getMessageId());
+            if (percent != null) {
+                if (!mMessageItem.isMe()) {
+                    mDateView.setText(getContext().getString(R.string.downloading_percent,
+                            percent.intValue()));
+                } else {
+                    mDateView.setText(getContext().getString(R.string.uploading_percent,
+                            percent.intValue()));
+                }
+            }
+        }
+    }
+    /* End add for RCS */
+
 }

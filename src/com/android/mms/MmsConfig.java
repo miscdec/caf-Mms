@@ -31,8 +31,12 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.internal.telephony.TelephonyProperties;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.suntek.mway.rcs.client.api.basic.BasicApi;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
+import com.suntek.rcs.ui.common.RcsLog;
 
 public class MmsConfig {
     private static final String TAG = LogTag.TAG;
@@ -131,6 +135,33 @@ public class MmsConfig {
 
     private static final String MMS_DESTINATION = "9798";
 
+    /* Begin add for RCS */
+    private static boolean sIsRcsVersion;
+
+    public static boolean isRcsEnabled() {
+        try {
+            return SupportApi.getInstance().isRcsSupported();
+        } catch (Exception e) {
+            RcsLog.w(e);
+            return false;
+        }
+    }
+
+    public static boolean isRcsEnabledAndOnline() {
+        try {
+            return SupportApi.getInstance().isRcsSupported()
+                    && BasicApi.getInstance().isOnline();
+        } catch (Exception e) {
+            RcsLog.w(e);
+            return false;
+        }
+    }
+
+    public static boolean isRcsVersion() {
+        return sIsRcsVersion;
+    }
+    /* End add for RCS */
+
     public static void init(Context context) {
         if (LOCAL_LOGV) {
             Log.v(TAG, "MmsConfig.init()");
@@ -142,6 +173,7 @@ public class MmsConfig {
         loadMmsSettings(context);
 
         MAX_SLIDE_NUM = context.getResources().getInteger(R.integer.max_slide_num);
+        sIsRcsVersion = context.getResources().getBoolean(R.bool.config_rcs_sms_version);
 
     }
 

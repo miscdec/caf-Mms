@@ -19,18 +19,21 @@ package com.android.mms.ui;
 
 import android.app.ActionBar;
 import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -40,14 +43,20 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.Telephony;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Threads;
+import android.telephony.ServiceState;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.ContextMenu;
@@ -68,6 +77,7 @@ import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -79,6 +89,14 @@ import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
 import com.android.mms.data.Conversation.ConversationQueryHandler;
 import com.android.mms.data.RecipientIdCache;
+
+import com.android.internal.telephony.TelephonyIntents;
+import com.android.mms.LogTag;
+import com.android.mms.MmsConfig;
+import com.android.mms.R;
+import com.android.mms.rcs.FavouriteMessageList;
+import com.android.mms.rcs.RcsUtils;
+import com.android.mms.rcs.RcsSelectionMenu;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.SmsRejectedReceiver;
 import com.android.mms.ui.PopupList;
@@ -87,10 +105,24 @@ import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.pdu.PduHeaders;
+import com.suntek.mway.rcs.client.aidl.constant.Actions;
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
+import com.suntek.mway.rcs.client.api.message.MessageApi;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
+import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver;
+import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver.GroupChatNotifyCallback;
+import com.suntek.rcs.ui.common.RcsLog;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * This activity provides a list view of existing conversations.
@@ -141,12 +173,103 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private static long mLastDeletedThread = -1;
     private boolean mMultiChoiceMode = false;
 
+    /* Begin add for RCS */
+    private ProgressDialog mSaveOrBackProgressDialog = null;
+    private ProgressDialog mStartSaveProgressDialog = null;
+    private Spinner mFilterSpinner;
+    private Integer mFilterSubId = null;
+    private TextView mEmptyView;
+    private final static String MULTI_SELECT_CONV = "select_conversation";
+    public static final int CREATE_NEW_MESSAGE         = 0;
+    public static final int CREATE_NEW_GROUP_CHAT      = 1;
+    private static final int PROGRESS_TOTAL = 0;
+    private Conversation mConversation;     // Conversation we are working in
+    private static final String LUNCH_BACKUP_RESTORE_ACTIVITY =
+            "com.suntek.mway.rcs.ACTION_LUNCHER_BACKUP_RESOTORE_ALL_ACTIVITY";
+    private static boolean mIsRcsEnabled;
+    private long mRcsTopConversationId;
+    private boolean mIsTopConversation = false;
+    private static final int MARK_CONVERSATION_UNREAD_TOKEN = 1804;
+    private static final int MARK_CONVERSATION_READ_TOKEN = 1805;
+    private static String SELECT_THREAD_ID = "selectThreadId";
+    private static String NUMBERS = "numbers";
+    private static String GROUP_CHAT_ID = "groupChatId";
+    private static String GROUP_CHAT = "GroupChat";
+    private static final String CREATE_GROUP_CHAT = "com.suntek.rcs.action.CREATR_GROUP_CHAT";
+    private GroupChatManagerReceiver groupReceiver = new GroupChatManagerReceiver(
+            new GroupChatNotifyCallback() {
+
+                @Override
+                public void onGroupChatCreate(Bundle extras) {
+                    if (mListAdapter != null) {
+                        mListAdapter.notifyDataSetChanged();
+                    }
+                }
+
+                @Override
+                public void onMemberAliasChange(Bundle extras) {
+                }
+
+                @Override
+                public void onDisband(Bundle extras) {
+                }
+
+                @Override
+                public void onDeparted(Bundle extras) {
+                }
+
+                @Override
+                public void onUpdateSubject(Bundle extras) {
+                }
+
+                @Override
+                public void onUpdateRemark(Bundle extras) {
+                }
+
+                @Override
+                public void onCreateNotActive(Bundle extras) {
+                }
+
+                @Override
+                public void onBootMe(Bundle extras) {
+                }
+
+                @Override
+                public void onGroupGone(Bundle extras) {
+                }
+
+                @Override
+                public void onGroupInviteExpired(Bundle extras) {
+                }
+            });
+
+    private View.OnClickListener mComposeClickHandler = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            if (mIsSmsEnabled) {
+                if (mIsRcsEnabled) {
+                    selectComposeAction();
+                } else {
+                    createNewMessage();
+                }
+            } else {
+                // Display a toast letting the user know they can not compose.
+                if (mComposeDisabledToast == null) {
+                    mComposeDisabledToast = Toast.makeText(ConversationList.this,
+                            R.string.compose_disabled_toast, Toast.LENGTH_SHORT);
+                }
+                mComposeDisabledToast.show();
+            }
+        }
+    };
+    /* End add for RCS */
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Cache recipients information in a background thread in advance.
         RecipientIdCache.init(getApplication());
-
+        mIsRcsEnabled = MmsConfig.isRcsEnabled();
         setContentView(R.layout.conversation_list_screen);
         if (MessageUtils.isMailboxMode()) {
             Intent modeIntent = new Intent(this, MailBoxMessageList.class);
@@ -164,7 +287,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         listView.setOnKeyListener(mThreadListKeyListener);
         listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
         listView.setMultiChoiceModeListener(new ModeCallback());
-
+        // RCS Features
+        if (mIsRcsEnabled) {
+            RcsUtils.addPublicAccountItem(this, listView);
+            RcsUtils.addNotificationItem(this, listView);
+        }
         // Tell the list view which view to display when the list is empty
         listView.setEmptyView(findViewById(R.id.empty));
 
@@ -193,6 +320,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mSavedFirstItemOffset = 0;
         }
         MessageUtils.pupConnectWifiNotification(this);
+        if (mIsRcsEnabled) {
+            registerReceiver(groupReceiver, new IntentFilter(
+                    Actions.GroupChatAction.ACTION_GROUP_CHAT_MANAGE_NOTIFY));
+        }
     }
 
     @Override
@@ -243,7 +374,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             initSmsPromoBanner();
             mSmsPromoBannerView.setVisibility(View.VISIBLE);
         }
-
         mListAdapter.setOnContentChangedListener(mContentChangedListener);
         if (!mDoOnceAfterFirstQuery) {
             startAsyncQuery();
@@ -452,6 +582,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
 
         MessageUtils.removeDialogs();
+        try {
+            if (mIsRcsEnabled) {
+                unregisterReceiver(groupReceiver);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         Contact.clearListener();
     }
 
@@ -462,7 +599,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 ConversationListItem item = (ConversationListItem)view;
                 if (threadIds == null) {
                     item.unbind();
-                } else if (threadIds.contains(item.getConversation().getThreadId())) {
+                } else if (item.getConversation() != null
+                        && threadIds.contains(item.getConversation().getThreadId())) {
                     item.unbind();
                 }
             }
@@ -568,6 +706,17 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             }
         }
 
+        if (mIsRcsEnabled) {
+            MenuItem myFavoriteItem = menu.findItem(R.id.my_favorited);
+            MenuItem saveOrBackItem = menu.findItem(R.id.saveorbackmessage);
+            if (myFavoriteItem != null) {
+                myFavoriteItem.setVisible(true);
+            }
+            if (saveOrBackItem != null) {
+                saveOrBackItem.setVisible(true);
+            }
+        }
+
         return true;
     }
 
@@ -633,7 +782,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 return true;
             case R.id.action_compose_new:
                 if (mIsSmsEnabled) {
-                    createNewMessage();
+                    if (mIsRcsEnabled) {
+                        selectComposeAction();
+                    } else {
+                        createNewMessage();
+                    }
                 } else {
                     // Display a toast letting the user know they can not compose.
                     if (mComposeDisabledToast == null) {
@@ -670,6 +823,16 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
                 }
                 return true;
+            case R.id.my_favorited:
+                Intent favouriteIntent = new Intent(this, FavouriteMessageList.class);
+                favouriteIntent.putExtra("favorited", true);
+                startActivityIfNeeded(favouriteIntent, -1);
+                break;
+            case R.id.saveorbackmessage:
+                Intent backupRestoreIntent = new Intent();
+                backupRestoreIntent.setAction(LUNCH_BACKUP_RESTORE_ACTIVITY);
+                startActivity(backupRestoreIntent);
+                break;
             default:
                 return true;
         }
@@ -686,14 +849,47 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // (ConversationListAdapter extends CursorAdapter, so getItemAtPosition() should
         // return the cursor object, which is moved to the position passed in)
         Cursor cursor  = (Cursor) getListView().getItemAtPosition(position);
+        if (cursor == null || cursor.getPosition() < 0) {
+            return;
+        }
         Conversation conv = Conversation.from(this, cursor);
         long tid = conv.getThreadId();
 
         if (LogTag.VERBOSE) {
             Log.d(TAG, "onListItemClick: pos=" + position + ", view=" + v + ", tid=" + tid);
         }
-
-        openThread(tid);
+        boolean isConvsertionSelect = getIntent().getBooleanExtra(MULTI_SELECT_CONV, false);
+        if (mIsRcsEnabled) {
+            if (!isConvsertionSelect) {
+                if (mIsRcsEnabled) {
+                    GroupChat groupChat = conv.getGroupChat();
+                    if (groupChat != null) {
+                        try {
+                            if (groupChat.isGroupChatValid()) {
+                                GroupChatApi.getInstance().rejoin(groupChat.getId());
+                                RcsLog.i("rejoin groupChatId =" + groupChat.getId());
+                            }
+                        } catch (Exception e) {
+                            RcsLog.w(e);
+                        }
+                    }
+                }
+                openThread(tid);
+            } else {
+                Intent intent = new Intent();
+                intent.putExtra(SELECT_THREAD_ID, tid);
+                intent.putExtra(NUMBERS, conv.getRecipients().getNumbers());
+                GroupChat groupChat = conv.getGroupChat();
+                if (groupChat != null) {
+                    intent.putExtra(GROUP_CHAT_ID, groupChat.getId());
+                    intent.putExtra(GROUP_CHAT, groupChat);
+                }
+                setResult(RESULT_OK, intent);
+                finish();
+            }
+        } else {
+            openThread(tid);
+        }
     }
 
     private void createNewMessage() {
@@ -942,6 +1138,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                         ((ConversationList)mContext).unbindListeners(mThreadIds);
                     }
                     if (mThreadIds == null) {
+                        if (mIsRcsEnabled) {
+                            RcsUtils.deleteGroupchatByThreadIds(mContext, mThreadIds,
+                                    mDeleteLockedMessages, true);
+                        }
                         Conversation.startDeleteAll(mHandler, token, mDeleteLockedMessages);
                         DraftCache.getInstance().refresh();
                     } else {
@@ -950,6 +1150,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                             // Save the last thread id.
                             // And cancel deleting dialog after this thread been deleted.
                             mLastDeletedThread = (mThreadIds.toArray(new Long[size]))[size - 1];
+                                if (mIsRcsEnabled) {
+                                    RcsUtils.deleteGroupchatByThreadIds(mContext, mThreadIds,
+                                        mDeleteLockedMessages, false);
+                                }
                         }
                         Conversation.startDelete(mHandler, token, mDeleteLockedMessages,
                                 mThreadIds);
@@ -1235,6 +1439,29 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
                 mSelectedConvCount = (TextView)v.findViewById(R.id.selected_conv_count);
             }
+            final int checkedCount = getListView().getCheckedItemCount();
+            MenuItem topItem = menu.findItem(R.id.topConversation);
+            MenuItem unTopItem = menu.findItem(R.id.cancelTopConversation);
+            MenuItem addBlackItem = menu.findItem(R.id.addBlackList);
+            if (mIsRcsEnabled && checkedCount == 1) {
+                if (mIsTopConversation) {
+                    unTopItem.setVisible(true);
+                    topItem.setVisible(false);
+                } else {
+                    topItem.setVisible(true);
+                    unTopItem.setVisible(false);
+                }
+                if (RcsUtils.showFirewallMenu(ConversationList.this,
+                    mConversation.getRecipients(), true) && !mConversation.isGroupChat()) {
+                    addBlackItem.setVisible(true);
+                } else {
+                    addBlackItem.setVisible(false);
+                }
+            } else {
+                topItem.setVisible(false);
+                unTopItem.setVisible(false);
+                addBlackItem.setVisible(false);
+            }
             return true;
         }
 
@@ -1245,6 +1472,20 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     if (mSelectedThreadIds.size() > 0) {
                         confirmDeleteThreads(mSelectedThreadIds, mQueryHandler);
                     }
+                    mode.finish();
+                    break;
+                case R.id.topConversation:
+                    RcsUtils.topConversion(ConversationList.this, mRcsTopConversationId);
+                    startAsyncQuery();
+                    mode.finish();
+                    break;
+                case R.id.cancelTopConversation:
+                    RcsUtils.cancelTopConversion(ConversationList.this, mRcsTopConversationId);
+                    startAsyncQuery();
+                    mode.finish();
+                    break;
+                case R.id.addBlackList:
+                    showAddBlacklistDialog();
                     mode.finish();
                     break;
                 default:
@@ -1287,7 +1528,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             Conversation conv = Conversation.from(ConversationList.this, cursor);
             conv.setIsChecked(checked);
             long threadId = conv.getThreadId();
-
+            if (mIsRcsEnabled && checkedCount == 1) {
+                mRcsTopConversationId = threadId;
+                mIsTopConversation = conv.isTop();
+            }
+            if (mIsRcsEnabled && conv.isChecked()) {
+                mConversation = conv;
+            }
             if (checked) {
                 mSelectedThreadIds.add(threadId);
             } else {
@@ -1301,4 +1548,50 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         String s = String.format(format, args);
         Log.d(TAG, "[" + Thread.currentThread().getId() + "] " + s);
     }
+
+    /* Begin add for RCS */
+    private void selectComposeAction() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.menu_compose_new);
+        builder.setItems(R.array.compose_message_items, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case CREATE_NEW_MESSAGE:
+                        createNewMessage();
+                        break;
+                    case CREATE_NEW_GROUP_CHAT:
+                        createNewGroupChat();
+                        break;
+                }
+            }
+        });
+        builder.setNegativeButton(R.string.no, null);
+        AlertDialog dialog = builder.create();
+        dialog.setCanceledOnTouchOutside(true);
+        dialog.show();
+    }
+
+    private void createNewGroupChat() {
+        Intent intent = new Intent(CREATE_GROUP_CHAT);
+        startActivity(intent);
+    }
+
+        private void showAddBlacklistDialog() {
+            AlertDialog.Builder builder = new AlertDialog.Builder(ConversationList.this);
+            builder.setMessage(R.string.firewall_add_blacklist_wring);
+            builder.setPositiveButton(android.R.string.ok, new OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    RcsUtils.addNumberToFirewall(ConversationList.this,
+                            mConversation.getRecipients(), true);
+                }
+            });
+            builder.setNegativeButton(android.R.string.cancel, null);
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
+
+    /* End add for RCS */
+
 }

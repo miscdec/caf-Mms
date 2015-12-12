@@ -29,7 +29,7 @@
 package com.android.mms.ui;
 
 import java.lang.ref.WeakReference;
-
+import java.util.ArrayList;
 import android.app.ListActivity;
 import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
@@ -65,7 +65,6 @@ public class MultiPickContactGroups extends ListActivity implements
 
     public static final String RESULT_KEY = "result";
     public final static String MAX_CONTACT_COUNT = "max_contact_count";
-
     private static final int LOCAL_GROUP_QUERY_TOKEN = 55;
     private static final int PHONE_CONTACT_QUERY_TOKEN = 56;
 
@@ -119,12 +118,23 @@ public class MultiPickContactGroups extends ListActivity implements
     private Intent mIntent;
     private int mMaxContactCount = 0;
 
+    /* Begin add for RCS */
+    public static final String LOCAL_GROUP_QUERY_SELECTION = "sourceid='1'";
+    private static final String LUNCH_SELECT_GROUP_ACTION =
+            "com.suntek.rcs.action.ACTION_PICK_CONTACTGROUPS";
+    private static final String RECIPIENTS = "recipients";
+    private boolean mPublicAccountPickGroup;
+    /* End add for RCS */
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
         mMaxContactCount = intent.getIntExtra(MAX_CONTACT_COUNT, 0);
-
+        String action=intent.getAction();
+        if (null != action && action.endsWith(LUNCH_SELECT_GROUP_ACTION)) {
+            mPublicAccountPickGroup = true;
+        }
         setContentView(R.layout.pick_contact_group);
         mChoiceSet = new Bundle();
         mAdapter = new LocalGroupListAdapter(this);
@@ -267,6 +277,8 @@ public class MultiPickContactGroups extends ListActivity implements
                     }
                     return buf.append("))").toString();
                 }
+            case LOCAL_GROUP_QUERY_TOKEN:
+                return LOCAL_GROUP_QUERY_SELECTION;
         }
         return null;
     }
@@ -376,6 +388,7 @@ public class MultiPickContactGroups extends ListActivity implements
             if (token == LOCAL_GROUP_QUERY_TOKEN) {
                 activity.mAdapter.changeCursor(cursor);
             } else if (token == PHONE_CONTACT_QUERY_TOKEN && cursor != null) {
+                ArrayList<String> numbers = new ArrayList<String>();
                 Intent intent = new Intent();
                 Bundle bundle = new Bundle();
                 Bundle result = new Bundle();
@@ -387,9 +400,15 @@ public class MultiPickContactGroups extends ListActivity implements
                     String number = String.valueOf(
                                 cursor.getLong(PHONE_CONTACTS_NUMBER_INDEX));
                     result.putString(id, number);
+                    numbers.add(number);
                 }
-                bundle.putBundle(RESULT_KEY, result);
-                intent.putExtras(bundle);
+                if (mPublicAccountPickGroup) {
+                    mPublicAccountPickGroup = false;
+                    intent.putExtra(RECIPIENTS, numbers);
+                } else {
+                    bundle.putBundle(RESULT_KEY, result);
+                    intent.putExtras(bundle);
+                }
                 activity.setResult(RESULT_OK, intent);
                 finish();
             }

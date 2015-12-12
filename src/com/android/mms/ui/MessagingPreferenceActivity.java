@@ -47,6 +47,7 @@ import android.os.Message;
 import android.os.Handler;
 import android.os.Bundle;
 import android.os.Looper;
+import android.os.RemoteException;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
@@ -87,6 +88,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.Recycler;
 import java.io.File;
@@ -97,6 +99,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
+import com.suntek.mway.rcs.client.aidl.constant.Constants.MessageConstants;
+import com.suntek.mway.rcs.client.api.basic.BasicApi;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.message.MessageApi;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
+import com.suntek.rcs.ui.common.RcsLog;
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -239,6 +247,15 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         }
     };
 
+    /* Begin add for RCS */
+    public static final String ENABLE_RCS_MESSAGE_POLICY =
+            "pref_key_rcs_immediately_message_policy";
+    public static final String ENABLE_FAILURE_CHEANGE_TO_SMS =
+            "pref_key_rcs_message_failure_change_to_sms";
+    private CheckBoxPreference mEnableRcsMessagePref;
+    private CheckBoxPreference mEnableFailureChangeToSmsPref;
+    /* End add for RCS */
+
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -359,6 +376,14 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             prefRoot.removePreference(OMACPConCategory);
         }
 
+
+        //Rcs message send policy
+        if (MmsConfig.isRcsEnabled()) {
+            mEnableRcsMessagePref = (CheckBoxPreference) findPreference(ENABLE_RCS_MESSAGE_POLICY);
+            mEnableFailureChangeToSmsPref =
+                    (CheckBoxPreference) findPreference(ENABLE_FAILURE_CHEANGE_TO_SMS);
+        }
+
         mMmsSizeLimit = (Preference) findPreference("pref_key_mms_size_limit");
 
         if (getResources().getBoolean(R.bool.def_custom_preferences_settings)) {
@@ -422,7 +447,18 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 mSmsPrefCategory.removePreference(mSmsDeliveryReportPrefSub2);
             }
         }
-
+        //Rcs message send policy
+        if (!MmsConfig.isRcsEnabled()) {
+            enableRcsMessagePloicy(false, this);
+            enableFailureChangeToSms(false, this);
+            PreferenceScreen keyRoot = (PreferenceScreen)findPreference("pref_key_root");
+            keyRoot.removePreference(findPreference("pref_key_rcs_send_policy_settings"));
+        } else {
+            mEnableRcsMessagePref.setChecked(getRcsMessagePloicyEnabled(this));
+            boolean isFailureEnable = getFailureChangeToSmsEnabled(this);
+            mEnableFailureChangeToSmsPref.setChecked(isFailureEnable);
+            setRcsServiceChangeToSmsPolicy(isFailureEnable);
+        }
         setMmsRelatedPref();
 
         setEnabledNotificationsPref();
@@ -1252,6 +1288,10 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     //  2. the feature is enabled in the mms settings page
     //  3. the SIM knows its own phone number
     public static boolean getIsGroupMmsEnabled(Context context) {
+        if (MmsConfig.isRcsEnabled()
+                && RcsUtils.isRcsOnline()) {
+            return false;
+        }
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         boolean groupMmsPrefOn = prefs.getBoolean(
                 MessagingPreferenceActivity.GROUP_MMS_MODE, true);
@@ -1510,5 +1550,48 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             callback.sendToTarget();
         }
     }
+
+    /* Begin add for RCS */
+    private static boolean getRcsMessagePloicyEnabled(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean rcsMessageSendingPolicy =
+                prefs.getBoolean(ENABLE_RCS_MESSAGE_POLICY, true);
+        return rcsMessageSendingPolicy;
+    }
+
+    private static void enableRcsMessagePloicy(boolean enabled, Context context) {
+        SharedPreferences.Editor editor =
+                PreferenceManager.getDefaultSharedPreferences(context).edit();
+        editor.putBoolean(ENABLE_RCS_MESSAGE_POLICY, enabled);
+        editor.apply();
+    }
+
+    private static boolean getFailureChangeToSmsEnabled(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean failureChangeToSmsPolicy =
+                prefs.getBoolean(ENABLE_FAILURE_CHEANGE_TO_SMS, true);
+        return failureChangeToSmsPolicy;
+    }
+
+    private static void enableFailureChangeToSms(boolean enabled, Context context) {
+        setRcsServiceChangeToSmsPolicy(enabled);
+        SharedPreferences.Editor editor =
+                PreferenceManager.getDefaultSharedPreferences(context).edit();
+        editor.putBoolean(ENABLE_FAILURE_CHEANGE_TO_SMS, enabled);
+        editor.apply();
+    }
+
+    private static void setRcsServiceChangeToSmsPolicy(boolean enabled) {
+        try {
+            MessageApi.getInstance().setSendPolicy(enabled ? MessageConstants.
+                CONST_SEND_POLICY_FORWARD_SMS
+                : MessageConstants.CONST_SEND_POLICY_NOT_FORWARD_SMS);
+        } catch (RemoteException e) {
+            RcsLog.w(e);
+        } catch (ServiceDisconnectedException e) {
+            RcsLog.w(e);
+        }
+    }
+    /* End add for RCS */
 
 }

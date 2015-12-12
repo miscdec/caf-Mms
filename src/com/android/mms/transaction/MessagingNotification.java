@@ -1914,4 +1914,11 @@ public class MessagingNotification {
         return mPhoneState == TelephonyManager.CALL_STATE_RINGING
                 || mPhoneState == TelephonyManager.CALL_STATE_OFFHOOK;
     }
+
+    /* Begin add for RCS */
+    public static long getCurrentlyDisplayedThreadId() {
+        return sCurrentlyDisplayedThreadId;
+    }
+    /* End add for RCS */
+
 }

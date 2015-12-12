@@ -36,11 +36,16 @@ import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.Conversation;
+import com.android.mms.MmsConfig;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.ui.ConversationList;
 import com.android.mms.ui.ConversationListItem;
 import com.android.mms.ui.MailBoxMessageList;
 import com.android.mms.ui.MessageUtils;
 
+import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
+import com.suntek.mway.rcs.client.aidl.constant.Constants.MessageConstants;
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
 public class MmsWidgetService extends RemoteViewsService {
     private static final String TAG = LogTag.TAG;
 
@@ -131,9 +136,14 @@ public class MmsWidgetService extends RemoteViewsService {
         }
 
         private Cursor queryAllConversations() {
-            return mContext.getContentResolver().query(
-                    Conversation.sAllThreadsUri, Conversation.ALL_THREADS_PROJECTION,
-                    null, null, null);
+            String selection = null;
+            if (MmsConfig.isRcsVersion()) {
+                selection = RcsUtils.concatSelections(selection,
+                        RcsColumns.ThreadColumns.RCS_CHAT_TYPE + "!="
+                                + MessageConstants.CONST_CHAT_PUBLIC_ACCOUNT);
+            }
+            return mContext.getContentResolver().query(Conversation.sAllThreadsUri,
+                    Conversation.ALL_THREADS_PROJECTION, selection, null, null);
         }
 
         private int queryUnreadCount() {
@@ -268,14 +278,31 @@ public class MmsWidgetService extends RemoteViewsService {
                     from.setSpan(ConversationListItem.STYLE_BOLD, 0, from.length(),
                             Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
                 }
+               if (MmsConfig.isRcsEnabled()&&conv.isGroupChat()) {
+                    GroupChat groupChat = conv.getGroupChat();
+                    if (groupChat != null) {
+                        from.clear();
+                        from.append (RcsUtils.getDisplayName(groupChat));
+                    } else {
+                        from.append ( conv.getRecipients().formatNames(", "));
+                    }
+                }
                 remoteViews.setTextViewText(R.id.from, from);
 
                 // Subject
-                remoteViews.setTextViewText(R.id.subject,
-                        addColor(conv.getSnippet(),
-                                conv.hasUnreadMessages() ? SUBJECT_TEXT_COLOR_UNREAD :
-                                    SUBJECT_TEXT_COLOR_READ));
-
+                String snippet = conv.getSnippet();
+                if (MmsConfig.isRcsEnabled()) {
+                    if (conv.isGroupChat()) {
+                        snippet = RcsUtils.getStringOfNotificationBody(mContext, snippet);
+                    } else {
+                        snippet = RcsUtils.formatConversationSnippet(mContext, conv.getSnippet(),
+                                conv.getRcsLastMsgType());
+                    }
+                }
+                remoteViews.setTextViewText(
+                        R.id.subject,
+                        addColor(snippet, conv.hasUnreadMessages() ? SUBJECT_TEXT_COLOR_UNREAD
+                                : SUBJECT_TEXT_COLOR_READ));
                 // On click intent.
                 Intent clickIntent;
                 if (!MessageUtils.isMailboxMode()) {
