@@ -13,6 +13,7 @@ import android.telephony.SmsManager;
 import android.telephony.SubscriptionManager;
 import android.util.Log;
 
+import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.data.Conversation;
@@ -25,13 +26,15 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
     private String mDest;
     private Uri mUri;
     private static final String TAG = LogTag.TAG;
+    private boolean isExpectMore;
 
     public SmsSingleRecipientSender(Context context, String dest, String msgText, long threadId,
-            boolean requestDeliveryReport, Uri uri, int phoneId) {
+            boolean requestDeliveryReport, Uri uri, int phoneId, boolean expectMore) {
         super(context, null, msgText, threadId, phoneId);
         mRequestDeliveryReport = requestDeliveryReport;
         mDest = dest;
         mUri = uri;
+        isExpectMore = expectMore;
     }
 
     public boolean sendMessage(long token) throws MmsException {
@@ -101,7 +104,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                     mUri,
                     mContext,
                     SmsReceiver.class);
-
+            intent.putExtra(PhoneConstants.PHONE_KEY, mPhoneId);
             int requestCode = 0;
             if (i == messageCount -1) {
                 // Changing the requestCode so that a different pending intent

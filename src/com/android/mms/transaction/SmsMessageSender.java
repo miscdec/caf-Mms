@@ -30,6 +30,7 @@ import android.provider.Telephony.Sms.Inbox;
 import android.telephony.SubscriptionManager;
 import android.util.Log;
 
+import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.google.android.mms.MmsException;
@@ -112,10 +113,11 @@ public class SmsMessageSender implements MessageSender {
             }
         }
         // Notify the SmsReceiverService to send the message out
-        mContext.sendBroadcast(new Intent(SmsReceiverService.ACTION_SEND_MESSAGE,
-                null,
-                mContext,
-                SmsReceiver.class));
+        Intent intent = new Intent(SmsReceiverService.ACTION_SEND_MESSAGE, null, mContext,
+                SmsReceiver.class);
+        intent.putExtra(PhoneConstants.PHONE_KEY, mPhoneId);
+        // Notify the SmsReceiverService to send the message out
+        mContext.sendBroadcast(intent);
         return false;
     }
 
