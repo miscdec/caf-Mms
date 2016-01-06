@@ -74,9 +74,12 @@ import android.widget.VideoView;
 
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
+import com.android.mms.rcs.PropertyNode;
 import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.rcs.RcsMessageOpenUtils;
 import com.android.mms.rcs.RcsUtils;
+import com.android.mms.rcs.VNode;
+import com.android.mms.rcs.VNodeBuilder;
 import com.android.vcard.VCardParser;
 import com.android.vcard.VCardParser_V21;
 import com.android.mms.ui.MessageItem;
@@ -84,10 +87,7 @@ import com.android.mms.ui.MessageListItem;
 import com.android.mms.ui.MessageUtils;
 
 import com.suntek.rcs.ui.common.mms.GeoLocation;
-import com.suntek.rcs.ui.common.PropertyNode;
 import com.suntek.rcs.ui.common.RcsEmojiStoreUtil;
-import com.suntek.rcs.ui.common.VNode;
-import com.suntek.rcs.ui.common.VNodeBuilder;
 
 import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
 import com.suntek.rcs.ui.common.RcsLog;

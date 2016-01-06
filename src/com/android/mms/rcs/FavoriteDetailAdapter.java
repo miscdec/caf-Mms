@@ -60,8 +60,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.mms.R;
+import com.android.mms.rcs.PropertyNode;
 import com.android.mms.rcs.RcsChatMessageUtils;
 import com.android.mms.rcs.RcsMessageOpenUtils;
+import com.android.mms.rcs.VNode;
+import com.android.mms.rcs.VNodeBuilder;
 import com.android.mms.ui.MessageUtils;
 import com.android.vcard.VCardParser;
 import com.android.vcard.VCardParser_V21;
@@ -69,10 +72,7 @@ import com.android.vcard.VCardParser_V21;
 import com.suntek.mway.rcs.client.aidl.constant.Constants.FavoriteMessageProvider;
 import com.suntek.mway.rcs.client.aidl.constant.Constants;
 import com.suntek.rcs.ui.common.mms.GeoLocation;
-import com.suntek.rcs.ui.common.PropertyNode;
 import com.suntek.rcs.ui.common.RcsEmojiStoreUtil;
-import com.suntek.rcs.ui.common.VNode;
-import com.suntek.rcs.ui.common.VNodeBuilder;
 import com.suntek.rcs.ui.common.RcsLog;
 
 public class FavoriteDetailAdapter extends PagerAdapter {

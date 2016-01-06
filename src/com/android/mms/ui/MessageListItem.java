@@ -82,6 +82,7 @@ import com.android.mms.data.WorkingMessage;
 import com.android.mms.model.LayoutModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
+import com.android.mms.rcs.PropertyNode;
 import com.android.mms.rcs.RcsMessageOpenUtils;
 import com.android.mms.rcs.RcsUtils;
 import com.android.mms.rcs.RcsChatMessageUtils;
@@ -108,7 +109,6 @@ import com.suntek.rcs.ui.common.mms.GeoLocation;
 import com.suntek.rcs.ui.common.mms.GroupMemberPhotoCache;
 import com.suntek.rcs.ui.common.mms.RcsContactsUtils;
 import com.suntek.rcs.ui.common.mms.RcsMyProfileCache;
-import com.suntek.rcs.ui.common.PropertyNode;
 /**
  * This class provides view of a message in the messages list.
  */
