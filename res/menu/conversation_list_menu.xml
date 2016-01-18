@@ -48,4 +48,10 @@
 
     <item android:id="@+id/action_debug_dump"
         android:title="@string/menu_debug_dump" />
+
+    <item android:id="@+id/my_favorited"
+        android:title="@string/my_favorited" />
+
+    <item android:id="@+id/saveorbackmessage"
+        android:title="@string/save_back_message" />
 </menu>

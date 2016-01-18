@@ -36,7 +36,6 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.AlphabetIndexer;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -111,7 +110,6 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
         mSearchText.addTextChangedListener(this);
 
         mList = getExpandableListView();
-        mList.setFastScrollEnabled(true);
 
         if (mAdapter == null) {
             mAdapter = new ContactsAdapter(getApplication(), this, null,
@@ -313,8 +311,6 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
         private String mConstraint = null;
         private boolean mConstraintIsValid = false;
 
-        private String mAlphabet;
-
         private int mContactIdIndex = -1;
         private int mContactLookupIndex = -1;
         private int mDisplayNameIndex = -1;
@@ -339,7 +335,6 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
                     childLayout, childFrom, childTo);
             mActivity = activity;
             mQueryHandler = new QueryHandler(context.getContentResolver());
-            mAlphabet = context.getString(com.android.internal.R.string.fast_scroll_alphabet);
             getColumnIndex(cursor);
         }
 

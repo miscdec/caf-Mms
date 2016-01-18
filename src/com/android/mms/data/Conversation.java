@@ -19,6 +19,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
@@ -27,13 +28,17 @@ import android.provider.Telephony.Sms.Conversations;
 import android.provider.Telephony.Threads;
 import android.provider.Telephony.ThreadsColumns;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.ui.ComposeMessageActivity;
@@ -42,6 +47,15 @@ import com.android.mms.util.AddressUtils;
 import com.android.mms.util.DraftCache;
 
 import com.google.android.mms.pdu.PduHeaders;
+
+import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
+import com.suntek.mway.rcs.client.aidl.constant.Constants.MessageConstants;
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
+import com.suntek.mway.rcs.client.api.message.MessageApi;
+import com.suntek.rcs.ui.common.RcsLog;
+
 /**
  * An interface for finding information about conversations and/or creating new ones.
  */
@@ -53,11 +67,6 @@ public class Conversation {
     public static final Uri sAllThreadsUri =
         Threads.CONTENT_URI.buildUpon().appendQueryParameter("simple", "true").build();
 
-    public static final String[] ALL_THREADS_PROJECTION = {
-        Threads._ID, Threads.DATE, Threads.MESSAGE_COUNT, Threads.RECIPIENT_IDS,
-        Threads.SNIPPET, Threads.SNIPPET_CHARSET, Threads.READ, Threads.ERROR,
-        Threads.HAS_ATTACHMENT
-    };
 
     public static final String[] UNREAD_PROJECTION = {
         Threads._ID,
@@ -78,7 +87,11 @@ public class Conversation {
     private static final int READ           = 6;
     private static final int ERROR          = 7;
     private static final int HAS_ATTACHMENT = 8;
-
+    private static final int IS_CONV_T0P    = 9;
+    private static final int RCS_TOP_TIME   = 10;
+    private static final int RCS_MSG_ID     = 11;
+    private static final int RCS_MSG_TYPE   = 12;
+    private static final int RCS_CHAT_TYPE  = 13;
 
     private final Context mContext;
 
@@ -105,6 +118,42 @@ public class Conversation {
     private boolean mMarkAsReadWaiting;
     private boolean mHasMmsForward = false; // True if has forward mms
     private String[] mForwardRecipientNumber; // The recipient that the forwarded Mms received from
+
+    /* Begin add for RCS */
+    private static final boolean UNMARKDEBUG = false;
+
+        public static final String[] RCS_ADD_ALL_THREADS_PROJECTION = {
+        Threads._ID, Threads.DATE, Threads.MESSAGE_COUNT, Threads.RECIPIENT_IDS,
+        Threads.SNIPPET, Threads.SNIPPET_CHARSET, Threads.READ, Threads.ERROR,
+        Threads.HAS_ATTACHMENT, RcsColumns.ThreadColumns.RCS_TOP,
+        RcsColumns.ThreadColumns.RCS_TOP_TIME, RcsColumns.ThreadColumns.RCS_MSG_ID,
+        RcsColumns.ThreadColumns.RCS_MSG_TYPE, RcsColumns.ThreadColumns.RCS_CHAT_TYPE
+   };
+
+    public static final String[] DEFAULT_ALL_THREADS_PROJECTION = {
+        Threads._ID, Threads.DATE, Threads.MESSAGE_COUNT, Threads.RECIPIENT_IDS,
+        Threads.SNIPPET, Threads.SNIPPET_CHARSET, Threads.READ, Threads.ERROR,
+        Threads.HAS_ATTACHMENT
+    };
+
+    public static final String[] ALL_THREADS_PROJECTION = MmsConfig.isRcsVersion() ?
+            RCS_ADD_ALL_THREADS_PROJECTION : DEFAULT_ALL_THREADS_PROJECTION;
+
+
+    public static final String RCS_SORT_ORDER = RcsColumns.ThreadColumns.RCS_TOP_TIME + " DESC," +
+            RcsColumns.ThreadColumns.RCS_TOP + " DESC, date DESC";
+
+    public static final String DEFAULT_SORT_ORDER = MmsConfig.isRcsVersion() ?
+            RCS_SORT_ORDER : "date DESC";
+
+    private boolean mIsGroupChat;
+    private GroupChat mGroupChat;
+    private int mIsTop;
+    private int mRcsTopTime;
+    private int mRcsMsgId;
+    private int mRcsMsgType;
+    private int mRcsChatType;
+    /* End add for RCS */
 
     private static Handler sToastHandler = new Handler();
 
@@ -480,7 +529,14 @@ public class Conversation {
             LogTag.debug("ensureThreadId before: " + mThreadId);
         }
         if (mThreadId <= 0) {
-            mThreadId = getOrCreateThreadId(mContext, mRecipients);
+            if (MmsConfig.isRcsEnabled() && mIsGroupChat && mGroupChat != null) {
+                HashSet<String> numbers = new HashSet<String>();
+                numbers.add(String.valueOf(mGroupChat.getThreadId()));
+                ContactList groupRecip = ContactList.getByNumbers(numbers, false);
+                mThreadId = getOrCreateThreadId(mContext, groupRecip);
+            } else {
+                mThreadId = getOrCreateThreadId(mContext, mRecipients);
+            }
         }
         if (DEBUG || DELETEDEBUG) {
             LogTag.debug("ensureThreadId after: " + mThreadId);
@@ -756,8 +812,12 @@ public class Conversation {
         // mmssms.db|2.253 ms|SELECT _id, date, message_count, recipient_ids, snippet, snippet_cs,
         // read, error, has_attachment FROM threads ORDER BY  date DESC
 
+        if (MmsConfig.isRcsVersion()) {
+            selection = RcsUtils.concatSelections(selection, RcsColumns.ThreadColumns.RCS_CHAT_TYPE
+                    + "!=" + MessageConstants.CONST_CHAT_PUBLIC_ACCOUNT);
+        }
         handler.startQuery(token, null, sAllThreadsUri,
-                ALL_THREADS_PROJECTION, selection, null, Conversations.DEFAULT_SORT_ORDER);
+                ALL_THREADS_PROJECTION, selection, null, DEFAULT_SORT_ORDER);
     }
 
     /**
@@ -889,7 +949,7 @@ public class Conversation {
             selection = buf.toString();
         }
         handler.startQuery(token, threadIds, uri,
-                ALL_THREADS_PROJECTION, selection, null, Conversations.DEFAULT_SORT_ORDER);
+                ALL_THREADS_PROJECTION, selection, null, DEFAULT_SORT_ORDER);
     }
 
     /**
@@ -934,6 +994,14 @@ public class Conversation {
             conv.setHasUnreadMessages(c.getInt(READ) == 0);
             conv.mHasError = (c.getInt(ERROR) != 0);
             conv.mHasAttachment = (c.getInt(HAS_ATTACHMENT) != 0);
+            if (MmsConfig.isRcsVersion()) {
+                conv.mIsTop = c.getInt(IS_CONV_T0P);
+                conv.mRcsTopTime = c.getInt(RCS_TOP_TIME);
+                conv.mRcsMsgId = c.getInt(RCS_MSG_ID);
+                conv.mRcsMsgType = c.getInt(RCS_MSG_TYPE);
+                conv.mRcsChatType = c.getInt(RCS_CHAT_TYPE);
+                conv.mIsGroupChat = (conv.mRcsChatType == RcsUtils.RCS_CHAT_TYPE_GROUP_CHAT);
+            }
         }
         // Fill in as much of the conversation as we can before doing the slow stuff of looking
         // up the contacts associated with this conversation.
@@ -941,6 +1009,14 @@ public class Conversation {
         ContactList recipients = ContactList.getByIds(recipientIds, allowQuery);
         synchronized (conv) {
             conv.mRecipients = recipients;
+        }
+
+        if (conv.isGroupChat()) {
+            try {
+                conv.mGroupChat = GroupChatApi.getInstance().getGroupChatByThreadId(conv.mThreadId);
+            } catch (Exception e) {
+                Log.w("RCS_UI", e);
+            }
         }
 
         if (Log.isLoggable(LogTag.THREAD_CACHE, Log.VERBOSE)) {
@@ -1586,4 +1662,105 @@ public class Conversation {
     public void setForwardRecipientNumber(String[] forwardRecipientNumber) {
         mForwardRecipientNumber = forwardRecipientNumber;
     }
+
+    /* Begin add for RCS */
+    public boolean isTop() {
+        return mIsTop == RcsUtils.CONVERSATION_IS_TOP;
+    }
+
+    public void setIsTop(int isTop) {
+        mIsTop = isTop;
+    }
+
+    public boolean isGroupChat() {
+        return mIsGroupChat;
+    }
+
+    public void setIsGroupChat(boolean isGroupChat) {
+        this.mIsGroupChat = isGroupChat;
+    }
+
+    public GroupChat getGroupChat() {
+        return mGroupChat;
+    }
+
+    public void setGroupChat(GroupChat groupChat) {
+        this.mGroupChat = groupChat;
+    }
+
+    public boolean isGroupChatActive() {
+        if (mIsGroupChat && mGroupChat != null) {
+            boolean isGroupStart = GroupChat.STATUS_STARTED == mGroupChat.getStatus();
+            ArrayList<String> groupMember = null;
+            try {
+                groupMember = RcsUtils.getGroupChatNumbersExceptMe(mGroupChat);
+            } catch (ServiceDisconnectedException e) {
+                RcsLog.w(e);
+            } catch (RemoteException e) {
+                RcsLog.w(e);
+            }
+            boolean isMemberJoin = groupMember == null ? false : groupMember.size() > 0;
+            if (isGroupStart && isMemberJoin) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isGroupChatCreated() {
+        if (mIsGroupChat && mGroupChat != null) {
+            if (GroupChat.STATUS_STARTED == mGroupChat.getStatus()
+                    || GroupChat.STATUS_INITIATED == mGroupChat.getStatus()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public String getGroupChatStatusText() {
+        if (mGroupChat != null) {
+            switch (mGroupChat.getStatus()) {
+                case GroupChat.STATUS_INITIATED:
+                    return mContext.getString(R.string.group_chat_status_inactive);
+                case GroupChat.STATUS_STARTED:
+                    return mContext.getString(R.string.group_chat_status_active);
+                case GroupChat.STATUS_TERMINATED:
+                    return mContext.getString(R.string.group_chat_status_deleted);
+                case GroupChat.STATUS_QUITED:
+                    return mContext.getString(R.string.group_chat_status_deleted);
+                case GroupChat.STATUS_BOOTED:
+                    return mContext.getString(R.string.group_chat_status_deleted);
+                case GroupChat.STATUS_PAUSE:
+                    return mContext.getString(R.string.group_chat_status_offline);
+                case GroupChat.STATUS_FAILED:
+                    return mContext.getString(R.string.create_failed);
+                default:
+                    break;
+            }
+        }
+        return "";
+    }
+        /**
+     * @return rcs message id, if the last message is a rcs Massage.
+     */
+    public synchronized int getRcsLastMsgId() {
+        return mRcsMsgId;
+    }
+
+    /**
+     * @return rcs message type, if the last message is a rcs Massage.
+     */
+    public synchronized int getRcsLastMsgType() {
+        return mRcsMsgType;
+    }
+
+    /**
+     * @return rcs message chat type, if the last message is a rcs Massage.
+     */
+    public synchronized int getRcsLastMsgChatType() {
+        return mRcsChatType;
+    }
+
+    /* End add for RCS */
+
 }

@@ -509,6 +509,10 @@ public class MessagingNotification {
      * played at half-volume
      */
     private static void playInConversationNotificationSound(Context context) {
+        if (includeEmergencySMS && context.getResources().getBoolean(
+                R.bool.config_regional_sms_notification_from_911_disable)) {
+            return;
+        }
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
         String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                 null);
@@ -777,7 +781,6 @@ public class MessagingNotification {
             return;
         }
 
-        includeEmergencySMS = false;
         try {
             while (cursor.moveToNext()) {
 
@@ -786,12 +789,6 @@ public class MessagingNotification {
                         Long.toString(msgId)).build();
                 String address = AddressUtils.getFrom(context, msgUri);
 
-                if (context.getResources().getBoolean(
-                            R.bool.config_regional_sms_notification_from_911_disable)) {
-                    if (TextUtils.equals(address,emergentcyAddress)) {
-                        includeEmergencySMS = true;
-                    }
-                }
                 Contact contact = Contact.get(address, false);
                 if (contact.getSendToVoicemail()) {
                     // don't notify, skip this one
@@ -924,6 +921,7 @@ public class MessagingNotification {
             return;
         }
 
+        includeEmergencySMS = false;
         try {
             while (cursor.moveToNext()) {
                 String address = cursor.getString(COLUMN_SMS_ADDRESS);
@@ -932,7 +930,12 @@ public class MessagingNotification {
                     address = mAddresses[context.getResources().getInteger(
                             R.integer.wap_push_address_index)];
                 }
-
+                if (context.getResources().getBoolean(
+                            R.bool.config_regional_sms_notification_from_911_disable)) {
+                    if (TextUtils.equals(address,emergentcyAddress)) {
+                        includeEmergencySMS = true;
+                    }
+                }
                 Contact contact = Contact.get(address, false);
                 if (contact.getSendToVoicemail()) {
                     // don't notify, skip this one
@@ -1914,4 +1917,11 @@ public class MessagingNotification {
         return mPhoneState == TelephonyManager.CALL_STATE_RINGING
                 || mPhoneState == TelephonyManager.CALL_STATE_OFFHOOK;
     }
+
+    /* Begin add for RCS */
+    public static long getCurrentlyDisplayedThreadId() {
+        return sCurrentlyDisplayedThreadId;
+    }
+    /* End add for RCS */
+
 }

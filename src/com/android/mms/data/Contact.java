@@ -1244,4 +1244,10 @@ public class Contact {
         return true;
     }
 
+    /* Begin add for RCS */
+    public synchronized long getPersonId() {
+        return mPersonId;
+    }
+    /* End add for RCS */
+
 }

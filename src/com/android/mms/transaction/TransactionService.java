@@ -995,7 +995,7 @@ public class TransactionService extends Service implements Observer {
         if (getResources().getBoolean(
                 R.bool.config_regional_mms_via_wifi_enable)) {
             if (MessageUtils.shouldHandleMmsViaWifi(getApplicationContext())){
-                //return PhoneConstants.APN_ALREADY_ACTIVE;
+                return;
             }
         }
 
@@ -1390,7 +1390,11 @@ public class TransactionService extends Service implements Observer {
                     Log.v(TAG, "processTransaction: call beginMmsConnectivity on subId = " + subId);
                 }
                 beginMmsConnectivity(subId);
-                if (!mIsAvailable[phoneId]) {
+                boolean sendingMmsViaData = !(getResources().getBoolean(
+                                R.bool.config_regional_mms_via_wifi_enable) &&
+                                MessageUtils.shouldHandleMmsViaWifi(getApplicationContext()));
+
+                if (!mIsAvailable[phoneId] && sendingMmsViaData) {
                     mPending.add(transaction);
                     if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                         Log.v(TAG, "processTransaction: connResult=APN_REQUEST_STARTED, " +

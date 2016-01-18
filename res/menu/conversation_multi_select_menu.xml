@@ -19,4 +19,13 @@
           android:title="@string/delete"
           android:icon="@drawable/ic_menu_trash_holo_dark"
           android:showAsAction="always|withText" />
+    <item android:id="@+id/topConversation"
+          android:title="@string/top_conversation"
+          android:showAsAction="never|withText" />
+    <item android:id="@+id/cancelTopConversation"
+          android:title="@string/cancel_top_conversation"
+          android:showAsAction="never|withText" />
+    <item android:id="@+id/addBlackList"
+          android:title="@string/menuid_add_to_black_list"
+          android:showAsAction="never|withText" />
 </menu>

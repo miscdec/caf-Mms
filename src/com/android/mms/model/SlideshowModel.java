@@ -251,8 +251,7 @@ public class SlideshowModel extends Model
                             contentType = MessageUtils.convertToVcardType(new String(name));
                         }
                     }
-                    if (ContentType.TEXT_VCARD.toLowerCase().equals(contentType) ||
-                            ContentType.TEXT_VCALENDAR.toLowerCase().equals(contentType)) {
+                    if (ContentType.TEXT_VCARD.toLowerCase().equals(contentType)) {
                         byte[] data = part.getContentLocation();
                         if (data == null) {
                             data = part.getName();

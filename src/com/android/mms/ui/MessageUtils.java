@@ -87,6 +87,7 @@ import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.Data;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
+import android.provider.MediaStore.Audio.Media;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Mms.Part;
@@ -127,6 +128,7 @@ import com.android.mms.model.MediaModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.VcardModel;
+import com.android.mms.rcs.RcsUtils;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
@@ -145,6 +147,11 @@ import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
 
+
+import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
+import com.suntek.mway.rcs.client.api.basic.BasicApi;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
+import com.suntek.rcs.ui.common.RcsFileController;
 /**
  * An utility class for managing messages.
  */
@@ -344,6 +351,12 @@ public class MessageUtils {
     public static final int MESSAGE_REPORT_COLUMN_MESSAGE_ID = 1;
     public static final int MESSAGE_REPORT_COLUMN_SUB_ID   = 2;
 
+    /* Begin add for RCS */
+    private static final int SELECT_LOCAL = 2;
+    public static final String EXTRA_KEY_NEW_MESSAGE_UNREAD = "unread";
+    private static final long ARM_BIT = 12791;
+    /* End add for RCS */
+
     private MessageUtils() {
         // Forbidden being instantiated.
     }
@@ -422,7 +435,7 @@ public class MessageUtils {
                     return "";
             }
         } else {
-            return getTextMessageDetails(context, cursor);
+            return getTextMessageDetails(context, cursor, false);
         }
     }
 
@@ -589,7 +602,8 @@ public class MessageUtils {
         return details.toString();
     }
 
-    public static String getTextMessageDetails(Context context, Cursor cursor) {
+    public static String getTextMessageDetails(Context context, Cursor cursor,
+            boolean isAppendContentType) {
         Log.d(TAG, "getTextMessageDetails");
 
         StringBuilder details = new StringBuilder();
@@ -597,8 +611,40 @@ public class MessageUtils {
 
         // Message Type: Text message.
         details.append(res.getString(R.string.message_type_label));
-        details.append(res.getString(R.string.text_message));
+        int msgType = 0;
+        if (SupportApi.getInstance().isRcsSupported()) {
+            int rcsChatType = cursor.getInt(cursor.getColumnIndexOrThrow(
+                    RcsColumns.SmsRcsColumns.RCS_CHAT_TYPE));
+            msgType = cursor.getInt(cursor.getColumnIndex(
+                    RcsColumns.SmsRcsColumns.RCS_MSG_TYPE));
+           boolean isRcsMessage = RcsUtils.isRcsMessage(rcsChatType);
+           if (isRcsMessage) {
+               details.append(res.getString(R.string.rcs_text_message));
+           } else {
+               details.append(res.getString(R.string.text_message));
+           }
+        } else {
+            details.append(res.getString(R.string.text_message));
+        }
 
+        if (MmsConfig.isRcsEnabled()&&isAppendContentType) {
+            details.append('\n');
+            details.append(res.getString(R.string.message_content_type));
+            if (msgType == RcsUtils.RCS_MSG_TYPE_IMAGE)
+                details.append(res.getString(R.string.message_content_image));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_AUDIO)
+                details.append(res.getString(R.string.message_content_audio));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_VIDEO)
+                details.append(res.getString(R.string.message_content_video));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_MAP)
+                details.append(res.getString(R.string.message_content_map));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_VCARD)
+                details.append(res.getString(R.string.message_content_vcard));
+            else if (msgType == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE)
+                details.append(res.getString(R.string.msg_type_CaiYun));
+            else
+                details.append(res.getString(R.string.message_content_text));
+        }
         // Address: ***
         details.append('\n');
         int smsType = cursor.getInt(cursor.getColumnIndexOrThrow(Sms.TYPE));
@@ -781,7 +827,13 @@ public class MessageUtils {
         // We are not only displaying default RingtonePicker to add, we could have
         // other choices like external audio and system audio. Allow user to select
         // an audio from particular storage (Internal or External) and return it.
-        String[] items = new String[2];
+        String[] items = null;
+        if (MmsConfig.isRcsEnabledAndOnline()) {
+            items = new String[3];
+            items[SELECT_LOCAL] = activity.getString(R.string.local_audio_item);
+        } else {
+            items = new String[2];
+        }
         items[SELECT_SYSTEM] = activity.getString(R.string.system_audio_item);
         items[SELECT_EXTERNAL] = activity.getString(R.string.external_audio_item);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity,
@@ -809,6 +861,11 @@ public class MessageUtils {
                                 audioIntent.setAction(Intent.ACTION_PICK);
                                 audioIntent.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
                                 break;
+                            case SELECT_LOCAL:
+                                audioIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                                audioIntent.setAction(Intent.ACTION_GET_CONTENT);
+                                audioIntent.setType("audio/*");
+                                break;
                         }
                         // Add try here is to avoid monkey test failure.
                         try {
@@ -823,17 +880,38 @@ public class MessageUtils {
         dialog.show();
     }
 
-    public static void recordSound(Activity activity, int requestCode, long sizeLimit) {
+    public static void recordSound(Activity activity, int requestCode, long sizeLimit,
+            boolean requringRcsAttachment) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType(ContentType.AUDIO_AMR);
         intent.setClassName("com.android.soundrecorder",
                 "com.android.soundrecorder.SoundRecorder");
-        intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
+        // add RCS recordSound time add size limit
+        if (requringRcsAttachment) {
+            long durationLimit = RcsFileController.getRcsTransferFileMaxDuration(
+                    RcsUtils.RCS_MSG_TYPE_AUDIO);
+            intent.putExtra(Media.EXTRA_MAX_BYTES, (long)((ARM_BIT / 8) * (durationLimit + 1)));
+        } else {
+            intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
+        }
         intent.putExtra(EXIT_AFTER_RECORD, true);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void recordVideo(Activity activity, int requestCode, long sizeLimit) {
+    public static void recordVideo(Activity activity, int requestCode, long sizeLimit,
+            boolean isMms) {
+        // add RCS recordVideo time add size limit
+        if (!isMms &&MmsConfig.isRcsEnabledAndOnline()) {
+            Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+            intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 10.0);
+            intent.putExtra("android.intent.extra.sizeLimit", sizeLimit*1024);
+            int durationLimit = (int)RcsFileController.getRcsTransferFileMaxDuration(
+                    RcsUtils.RCS_MSG_TYPE_VIDEO);
+            intent.putExtra("android.intent.extra.durationLimit", durationLimit);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, TempFileProvider.SCRAP_CONTENT_URI);
+            activity.startActivityForResult(intent, requestCode);
+            return;
+        }
         // The video recorder can sometimes return a file that's larger than the max we
         // say we can handle. Try to handle that overshoot by specifying an 85% limit.
         sizeLimit *= .85F;
@@ -1814,7 +1892,7 @@ public class MessageUtils {
         return TelephonyManager.getDefault().isMultiSimEnabled();
     }
 
-    private static boolean isCDMAPhone(int subscription) {
+    public static boolean isCDMAPhone(int subscription) {
         boolean isCDMA = false;
         int activePhone = isMultiSimEnabledMms()
                 ? TelephonyManager.getDefault().getCurrentPhoneType(subscription)

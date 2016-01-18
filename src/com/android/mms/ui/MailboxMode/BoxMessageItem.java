@@ -34,6 +34,7 @@ import static com.android.mms.ui.MessageListAdapter.COLUMN_SMS_STATUS;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_SMS_DATE_SENT;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_THREAD_ID;
 import static com.android.mms.ui.MessageListAdapter.COLUMN_SMS_LOCKED;
+import static com.android.mms.ui.MessageListAdapter.COLUMN_RCS_MSG_TYPE;
 
 /**
  * Mostly immutable model for an SMS/MMS message.
@@ -61,7 +62,7 @@ public class BoxMessageItem {
     String mName;
     long mThreadId = 0;
 
-    BoxMessageItem(Context context, String type, long msgId, Cursor cursor) {
+    public BoxMessageItem(Context context, String type, long msgId, Cursor cursor) {
         mType = type;
         mMsgId = msgId;
 
@@ -94,4 +95,35 @@ public class BoxMessageItem {
     public void setBody(String body) {
         mBody = body;
     }
+
+    /* Begin add for RCS */
+    public long getThreadId() {
+        return mThreadId;
+    }
+
+    public String getBody() {
+        return mBody;
+    }
+
+    public String getAddress() {
+        return mAddress;
+    }
+
+    public String getDateString() {
+        return mDateStr;
+    }
+
+    public int getSubId() {
+        return mSubID;
+    }
+
+    public String getName() {
+        return mName;
+    }
+
+    public long getMessageId() {
+        return mMsgId;
+    }
+
+    /* End add for RCS */
 }

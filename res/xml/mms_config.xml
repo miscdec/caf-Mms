@@ -25,7 +25,7 @@
     <!-- Flag indicating whether MMS should be enabled -->
     <bool name="enabledMMS">true</bool>
 
-    <!-- Flag indicating whether OMA CP should be enabled -->
+    <!-- Flag indicating whether OMA CP messages can be viewed -->
     <bool name="enableOMACP">false</bool>
 
     <!-- Maximum message size in bytes for a MMS message -->

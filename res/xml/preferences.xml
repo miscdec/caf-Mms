@@ -78,6 +78,26 @@
                       android:entries="@array/entries_sms_store"
                       android:entryValues="@array/entries_sms_store_value" />
   </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pref_key_rcs_send_policy_settings"
+        android:title="@string/message_send_policy" >
+
+        <CheckBoxPreference
+            android:key="pref_key_rcs_immediately_message_policy"
+            android:title="@string/rcs_immediately_message_title"
+            android:summary="@string/rcs_immediately_message_summary"
+            android:defaultValue="@bool/def_rcs_sending_policy"/>
+
+        <CheckBoxPreference
+            android:key="pref_key_rcs_message_failure_change_to_sms"
+            android:title="@string/rcs_message_failure_change_to_sms_title"
+            android:summary="@string/rcs_message_failure_change_to_sms_summary"
+            android:dependency="pref_key_rcs_immediately_message_policy"
+            android:defaultValue="@bool/def_rcs_sending_policy"/>
+
+    </PreferenceCategory>
+
   <PreferenceCategory android:title="@string/pref_sms_settings_title"
                       android:key="pref_key_sms_settings" >
     <CheckBoxPreference android:defaultValue="@bool/def_sms_delivery_reports"
