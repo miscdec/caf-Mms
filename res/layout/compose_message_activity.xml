@@ -201,6 +201,7 @@
                     android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:drawablePadding="0dip"
+                    android:visibility="gone"
                     android:background="@drawable/rcs_emoji_button_bg"
                     android:src="@drawable/rcs_emotion_false" />
 

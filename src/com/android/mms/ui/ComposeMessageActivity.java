@@ -3506,7 +3506,7 @@ public class ComposeMessageActivity extends Activity
             }
         }
         if (mIsRcsEnabled && mSupportApi.isPluginInstalled(this)) {
-            menu.add(0, MENU_RCS_MCLOUD_SHARE, 0, R.string.rcs_mcloud_share_file);
+            menu.add(0, MENU_RCS_MCLOUD_SHARE, 0, R.string.rcs_mcloud_share_file).setVisible(false);
         }
 
         return true;
@@ -7040,7 +7040,7 @@ public class ComposeMessageActivity extends Activity
         }
 
         private boolean isRcsMessage(Cursor cursor) {
-            if (cursor == null) {
+            if (!MmsConfig.isRcsVersion() || cursor == null) {
                 return false;
             }
             int rcsChatType = cursor.getInt(COLUMN_RCS_CHAT_TYPE);
@@ -8093,9 +8093,8 @@ public class ComposeMessageActivity extends Activity
         mSupportApi = SupportApi.getInstance();
         mProfileApi = ProfileApi.getInstance();
         mGroupChatApi = GroupChatApi.getInstance();
-
         if (mButtonEmoj != null) {
-            mButtonEmoj.setVisibility(mIsRcsEnabled ? View.VISIBLE : View.GONE);
+            mButtonEmoj.setVisibility(View.GONE);
         }
         if (mIsRcsEnabled) {
             if (mConversation.isGroupChat()) {

@@ -528,8 +528,10 @@ public class SlideEditorActivity extends Activity {
             case MENU_RECORD_SOUND:
                 long soundSizeLimit = ComposeMessageActivity.computeAttachmentSizeLimit(
                     mSlideshowModel, 0);
+                // Rcs not support slide, when add slide will send by MMS.
+                // So set requringRcsAttachment default as false in slide edit activity.
                 MessageUtils.recordSound(this, REQUEST_CODE_RECORD_SOUND, soundSizeLimit,
-                        true);
+                        false);
                 break;
 
             case MENU_DEL_AUDIO:

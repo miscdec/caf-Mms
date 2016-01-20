@@ -50,8 +50,10 @@
         android:title="@string/menu_debug_dump" />
 
     <item android:id="@+id/my_favorited"
-        android:title="@string/my_favorited" />
+          android:visible="false"
+          android:title="@string/my_favorited" />
 
     <item android:id="@+id/saveorbackmessage"
-        android:title="@string/save_back_message" />
+          android:visible="false"
+          android:title="@string/save_back_message" />
 </menu>

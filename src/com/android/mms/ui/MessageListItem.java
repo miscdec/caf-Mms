@@ -803,7 +803,7 @@ public class MessageListItem extends LinearLayout implements
             if (mSlideShowButton == null) {
                 mSlideShowButton = (ImageButton) findViewById(R.id.play_slideshow_button);
             }
-            if (MmsConfig.isRcsEnabled() && mVCardImageView == null) {
+            if (MmsConfig.isRcsVersion() && mVCardImageView == null) {
                 mVCardImageView = (ImageView) findViewById(R.id.vcard_image_view);
             }
             mMmsView.setVisibility(visible ? View.VISIBLE : View.GONE);
