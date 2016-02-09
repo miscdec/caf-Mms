@@ -304,4 +304,7 @@
     <string name="rcs_not_online_can_not_forward_media_message">Rcs not onLine, can not forward Rcs Media Message</string>
     <string name="rcs_not_online_can_not_send_burn_message">Burn message cannot be sent and will be changed to SMS as RCS is offline</string>
     <string name="copy_to_sdcard_success_path">Attachment saved to %1$s </string>
+    <string name="rcs_to_pc_conversion">My PC</string>
+    <string name="rcs_online">(online)</string>
+    <string name="rcs_offline">(offline)</string>
 </resources>

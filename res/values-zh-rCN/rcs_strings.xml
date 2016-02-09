@@ -283,4 +283,7 @@
     <string name="rcs_not_online_can_not_forward_media_message">RCS不在线,不能转发多媒体消息</string>
     <string name="rcs_not_online_can_not_send_burn_message">RCS不在线,阅后即焚消息不能发送,将转为短信模式</string>
     <string name="copy_to_sdcard_success_path">附件已保存在：%1$s</string>
+    <string name="rcs_to_pc_conversion">我的电脑</string>
+    <string name="rcs_online">(在线)</string>
+    <string name="rcs_offline">(离线)</string>
 </resources>

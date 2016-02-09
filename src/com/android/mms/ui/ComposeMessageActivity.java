@@ -1224,7 +1224,7 @@ public class ComposeMessageActivity extends Activity
                 }
             }
             smsBtns[i].setText(displayName);
-            if (mIsRcsEnabled && mConversation.isGroupChat()) {
+            if (mIsRcsEnabled && (mConversation.isGroupChat() || mConversation.isPcChat())) {
                 int rcsOnlineSlot = RcsDualSimMananger.getCurrentRcsOnlineSlot();
                 if (rcsOnlineSlot != i) {
                     smsBtns[i].setEnabled(false);
@@ -2209,16 +2209,29 @@ public class ComposeMessageActivity extends Activity
     private void updateTitle(ContactList list) {
         String title = null;
         String subTitle = null;
-        if (MmsConfig.isRcsVersion() && mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
-            if (groupChat != null) {
-                title = RcsUtils.getDisplayName(groupChat);
-            } else if (!mSentMessage) {
-                title = getString(R.string.new_group_chat);
-            } else {
-                title = getString(R.string.group_chat);
+        if (MmsConfig.isRcsVersion() && (mConversation.isPcChat() || mConversation.isGroupChat())) {
+            if (mConversation.isPcChat() && list.size() != 0) {
+                String number = list.get(0).getNumber().trim().replace(" ", "");
+                if(RcsUtils.isMyAccount(number)){
+                    title = getString(R.string.rcs_to_pc_conversion)
+                            + getString(R.string.rcs_online);
+                    mConversation.setMyPcConversation(true);
+                } else {
+                    title = getString(R.string.rcs_to_pc_conversion)
+                            + getString(R.string.rcs_offline);
+                    mConversation.setMyPcConversation(false);
+                }
+            } else if (mConversation.isGroupChat()) {
+                GroupChat groupChat = mConversation.getGroupChat();
+                if (groupChat != null) {
+                    title = RcsUtils.getDisplayName(groupChat);
+                } else if (!mSentMessage) {
+                    title = getString(R.string.new_group_chat);
+                } else {
+                    title = getString(R.string.group_chat);
+                }
+                subTitle = getString(R.string.group_chat) + mConversation.getGroupChatStatusText();
             }
-            subTitle = getString(R.string.group_chat) + mConversation.getGroupChatStatusText();
         } else {
             int cnt = list.size();
             switch (cnt) {
@@ -5552,14 +5565,20 @@ public class ComposeMessageActivity extends Activity
         }
 
         int recipientCount = recipientCount();
-        if (mIsRcsEnabled && mConversation.isGroupChat()) {
-            return (recipientCount > 0 && (mWorkingMessage.hasRcsAttach()
-                    || mWorkingMessage.hasText())) && mConversation.isGroupChatActive();
+        if (mIsRcsEnabled) {
+            if (mConversation.isGroupChat()) {
+                return (recipientCount > 0 && (mWorkingMessage.hasRcsAttach() || mWorkingMessage
+                        .hasText())) && mConversation.isGroupChatActive();
+            }
+            if (mConversation.isPcChat()) {
+                return (recipientCount > 0 && (mWorkingMessage.hasRcsAttach() || mWorkingMessage
+                        .hasText())) && mConversation.isMyPcConversation();
+            }
+            if (recipientCount > 0 && mWorkingMessage.getCacheRcsMessage()) {
+                return true;
+            }
         }
 
-        if (recipientCount > 0 && mIsRcsEnabled && mWorkingMessage.getCacheRcsMessage()) {
-            return true;
-        }
         if (getContext().getResources().getBoolean(R.bool.enable_send_blank_message)) {
             Log.d(TAG, "Blank SMS");
             return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&

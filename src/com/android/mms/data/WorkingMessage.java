@@ -2430,6 +2430,9 @@ public class WorkingMessage {
             int sms_id = -1;
             String groupId = String.valueOf(groupChat.getId());
             messageApi.sendVcardToGroupChat(groupChat.getId(), thread_id, mVcardPath);
+        } else if (mConversation.isPcChat()) {
+                messageApi.sendVcardToPc(threadId, mVcardPath,
+                        Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else if (dests.length == 1) {
             messageApi.sendVcard(dests[0], threadId, mVcardPath,
                     Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
@@ -2440,7 +2443,7 @@ public class WorkingMessage {
     }
 
     private void sendRcsLocation(String[] dests, long threadId, MessageApi messageApi)
-            throws ServiceDisconnectedException,RemoteException, FileSuffixException {
+            throws ServiceDisconnectedException, RemoteException, FileSuffixException {
         if (mConversation.isGroupChat()) {
             GroupChat groupChat = mConversation.getGroupChat();
             long thread_id = groupChat.getThreadId();
@@ -2448,6 +2451,9 @@ public class WorkingMessage {
             int sms_id = -1;
             messageApi.sendLocationToGroupChat(groupChat.getId(), thread_id, getLatitude(),
                     getLongitude(),getLocation());
+        } else if (mConversation.isPcChat()) {
+            messageApi.sendLocationToPc(threadId, getLatitude(), getLongitude(), getLocation(),
+                    Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else if (dests.length == 1) {
             messageApi.sendLocation(dests[0], threadId, getLatitude(), getLongitude(),
                     getLocation(), Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
@@ -2470,6 +2476,10 @@ public class WorkingMessage {
             String filepath = getRcsPath();
             messageApi.sendAudioToGroupChat(groupChat.getId(), thread_id, filepath, recordTime,
                     getIsRecord());
+        } else if (mConversation.isPcChat()) {
+                messageApi.sendAudioToPc(threadId, getRcsPath(), recordTime, getIsRecord(),
+                        isBurn() ? DEFAULT_RCS_BURN_TIME
+                        : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else if (dests.length == 1) {
             messageApi.sendAudio(dests[0], threadId, getRcsPath(), recordTime,
                     getIsRecord(), isBurn() ? DEFAULT_RCS_BURN_TIME
@@ -2492,6 +2502,10 @@ public class WorkingMessage {
             String conversationId = groupChat.getConversationId();
             messageApi.sendVideoToGroupChat(groupChat.getId(), thread_id, getRcsPath(),
                     recordTime,getIsRecord());
+        } else if (mConversation.isPcChat()) {
+                messageApi.sendVideoToPc(threadId, getRcsPath(), recordTime, getIsRecord(),
+                        isBurn() ? DEFAULT_RCS_BURN_TIME
+                        : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else if (dests.length == 1) {
             messageApi.sendVideo(dests[0], threadId, getRcsPath(), recordTime,
                     getIsRecord(), isBurn() ? DEFAULT_RCS_BURN_TIME
@@ -2505,12 +2519,16 @@ public class WorkingMessage {
 
     private void sendRcsImage(String[] dests, long threadId, MessageApi messageApi)
             throws ServiceDisconnectedException, RemoteException, FileSuffixException,
-            FileDurationException, FileTooLargeException, FileNotExistsException{
+            FileDurationException, FileTooLargeException, FileNotExistsException {
         if (mConversation.isGroupChat()) {
             GroupChat groupChat = mConversation.getGroupChat();
             long thread_id = groupChat.getThreadId();
             messageApi.sendImageToGroupChat(groupChat.getId(), thread_id, getRcsPath(),
                       getScalingToInt(), false);
+        } else if (mConversation.isPcChat()) {
+                messageApi.sendImageToPc(threadId, getRcsPath(), getScalingToInt(), false,
+                        isBurn() ? DEFAULT_RCS_BURN_TIME
+                        : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else if (dests.length == 1) {
             messageApi.sendImage(dests[0], threadId, getRcsPath(), getScalingToInt(),
                      false, isBurn() ? DEFAULT_RCS_BURN_TIME
@@ -2531,6 +2549,9 @@ public class WorkingMessage {
             String conversationId = groupChat.getConversationId();
             messageApi.sendTextToGroupChat(groupChat.getId(), groupChat.getThreadId(),
                     msgText);
+        } else if (mConversation.isPcChat()) {
+                messageApi.sendTextToPc(threadId, msgText, isBurn() ? DEFAULT_RCS_BURN_TIME
+                        : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);
         } else if (dests.length == 1) {
             messageApi.sendText(dests[0], threadId, msgText,isBurn() ?
                     DEFAULT_RCS_BURN_TIME : Constants.MessageConstants.CONST_BURN_AFTER_READ_NOT);

@@ -688,6 +688,7 @@ public class MessageItem {
             case RcsUtils.RCS_CHAT_TYPE_ONE_TO_ONE:
             case RcsUtils.RCS_CHAT_TYPE_ONE_TO_N:
             case RcsUtils.RCS_CHAT_TYPE_GROUP_CHAT:
+            case RcsUtils.RCS_CHAT_TYPE_TO_PC:
                 return true;
             default:
                 return false;

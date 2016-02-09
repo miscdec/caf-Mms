@@ -153,6 +153,8 @@ public class Conversation {
     private int mRcsMsgId;
     private int mRcsMsgType;
     private int mRcsChatType;
+    private boolean mIsMyPcConversation;
+
     /* End add for RCS */
 
     private static Handler sToastHandler = new Handler();
@@ -1759,6 +1761,18 @@ public class Conversation {
      */
     public synchronized int getRcsLastMsgChatType() {
         return mRcsChatType;
+    }
+
+    public boolean isPcChat() {
+        return mRcsChatType == RcsUtils.RCS_CHAT_TYPE_TO_PC;
+    }
+
+    public boolean isMyPcConversation() {
+        return mIsMyPcConversation;
+    }
+
+    public void setMyPcConversation(boolean mIsMyPcConversation) {
+        this.mIsMyPcConversation = mIsMyPcConversation;
     }
 
     /* End add for RCS */

@@ -72,6 +72,7 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
     static private Drawable sDefaultContactImage;
     private static Drawable sDefaultGroupChatImage; // The RCS Group Chat photo.
+    private static Drawable sDefaultToPcChatImage;
 
     // For posting UI update Runnables from other threads:
     private Handler mHandler = new Handler();
@@ -93,6 +94,10 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         if (MmsConfig.isRcsVersion() && sDefaultGroupChatImage == null) {
             sDefaultGroupChatImage = context.getResources().getDrawable(
                     R.drawable.rcs_ic_group_chat_photo);
+        }
+        if (MmsConfig.isRcsVersion() && sDefaultToPcChatImage == null) {
+            sDefaultToPcChatImage = context.getResources().getDrawable(
+                    R.drawable.rcs_ic_topc_chat_photo);
         }
     }
 
@@ -124,12 +129,18 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     private CharSequence formatMessage() {
         final int color = android.R.styleable.Theme_textColorSecondary;
         String from;
-        if (MmsConfig.isRcsVersion() && mConversation.isGroupChat()) {
-            GroupChat groupChat = mConversation.getGroupChat();
-            if (groupChat != null) {
-                from = RcsUtils.getDisplayName(groupChat);
+        if (MmsConfig.isRcsVersion()) {
+            if (mConversation.isPcChat()) {
+                from = mContext.getResources().getString(R.string.rcs_to_pc_conversion);
+            } else if (mConversation.isGroupChat()) {
+                GroupChat groupChat = mConversation.getGroupChat();
+                if (groupChat != null) {
+                    from = RcsUtils.getDisplayName(groupChat);
+                } else {
+                    from = mContext.getResources().getString(R.string.group_chat);
+                }
             } else {
-                from = mContext.getResources().getString(R.string.group_chat);
+                from = mConversation.getRecipients().formatNames(", ");
             }
         } else {
             from = mConversation.getRecipients().formatNames(", ");
@@ -225,11 +236,19 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     }
 
     private void updateAvatarView() {
-        if (MmsConfig.isRcsVersion() && mConversation.isGroupChat()) {
-            mAvatarView.assignContactUri(null);
-            mAvatarView.setImageDrawable(sDefaultGroupChatImage);
-            mAvatarView.setVisibility(View.VISIBLE);
-            return;
+        if (MmsConfig.isRcsVersion()) {
+            if (mConversation.isGroupChat()) {
+                mAvatarView.assignContactUri(null);
+                mAvatarView.setImageDrawable(sDefaultGroupChatImage);
+                mAvatarView.setVisibility(View.VISIBLE);
+                return;
+            }
+            if (mConversation.isPcChat()) {
+                mAvatarView.assignContactUri(null);
+                mAvatarView.setImageDrawable(sDefaultToPcChatImage);
+                mAvatarView.setVisibility(View.VISIBLE);
+                return;
+            }
         }
         Drawable avatarDrawable;
         if (mConversation.getRecipients().size() == 1) {
