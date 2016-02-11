@@ -223,7 +223,7 @@ public class RcsUtils {
     public static final int RCS_CHAT_TYPE_GROUP_CHAT = 3;
     // public account message
     public static final int RCS_CHAT_TYPE_PUBLIC_MESSAGE = 4;
-
+    public static final int RCS_CHAT_TYPE_TO_PC = 5;
 
     public static final String RCS_NATIVE_UI_ACTION_GROUP_CHAT_DETAIL =
             "com.suntek.mway.rcs.nativeui.ACTION_LUNCH_RCS_GROUPCHATDETAIL";
@@ -1859,8 +1859,8 @@ public class RcsUtils {
     }
 
     public static boolean isRcsMessage(int chatType) {
-        return chatType > RCS_CHAT_TYPE_DEFAULT
-                && chatType < RCS_CHAT_TYPE_PUBLIC_MESSAGE;
+        return (chatType > RCS_CHAT_TYPE_DEFAULT && chatType < RCS_CHAT_TYPE_PUBLIC_MESSAGE)
+                || chatType == RCS_CHAT_TYPE_TO_PC;
     }
 
     public static String formatFilePathIfExisted(String filePath) {
@@ -1967,5 +1967,13 @@ public class RcsUtils {
     public static boolean isRcsAttachmentEnabled(Context context) {
         return SupportApi.getInstance().isRcsSupported()
                 && RcsDualSimMananger.getUserIsUseRcsPolicy(context);
+    }
+
+    public static boolean isMyAccount(String str) {
+        if (str == null) {
+            return false;
+        }
+        String account = RcsUtils.getAccount().trim().replace(" ", "").replace("+86", "");
+        return str.endsWith(account);
     }
 }

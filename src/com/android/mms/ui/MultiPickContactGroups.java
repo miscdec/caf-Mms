@@ -119,7 +119,8 @@ public class MultiPickContactGroups extends ListActivity implements
     private int mMaxContactCount = 0;
 
     /* Begin add for RCS */
-    public static final String LOCAL_GROUP_QUERY_SELECTION = "sourceid='1'";
+    public static final String LOCAL_GROUP_QUERY_SELECTION =
+            Groups.SOURCE_ID + " != 'RCS'" + " OR " + Groups.SOURCE_ID +" IS NULL";
     private static final String LUNCH_SELECT_GROUP_ACTION =
             "com.suntek.rcs.action.ACTION_PICK_CONTACTGROUPS";
     private static final String RECIPIENTS = "recipients";

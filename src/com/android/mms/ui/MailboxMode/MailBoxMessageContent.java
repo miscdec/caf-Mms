@@ -142,12 +142,27 @@ public class MailBoxMessageContent extends Activity {
         Sms._ID,
         Sms.LOCKED
     };
-    private static final String[] SMS_DETAIL_PROJECTION = new String[] {
+    private static final String[] SMS_DETAIL_PROJECTION_DEFAULT = new String[] {
         Sms.THREAD_ID,
         Sms.DATE,
         Sms.ADDRESS,
         Sms.BODY,
-        "phone_id"/*Sms.PHONE_ID*/,
+        Sms.SUBSCRIPTION_ID,
+        Sms.LOCKED,
+        Sms.DATE_SENT,
+        Sms.TYPE,
+        Sms.ERROR_CODE,
+        Sms._ID,
+        Sms.STATUS,
+        Sms.READ
+    };
+
+    private static final String[] SMS_DETAIL_PROJECTION_RCS = new String[] {
+        Sms.THREAD_ID,
+        Sms.DATE,
+        Sms.ADDRESS,
+        Sms.BODY,
+        Sms.SUBSCRIPTION_ID,
         Sms.LOCKED,
         Sms.DATE_SENT,
         Sms.TYPE,
@@ -160,9 +175,12 @@ public class MailBoxMessageContent extends Activity {
         RcsColumns.SmsRcsColumns.RCS_MSG_TYPE,
         RcsColumns.SmsRcsColumns.RCS_THUMB_PATH,
         RcsColumns.SmsRcsColumns.RCS_FILENAME,
-        RcsColumns.SmsRcsColumns.RCS_FILE_SIZE
+        RcsColumns.SmsRcsColumns.RCS_FILE_SIZE,
+        RcsColumns.SmsRcsColumns.RCS_MIME_TYPE
     };
 
+    private static final String[] SMS_DETAIL_PROJECTION = MmsConfig.isRcsVersion() ?
+            SMS_DETAIL_PROJECTION_RCS : SMS_DETAIL_PROJECTION_DEFAULT;
     private static final int COLUMN_THREAD_ID = 0;
     private static final int COLUMN_DATE = 1;
     private static final int COLUMN_SMS_ADDRESS = 2;
@@ -181,6 +199,7 @@ public class MailBoxMessageContent extends Activity {
     private static final int COLUMN_RCS_THUMB_PATH = 15;
     private static final int COLUMN_RCS_FILENAME = 16;
     private static final int COLUMN_RCS_FILE_SIZE = 17;
+    private static final int COLUMN_RCS_MIME_TYPE = 18;
 
     private static final int SMS_ADDRESS_INDEX = 0;
     private static final int SMS_BODY_INDEX = 1;
@@ -283,7 +302,7 @@ public class MailBoxMessageContent extends Activity {
                     .setTitle(R.string.menu_call)
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
-        if (mRcsMsgState == RcsUtils.MESSAGE_HAS_BURNED) {
+        if (MmsConfig.isRcsVersion() && mRcsMsgState == RcsUtils.MESSAGE_HAS_BURNED) {
             menu.clear();
             menu.add(0, MENU_DELETE, 0, R.string.menu_delete_msg);
             return true;
@@ -512,8 +531,10 @@ public class MailBoxMessageContent extends Activity {
         mMsgstatus = cursor.getInt(COLUMN_STATUS);
         mSubID = cursor.getInt(COLUMN_SMS_SUBID);
         mMsgId = cursor.getInt(COLUMN_ID);
-        mRcsMsgState = cursor.getInt(COLUMN_RCS_MSG_STATE);
-        mRcsChatType = cursor.getInt(COLUMN_RCS_CHAT_TYPE);
+        if (MmsConfig.isRcsVersion()) {
+            mRcsMsgState = cursor.getInt(COLUMN_RCS_MSG_STATE);
+            mRcsChatType = cursor.getInt(COLUMN_RCS_CHAT_TYPE);
+        }
     }
 
     private void startQuerySmsContent() {
@@ -798,7 +819,7 @@ public class MailBoxMessageContent extends Activity {
     }
 
     private boolean isRcsMessage() {
-        return mRcsChatType > RcsUtils.RCS_CHAT_TYPE_DEFAULT
+        return MmsConfig.isRcsVersion() && mRcsChatType > RcsUtils.RCS_CHAT_TYPE_DEFAULT
                 && mRcsChatType < RcsUtils.RCS_CHAT_TYPE_PUBLIC_MESSAGE;
     }
     /* End add for RCS */

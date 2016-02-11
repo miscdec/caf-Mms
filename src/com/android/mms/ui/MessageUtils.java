@@ -221,6 +221,8 @@ public class MessageUtils {
      */
     private static boolean isLayoutRtl = false;
 
+    private static boolean sErrorDialogIsShown;
+
     private static final String EXIT_AFTER_RECORD = "exit_after_record";
 
     // Cache of both groups of space-separated ids to their full
@@ -355,6 +357,7 @@ public class MessageUtils {
     private static final int SELECT_LOCAL = 2;
     public static final String EXTRA_KEY_NEW_MESSAGE_UNREAD = "unread";
     private static final long ARM_BIT = 12791;
+    private static final int MILLISECOND_SIZE = 1000;
     /* End add for RCS */
 
     private MessageUtils() {
@@ -890,7 +893,7 @@ public class MessageUtils {
         if (requringRcsAttachment) {
             long durationLimit = RcsFileController.getRcsTransferFileMaxDuration(
                     RcsUtils.RCS_MSG_TYPE_AUDIO);
-            intent.putExtra(Media.EXTRA_MAX_BYTES, (long)((ARM_BIT / 8) * (durationLimit + 1)));
+            intent.putExtra(Media.DURATION, (int)(durationLimit) * MILLISECOND_SIZE);
         } else {
             intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
         }
@@ -1029,20 +1032,29 @@ public class MessageUtils {
         if (activity.isFinishing()) {
             return;
         }
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        if (!sErrorDialogIsShown) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
 
-        builder.setIcon(R.drawable.ic_sms_mms_not_delivered);
-        builder.setTitle(title);
-        builder.setMessage(message);
-        builder.setPositiveButton(android.R.string.ok, new OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if (which == DialogInterface.BUTTON_POSITIVE) {
-                    dialog.dismiss();
+            builder.setIcon(R.drawable.ic_sms_mms_not_delivered);
+            builder.setTitle(title);
+            builder.setMessage(message);
+            builder.setPositiveButton(android.R.string.ok, new OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    if (which == DialogInterface.BUTTON_POSITIVE) {
+                        dialog.dismiss();
+                    }
                 }
-            }
-        });
-        builder.show();
+            });
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    sErrorDialogIsShown = false;
+                }
+            });
+            builder.show();
+            sErrorDialogIsShown = true;
+        }
     }
 
     /**
@@ -1212,7 +1224,8 @@ public class MessageUtils {
         }
 
         final Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
-                        Mms.Inbox.CONTENT_URI, new String[] {Mms._ID, Mms.MESSAGE_ID, "phone_id"/*Mms.PHONE_ID*/},
+                        Mms.Inbox.CONTENT_URI, new String[] {
+                            Mms._ID, Mms.MESSAGE_ID, Mms.SUBSCRIPTION_ID},
                         selectionBuilder.toString(), null, null);
 
         if (c == null) {
@@ -2324,7 +2337,7 @@ public class MessageUtils {
     }
 
     public static int getSmsMessageCount(Context context) {
-        int msgCount = -1;
+        int msgCount = 0;
 
         Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
                 MESSAGES_COUNT_URI, null, null, null, null);

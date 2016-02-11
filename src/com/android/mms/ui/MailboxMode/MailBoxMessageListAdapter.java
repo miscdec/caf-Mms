@@ -169,6 +169,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         } else {
             avatarDrawable = sDefaultContactImage;
         }
+        avatarDrawable = contact.getAvatar(mContext, avatarDrawable);
 
         if (contact.existsInDatabase()) {
             mAvatarView.assignContactUri(contact.getUri());

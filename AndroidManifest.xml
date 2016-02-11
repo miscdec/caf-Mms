@@ -42,8 +42,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INSTALL_DRM" />
     <uses-permission android:name="android.permission.WRITE_APN_SETTINGS" />
-    <uses-permission android:name="com.suntek.mway.rcs.app.service.message.READ_DATABASE" />
-    <uses-permission android:name="com.suntek.mway.rcs.app.service.message.WRITE_DATABASE" />
+    <uses-permission android:name="com.suntek.rcs.permission.READ_DATABASE" />
+    <uses-permission android:name="com.suntek.rcs.permission.WRITE_DATABASE" />
     <!-- System apps can access the  receiver through intent-->
     <permission android:name="android.permission.MMS_SEND_OUTBOX_MSG"
                 android:protectionLevel="signatureOrSystem"
@@ -58,6 +58,7 @@
     <uses-permission android:name="android.permission.MANAGE_DOCUMENTS" />
     <uses-permission android:name="com.android.firewall.READ_GRAVITY"/>
     <uses-permission android:name="com.android.firewall.WRITE_GRAVITY"/>
+    <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE"/>
     <!-- Needed for OMA Client Provisioning -->
     <uses-permission android:name="org.codeaurora.omacp.permission.SHOW_CONFIGURATION_MESSAGE" />
 
@@ -473,10 +474,10 @@
         </provider>
         <receiver android:name=".rcs.RcsMessageStatusReceiver" >
             <intent-filter>
-                <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_SMS_POLICY_NOT_SET" />
-                <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_FILE_TRANSFER_PROGRESS" />
-                <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_STATUS_CHANGED" />
-                <action android:name="com.suntek.mway.rcs.app.service.ACTION_MESSAGE_NOTIFY" />
+                <action android:name="com.suntek.rcs.action.ACTION_MESSAGE_SMS_POLICY_NOT_SET" />
+                <action android:name="com.suntek.rcs.action.ACTION_MESSAGE_FILE_TRANSFER_PROGRESS" />
+                <action android:name="com.suntek.rcs.action.ACTION_MESSAGE_STATUS_CHANGED" />
+                <action android:name="com.suntek.rcs.action.ACTION_MESSAGE_NOTIFY" />
             </intent-filter>
         </receiver>
 

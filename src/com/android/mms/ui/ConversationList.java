@@ -283,6 +283,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         mQueryHandler = new ThreadListQueryHandler(getContentResolver());
 
         ListView listView = getListView();
+        mEmptyView = (TextView)findViewById(R.id.empty);
         listView.setOnCreateContextMenuListener(mConvListOnCreateContextMenuListener);
         listView.setOnKeyListener(mThreadListKeyListener);
         listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
@@ -293,7 +294,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             RcsUtils.addNotificationItem(this, listView);
         }
         // Tell the list view which view to display when the list is empty
-        listView.setEmptyView(findViewById(R.id.empty));
+        if (!mIsRcsEnabled) {
+            listView.setEmptyView(findViewById(R.id.empty));
+        } else {
+            mEmptyView.setVisibility(View.GONE);
+        }
 
         initListAdapter();
 
@@ -623,7 +628,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     private void startAsyncQuery() {
         try {
-            ((TextView)(getListView().getEmptyView())).setText(R.string.loading_conversations);
+            mEmptyView.setText(R.string.loading_conversations);
 
             Conversation.startQueryForAll(mQueryHandler, THREAD_LIST_QUERY_TOKEN);
             Conversation.startQuery(mQueryHandler, UNREAD_THREADS_QUERY_TOKEN, Threads.READ + "=0");
@@ -862,12 +867,20 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (mIsRcsEnabled) {
             if (!isConvsertionSelect) {
                 if (mIsRcsEnabled) {
-                    GroupChat groupChat = conv.getGroupChat();
+                    final GroupChat groupChat = conv.getGroupChat();
                     if (groupChat != null) {
                         try {
                             if (groupChat.isGroupChatValid()) {
-                                GroupChatApi.getInstance().rejoin(groupChat.getId());
-                                RcsLog.i("rejoin groupChatId =" + groupChat.getId());
+                                new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            GroupChatApi.getInstance().rejoin(groupChat.getId());
+                                        } catch (Exception e) {
+                                            RcsLog.w(e);
+                                        }
+                                    }
+                                }).start();
                             }
                         } catch (Exception e) {
                             RcsLog.w(e);
@@ -1215,7 +1228,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 mListAdapter.changeCursor(cursor);
 
                 if (mListAdapter.getCount() == 0) {
-                    ((TextView)(getListView().getEmptyView())).setText(R.string.no_conversations);
+                    mEmptyView.setText(R.string.no_conversations);
                 }
 
                 if (mDoOnceAfterFirstQuery) {
@@ -1514,7 +1527,35 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 return;
             }
             final int checkedCount = listView.getCheckedItemCount();
-
+            Menu menu = mode.getMenu();
+            MenuItem topItem = menu.findItem(R.id.topConversation);
+            MenuItem unTopItem = menu.findItem(R.id.cancelTopConversation);
+            MenuItem addBlackItem = menu.findItem(R.id.addBlackList);
+            if (mIsRcsEnabled ) {
+                if (checkedCount == 1) {
+                    if (mIsTopConversation) {
+                        unTopItem.setVisible(true);
+                        topItem.setVisible(false);
+                    } else {
+                        topItem.setVisible(true);
+                        unTopItem.setVisible(false);
+                    }
+                    if (mConversation != null && RcsUtils.showFirewallMenu(ConversationList.this,
+                        mConversation.getRecipients(), true) && !mConversation.isGroupChat()) {
+                        addBlackItem.setVisible(true);
+                    } else {
+                        addBlackItem.setVisible(false);
+                    }
+                } else {
+                    topItem.setVisible(false);
+                    unTopItem.setVisible(false);
+                    addBlackItem.setVisible(false);
+                }
+            } else {
+                topItem.setVisible(false);
+                unTopItem.setVisible(false);
+                addBlackItem.setVisible(false);
+            }
             mSelectionMenu.setTitle(getApplicationContext().getString(R.string.selected_count,
                     checkedCount));
             if (getListView().getCount() == checkedCount) {

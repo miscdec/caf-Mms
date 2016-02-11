@@ -123,7 +123,7 @@ public class MessageDetailAdapter extends PagerAdapter {
         View content = mInflater.inflate(R.layout.message_detail_content, view, false);
 
         final TextView bodyText = (TextView) content.findViewById(R.id.textViewBody);
-        if (MmsConfig.isRcsEnabled()) {
+        if (MmsConfig.isRcsVersion()) {
             LinearLayout mLinearLayout = (LinearLayout)content.findViewById(R.id.other_type_layout);
 
             mMsgType = mCursor.getInt(mCursor.getColumnIndex(RcsColumns.SmsRcsColumns.RCS_MSG_TYPE));
@@ -187,7 +187,7 @@ public class MessageDetailAdapter extends PagerAdapter {
         }
 
         TextView detailsText = (TextView) content.findViewById(R.id.textViewDetails);
-        if (MmsConfig.isRcsEnabled()) {
+        if (MmsConfig.isRcsVersion()) {
             detailsText.setText(MessageUtils.getTextMessageDetails(mContext, mCursor, true));
         } else {
             detailsText.setText(MessageUtils.getTextMessageDetails(mContext, mCursor, false));

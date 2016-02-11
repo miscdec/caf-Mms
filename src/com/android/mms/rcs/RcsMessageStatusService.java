@@ -57,6 +57,8 @@ public class RcsMessageStatusService extends IntentService {
     private static long DEFAULT_THREAD_ID = -1;
     private static long DEFAULT_THREAD_SIZE = -1;
     private static int DEFAULT_STATUS = -11;
+    private static int DEFAULT_SILENCE = 0;
+    private static int RCS_SILENCE_STATUS = 1;
     private static final String ACTION_START_DIALOG =
             "com.suntek.rcs.action.ACTION_LUNCHER_CONFRMDIALOG";
 
@@ -97,7 +99,10 @@ public class RcsMessageStatusService extends IntentService {
         String action = intent.getAction();
         if (Actions.MessageAction.ACTION_MESSAGE_NOTIFY.equals(action)) {
             long threadId = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
-            disposeGroupChatNewMessage(threadId);
+            int silence = intent.getIntExtra(Parameter.EXTRA_SILENCE, DEFAULT_SILENCE);
+            if (silence != RCS_SILENCE_STATUS) {
+                disposeGroupChatNewMessage(threadId);
+            }
             Recycler.getSmsRecycler().deleteOldMessagesByThreadId(RcsMessageStatusService.this,
                     threadId);
         } else if (Actions.MessageAction.ACTION_MESSAGE_STATUS_CHANGED.equals(action)) {
@@ -105,9 +110,10 @@ public class RcsMessageStatusService extends IntentService {
             long id = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, DEFAULT_THREAD_ID);
             int status = intent.getIntExtra(Parameter.EXTRA_STATUS, DEFAULT_STATUS);
             if (status == RcsUtils.MESSAGE_FAIL) {
-                RcsNotifyManager.sendMessageFailNotif(MmsApp.getApplication(), status, id, true);
-                if (MessagingNotification.getCurrentlyDisplayedThreadId() != id){
-                    RcsUtils.updateFaildMessageType(MmsApp.getApplication(), dataId);
+                RcsUtils.updateFaildMessageType(MmsApp.getApplication(), dataId);
+                if (MessagingNotification.getCurrentlyDisplayedThreadId() != id) {
+                    RcsNotifyManager
+                            .sendMessageFailNotif(MmsApp.getApplication(), status, id, true);
                 }
             }
         } else if (Actions.MessageAction.ACTION_MESSAGE_SMS_POLICY_NOT_SET.equals(action)) {

@@ -158,6 +158,7 @@ public class MessageListItem extends LinearLayout implements
     private int mPosition;      // for debugging
     private ImageLoadedCallback mImageLoadedCallback;
     private boolean mMultiRecipients;
+    private boolean mIsMsimIccCardActived = false;
     private int mManageMode;
 
     /* Begin add for RCS */
@@ -188,6 +189,10 @@ public class MessageListItem extends LinearLayout implements
             sRcsBurnMessageHasBurnImage = res.getDrawable(
                     R.drawable.rcs_burnmessage_has_burn);
         }
+    }
+
+    public void setIsMsimIccCardActived(boolean isActived){
+        mIsMsimIccCardActived = isActived;
     }
 
     public MessageListItem(Context context, AttributeSet attrs) {
@@ -255,7 +260,11 @@ public class MessageListItem extends LinearLayout implements
             mBodyTopTextView.setVisibility(View.GONE);
             mBodyTextView = mBodyButtomTextView;
         }
-        if (!isRcsMessage()) {
+        if (MmsConfig.isRcsVersion()) {
+            if (!isRcsMessage()) {
+                mBodyTextView.setVisibility(View.VISIBLE);
+            }
+        } else {
             mBodyTextView.setVisibility(View.VISIBLE);
         }
     }
@@ -283,7 +292,7 @@ public class MessageListItem extends LinearLayout implements
                                 // to this listitem. We always want the listview to handle the
                                 // clicks first.
 
-        if (isRcsMessage()) {
+        if (MmsConfig.isRcsVersion() && isRcsMessage()) {
             bindRcsMessage();
         }
         switch (msgItem.mMessageType) {
@@ -470,7 +479,7 @@ public class MessageListItem extends LinearLayout implements
     }
 
     private void updateSimIndicatorView(int subscription) {
-        if (MessageUtils.isMsimIccCardActive() && subscription >= 0) {
+        if (mIsMsimIccCardActived && subscription >= 0) {
             Drawable mSimIndicatorIcon = MessageUtils.getMultiSimIcon(mContext,
                     subscription);
             mSimIndicatorView.setImageDrawable(mSimIndicatorIcon);
@@ -501,7 +510,7 @@ public class MessageListItem extends LinearLayout implements
             avatarDrawable = contact.getAvatar(mContext, sDefaultContactImage);
             if (isSelf) {
                 mAvatar.assignContactUri(Profile.CONTENT_URI);
-                if (avatarDrawable.equals(sDefaultContactImage) && MmsConfig.isRcsEnabled()) {
+                if (MmsConfig.isRcsVersion() && avatarDrawable.equals(sDefaultContactImage)) {
                     Bitmap bitmap = RcsMyProfileCache.getInstance(mAvatar).getMyHeadPic();
                     if (bitmap != null) {
                         avatarDrawable = new BitmapDrawable(bitmap);
@@ -510,12 +519,26 @@ public class MessageListItem extends LinearLayout implements
             } else {
                 if (contact.existsInDatabase()) {
                     mAvatar.assignContactUri(contact.getUri());
+                    if (MmsConfig.isRcsVersion() && avatarDrawable.equals(sDefaultContactImage)
+                            && mRcsGroupId != RcsUtils.SMS_DEFAULT_RCS_GROUP_ID) {
+                        GroupMemberPhotoCache.getInstance().loadGroupMemberPhoto(mRcsGroupId,
+                                addr, mAvatar, sDefaultContactImage);
+                        Bitmap bitmap = GroupMemberPhotoCache.getInstance().getBitmapByNumber(addr);
+                        if (bitmap != null) {
+                            avatarDrawable = new BitmapDrawable(bitmap);
+                        }
+                    }
                 } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
                     mAvatar.assignContactFromPhone(
                             MessageUtils.getWapPushNumber(contact.getNumber()), true);
-                } else if (mRcsGroupId != RcsUtils.SMS_DEFAULT_RCS_GROUP_ID) {
+                } else if (MmsConfig.isRcsVersion() && mRcsGroupId !=
+                                RcsUtils.SMS_DEFAULT_RCS_GROUP_ID) {
                     GroupMemberPhotoCache.getInstance().loadGroupMemberPhoto(mRcsGroupId,
                             addr, mAvatar, sDefaultContactImage);
+                    Bitmap bitmap = GroupMemberPhotoCache.getInstance().getBitmapByNumber(addr);
+                    if (bitmap != null) {
+                        avatarDrawable = new BitmapDrawable(bitmap);
+                    }
                     mAvatar.assignContactFromPhone(
                             MessageUtils.getWapPushNumber(contact.getNumber()), true);
                 } else {
@@ -546,7 +569,11 @@ public class MessageListItem extends LinearLayout implements
             mBodyTextView = mBodyButtomTextView;
             mBodyTopTextView.setVisibility(View.GONE);
         }
-        if (!isRcsMessage()) {
+        if (MmsConfig.isRcsVersion()) {
+            if (!isRcsMessage()) {
+                mBodyTextView.setVisibility(View.VISIBLE);
+            }
+        } else {
             mBodyTextView.setVisibility(View.VISIBLE);
         }
 
@@ -600,14 +627,16 @@ public class MessageListItem extends LinearLayout implements
             mMessageItem.setCachedFormattedMessage(formattedMessage);
         }
         if (!sameItem || haveLoadedPdu) {
-            if (MmsConfig.isRcsEnabled()
-                    && mMessageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_VCARD) {
-                if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
-                    mBodyTextView.setText(RcsUtils.getCaiYunFileBodyText(mContext, mMessageItem));
-                } else if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_OTHER_FILE) {
-                    mBodyTextView.setText(R.string.message_content_other_file);
-                } else {
-                    mBodyTextView.setText(formattedMessage);
+            if (MmsConfig.isRcsVersion()) {
+                if (mMessageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_VCARD) {
+                    if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_CAIYUNFILE) {
+                        mBodyTextView.setText(RcsUtils
+                                .getCaiYunFileBodyText(mContext, mMessageItem));
+                    } else if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_OTHER_FILE) {
+                        mBodyTextView.setText(R.string.message_content_other_file);
+                    } else {
+                        mBodyTextView.setText(formattedMessage);
+                    }
                 }
             } else {
                 mBodyTextView.setText(formattedMessage);
@@ -635,7 +664,7 @@ public class MessageListItem extends LinearLayout implements
         // If we're in the process of sending a message (i.e. pending), then we show a "SENDING..."
         // string in place of the timestamp.
         if (!sameItem || haveLoadedPdu) {
-            if (MmsConfig.isRcsEnabled()) {
+            if (MmsConfig.isRcsVersion()) {
                 int rcsMsgType = mMessageItem.getRcsMsgType();
                 if (rcsMsgType != RcsUtils.RCS_MSG_TYPE_IMAGE
                         && rcsMsgType != RcsUtils.RCS_MSG_TYPE_VIDEO
@@ -650,7 +679,7 @@ public class MessageListItem extends LinearLayout implements
                         : mMessageItem.mTimestamp));
             }
         }
-        if (isRcsMessage()) {
+        if (MmsConfig.isRcsVersion() && isRcsMessage()) {
             bindCommonRcsMessage();
         }
         if (!mRcsShowMmsView) {
@@ -940,10 +969,12 @@ public class MessageListItem extends LinearLayout implements
         // If the message is a failed one, clicking it should reload it in the compose view,
         // regardless of whether it has links in it
         if (mMessageItem != null &&
-                mMessageItem.isOutgoingMessage() &&
-                mMessageItem.isFailedMessage() ) {
+                ((mMessageItem.isOutgoingMessage() &&
+                mMessageItem.isFailedMessage()) ||
+                mMessageItem.isFailedRcsTextMessage())) {
             //if message is rcsMessage except text,return.
-            if (isRcsMessage() && mMessageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_TEXT) {
+            if (MmsConfig.isRcsVersion() && isRcsMessage() &&
+                    mMessageItem.getRcsMsgType() != RcsUtils.RCS_MSG_TYPE_TEXT) {
                 return;
             }
             // Assuming the current message is a failed one, reload it into the compose view so
@@ -1232,6 +1263,9 @@ public class MessageListItem extends LinearLayout implements
         if (mSlideShowButton != null) {
             mSlideShowButton.setVisibility(View.GONE);
         }
+        if (mVCardImageView != null) {
+            mVCardImageView.setVisibility(View.GONE);
+        }
         if (mMessageItem.getRcsMsgState() == RcsUtils.MESSAGE_HAS_BURNED) {
             mImageView.setImageDrawable(sRcsBurnMessageHasBurnImage);
         } else {
@@ -1350,6 +1384,9 @@ public class MessageListItem extends LinearLayout implements
                 mVCardImageView.setVisibility(View.VISIBLE);
                 RcsUtils.setThumbnailForMessageItem(getContext(), mVCardImageView, mMessageItem);
             } else {
+                if (mVCardImageView != null){
+                    mVCardImageView.setVisibility(View.GONE);
+                }
                 RcsUtils.setThumbnailForMessageItem(getContext(), mImageView, mMessageItem);
             }
             if (mMessageItem.getRcsMsgType() == RcsUtils.RCS_MSG_TYPE_VIDEO) {

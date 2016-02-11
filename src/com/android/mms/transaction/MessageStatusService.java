@@ -66,8 +66,13 @@ public class MessageStatusService extends IntentService {
 
         // Called on a background thread, so it's OK to block.
         if (message != null && message.getStatus() < Sms.STATUS_PENDING) {
-            MessagingNotification.blockingUpdateNewMessageIndicator(this,
-                    MessagingNotification.THREAD_NONE, message.isStatusReportMessage());
+            if (message.isStatusReportMessage()) {
+                MessagingNotification.blockingUpdateNewMessageIndicator(this,
+                        MessagingNotification.THREAD_NONE, true, messageUri);
+            } else {
+                MessagingNotification.blockingUpdateNewMessageIndicator(this,
+                        MessagingNotification.THREAD_NONE, false);
+            }
         }
     }
 
@@ -91,10 +96,8 @@ public class MessageStatusService extends IntentService {
                 boolean isStatusReport = message.isStatusReportMessage();
                 ContentValues contentValues = new ContentValues(2);
 
-                if (Log.isLoggable(LogTag.TAG, Log.DEBUG)) {
-                    log("updateMessageStatus: msgUrl=" + messageUri + ", status=" + status +
-                            ", isStatusReport=" + isStatusReport);
-                }
+                LogTag.debugD("updateMessageStatus: msgUrl=" + messageUri + ", status=" + status +
+                        ", isStatusReport=" + isStatusReport);
 
                 contentValues.put(Sms.STATUS, status);
                 contentValues.put(Inbox.DATE_SENT, System.currentTimeMillis());

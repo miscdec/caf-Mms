@@ -44,7 +44,6 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessagingPreferenceActivity;
-import com.android.mms.util.DownloadManager;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.android.mms.R;
@@ -225,15 +224,6 @@ public class PushReceiver extends BroadcastReceiver {
                                     MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
                                     null);
                             SqliteWrapper.update(mContext, cr, uri, values, null, null);
-
-                            if (!DownloadManager.getInstance().isAuto()) {
-                                threadId = MessagingNotification.getThreadId(mContext, uri);
-                                Log.d(TAG, "Auto retrieve is off, update new message notification" +
-                                        " for thread " + threadId);
-                                MessagingNotification.blockingUpdateNewMessageIndicator(mContext,
-                                        threadId, false);
-                                break;
-                            }
 
                             // Start service to finish the notification transaction.
                             Intent svc = new Intent(mContext, TransactionService.class);

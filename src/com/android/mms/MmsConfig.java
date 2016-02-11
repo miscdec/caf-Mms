@@ -137,7 +137,7 @@ public class MmsConfig {
 
     public static boolean isRcsEnabled() {
         try {
-            return SupportApi.getInstance().isRcsSupported();
+            return isRcsVersion() && SupportApi.getInstance().isRcsSupported();
         } catch (Exception e) {
             RcsLog.w(e);
             return false;
@@ -146,8 +146,7 @@ public class MmsConfig {
 
     public static boolean isRcsEnabledAndOnline() {
         try {
-            return SupportApi.getInstance().isRcsSupported()
-                    && BasicApi.getInstance().isOnline();
+            return isRcsEnabled() && BasicApi.getInstance().isOnline();
         } catch (Exception e) {
             RcsLog.w(e);
             return false;

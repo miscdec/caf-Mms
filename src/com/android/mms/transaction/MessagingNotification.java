@@ -321,6 +321,10 @@ public class MessagingNotification {
      */
     public static void blockingUpdateNewMessageIndicator(Context context, long newMsgThreadId,
             boolean isStatusMessage) {
+        blockingUpdateNewMessageIndicator(context,newMsgThreadId,isStatusMessage,null);
+    }
+    public static void blockingUpdateNewMessageIndicator(Context context, long newMsgThreadId,
+            boolean isStatusMessage, Uri msgUri) {
         if (DEBUG) {
             Contact.logWithTrace(TAG, "blockingUpdateNewMessageIndicator: newMsgThreadId: " +
                     newMsgThreadId);
@@ -372,9 +376,11 @@ public class MessagingNotification {
 
         // And deals with delivery reports (which use Toasts). It's safe to call in a worker
         // thread because the toast will eventually get posted to a handler.
-        MmsSmsDeliveryInfo delivery = getSmsNewDeliveryInfo(context);
-        if (delivery != null) {
-            delivery.deliver(context, isStatusMessage);
+        if (isStatusMessage && msgUri != null) {
+            MmsSmsDeliveryInfo delivery = getSmsNewDeliveryInfo(context,msgUri);
+            if (delivery != null) {
+                delivery.deliver(context, isStatusMessage);
+            }
         }
 
         notificationSet.clear();
@@ -881,22 +887,26 @@ public class MessagingNotification {
         return (int) (dip * sScreenDensity + 0.5f);
     }
 
-    private static final MmsSmsDeliveryInfo getSmsNewDeliveryInfo(Context context) {
+    private static final MmsSmsDeliveryInfo getSmsNewDeliveryInfo(Context context, Uri msgUri) {
+        LogTag.debugD("getSmsNewDeliveryInfo:" + msgUri);
         ContentResolver resolver = context.getContentResolver();
-        Cursor cursor = SqliteWrapper.query(context, resolver, Sms.CONTENT_URI,
+        Cursor cursor = SqliteWrapper.query(context, resolver, msgUri,
                     SMS_STATUS_PROJECTION, NEW_DELIVERY_SM_CONSTRAINT,
                     null, Sms.DATE);
 
         if (cursor == null) {
+            LogTag.debugD("getSmsNewDeliveryInfo null");
             return null;
         }
 
         try {
             if (!cursor.moveToLast()) {
+                LogTag.debugD("getSmsNewDeliveryInfo moveToLast null");
                 return null;
             }
 
             String address = cursor.getString(COLUMN_SMS_ADDRESS);
+            LogTag.debugD("getSmsNewDeliveryInfo moveToLast address:" + address);
             long timeMillis = 3000;
 
             Contact contact = Contact.get(address, false);

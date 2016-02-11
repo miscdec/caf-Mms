@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2015 pci-suntektech Technologies, Inc.  All Rights Reserved.
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2016 pci-suntektech Technologies, Inc.  All Rights Reserved.
  * pci-suntektech Technologies Proprietary and Confidential.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,31 +19,20 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- */
+-->
 
-package com.android.mms.rcs;
-import android.content.Context;
+<resources>
 
-import com.suntek.mway.rcs.client.api.ClientApi;
-import com.suntek.mway.rcs.client.api.ServiceListener;
-import com.suntek.mway.rcs.client.api.support.SupportApi;
-import com.suntek.rcs.ui.common.RcsLog;
+    <string-array name="del_image_mode">
+        <item>裁剪</item>
+        <item>缩放</item>
+        <item>原图</item>
+        <item>取消</item>
+    </string-array>
 
-public class RcsApiManager {
+    <string-array name="compose_message_items">
+        <item>@string/new_message</item>
+        <item>@string/new_group_chat</item>
+    </string-array>
 
-    public static void init(Context context) {
-        SupportApi.getInstance().initApi(context);
-        ServiceListener listener = new ServiceListener() {
-            @Override
-            public void onServiceDisconnected() {
-                RcsLog.i("ClientApi disconnected");
-            }
-
-            @Override
-            public void onServiceConnected() {
-                RcsLog.i("ClientApi connected");
-            }
-        };
-        new ClientApi().init(context, listener, listener);
-    }
-}
+</resources>

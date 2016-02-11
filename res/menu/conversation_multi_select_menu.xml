@@ -21,11 +21,14 @@
           android:showAsAction="always|withText" />
     <item android:id="@+id/topConversation"
           android:title="@string/top_conversation"
+          android:visible="false"
           android:showAsAction="never|withText" />
     <item android:id="@+id/cancelTopConversation"
+           android:visible="false"
           android:title="@string/cancel_top_conversation"
           android:showAsAction="never|withText" />
     <item android:id="@+id/addBlackList"
+           android:visible="false"
           android:title="@string/menuid_add_to_black_list"
           android:showAsAction="never|withText" />
 </menu>

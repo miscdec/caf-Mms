@@ -143,7 +143,8 @@ public class MmsWidgetService extends RemoteViewsService {
                                 + MessageConstants.CONST_CHAT_PUBLIC_ACCOUNT);
             }
             return mContext.getContentResolver().query(Conversation.sAllThreadsUri,
-                    Conversation.ALL_THREADS_PROJECTION, selection, null, null);
+                    Conversation.ALL_THREADS_PROJECTION, selection, null,
+                    Conversation.DEFAULT_SORT_ORDER);
         }
 
         private int queryUnreadCount() {
@@ -152,7 +153,7 @@ public class MmsWidgetService extends RemoteViewsService {
             try {
                 cursor = mContext.getContentResolver().query(
                     Conversation.sAllThreadsUri, Conversation.ALL_THREADS_PROJECTION,
-                    Threads.READ + "=0", null, null);
+                    Threads.READ + "=0", null, Conversation.DEFAULT_SORT_ORDER);
                 if (cursor != null) {
                     unreadCount = cursor.getCount();
                 }
@@ -278,7 +279,7 @@ public class MmsWidgetService extends RemoteViewsService {
                     from.setSpan(ConversationListItem.STYLE_BOLD, 0, from.length(),
                             Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
                 }
-               if (MmsConfig.isRcsEnabled()&&conv.isGroupChat()) {
+               if (MmsConfig.isRcsVersion() && conv.isGroupChat()) {
                     GroupChat groupChat = conv.getGroupChat();
                     if (groupChat != null) {
                         from.clear();
@@ -291,7 +292,7 @@ public class MmsWidgetService extends RemoteViewsService {
 
                 // Subject
                 String snippet = conv.getSnippet();
-                if (MmsConfig.isRcsEnabled()) {
+                if (MmsConfig.isRcsVersion()) {
                     if (conv.isGroupChat()) {
                         snippet = RcsUtils.getStringOfNotificationBody(mContext, snippet);
                     } else {
