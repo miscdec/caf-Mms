@@ -44,6 +44,8 @@ import android.database.Cursor;
 import android.provider.Telephony;
 import android.util.Log;
 
+import com.android.mms.util.DraftCache;
+
 import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -225,6 +227,7 @@ public class QTIBackupSMS{
 
                     cr.insert(Telephony.Sms.Draft.CONTENT_URI, values);
                 }
+                DraftCache.getInstance().refresh();
         }
     }
 
