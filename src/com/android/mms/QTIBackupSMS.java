@@ -45,6 +45,8 @@ import android.net.Uri;
 import android.provider.Telephony;
 import android.util.Log;
 
+import com.android.mms.util.DraftCache;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -248,6 +250,7 @@ public class QTIBackupSMS{
 
                     cr.insert(Telephony.Sms.Draft.CONTENT_URI, values);
                 }
+                DraftCache.getInstance().refresh();
         }
     }
 
