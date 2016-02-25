@@ -942,7 +942,13 @@ public class MessageUtils {
 
     // Public for until tests
     public static int getVideoCaptureDurationLimit(long bytesAvailable) {
-        CamcorderProfile camcorder = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW);
+        CamcorderProfile camcorder = null;
+        try {
+            camcorder = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW);
+        } catch (RuntimeException ex) {
+            Log.e(TAG, "RuntimeException caught while getting camera info", ex);
+        }
+
         if (camcorder == null) {
             return 0;
         }
