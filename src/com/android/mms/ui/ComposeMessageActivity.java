@@ -116,6 +116,7 @@ import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.provider.Telephony.Sms.Conversations;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
 import android.telephony.PhoneNumberUtils;
@@ -726,6 +727,8 @@ public class ComposeMessageActivity extends Activity
     private boolean mSendMmsMobileDataOff = false;
     //rcs image switch to mms resize
     private boolean mSendAfterResize = false;
+
+    private int mRcsBurnAfterReadMessageCount = 0;
 
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
@@ -6836,6 +6839,9 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+            if (MmsConfig.getIsRcsVersion()) {
+                mRcsBurnAfterReadMessageCount = getBurnAfterReadMessageCount();
+            }
             switch(token) {
                 case MESSAGE_LIST_QUERY_TOKEN:
                     if (cursor != null && !cursor.isClosed()) {
@@ -7598,6 +7604,9 @@ public class ComposeMessageActivity extends Activity
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
             logMultiChoice("onCreateActionMode");
             // reset statics
+            if (MmsConfig.getIsRcsVersion()) {
+                mRcsBurnAfterReadMessageCount = getBurnAfterReadMessageCount();
+             }
             mMmsSelected = 0;
             mRcsSelected = 0;
             mRcsMediaSelected = 0;
@@ -8423,19 +8432,8 @@ public class ComposeMessageActivity extends Activity
         private boolean allItemsSelected() {
             boolean isAllSelecte = false;
             int msgCount = getListView().getCount();
-            int burnCount = 0;
-            for (int i = 0; i < msgCount; i++) {
-                MessageItem item = getMessageItemByPos(i);
-                boolean isBurnMsg = false;
-                if (mConversation != null && !mConversation.isGroupChat()) {
-                    isBurnMsg = item.isRcsBurnMessage();
-                }
-                if (isBurnMsg) {
-                    burnCount++;
-                }
-            }
-            int a = msgCount - burnCount;
-            if (a == mCheckedCount){
+            msgCount -= mRcsBurnAfterReadMessageCount;
+            if (msgCount == mCheckedCount) {
                 isAllSelecte = true;
             }
             return isAllSelecte;
@@ -9015,4 +9013,21 @@ public class ComposeMessageActivity extends Activity
         return false;
     }
 
+    private int getBurnAfterReadMessageCount() {
+        Cursor cursor = null;
+        String where = Conversations.THREAD_ID + " = " + mConversation.getThreadId() + " and "
+                + RcsColumns.SmsRcsColumns.RCS_BURN + "!= -1";
+        cursor = getContentResolver().query(Sms.CONTENT_URI, new String[] {
+            RcsColumns.SmsRcsColumns.RCS_BURN
+        }, where, null, null);
+        int burnCount = 0;
+        if (cursor != null) {
+            try {
+                burnCount = cursor.getCount();
+            } finally {
+                cursor.close();
+            }
+        }
+        return burnCount;
+    }
 }
