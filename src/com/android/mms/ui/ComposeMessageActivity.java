@@ -4925,26 +4925,13 @@ public class ComposeMessageActivity extends Activity
     }
 
     private boolean isPreparedForSending() {
-        if (mIsAirplaneModeOn && !TelephonyManager.getDefault().isImsRegistered()) {
-            return false;
-        }
-
         int recipientCount = recipientCount();
 
-        if (getContext().getResources().getBoolean(R.bool.enable_send_blank_message)) {
-            Log.d(TAG, "Blank SMS");
-            return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&
-                    recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
-                    mIsSmsEnabled;
-        } else {
-            return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode() ||
-                    TelephonyManager.getDefault().isImsRegistered()) &&
-                    recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
-                    mIsSmsEnabled &&
-                    (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText() ||
-                        mWorkingMessage.hasSubject());
-
-        }
+        return recipientCount > 0 &&
+                recipientCount <= MmsConfig.getRecipientLimit() &&
+                mIsSmsEnabled &&
+                (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText() ||
+                    mWorkingMessage.hasSubject());
     }
 
     private BroadcastReceiver mAirplaneModeBroadcastReceiver = new BroadcastReceiver() {
