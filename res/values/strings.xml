@@ -999,7 +999,7 @@
     <string name="sim_capacity_used">Used:  </string>
     <string name="sim_capacity">Capacity:  </string>
     <string name="mms_recipient_Limit"></string>
-    <string name="no_network_alert_when_send_message">No cellular network available.  Connect to available Wi-Fi for messaging.</string>
+    <string name="no_network_alert_when_send_message">Connect to Wi-Fi for Messaging.</string>
 
     <!-- Settings item description for Mms Validity period -->
     <string name="pref_title_mms_save_time">MMS Validity period</string>
