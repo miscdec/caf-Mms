@@ -35,10 +35,15 @@ This layout file is used by the AlertDialog when displaying a list of items.
         android:text="@string/pref_messages_to_save"
         android:padding="1dip" />
 
-    <NumberPicker
-        android:id="@+id/number_picker"
-        android:layout_centerInParent="true"
-        android:layout_width="100dip"
-        android:layout_height="match_parent" />
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent" >
+
+        <NumberPicker
+            android:id="@+id/number_picker"
+            android:layout_centerInParent="true"
+            android:layout_width="100dip"
+            android:layout_height="150dip" />
+    </LinearLayout>
 
 </LinearLayout>

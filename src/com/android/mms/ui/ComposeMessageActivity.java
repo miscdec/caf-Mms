@@ -117,6 +117,7 @@ import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.provider.Telephony.Sms.Conversations;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
 import android.telephony.PhoneNumberUtils;
@@ -709,6 +710,7 @@ public class ComposeMessageActivity extends Activity
     private ProgressDialog mProgressDialog;
 
     private static int FAVOURITE_MSG = 1;
+    private int mRcsBurnAfterReadMessageCount = 0;
     /* End add for RCS */
 
     @SuppressWarnings("unused")
@@ -2626,8 +2628,6 @@ public class ComposeMessageActivity extends Activity
         long originalThreadId = mConversation.getThreadId();
         long threadId = intent.getLongExtra(THREAD_ID, 0);
         Uri intentUri = intent.getData();
-        boolean needReload = intent.getBooleanExtra(MessageUtils.EXTRA_KEY_NEW_MESSAGE_NEED_RELOAD,
-                false);
         boolean sameThread = false;
         if (threadId > 0) {
             conversation = Conversation.get(this, threadId, false);
@@ -2650,10 +2650,8 @@ public class ComposeMessageActivity extends Activity
             conversation = Conversation.get(this, intentUri, false);
         }
 
-        if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-            log("onNewIntent: data=" + intentUri + ", thread_id extra is " + threadId +
-                    ", new conversation=" + conversation + ", mConversation=" + mConversation);
-        }
+        LogTag.debugD("onNewIntent: data=" + intentUri + ", thread_id extra is " + threadId +
+                ", new conversation=" + conversation + ", mConversation=" + mConversation);
 
         // this is probably paranoid to compare both thread_ids and recipient lists,
         // but we want to make double sure because this is a last minute fix for Froyo
@@ -2663,25 +2661,20 @@ public class ComposeMessageActivity extends Activity
         // even though the recipient lists are different)
         sameThread = (conversation.getThreadId() == mConversation.getThreadId()
                 && mConversation.getThreadId() != 0 && conversation.equals(mConversation));
+        LogTag.debugD("sameThread:" + sameThread);
 
         if (!sameThread) {
+            LogTag.debugD("onNewIntent: different conversation");
+            mMessagesAndDraftLoaded = false;
             if (mConversation.getThreadId() == 0 || conversation.getThreadId() == 0) {
                 mConversation = conversation;
                 mWorkingMessage.setConversation(mConversation);
                 updateThreadIdIfRunning();
                 invalidateOptionsMenu();
-                mMessagesAndDraftLoaded = false;
                 if (mMsgListAdapter != null) {
                     mMsgListAdapter.changeCursor(null);
                     mMsgListAdapter.cancelBackgroundLoading();
                 }
-            }
-
-            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-                log("onNewIntent: different conversation");
-            }
-            if (needReload) {
-                mMessagesAndDraftLoaded = false;
             }
             mIsBurnMessage = false;
             saveDraft(false);    // if we've got a draft, save it first
@@ -5497,6 +5490,10 @@ public class ComposeMessageActivity extends Activity
     private boolean loadDraft() {
         if (mWorkingMessage.isWorthSaving()) {
             Log.w(TAG, "CMA.loadDraft: called with non-empty working message, bail");
+            if (mConversation.hasDraft() &&
+                    mConversation.getMessageCount() == 0) {
+                mWorkingMessage.asyncDeleteDraftSmsMessage(mConversation);
+            }
             return false;
         }
 
@@ -6749,6 +6746,9 @@ public class ComposeMessageActivity extends Activity
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
             logMultiChoice("onCreateActionMode");
             // reset statics
+            if (MmsConfig.isRcsVersion()) {
+                mRcsBurnAfterReadMessageCount = getBurnAfterReadMessageCount();
+            }
             mMmsSelected = 0;
             mRcsSelected = 0;
             mRcsMediaSelected = 0;
@@ -6770,7 +6770,7 @@ public class ComposeMessageActivity extends Activity
                         public boolean onPopupItemClick(int itemId) {
                             if (itemId == SelectionMenu.SELECT_OR_DESELECT) {
                                 boolean selectAll = getListView().getCheckedItemCount() <
-                                        getListView().getCount() ? true : false;
+                                        getMsgCount() ? true : false;
                                 checkAll(selectAll);
                                 mSelectionMenu.updateSelectAllMode(selectAll);
                             }
@@ -6779,6 +6779,7 @@ public class ComposeMessageActivity extends Activity
                     });
             return true;
         }
+
 
         @Override
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
@@ -7010,6 +7011,14 @@ public class ComposeMessageActivity extends Activity
                 }
             }
             return body.toString();
+        }
+
+        private int getMsgCount() {
+            int msgcount = getListView().getCount();
+            if (MmsConfig.isRcsVersion()) {
+                msgcount -= mRcsBurnAfterReadMessageCount;
+            }
+            return msgcount;
         }
 
         private class ComplainMessageListener implements OnClickListener{
@@ -7618,7 +7627,7 @@ public class ComposeMessageActivity extends Activity
             customMenuVisibility(mode, mCheckedCount, position, checked);
             mSelectionMenu.setTitle(getApplicationContext().getString(
                     R.string.selected_count, mCheckedCount));
-            mSelectionMenu.updateSelectAllMode(getListView().getCount() == mCheckedCount);
+            mSelectionMenu.updateSelectAllMode(getMsgCount() == mCheckedCount);
         }
 
         private void confirmDeleteDialog(final DeleteMessagesListener listener,
@@ -9065,6 +9074,22 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private int getBurnAfterReadMessageCount() {
+        Cursor cursor = null;
+        String where = Conversations.THREAD_ID + " = " + mConversation.getThreadId() + " and "
+                + RcsColumns.SmsRcsColumns.RCS_BURN + "!= -1";
+        cursor = getContentResolver().query(Sms.CONTENT_URI, new String[] {
+                RcsColumns.SmsRcsColumns.RCS_BURN}, where, null, null);
+        int burnCount = 0;
+        if (cursor != null) {
+            try {
+                burnCount = cursor.getCount();
+            } finally {
+                cursor.close();
+            }
+        }
+        return burnCount;
+    }
 /* End add for RCS */
 
 }

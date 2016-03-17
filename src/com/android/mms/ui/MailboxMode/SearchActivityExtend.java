@@ -43,6 +43,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.DialogPreference;
 import android.preference.EditTextPreference;
@@ -103,7 +104,7 @@ public class SearchActivityExtend extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
         case MENU_SEARCH:
-            doSearch();
+            new SearchThread().execute();
             break;
         case android.R.id.home:
             finish();
@@ -124,11 +125,11 @@ public class SearchActivityExtend extends Activity {
         return true;
     }
 
-    private void doSearch() {
+    private boolean doSearch() {
         String keyStr = mSearchStringEdit.getText().toString();
         String displayStr = keyStr;
         if (TextUtils.isEmpty(keyStr)) {
-            return;
+            return true;
         }
 
         int modePosition = mSpinSearchMode.getSelectedItemPosition();
@@ -137,9 +138,7 @@ public class SearchActivityExtend extends Activity {
         if (modePosition == MessageUtils.SEARCH_MODE_NAME) {
             keyStr = MessageUtils.getAddressByName(this, keyStr);
             if (TextUtils.isEmpty(keyStr)) {
-                Toast.makeText(SearchActivityExtend.this, getString(R.string.invalid_name_toast),
-                        Toast.LENGTH_LONG).show();
-                return;
+                return false;
             }
             modePosition = MessageUtils.SEARCH_MODE_NUMBER;
             matchWhole = MessageUtils.MATCH_BY_THREAD_ID;
@@ -155,5 +154,22 @@ public class SearchActivityExtend extends Activity {
         startActivity(i);
 
         finish();
+        return true;
+    }
+
+    private class SearchThread extends AsyncTask<Void, Void, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(Void... voids) {
+            return doSearch();
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            if(!result){
+                Toast.makeText(SearchActivityExtend.this, getString(R.string.invalid_name_toast),
+                        Toast.LENGTH_LONG).show();
+            }
+        }
     }
 }

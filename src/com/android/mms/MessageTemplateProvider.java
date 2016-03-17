@@ -73,7 +73,6 @@ public class MessageTemplateProvider extends android.content.ContentProvider {
 
     final static String TAG = "MessageTemplateProvider";
     final static String AUTHORITY = "com.android.mms.MessageTemplateProvider";
-    final static String MESSAGEFILE_PATH = "/data/data/com.android.mms/files/message_template.xml";
     final static String MESSAGFILE = "message_template.xml";
     private static final boolean DBG = true;
     private String mLocale = "";
@@ -311,17 +310,15 @@ public class MessageTemplateProvider extends android.content.ContentProvider {
             return null;
         }
 
-        File messageFile = new File(MESSAGEFILE_PATH);
+        File messageFile = new File(getContext().getFilesDir(), MESSAGFILE) ;
         String locale = getContext().getResources().getConfiguration().locale.toString();
         /*
          * When we change system language, current language is different from last language.
          * In this case, we also need to call CreateMessageTemplateXML().
          */
         if (!messageFile.exists()) {
-            if (DBG)
-                Log.d(TAG, "Create Message Template File: " + MESSAGEFILE_PATH
-                        + " for first time call");
-            if (!CreateMessageTemplateXML())
+            Log.d(TAG, "init template file at: " + messageFile.getAbsolutePath());
+            if (!CreateMessageTemplateXML(messageFile))
                 return null;
         }
 
@@ -333,7 +330,7 @@ public class MessageTemplateProvider extends android.content.ContentProvider {
 
         FileInputStream inputStream = null;
         try {
-            inputStream = getContext().openFileInput(MESSAGFILE);
+            inputStream = new FileInputStream(messageFile);
         } catch (FileNotFoundException e1) {
             // TODO Auto-generated catch block
             if (DBG)
@@ -397,7 +394,7 @@ public class MessageTemplateProvider extends android.content.ContentProvider {
         return true;
     }
 
-    boolean CreateMessageTemplateXML() {
+    boolean CreateMessageTemplateXML(File file) {
         XmlSerializer serializer = Xml.newSerializer();
         StringWriter writer = new StringWriter();
 
@@ -434,7 +431,7 @@ public class MessageTemplateProvider extends android.content.ContentProvider {
 
         FileOutputStream stream = null;
         try {
-            stream = getContext().openFileOutput(MESSAGFILE, Context.MODE_WORLD_WRITEABLE);
+            stream = new FileOutputStream(file);
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

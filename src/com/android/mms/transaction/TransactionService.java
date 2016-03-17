@@ -1182,25 +1182,7 @@ public class TransactionService extends Service implements Observer {
                     }
                     return;
                 case EVENT_MMS_PDP_ACTIVATION_TIMEOUT:
-                    synchronized (mProcessing) {
-                        Transaction txn = null;
-                        if (!mProcessing.isEmpty()) {
-                            // Get the current transaction
-                            txn = mProcessing.get(0);
-                        } else if (!mPending.isEmpty()) {
-                            // Get the pending transaction and delete it.
-                            txn = mPending.remove(0);
-                        }
-
-                        if (txn != null) {
-                            LogTag.debugD("PDP activation timer expired, declare failure");
-                            endMmsConnectivity(txn.getSubId());
-                            txn.attach(TransactionService.this);
-                            markFailed(txn);
-                        } else {
-                            LogTag.debugD("PDP activation timer expired, no pending txn found");
-                        }
-                    }
+                    onPDPTimeout();
                     return;
                 default:
                     Log.w(TAG, "what=" + msg.what);
@@ -1208,8 +1190,26 @@ public class TransactionService extends Service implements Observer {
             }
         }
 
-        private void markFailed(Transaction transaction) {
-            transaction.abort();
+        private void onPDPTimeout() {
+            LogTag.debugD("PDP activation timer expired, declare failure");
+            synchronized (mProcessing) {
+                ArrayList<Transaction> tranList = new ArrayList<Transaction>();
+                if (!mProcessing.isEmpty()) {
+                    // Get the process transaction
+                    tranList.addAll(mProcessing);
+                }
+
+                if (!mPending.isEmpty()) {
+                    // Get the pending transaction and delete it.
+                    tranList.addAll(mPending);
+                    tranList.get(tranList.size() - 1).attach(TransactionService.this);
+                    mPending.clear();
+                }
+
+                for (Transaction transaction : tranList) {
+                    transaction.abort();
+                }
+            }
         }
 
         public void markAllPendingTransactionsAsFailed() {

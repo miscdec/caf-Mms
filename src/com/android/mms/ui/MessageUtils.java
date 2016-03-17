@@ -277,8 +277,6 @@ public class MessageUtils {
     private static final String REPLACE_QUOTES_1 = "'";
     private static final String REPLACE_QUOTES_2 = "''";
 
-    public static final String EXTRA_KEY_NEW_MESSAGE_NEED_RELOAD = "reload";
-
     public static final String KEY_SMS_FONTSIZE = "smsfontsize";
     public static final int DELAY_TIME = 200;
     public static final float FONT_SIZE_DEFAULT = 30f;
@@ -1725,9 +1723,9 @@ public class MessageUtils {
      */
     public static boolean isIccCardActivated(int subscription) {
         TelephonyManager tm = TelephonyManager.getDefault();
-        log("isIccCardActivated subscription " + tm.getSimState(subscription));
-        return (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_ABSENT)
-                    && (tm.getSimState(subscription) != TelephonyManager.SIM_STATE_UNKNOWN);
+        int simState = tm.getSimState(subscription);
+        return (simState != TelephonyManager.SIM_STATE_ABSENT)
+                    && (simState != TelephonyManager.SIM_STATE_UNKNOWN);
     }
 
     public static Drawable getMultiSimIcon(Context context, int subscription) {
@@ -2555,7 +2553,6 @@ public class MessageUtils {
                     case DIALOG_ITEM_SMS:
                         Intent smsIntent = new Intent(Intent.ACTION_SENDTO,
                                 Uri.parse("smsto:" + extractNumber));
-                        smsIntent.putExtra(EXTRA_KEY_NEW_MESSAGE_NEED_RELOAD, true);
                         localContext.startActivity(smsIntent);
                         break;
                     case DIALOG_ITEM_ADD_CONTACTS:

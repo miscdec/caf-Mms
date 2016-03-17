@@ -38,6 +38,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract.Contacts;
@@ -405,7 +406,7 @@ public class ManageSimMessages extends Activity
                 mIccUri, true, simChangeObserver);
     }
 
-    private void copyToPhoneMemory(Cursor cursor) {
+    private boolean copyToPhoneMemory(Cursor cursor) {
         String address = cursor.getString(
                 cursor.getColumnIndexOrThrow("address"));
         String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
@@ -425,7 +426,7 @@ public class ManageSimMessages extends Activity
             SqliteWrapper.checkSQLiteException(this, e);
             success = false;
         }
-        showToast(success);
+        return success;
     }
 
     private void showToast(boolean success) {
@@ -652,7 +653,7 @@ public class ManageSimMessages extends Activity
                     int pos = mSelectedPos.get(0);
                     Cursor cursor = (Cursor) getListView().getAdapter().getItem(pos);
                     if (!MessageUtils.checkIsPhoneMessageFull(getContext())) {
-                        copyToPhoneMemory(cursor);
+                        new CopyThread(cursor).execute();
                     }
                     break;
                 case R.id.reply:
@@ -783,5 +784,26 @@ public class ManageSimMessages extends Activity
             getContext().startActivity(replyIntent);
         }
     }
+
+    private class CopyThread extends AsyncTask<Void, Void, Boolean> {
+        private Cursor mCursor;
+
+        public CopyThread(Cursor cursor) {
+            mCursor = cursor;
+         }
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            if(mCursor != null) {
+                return copyToPhoneMemory(mCursor);
+            }
+            return false;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            showToast(result);
+        }
+     }
 }
 

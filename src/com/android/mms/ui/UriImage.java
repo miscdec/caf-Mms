@@ -125,13 +125,12 @@ public class UriImage {
         Cursor c = SqliteWrapper.query(context, resolver,
                             uri, null, null, null, null);
 
-        mSrc = null;
-        if (c == null) {
-            throw new IllegalArgumentException(
-                    "Query on " + uri + " returns null result.");
-        }
-
         try {
+            mSrc = null;
+            if (c == null) {
+                throw new IllegalArgumentException(
+                        "Query on " + uri + " returns null result.");
+            }
             if ((c.getCount() != 1) || !c.moveToFirst()) {
                 throw new IllegalArgumentException(
                         "Query on " + uri + " returns 0 or multiple rows.");
@@ -182,7 +181,9 @@ public class UriImage {
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "initFromContentUri couldn't load image uri: " + uri, e);
         } finally {
-            c.close();
+            if (c != null) {
+                c.close();
+            }
         }
     }
 
