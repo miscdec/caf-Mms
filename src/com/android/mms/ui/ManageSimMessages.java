@@ -651,9 +651,8 @@ public class ManageSimMessages extends Activity
                     break;
                 case R.id.copy_to_phone:
                     int pos = mSelectedPos.get(0);
-                    Cursor cursor = (Cursor) getListView().getAdapter().getItem(pos);
                     if (!MessageUtils.checkIsPhoneMessageFull(getContext())) {
-                        new CopyThread(cursor).execute();
+                        new CopyThread().execute(pos);
                     }
                     break;
                 case R.id.reply:
@@ -785,17 +784,14 @@ public class ManageSimMessages extends Activity
         }
     }
 
-    private class CopyThread extends AsyncTask<Void, Void, Boolean> {
-        private Cursor mCursor;
-
-        public CopyThread(Cursor cursor) {
-            mCursor = cursor;
-         }
+    private class CopyThread extends AsyncTask<Integer, Void, Boolean> {
 
         @Override
-        protected Boolean doInBackground(Void... params) {
-            if(mCursor != null) {
-                return copyToPhoneMemory(mCursor);
+        protected Boolean doInBackground(Integer... params) {
+            int pos = params[0];
+            Cursor cursor = (Cursor) getListView().getAdapter().getItem(pos);
+            if (cursor != null) {
+                return copyToPhoneMemory(cursor);
             }
             return false;
         }
