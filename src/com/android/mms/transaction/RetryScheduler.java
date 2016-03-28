@@ -92,12 +92,8 @@ public class RetryScheduler implements Observer {
                 }
             }
         } finally {
-            if (mContext
-                    .getResources().getBoolean(R.bool.config_retry_always)) {
-                setRetryAlarm(mContext, uri);
-            } else {
-                Log.d(TAG, "Retry alarm is not set");
-            }
+            setRetryAlarm(mContext, uri);
+            Log.d(TAG, "set retry alarm");
         }
     }
 
