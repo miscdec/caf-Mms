@@ -26,8 +26,6 @@ import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -43,20 +41,14 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.drawable.Drawable;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.Telephony;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Threads;
-import android.telephony.ServiceState;
-import android.telephony.SubscriptionManager;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.ContextMenu;
@@ -89,11 +81,6 @@ import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
 import com.android.mms.data.Conversation.ConversationQueryHandler;
 import com.android.mms.data.RecipientIdCache;
-
-import com.android.internal.telephony.TelephonyIntents;
-import com.android.mms.LogTag;
-import com.android.mms.MmsConfig;
-import com.android.mms.R;
 import com.android.mms.rcs.FavouriteMessageList;
 import com.android.mms.rcs.RcsUtils;
 import com.android.mms.rcs.RcsSelectionMenu;
@@ -114,15 +101,9 @@ import com.suntek.mway.rcs.client.api.support.SupportApi;
 import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver;
 import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver.GroupChatNotifyCallback;
 import com.suntek.rcs.ui.common.RcsLog;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * This activity provides a list view of existing conversations.
@@ -196,6 +177,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private static String GROUP_CHAT_ID = "groupChatId";
     private static String GROUP_CHAT = "GroupChat";
     private static final String CREATE_GROUP_CHAT = "com.suntek.rcs.action.CREATR_GROUP_CHAT";
+    private static final String NOT_OBSOLETE = "_id IN (SELECT DISTINCT thread_id FROM sms where "+
+                            "thread_id NOT NULL UNION SELECT DISTINCT thread_id FROM pdu where "+
+                            "thread_id NOT NULL)";
     private GroupChatManagerReceiver groupReceiver = new GroupChatManagerReceiver(
             new GroupChatNotifyCallback() {
 
@@ -630,8 +614,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         try {
             mEmptyView.setText(R.string.loading_conversations);
 
-            Conversation.startQueryForAll(mQueryHandler, THREAD_LIST_QUERY_TOKEN);
-            Conversation.startQuery(mQueryHandler, UNREAD_THREADS_QUERY_TOKEN, Threads.READ + "=0");
+            //Query all thread without Obsolete.
+            Conversation.startQuery(mQueryHandler,
+                    THREAD_LIST_QUERY_TOKEN, NOT_OBSOLETE);
+
+            //Query all unread thread without Obsolete.
+            Conversation.startQuery(mQueryHandler, UNREAD_THREADS_QUERY_TOKEN,
+                    Threads.READ + "=0" + " and " + NOT_OBSOLETE);
         } catch (SQLiteException e) {
             SqliteWrapper.checkSQLiteException(this, e);
         }
