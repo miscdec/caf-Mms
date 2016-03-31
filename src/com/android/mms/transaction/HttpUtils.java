@@ -53,7 +53,6 @@ import android.util.Log;
 
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
-import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 
 public class HttpUtils {
@@ -143,17 +142,6 @@ public class HttpUtils {
             // TODO Print out binary data more readable.
             //Log.v(TAG, "\tpdu\t\t= " + Arrays.toString(pdu));
         }
-        if (context.getResources().getBoolean(
-                R.bool.config_regional_mms_via_wifi_enable) &&
-                context.getResources().getBoolean(
-                R.bool.config_regional_mms_use_https_in_wifi)) {
-            if (MessageUtils.shouldHandleMmsViaWifi(context) && method == HTTP_POST_METHOD) {
-                if (!url.startsWith("https") && url.startsWith("http")) {
-                    url = url.replaceFirst("http", "https");
-                    Log.i(TAG, "force https, new url: " + url);
-                }
-            }
-        }
 
         AndroidHttpClient client = null;
 
@@ -164,14 +152,6 @@ public class HttpUtils {
             HttpHost target = new HttpHost(
                     hostUrl.getHost(), hostUrl.getPort(),
                     HttpHost.DEFAULT_SCHEME_NAME);
-            if (context.getResources().getBoolean(
-                    R.bool.config_regional_mms_via_wifi_enable) &&
-                    context.getResources().getBoolean(
-                    R.bool.config_regional_mms_use_https_in_wifi)) {
-                target = new HttpHost(
-                hostUrl.getHost(), hostUrl.getPort(),
-                hostUrl.getScheme());
-            }
 
             client = createHttpClient(context);
             HttpRequestBase req = null;

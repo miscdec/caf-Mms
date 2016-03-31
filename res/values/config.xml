@@ -90,10 +90,6 @@
 
     <!-- configuration for display add attachment icon always -->
     <bool name="config_show_attach_icon_always">false</bool>
-    <bool name="config_regional_mms_via_wifi_enable">false</bool>
-
-    <!-- Whether to use https protocol for mms in wifi network -->
-    <bool name="config_regional_mms_use_https_in_wifi">false</bool>
 
     <bool name="config_regional_sms_notification_from_911_disable">false</bool>
 
