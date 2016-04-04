@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-Copyright (c) 2014, The Linux Foundation. All rights reserved.
+Copyright (c) 2014, 2016, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -33,56 +33,65 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <item
         android:id="@+id/forward"
-        android:icon="@drawable/ic_forward"
+        android:icon="@drawable/forward"
         android:showAsAction="always|withText"
         android:title="@string/menu_forward"/>
     <item
         android:id="@+id/delete"
-        android:icon="@drawable/ic_menu_trash_holo_dark"
+        android:icon="@drawable/delete"
         android:showAsAction="always|withText"
         android:title="@string/menu_delete_msg"/>
     <item
-        android:id="@+id/lock"
-        android:showAsAction="never|withText"
-        android:title="@string/menu_lock"/>
-    <item
-        android:id="@+id/resend"
-        android:showAsAction="never|withText"
-        android:title="@string/menu_resend"/>
-    <item
-        android:id="@+id/copy_to_sim"
-        android:showAsAction="never|withText"
-        android:title="@string/operation_to_card_memory"/>
-    <item
-        android:id="@+id/copy_text"
-        android:showAsAction="never|withText"
-        android:title="@string/copy_message_text"/>
-    <item
-        android:id="@+id/detail"
-        android:showAsAction="never|withText"
-        android:title="@string/message_detail"/>
-    <item
-        android:id="@+id/report"
-        android:showAsAction="never|withText"
-        android:title="@string/view_delivery_report"/>
-    <item
-        android:id="@+id/save_attachment"
-        android:showAsAction="never|withText"
-        android:title="@string/copy_to_sdcard"/>
-    <item
-        android:id="@+id/complain"
-        android:showAsAction="never|withText"
-        android:title="@string/message_complain"/>
-    <item
-        android:id="@+id/save_back"
-        android:showAsAction="never|withText"
-        android:title="@string/message_save"/>
-    <item
-        android:id="@+id/favourite"
-        android:showAsAction="never|withText"
-        android:title="@string/favorited"/>
-    <item
-        android:id="@+id/view_one_to_many_msg_status"
-        android:showAsAction="never|withText"
-        android:title="@string/menu_view_one_to_many_status"/>
+        android:id="@+id/more"
+        android:icon="@drawable/more_black"
+        android:showAsAction="always"
+        android:title="@string/menu_more">
+        <menu>
+            <item
+                android:id="@+id/lock"
+                android:showAsAction="never|withText"
+                android:title="@string/menu_lock"/>
+            <item
+                android:id="@+id/resend"
+                android:showAsAction="never|withText"
+                android:title="@string/menu_resend"/>
+            <item
+                android:id="@+id/copy_to_sim"
+                android:showAsAction="never|withText"
+                android:title="@string/operation_to_card_memory"/>
+            <item
+                android:id="@+id/copy_text"
+                android:showAsAction="never|withText"
+                android:title="@string/copy_message_text"/>
+            <item
+                android:id="@+id/detail"
+                android:showAsAction="never|withText"
+                android:title="@string/message_detail"/>
+            <item
+                android:id="@+id/report"
+                android:showAsAction="never|withText"
+                android:title="@string/view_delivery_report"/>
+            <item
+                android:id="@+id/save_attachment"
+                android:showAsAction="never|withText"
+                android:title="@string/copy_to_sdcard"/>
+            <item
+                android:id="@+id/complain"
+                android:showAsAction="never|withText"
+                android:title="@string/message_complain"/>
+            <item
+                android:id="@+id/save_back"
+                android:showAsAction="never|withText"
+                android:title="@string/message_save"/>
+            <item
+                android:id="@+id/favourite"
+                android:showAsAction="never|withText"
+                android:title="@string/favorited"/>
+            <item
+                android:id="@+id/view_one_to_many_msg_status"
+                android:showAsAction="never|withText"
+                android:title="@string/menu_view_one_to_many_status"/>
+        </menu>
+    </item>
+
 </menu>

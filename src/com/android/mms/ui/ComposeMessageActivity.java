@@ -57,8 +57,12 @@ import java.util.regex.Pattern;
 import java.util.Set;
 
 import android.R.integer;
+import android.animation.AnimatorSet;
+import android.animation.ArgbEvaluator;
+import android.animation.ObjectAnimator;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Instrumentation;
 import android.app.Dialog;
@@ -86,7 +90,9 @@ import android.drm.DrmStore;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.StateListDrawable;
 import android.media.MediaFile;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
@@ -137,6 +143,7 @@ import android.text.TextWatcher;
 import android.text.method.TextKeyListener;
 import android.text.style.URLSpan;
 import android.text.util.Linkify;
+import android.util.Base64;
 import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.ActionMode;
@@ -155,6 +162,7 @@ import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
 import android.view.View.OnTouchListener;
 import android.view.ViewStub;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
@@ -171,6 +179,7 @@ import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Toolbar;
 import android.widget.Button;
 
 import com.android.internal.telephony.ConfigResourceUtil;
@@ -210,6 +219,8 @@ import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
 import com.android.mms.ui.MultiPickContactGroups;
 import com.android.mms.ui.RecipientsEditor.RecipientContextMenuInfo;
 import com.android.mms.util.DraftCache;
+import com.android.mms.util.MaterialColorMapUtils;
+import com.android.mms.util.MaterialColorMapUtils.MaterialPalette;
 import com.android.mms.util.PhoneNumberFormatter;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.widget.MmsWidgetProvider;
@@ -225,6 +236,7 @@ import com.suntek.mway.rcs.client.aidl.constant.Constants;
 import com.suntek.mway.rcs.client.aidl.constant.Parameter;
 import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.emoticon.EmoticonBO;
+import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Profile;
 import com.suntek.mway.rcs.client.api.capability.CapabiltyListener;
 import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
@@ -237,12 +249,14 @@ import com.suntek.mway.rcs.client.api.capability.CapabiltyListener;
 import com.suntek.mway.rcs.client.api.emoticon.EmoticonApi;
 import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
+import com.suntek.mway.rcs.client.api.groupchat.GroupChatCallback;
 import com.suntek.mway.rcs.client.api.message.MessageApi;
 import com.suntek.mway.rcs.client.api.profile.ProfileApi;
 import com.suntek.mway.rcs.client.api.specialnumber.SpecialServiceNumApi;
 import com.suntek.mway.rcs.client.api.support.SupportApi;
 import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver;
 import com.suntek.rcs.ui.common.mms.GroupChatManagerReceiver.GroupChatNotifyCallback;
+import com.suntek.rcs.ui.common.mms.GroupMemberPhotoCache;
 import com.suntek.rcs.ui.common.mms.RcsContactsUtils;
 import com.suntek.rcs.ui.common.RcsEmojiInitialize;
 import com.suntek.rcs.ui.common.RcsEmojiInitialize.EmojiResources;
@@ -429,6 +443,7 @@ public class ComposeMessageActivity extends Activity
     private boolean mForwardMessageMode;
     private boolean mReplyMessageMode;
 
+    private Toolbar mToolBar;
     private View mTopPanel;                 // View containing the recipient and subject editors
     private View mBottomPanel;              // View containing the text editor, send button, ec.
     private EditText mTextEditor;           // Text editor to type your message into
@@ -437,7 +452,8 @@ public class ComposeMessageActivity extends Activity
     private ImageButton mAddAttachmentButton;  // The button for add attachment
     private ViewPager mAttachmentPager;     // Attachment selector pager
     private AttachmentPagerAdapter mAttachmentPagerAdapter;  // Attachment selector pager adapter
-    private TextView mSendButtonMms;        // Press to send mms
+    private ImageButton mSendButtonMms;        // Press to send mms
+    private TextView mSendButtonMmsText;      // The text on MMS send button
     private ImageButton mSendButtonSms;     // Press to send sms
     private EditText mSubjectTextEditor;    // Text editor for MMS subject
     private TextView mTextCounterSec;   // The second send button text counter
@@ -587,6 +603,10 @@ public class ComposeMessageActivity extends Activity
     private boolean mSendMmsMobileDataOff = false;
 
     private boolean isAvoidingSavingDraft = false;
+    private static Drawable sDefaultContactImage;
+    private static int sPrimaryColorDark;
+    private Drawable mAvatarDrawable;
+    private int mActionBarColor;
 
     /* Begin add for RCS */
 
@@ -619,6 +639,7 @@ public class ComposeMessageActivity extends Activity
             "com.suntek.mway.rcs.ACTION_LUNCHER_BACKUP_MANY_MESSAGE_ACTIVITY";
     private static final String BACKUP_MESSAGE_IDS = "ids";
     private static final String BACKUP_MESSAGE_LIST = "msgList";
+    private static final String GROUP_PROFILE_CHANGE_NUMBER = "CHANGE_NUMBER";
 
     private static final int OPERATE_SUCCESS       = 0;
     private static final int OPERATE_FAILURE       = 1;
@@ -2301,10 +2322,28 @@ public class ComposeMessageActivity extends Activity
 
             // the cnt is already be added recipients count
             mExistsRecipientsCount = cnt;
+
+            // Update the statusbar color
+            if(cnt >= 1) {
+                Contact contact = list.get(0);
+                int color = contact.getContactColor();
+
+                if (color == 0) {
+                    color = sPrimaryColorDark;
+                }
+
+                updateColorPalette(color);
+                setActionBarColor(color);
+            } else {
+                updateColorPalette(sPrimaryColorDark);
+                setActionBarColor(sPrimaryColorDark);
+            }
         }
-        ActionBar actionBar = getActionBar();
-        actionBar.setTitle(title);
-        actionBar.setSubtitle(subTitle);
+
+        if (mToolBar != null) {
+            mToolBar.setTitle(title);
+            mToolBar.setSubtitle(subTitle);
+        }
     }
 
     // Get the recipients editor ready to be displayed onscreen.
@@ -2321,18 +2360,13 @@ public class ComposeMessageActivity extends Activity
             View stubView = stub.inflate();
             mRecipientsEditor = (RecipientsEditor) stubView.findViewById(R.id.recipients_editor);
             mRecipientsPicker = (ImageButton) stubView.findViewById(R.id.recipients_picker);
-            mRecipientsPickerGroups= (ImageButton) stubView
-                    .findViewById(R.id.recipients_picker_group);
         } else {
             mRecipientsEditor = (RecipientsEditor)findViewById(R.id.recipients_editor);
             mRecipientsEditor.setVisibility(View.VISIBLE);
             mRecipientsPicker = (ImageButton)findViewById(R.id.recipients_picker);
             mRecipientsPicker.setVisibility(View.VISIBLE);
-            mRecipientsPickerGroups= (ImageButton)findViewById(R.id.recipients_picker_group);
-            mRecipientsPickerGroups.setVisibility(View.VISIBLE);
         }
         mRecipientsPicker.setOnClickListener(this);
-        mRecipientsPickerGroups.setOnClickListener(this);
         mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
         mRecipientsEditor.setAdapter(new ChipsRecipientAdapter(this));
         mRecipientsEditor.setText(null);
@@ -2393,6 +2427,8 @@ public class ComposeMessageActivity extends Activity
         super.onCreate(savedInstanceState);
 
         resetConfiguration(getResources().getConfiguration());
+        final Window window = ComposeMessageActivity.this.getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
 
         setContentView(R.layout.compose_message_activity);
         setProgressBarVisibility(false);
@@ -2467,7 +2503,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void hideOrShowTopPanel() {
-        boolean anySubViewsVisible = (isSubjectEditorVisible() || isRecipientsEditorVisible());
+        boolean anySubViewsVisible = isRecipientsEditorVisible();
         mTopPanel.setVisibility(anySubViewsVisible ? View.VISIBLE : View.GONE);
     }
 
@@ -2532,6 +2568,8 @@ public class ComposeMessageActivity extends Activity
             // short-circuited.
             hideRecipientEditor();
             initRecipientsEditor();
+            updateColorPalette(sPrimaryColorDark);
+            setActionBarColor(sPrimaryColorDark);
         } else {
             hideRecipientEditor();
         }
@@ -2876,6 +2914,7 @@ public class ComposeMessageActivity extends Activity
 
         mIsPickingContact = false;
         addRecipientsListeners();
+        setSendButtonImage();
         if (isRecipientsEditorVisible()) {
             mRecipientsEditor.addTextChangedListener(mRecipientsWatcher);
         }
@@ -3205,9 +3244,6 @@ public class ComposeMessageActivity extends Activity
             if (mRecipientsPicker != null) {
                 mRecipientsPicker.setVisibility(View.GONE);
             }
-            if (mRecipientsPickerGroups != null) {
-                mRecipientsPickerGroups.setVisibility(View.GONE);
-            }
             hideOrShowTopPanel();
         }
     }
@@ -3283,12 +3319,15 @@ public class ComposeMessageActivity extends Activity
         if (isMms) {
             showButton = mSendButtonMms;
             hideButton = mSendButtonSms;
+            mSendButtonMmsText.setVisibility(View.VISIBLE);
         } else {
             showButton = mSendButtonSms;
             hideButton = mSendButtonMms;
+            mSendButtonMmsText.setVisibility(View.GONE);
         }
         showButton.setVisibility(View.VISIBLE);
         hideButton.setVisibility(View.GONE);
+        hideButton.setEnabled(false);
 
         return showButton;
     }
@@ -3437,7 +3476,7 @@ public class ComposeMessageActivity extends Activity
                 getResources().getBoolean(com.android.internal.R.bool.config_voice_capable);
         if (isRecipientCallable() && voiceCapable) {
             MenuItem item = menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
-                .setIcon(R.drawable.ic_menu_call)
+                .setIcon(R.drawable.call)
                 .setTitle(R.string.menu_call);
             if (!isRecipientsEditorVisible()) {
                 // If we're not composing a new message, show the call icon in the actionbar
@@ -3545,7 +3584,7 @@ public class ComposeMessageActivity extends Activity
             }
         }
         if (mIsRcsEnabled && mSupportApi.isPluginInstalled(this)) {
-            menu.add(0, MENU_RCS_MCLOUD_SHARE, 0, R.string.rcs_mcloud_share_file).setVisible(false);
+            menu.add(0, MENU_RCS_MCLOUD_SHARE, 0, R.string.rcs_mcloud_share_file);
         }
 
         return true;
@@ -5249,6 +5288,12 @@ public class ComposeMessageActivity extends Activity
      * Initialize all UI elements from resources.
      */
     private void initResourceRefs() {
+        mToolBar = (Toolbar) findViewById(R.id.toolbar);
+        setActionBar(mToolBar);
+        if (sPrimaryColorDark == 0) {
+            sPrimaryColorDark = getResources().getColor(R.color.primary_color_dark);
+        }
+
         mMsgListView = (MessageListView) findViewById(R.id.history);
         mMsgListView.setDivider(null);      // no divider so we look like IM conversation.
         if (mIsRcsEnabled) {
@@ -5305,7 +5350,8 @@ public class ComposeMessageActivity extends Activity
             mButtonEmoj = (ImageButton)findViewById(R.id.send_emoj);
             mTextCounter = (TextView) findViewById(R.id.text_counter);
             mAddAttachmentButton = (ImageButton) findViewById(R.id.add_attachment_first);
-            mSendButtonMms = (TextView) findViewById(R.id.send_button_mms);
+            mSendButtonMms = (ImageButton) findViewById(R.id.send_button_mms);
+            mSendButtonMmsText = (TextView) findViewById(R.id.send_button_mms_text);
             mSendButtonSms = (ImageButton) findViewById(R.id.send_button_sms);
             mAddAttachmentButton.setOnClickListener(this);
             mButtonEmoj.setOnClickListener(this);
@@ -5357,7 +5403,7 @@ public class ComposeMessageActivity extends Activity
         mButtonEmoj = (ImageButton)findViewById(R.id.send_emoj_btnstyle);
         mTextCounter = (TextView) findViewById(R.id.first_text_counter);
         mAddAttachmentButton = (ImageButton) findViewById(R.id.add_attachment_second);
-        mSendButtonMms = (TextView) findViewById(R.id.first_send_button_mms_view);
+        mSendButtonMms = (ImageButton) findViewById(R.id.first_send_button_mms_view);
         mSendButtonSms = (ImageButton) findViewById(R.id.first_send_button_sms_view);
         mSendLayoutMmsFir = findViewById(R.id.first_send_button_mms);
         mSendLayoutSmsFir = findViewById(R.id.first_send_button_sms);
@@ -5836,6 +5882,54 @@ public class ComposeMessageActivity extends Activity
             View sendButton = showSmsOrMmsSendButton(requiresMms);
             sendButton.setEnabled(enable);
             sendButton.setFocusable(enable);
+        }
+        setSendButtonImage();
+    }
+
+    private void setSendButtonImage() {
+        Contact contact = Contact.getMe(true);
+        if (sDefaultContactImage == null) {
+            sDefaultContactImage = this.getResources().getDrawable(R.drawable.default_avatar);
+        }
+        mAvatarDrawable = contact.getAvatar(this, sDefaultContactImage);
+        if (mAvatarDrawable.equals(sDefaultContactImage)) {
+            if (mWorkingMessage.requiresMms()) {
+                mSendButtonMms.setBackground(this.getResources().getDrawable(
+                        R.drawable.send_arrow_background));
+                mSendButtonMms.setImageDrawable(this.getResources().getDrawable(
+                        R.drawable.send_button_selector));
+                mSendButtonMms.setScaleType(ImageButton.ScaleType.CENTER);
+            } else {
+                mSendButtonSms.setImageDrawable(this.getResources().getDrawable(
+                        R.drawable.send_button_selector));
+                mSendButtonSms.setBackground(this.getResources().getDrawable(
+                        R.drawable.send_arrow_background));
+                mSendButtonSms.setScaleType(ImageButton.ScaleType.CENTER);
+            }
+        } else {
+            if (mWorkingMessage.requiresMms()) {
+                if (mSendButtonMms.isEnabled()) {
+                    mSendButtonMms.setScaleType(ImageButton.ScaleType.CENTER);
+                    mSendButtonMms.setImageDrawable(getResources().getDrawable(R.drawable.ic_send));
+                    mSendButtonMms.setBackground(this.getResources().getDrawable(
+                            R.drawable.send_arrow_background));
+                } else {
+                    mSendButtonMms.setScaleType(ImageButton.ScaleType.FIT_CENTER);
+                    mSendButtonMms.setImageDrawable(mAvatarDrawable);
+                    mSendButtonMms.setBackground(null);
+                }
+            } else {
+                if (mSendButtonSms.isEnabled()) {
+                    mSendButtonSms.setScaleType(ImageButton.ScaleType.CENTER);
+                    mSendButtonSms.setImageDrawable(getResources().getDrawable(R.drawable.ic_send));
+                    mSendButtonSms.setBackground(this.getResources().getDrawable(
+                            R.drawable.send_arrow_background));
+                } else {
+                    mSendButtonSms.setScaleType(ImageButton.ScaleType.FIT_CENTER);
+                    mSendButtonSms.setImageDrawable(mAvatarDrawable);
+                    mSendButtonSms.setBackground(null);
+                }
+            }
         }
     }
 
@@ -6565,6 +6659,7 @@ public class ComposeMessageActivity extends Activity
         private int mCheckedCount = 0;
         private boolean mDeleteLockedMessages = false;
         private int mUnFavouriteCount = 0;
+        private Menu mMenu;
 
         private WorkThread mWorkThread;
         public final static int WORK_TOKEN_DELETE = 0;
@@ -6755,8 +6850,11 @@ public class ComposeMessageActivity extends Activity
             mUnlockedCount = 0;
             mCheckedCount = 0;
             mUnFavouriteCount = 0;
+            mMenu = menu;
             MenuInflater inflater = getMenuInflater();
             inflater.inflate(R.menu.compose_multi_select_menu, menu);
+            getWindow().setStatusBarColor(
+                    getResources().getColor(R.color.statubar_select_background));
             if (mMultiSelectActionBarView == null) {
                 mMultiSelectActionBarView = LayoutInflater.from(getContext())
                         .inflate(R.layout.action_mode, null);
@@ -6776,7 +6874,9 @@ public class ComposeMessageActivity extends Activity
                             }
                             return true;
                         }
-                    });
+                    },
+                    (ImageView) mMultiSelectActionBarView
+                            .findViewById(R.id.expand));
             return true;
         }
 
@@ -6975,11 +7075,51 @@ public class ComposeMessageActivity extends Activity
                     copyToClipboard(copyItem.mBody);
                 }
                 break;
+            case R.id.more:
+                prepareActionMode(mode);
+                return true;
             default:
                 break;
             }
             mode.finish();
             return true;
+        }
+
+        private void prepareActionMode(ActionMode mode) {
+            if (mMultiSelectActionBarView == null) {
+                ViewGroup v = (ViewGroup) LayoutInflater.from(getContext())
+                    .inflate(R.layout.conversation_list_multi_select_actionbar, null);
+                mode.setCustomView(v);
+                mSelectedConvCount = (TextView) v
+                        .findViewById(R.id.selected_conv_count);
+            }
+            if (MessageUtils.getActivatedIccCardCount() < 1) {
+                MenuItem copyTextItem = mMenu.findItem(R.id.copy_to_sim);
+                if (copyTextItem != null) {
+                    copyTextItem.setVisible(false);
+                }
+            }
+            MenuItem complainItem = mMenu.findItem(R.id.complain);
+            if (complainItem != null) {
+                complainItem.setVisible(mIsRcsEnabled);
+            }
+            MenuItem saveBackItem = mMenu.findItem(R.id.save_back);
+            if (saveBackItem != null) {
+                saveBackItem.setVisible(mIsRcsEnabled);
+            }
+            MenuItem favouriteItem = mMenu.findItem(R.id.favourite);
+            if (favouriteItem != null) {
+                favouriteItem.setVisible(mIsRcsEnabled);
+            }
+            MenuItem viewOneToManyStatusItem = mMenu.findItem(R.id.view_one_to_many_msg_status);
+            if (viewOneToManyStatusItem != null) {
+                boolean isOneToManyMsg = !mConversation.isGroupChat()
+                        && (getRecipients().size() > 1);
+                boolean isNativeUiInstall = RcsUtils.
+                        isPackageInstalled(getContext(), RcsUtils.NATIVE_UI_PACKAGE_NAME);
+                viewOneToManyStatusItem.setVisible(mIsRcsEnabled && isOneToManyMsg
+                        && isNativeUiInstall);
+            }
         }
 
         private String getAllSMSBody() {
@@ -7433,6 +7573,7 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         public void onDestroyActionMode(ActionMode mode) {
+            updateColorPalette(mActionBarColor);
             mSelectionMenu.dismiss();
         }
 
@@ -7628,6 +7769,7 @@ public class ComposeMessageActivity extends Activity
             mSelectionMenu.setTitle(getApplicationContext().getString(
                     R.string.selected_count, mCheckedCount));
             mSelectionMenu.updateSelectAllMode(getMsgCount() == mCheckedCount);
+            mSelectionMenu.updateCheckedCount();
         }
 
         private void confirmDeleteDialog(final DeleteMessagesListener listener,
@@ -8163,7 +8305,7 @@ public class ComposeMessageActivity extends Activity
         mProfileApi = ProfileApi.getInstance();
         mGroupChatApi = GroupChatApi.getInstance();
         if (mButtonEmoj != null) {
-            mButtonEmoj.setVisibility(View.GONE);
+            mButtonEmoj.setVisibility(mIsRcsEnabled ? View.VISIBLE : View.GONE);
         }
         if (mIsRcsEnabled) {
             if (mConversation.isGroupChat()) {
@@ -8897,6 +9039,10 @@ public class ComposeMessageActivity extends Activity
                     }
                 }
             } else {
+                if (mConversation.isGroupChat()) {
+                    String number = intent.getStringExtra(GROUP_PROFILE_CHANGE_NUMBER);
+                    GroupMemberPhotoCache.getInstance().removeCache(number);
+                }
                 mMsgListAdapter.notifyDataSetChanged();
             }
         }
@@ -9092,4 +9238,43 @@ public class ComposeMessageActivity extends Activity
     }
 /* End add for RCS */
 
+    private void updateColorPalette(int color) {
+        MaterialPalette palette = determinePalette(color);
+        updateThemeColors(palette.mPrimaryColor, palette.mSecondaryColor);
+
+        mAccentColor = palette.mPrimaryColor;
+        mStatusBarColor = palette.mSecondaryColor;
+    }
+
+    private void updateThemeColors(int accentColor, int statusBarColor) {
+        final int ANIMATION_DURATION = 200;
+        final ColorDrawable background = new ColorDrawable();
+        final ObjectAnimator backgroundAnimation = ObjectAnimator.ofInt(background,
+                "color", mAccentColor, accentColor);
+        final ObjectAnimator statusBarAnimation = ObjectAnimator.ofInt(getWindow(),
+                "statusBarColor", mStatusBarColor, statusBarColor);
+
+        backgroundAnimation.setEvaluator(new ArgbEvaluator());
+        statusBarAnimation.setEvaluator(new ArgbEvaluator());
+        findViewById(R.id.header).setBackground(background);
+
+        final AnimatorSet animation = new AnimatorSet();
+        animation.playTogether(backgroundAnimation, statusBarAnimation);
+        animation.setDuration(isResumed() ? ANIMATION_DURATION : 0);
+        animation.start();
+     }
+
+    private MaterialPalette determinePalette(int color) {
+        final Resources res = ComposeMessageActivity.this.getResources();
+        if (color != 0) {
+            MaterialColorMapUtils mcmu = new MaterialColorMapUtils(res);
+            return mcmu.calculatePrimaryAndSecondaryColor(color);
+        }
+
+        return MaterialColorMapUtils.getDefaultPrimaryAndSecondaryColors(res);
+    }
+
+    private void setActionBarColor(int color) {
+        mActionBarColor = color;
+    }
 }

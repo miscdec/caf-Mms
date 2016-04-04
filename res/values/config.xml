@@ -116,4 +116,7 @@
     <bool name="config_display_sent_time">false</bool>
     <!-- configuration for CMCC rcs version-->
     <bool name="config_rcs_sms_version">false</bool>
+
+    <!-- Default value of Maximum line for unread message text. -->
+    <integer name="max_unread_message_lines">3</integer>
 </resources>

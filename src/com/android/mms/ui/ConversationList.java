@@ -71,9 +71,11 @@ import android.view.View;
 import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
@@ -158,6 +160,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private int mSavedFirstVisiblePosition = AdapterView.INVALID_POSITION;
     private int mSavedFirstItemOffset;
     private ProgressDialog mProgressDialog;
+    private ImageButton mComposeMessageButton;
 
     // keys for extras and icicles
     private final static String LAST_LIST_POS = "last_list_pos";
@@ -271,6 +274,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         RecipientIdCache.init(getApplication());
         mIsRcsEnabled = MmsConfig.isRcsEnabled();
         setContentView(R.layout.conversation_list_screen);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        getWindow().setStatusBarColor(getResources().getColor(R.color.primary_color_dark));
         if (MessageUtils.isMailboxMode()) {
             Intent modeIntent = new Intent(this, MailBoxMessageList.class);
             startActivityIfNeeded(modeIntent, -1);
@@ -279,6 +284,27 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
 
         mSmsPromoBannerView = findViewById(R.id.banner_sms_promo);
+        mComposeMessageButton = (ImageButton) findViewById(R.id.create);
+        mComposeMessageButton.setClickable(true);
+        mComposeMessageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mIsSmsEnabled) {
+                    if (mIsRcsEnabled) {
+                        selectComposeAction();
+                    } else {
+                        createNewMessage();
+                    }
+                } else {
+                    // Display a toast letting the user know they can not compose.
+                    if (mComposeDisabledToast == null) {
+                        mComposeDisabledToast = Toast.makeText(ConversationList.this,
+                                R.string.compose_disabled_toast, Toast.LENGTH_SHORT);
+                    }
+                    mComposeDisabledToast.show();
+                }
+            }
+        });
 
         mQueryHandler = new ThreadListQueryHandler(getContentResolver());
 
@@ -736,11 +762,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (item != null) {
             item.setVisible((mListAdapter.getCount() > 0) && mIsSmsEnabled);
         }
-        item = menu.findItem(R.id.action_compose_new);
-        if (item != null ){
-            // Dim compose if SMS is disabled because it will not work (will show a toast)
-            item.getIcon().setAlpha(mIsSmsEnabled ? 255 : 127);
-        }
 
         if (!getResources().getBoolean(R.bool.config_mailbox_enable)) {
             item = menu.findItem(R.id.action_change_to_folder_mode);
@@ -785,22 +806,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     break;
                 }
                 return true;
-            case R.id.action_compose_new:
-                if (mIsSmsEnabled) {
-                    if (mIsRcsEnabled) {
-                        selectComposeAction();
-                    } else {
-                        createNewMessage();
-                    }
-                } else {
-                    // Display a toast letting the user know they can not compose.
-                    if (mComposeDisabledToast == null) {
-                        mComposeDisabledToast = Toast.makeText(this,
-                                R.string.compose_disabled_toast, Toast.LENGTH_SHORT);
-                    }
-                    mComposeDisabledToast.show();
-                }
-                break;
             case R.id.action_delete_all:
                 // The invalid threadId of -1 means all threads here.
                 confirmDeleteThread(-1L, mQueryHandler);
@@ -1397,6 +1402,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         private HashSet<Long> mSelectedThreadIds;
         // build action bar with a spinner
         private SelectionMenu mSelectionMenu;
+        private Menu mMenu;
 
         private void updateMenu(ActionMode mode, boolean isCheck) {
             ListView listView = getListView();
@@ -1412,10 +1418,19 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         @Override
         public boolean onCreateActionMode(final ActionMode mode, Menu menu) {
+            getWindow().setStatusBarColor(
+                    getResources().getColor(R.color.statubar_select_background));
             MenuInflater inflater = getMenuInflater();
             mSelectedThreadIds = new HashSet<Long>();
             inflater.inflate(R.menu.conversation_multi_select_menu, menu);
+            mMenu = menu;
             mMultiChoiceMode = true;
+            MenuItem moreItem = menu.findItem(R.id.more);
+            if(mIsRcsEnabled) {
+                moreItem.setVisible(true);
+            } else {
+                moreItem.setVisible(false);
+            }
 
             if (mMultiSelectActionBarView == null) {
                 mMultiSelectActionBarView = LayoutInflater.from(ConversationList.this).inflate(
@@ -1439,42 +1454,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                             }
                             return true;
                         }
-                    });
+                    },
+                    (ImageView)mMultiSelectActionBarView.findViewById(R.id.expand));
             return true;
         }
 
         @Override
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            if (mMultiSelectActionBarView == null) {
-                ViewGroup v = (ViewGroup)LayoutInflater.from(ConversationList.this)
-                    .inflate(R.layout.conversation_list_multi_select_actionbar, null);
-                mode.setCustomView(v);
-
-                mSelectedConvCount = (TextView)v.findViewById(R.id.selected_conv_count);
-            }
-            final int checkedCount = getListView().getCheckedItemCount();
-            MenuItem topItem = menu.findItem(R.id.topConversation);
-            MenuItem unTopItem = menu.findItem(R.id.cancelTopConversation);
-            MenuItem addBlackItem = menu.findItem(R.id.addBlackList);
-            if (mIsRcsEnabled && checkedCount == 1) {
-                if (mIsTopConversation) {
-                    unTopItem.setVisible(true);
-                    topItem.setVisible(false);
-                } else {
-                    topItem.setVisible(true);
-                    unTopItem.setVisible(false);
-                }
-                if (RcsUtils.showFirewallMenu(ConversationList.this,
-                    mConversation.getRecipients(), true) && !mConversation.isGroupChat()) {
-                    addBlackItem.setVisible(true);
-                } else {
-                    addBlackItem.setVisible(false);
-                }
-            } else {
-                topItem.setVisible(false);
-                unTopItem.setVisible(false);
-                addBlackItem.setVisible(false);
-            }
+            prepareActionMode(mode);
             return true;
         }
 
@@ -1501,14 +1488,50 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     showAddBlacklistDialog();
                     mode.finish();
                     break;
+                case R.id.more:
+                    prepareActionMode(mode);
                 default:
                     break;
             }
             return true;
         }
 
+        private void prepareActionMode(ActionMode mode) {
+            if (mMultiSelectActionBarView == null) {
+                ViewGroup v = (ViewGroup)LayoutInflater.from(ConversationList.this)
+                    .inflate(R.layout.conversation_list_multi_select_actionbar, null);
+                mode.setCustomView(v);
+
+                mSelectedConvCount = (TextView)v.findViewById(R.id.selected_conv_count);
+            }
+            final int checkedCount = getListView().getCheckedItemCount();
+            MenuItem topItem = mMenu.findItem(R.id.topConversation);
+            MenuItem unTopItem = mMenu.findItem(R.id.cancelTopConversation);
+            MenuItem addBlackItem = mMenu.findItem(R.id.addBlackList);
+            if (mIsRcsEnabled && checkedCount == 1) {
+                if (mIsTopConversation) {
+                    unTopItem.setVisible(true);
+                    topItem.setVisible(false);
+                } else {
+                    topItem.setVisible(true);
+                    unTopItem.setVisible(false);
+                }
+                if (RcsUtils.showFirewallMenu(ConversationList.this,
+                    mConversation.getRecipients(), true) && !mConversation.isGroupChat()) {
+                    addBlackItem.setVisible(true);
+                } else {
+                    addBlackItem.setVisible(false);
+                }
+            } else {
+                topItem.setVisible(false);
+                unTopItem.setVisible(false);
+                addBlackItem.setVisible(false);
+            }
+        }
+
         @Override
         public void onDestroyActionMode(ActionMode mode) {
+            getWindow().setStatusBarColor(getResources().getColor(R.color.primary_color_dark));
             if (getListView().getAdapter() instanceof ConversationListAdapter) {
                  ConversationListAdapter adapter =
                          (ConversationListAdapter)getListView().getAdapter();
@@ -1564,6 +1587,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 mHasSelectAll = false;
             }
             mSelectionMenu.updateSelectAllMode(mHasSelectAll);
+            mSelectionMenu.updateCheckedCount();
 
             Cursor cursor  = (Cursor)listView.getItemAtPosition(position);
             Conversation conv = Conversation.from(ConversationList.this, cursor);
@@ -1581,6 +1605,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             } else {
                 mSelectedThreadIds.remove(threadId);
             }
+            mListAdapter.notifyDataSetChanged();
         }
 
     }

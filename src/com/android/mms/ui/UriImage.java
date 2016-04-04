@@ -270,7 +270,7 @@ public class UriImage {
      * @param byteLimit The binary size limit, in bytes
      * @return A resized/recompressed version of this image, in JPEG format
      */
-    public static byte[] getResizedImageData(int width, int height,
+    public static synchronized byte[] getResizedImageData(int width, int height,
             int widthLimit, int heightLimit, int byteLimit, Uri uri, Context context) {
         int outWidth = width;
         int outHeight = height;
@@ -430,7 +430,11 @@ public class UriImage {
                 }
             }
 
-            b.recycle();        // done with the bitmap, release the memory
+            if (null != b) {
+                b.recycle();        // done with the bitmap, release the memory
+                b = null;
+            }
+
             if (Log.isLoggable(LogTag.APP, Log.VERBOSE) && resultTooBig) {
                 Log.v(TAG, "getResizedImageData returning NULL because the result is too big: " +
                         " requested max: " + byteLimit + " actual: " + os.size());

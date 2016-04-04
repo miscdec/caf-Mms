@@ -190,7 +190,7 @@
     <string name="all_threads">All threads</string>
 
     <!-- Hint text in message body field when keyboard is exposed -->
-    <string name="type_to_compose_text_enter_to_send">Type message</string>
+    <string name="type_to_compose_text_enter_to_send">Send message</string>
     <!-- Hint text in message body field when keyboard is hidden -->
     <string name="open_keyboard_to_compose_message">Open keyboard to type message</string>
     <!-- Hint text when we are not the default SMS app -->
@@ -1090,4 +1090,8 @@
 
     <string name="default_sms_validity_period">-1</string>
     <string name="default_mms_validity_period">0</string>
+
+    <string name="menu_more">"More"</string>
+    <string name="letter_tile_letter_font_family">sans-serif-light</string>
+    <string name="contact_list_send_to_text">Send to <xliff:g id="destination">%s</xliff:g></string>
 </resources>

@@ -119,16 +119,19 @@ public class RcsMessageStatusService extends IntentService {
         } else if (Actions.MessageAction.ACTION_MESSAGE_SMS_POLICY_NOT_SET.equals(action)) {
             long messageId = intent.getLongExtra(Parameter.EXTRA_ID, -1);
             long threadId = intent.getLongExtra(Parameter.EXTRA_THREAD_ID, -1);
-            int phoneId = intent.getIntExtra("phoneId", -1);
+            int subId = intent.getIntExtra(Parameter.EXTRA_SUB_ID, -1);
             String numbers = intent.getStringExtra(Parameter.EXTRA_NUMBER);
             String content = intent.getStringExtra(Parameter.EXTRA_CONTENT);
-            RcsMessageForwardToSmsCache.getInstance().addSendMessage(
-                    new Long[]{messageId, threadId},
-                    new String[] {numbers, content, String.valueOf(phoneId)});
-            Intent startIntent = new Intent();
-            startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startIntent.setAction(ACTION_START_DIALOG);
-            startActivity(startIntent);
+            RcsLog.i("ACTION_MESSAGE_SMS_POLICY_NOT_SET subId = " + subId);
+            if (subId != -1) {
+                RcsMessageForwardToSmsCache.getInstance().addSendMessage(
+                        new Long[]{messageId, threadId},
+                        new String[] {numbers, content, String.valueOf(subId)});
+                Intent startIntent = new Intent();
+                startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startIntent.setAction(ACTION_START_DIALOG);
+                startActivity(startIntent);
+            }
         }
         pool.execute(new Runnable() {
             public void run() {

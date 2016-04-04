@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 /*
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -570,4 +570,7 @@
     <string name="omacp_configuration">OMACP配置</string>
     <string name="configuration_message_key">配置短信</string>
     <string name="configuration_message_key_activity">触摸即可配置您的OMACP短信</string>
+
+    <string name="menu_more">"更多"</string>
+    <string name="contact_list_send_to_text">"发送到<xliff:g id="DESTINATION">%s</xliff:g>"</string>
 </resources>

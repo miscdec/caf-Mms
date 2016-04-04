@@ -58,6 +58,17 @@ import com.suntek.rcs.ui.common.RcsLog;
 
 public class RcsConfirmDialogActivity extends Activity {
 
+    private static final int MESSAGE_ID_INDEX = 0;
+
+    private static final int THREAD_ID_INDEX = 1;
+
+    private static final int NUMBER_LIST_INDEX = 0;
+
+    private static final int CONTENT_INDEX = 1;
+
+    private static final int SUB_ID_INDEX = 2;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -128,7 +139,7 @@ public class RcsConfirmDialogActivity extends Activity {
             values.put(RcsColumns.SmsRcsColumns.RCS_MSG_STATE,
                     MessageConstants.CONST_STATUS_SEND_FAIL);
             resolver.update(Sms.CONTENT_URI, values, Sms._ID + " = " +
-                    String.valueOf(key[0]), null);
+                    String.valueOf(key[MESSAGE_ID_INDEX]), null);
         }
     }
 
@@ -141,11 +152,12 @@ public class RcsConfirmDialogActivity extends Activity {
                 Long[] key = iter.next();
                 String[] value = RcsMessageForwardToSmsCache
                         .getInstance().getCacheVaule(key);
-                String[] numberList = value[0].split(",");
+                String[] numberList = value[NUMBER_LIST_INDEX].split(",");
                 MessageSender sender = new SmsMessageSender(context,
-                        numberList, value[1], key[1], 0/*Integer.valueOf(value[2])*/);
-                sender.sendMessage((long)key[1]);
-                deleteMessage(key[0]);
+                        numberList, value[CONTENT_INDEX], key[THREAD_ID_INDEX],
+                        Integer.valueOf(value[SUB_ID_INDEX]));
+                sender.sendMessage((long)key[THREAD_ID_INDEX]);
+                deleteMessage(key[MESSAGE_ID_INDEX]);
             }
         } catch (Throwable e) {
             RcsLog.w(e);

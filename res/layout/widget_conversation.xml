@@ -21,7 +21,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_conversation"
     android:layout_width="match_parent"
-    android:layout_height="48dp">
+    android:layout_height="56dp">
     <!--
         Remote view doesn't allow changing background so we have to work around
         by having 2 image views here.

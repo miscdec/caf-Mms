@@ -357,11 +357,13 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
     public void formatNameView(String address, String name, boolean isUnread) {
         SpannableStringBuilder buf = null;
         if (TextUtils.isEmpty(name)) {
-            buf = new SpannableStringBuilder(address);
+            if (!TextUtils.isEmpty(address)) {
+                buf = new SpannableStringBuilder(address);
+            }
         } else {
             buf = new SpannableStringBuilder(name);
         }
-        if (isUnread) {
+        if (isUnread && buf != null) {
             buf.setSpan(STYLE_BOLD, 0, buf.length(),
                     Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
         }

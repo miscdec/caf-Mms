@@ -55,6 +55,8 @@ import com.android.mms.data.ContactList;
 public class RecipientsEditor extends RecipientEditTextView {
     private static final char SBC_CHAR_START = 65281;
     private static final char SBC_CHAR_END = 65373;
+    private static final int DROP_DOWN_WIDTH = 1080;
+    private static final int DROP_DOWN_VERTICAL_OFFSET = 40;
 
     private int mLongPressedPosition = -1;
     private final RecipientsEditorTokenizer mTokenizer;
@@ -136,12 +138,10 @@ public class RecipientsEditor extends RecipientEditTextView {
             }
         });
 
-        setDropdownChipLayouter(new DropdownChipLayouter(LayoutInflater.from(context), context) {
-            @Override
-            protected int getItemLayoutResId(AdapterType type) {
-                return R.layout.mms_chips_recipient_dropdown_item;
-            }
-        });
+        setDropdownChipLayouter(new ContactDropdownLayouter(
+                LayoutInflater.from(context), context));
+        setDropDownWidth(DROP_DOWN_WIDTH);
+        setDropDownVerticalOffset(DROP_DOWN_VERTICAL_OFFSET);
     }
 
     @Override

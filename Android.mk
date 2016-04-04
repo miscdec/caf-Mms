@@ -21,6 +21,7 @@ LOCAL_JAVA_LIBRARIES += telephony-common org.apache.http.legacy
 LOCAL_JAVA_LIBRARIES += rcs_service_api
 LOCAL_STATIC_JAVA_LIBRARIES += android-common jsr305
 LOCAL_STATIC_JAVA_LIBRARIES += libchips
+LOCAL_STATIC_JAVA_LIBRARIES += libphonenumber
 
 LOCAL_RESOURCE_DIR := $(addprefix $(LOCAL_PATH)/, $(res_dirs))
 LOCAL_AAPT_FLAGS := --auto-add-overlay

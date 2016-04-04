@@ -117,7 +117,6 @@ public class MessageItem {
     int mErrorType;
     int mErrorCode;
     int mMmsStatus;
-    Cursor mCursor;
     ColumnsMap mColumnsMap;
     private PduLoadedCallback mPduLoadedCallback;
     private ItemLoadedFuture mItemLoadedFuture;
@@ -148,7 +147,6 @@ public class MessageItem {
         mMsgId = cursor.getLong(columnsMap.mColumnMsgId);
         mHighlight = highlight;
         mType = type;
-        mCursor = cursor;
         mColumnsMap = columnsMap;
 
         if ("sms".equals(type)) {
@@ -261,6 +259,39 @@ public class MessageItem {
             mItemLoadedFuture = MmsApp.getApplication().getPduLoaderManager()
                     .getPdu(mMessageUri, loadSlideshow,
                     new PduLoadedMessageItemCallback());
+            String report = cursor.getString(mColumnsMap.mColumnMmsDeliveryReport);
+            mAddress = mContext.getString(R.string.messagelist_sender_self);
+            if ((report == null) || !mAddress.equals(mContext.getString(
+                    R.string.messagelist_sender_self))) {
+                mDeliveryStatus = DeliveryStatus.NONE;
+            } else {
+                int reportInt;
+                try {
+                    reportInt = Integer.parseInt(report);
+                    if (reportInt == PduHeaders.VALUE_YES) {
+                        mDeliveryStatus = checkDeliveryStatus();
+                    } else {
+                        mDeliveryStatus = DeliveryStatus.NONE;
+                    }
+                } catch (NumberFormatException nfe) {
+                    Log.e(TAG, "Value for delivery report was invalid.");
+                    mDeliveryStatus = DeliveryStatus.NONE;
+                }
+            }
+            report = cursor.getString(mColumnsMap.mColumnMmsReadReport);
+            if ((report == null) || !mAddress.equals(mContext.getString(
+                    R.string.messagelist_sender_self))) {
+                mReadReport = false;
+            } else {
+                int reportInt;
+                try {
+                    reportInt = Integer.parseInt(report);
+                    mReadReport = (reportInt == PduHeaders.VALUE_YES);
+                } catch (NumberFormatException nfe) {
+                    Log.e(TAG, "Value for read report was invalid.");
+                    mReadReport = false;
+                }
+            }
 
         } else {
             throw new MmsException("Unknown type of the message: " + type);
@@ -464,9 +495,6 @@ public class MessageItem {
                 mMessageSize = (int) notifInd.getMessageSize();
                 timestamp = notifInd.getExpiry() * 1000L;
             } else {
-                if (mCursor.isClosed()) {
-                    return;
-                }
                 MultimediaMessagePdu msg = (MultimediaMessagePdu)pduLoaded.mPdu;
                 mSlideshow = pduLoaded.mSlideshow;
                 mAttachmentType = MessageUtils.getAttachmentType(mSlideshow, msg);
@@ -498,39 +526,6 @@ public class MessageItem {
 
                 mMessageSize = mSlideshow == null ? 0 : mSlideshow.getTotalMessageSize();
 
-                String report = mCursor.getString(mColumnsMap.mColumnMmsDeliveryReport);
-                if ((report == null) || !mAddress.equals(mContext.getString(
-                        R.string.messagelist_sender_self))) {
-                    mDeliveryStatus = DeliveryStatus.NONE;
-                } else {
-                    int reportInt;
-                    try {
-                        reportInt = Integer.parseInt(report);
-                        if (reportInt == PduHeaders.VALUE_YES) {
-                            mDeliveryStatus = checkDeliveryStatus();
-                        } else {
-                            mDeliveryStatus = DeliveryStatus.NONE;
-                        }
-                    } catch (NumberFormatException nfe) {
-                        Log.e(TAG, "Value for delivery report was invalid.");
-                        mDeliveryStatus = DeliveryStatus.NONE;
-                    }
-                }
-
-                report = mCursor.getString(mColumnsMap.mColumnMmsReadReport);
-                if ((report == null) || !mAddress.equals(mContext.getString(
-                        R.string.messagelist_sender_self))) {
-                    mReadReport = false;
-                } else {
-                    int reportInt;
-                    try {
-                        reportInt = Integer.parseInt(report);
-                        mReadReport = (reportInt == PduHeaders.VALUE_YES);
-                    } catch (NumberFormatException nfe) {
-                        Log.e(TAG, "Value for read report was invalid.");
-                        mReadReport = false;
-                    }
-                }
                 PduBody body = msg.getBody();
                 if (body != null) {
                     isAttachmentSaveable(body);

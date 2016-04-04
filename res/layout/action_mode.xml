@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (c) 2014, The Linux Foundation. All rights reserved.
+<!-- Copyright (c) 2014, 2016, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -35,9 +35,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <FrameLayout android:layout_width="wrap_content"
         android:layout_height="match_parent" >
         <ImageView android:layout_gravity="end"
+                   android:id="@+id/expand"
                    android:layout_width="wrap_content"
                    android:layout_height="match_parent"
-                   android:src="@drawable/dropdown_ic_arrow_normal_holo_dark"/>
+                   android:src="@drawable/expand_more"/>
         <Button android:id="@+id/selection_menu"
                 style="?android:attr/actionButtonStyle"
                 android:divider="?android:attr/listDividerAlertDialog"

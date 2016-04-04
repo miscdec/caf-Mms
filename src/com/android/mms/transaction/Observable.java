@@ -17,6 +17,7 @@
 
 package com.android.mms.transaction;
 
+import android.util.Log;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -27,6 +28,7 @@ import java.util.Iterator;
 public abstract class Observable {
     private final ArrayList<Observer> mObservers;
     private Iterator<Observer> mIterator;
+    private static final String TAG = "Observable";
 
     public Observable() {
         mObservers = new ArrayList<Observer>();
@@ -57,7 +59,11 @@ public abstract class Observable {
      */
     public void detach(Observer observer) {
         if (mIterator != null) {
-            mIterator.remove();
+            try {
+                mIterator.remove();
+            } catch (IllegalStateException e) {
+                Log.w(TAG, "failed to detach "+ e);
+            }
         } else {
             mObservers.remove(observer);
         }
@@ -69,8 +75,10 @@ public abstract class Observable {
     public void notifyObservers() {
         mIterator = mObservers.iterator();
         try {
-            while (mIterator.hasNext()) {
-                mIterator.next().update(this);
+            if (mIterator != null) {
+                while (mIterator.hasNext()) {
+                    mIterator.next().update(this);
+                }
             }
         } finally {
             mIterator = null;

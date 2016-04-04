@@ -43,6 +43,6 @@
             android:gravity="center_vertical"
             android:singleLine="false"
             android:text="@string/banner_sms_promo_message"
-            style="@style/BannerContentText" />
+            style="@style/BannerTitleText" />
     </LinearLayout>
 </LinearLayout>

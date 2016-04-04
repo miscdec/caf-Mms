@@ -29,6 +29,8 @@ import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.Presence;
 import android.provider.ContactsContract.Profile;
 import android.provider.Telephony.Mms;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
@@ -51,6 +53,7 @@ public class Contact {
     private static final String SELF_ITEM_KEY = "Self_Item_Key";
 
     private static final int CONTACT_UPDATE = 4;
+    private static final int DEFAULT_CONTACT_COLOR = 0;
 
     private static final ContentObserver sContactsObserver = new ContentObserver(new Handler()) {
         @Override
@@ -112,6 +115,8 @@ public class Contact {
     private boolean mIsMe;          // true if this contact is me!
     private boolean mSendToVoicemail;   // true if this contact should not put up notification
     private Uri mPeopleReferenceUri;
+    private int mColor;             // Contact color
+    private String mLookupKey;      // Contact lookupKey
 
     public interface UpdateListener {
         public void onUpdate(Contact updated);
@@ -142,6 +147,8 @@ public class Contact {
         mPresenceResId = 0;
         mIsStale = true;
         mSendToVoicemail = false;
+        mColor = DEFAULT_CONTACT_COLOR;
+        mLookupKey = "";
     }
     @Override
     public String toString() {
@@ -376,13 +383,24 @@ public class Contact {
     }
 
     public synchronized Drawable getAvatar(Context context, Drawable defaultValue) {
+        Drawable contactDrawable = null;
         if (mAvatar == null) {
             if (mAvatarData != null) {
                 Bitmap b = BitmapFactory.decodeByteArray(mAvatarData, 0, mAvatarData.length);
-                mAvatar = new BitmapDrawable(context.getResources(), b);
+                contactDrawable = getRoundDrawable(context,b);
             }
+        } else {
+            contactDrawable = getRoundDrawable(context,mAvatar.getBitmap());
         }
-        return mAvatar != null ? mAvatar : defaultValue;
+        return contactDrawable != null ? contactDrawable : defaultValue;
+    }
+
+    private Drawable getRoundDrawable(Context context, Bitmap bitmap) {
+        final RoundedBitmapDrawable roundDrawable =
+                RoundedBitmapDrawableFactory.create(context.getResources(), bitmap);
+        roundDrawable.setAntiAlias(true);
+        roundDrawable.setCornerRadius(bitmap.getHeight() / 2);
+        return roundDrawable;
     }
 
     public static void init(final Context context) {
@@ -732,6 +750,10 @@ public class Contact {
                 return true;
             }
 
+            if (orig.mLookupKey != newContactData.mLookupKey) {
+                return true;
+            }
+
             String oldName = emptyIfNull(orig.mName);
             String newName = emptyIfNull(newContactData.mName);
             if (!oldName.equals(newName)) {
@@ -788,6 +810,7 @@ public class Contact {
                     c.mName = entry.mName;
                     c.mSendToVoicemail = entry.mSendToVoicemail;
                     c.mPeopleReferenceUri = entry.mPeopleReferenceUri;
+                    c.mLookupKey = entry.mLookupKey;
 
                     c.notSynchronizedUpdateNameAndNumber();
 
@@ -970,6 +993,7 @@ public class Contact {
                 contact.mPresenceText = cursor.getString(CONTACT_STATUS_COLUMN);
                 contact.mNumberE164 = cursor.getString(PHONE_NORMALIZED_NUMBER);
                 contact.mSendToVoicemail = cursor.getInt(SEND_TO_VOICEMAIL) == 1;
+                contact.mLookupKey = cursor.getString(CONTACT_LOOKUP_KEY_COLUMN);
 
                 if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
                     log("fillPhoneTypeContact: name=" + contact.mName + ", number="
@@ -1249,5 +1273,31 @@ public class Contact {
         return mPersonId;
     }
     /* End add for RCS */
+
+    /*
+     * Set color for contact avatar and compose activity
+     */
+    public void setContactColor(int color) {
+        mColor = color;
+    }
+
+    public int getContactColor() {
+        return mColor;
+    }
+
+    /*
+     * Get name of contact, used in the case of setting first letter in contact avatar.
+     */
+    public synchronized String getNameForAvatar() {
+        if (TextUtils.isEmpty(mName)) {
+            return null;
+        } else {
+            return mName;
+        }
+    }
+
+    public String getLookup() {
+        return mLookupKey;
+    }
 
 }

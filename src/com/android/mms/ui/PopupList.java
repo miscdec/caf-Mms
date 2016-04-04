@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ Copyright (c) 2014, 2016, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -32,7 +32,9 @@ package com.android.mms.ui;
 import java.util.ArrayList;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.graphics.Rect;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.MeasureSpec;
@@ -42,6 +44,7 @@ import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
@@ -51,6 +54,8 @@ import com.android.mms.R;
 public class PopupList {
     private final Context mContext;
     private final View mAnchorView;
+    private ImageView mExpandImageView;
+    private Drawable mExpandLessDrawable;
     private final ArrayList<Item> mItems = new ArrayList<Item>();
 
     private PopupWindow mPopupWindow;
@@ -61,6 +66,7 @@ public class PopupList {
     private int mPopupOffsetY;
     private int mPopupWidth;
     private int mPopupHeight;
+    private static final int POPUP_WIDTH = 140;
 
     private final PopupWindow.OnDismissListener mOnDismissListener =
             new PopupWindow.OnDismissListener() {
@@ -68,6 +74,9 @@ public class PopupList {
                 public void onDismiss() {
                     if (mPopupWindow == null) return;
                     mPopupWindow = null;
+                    if (mExpandImageView != null) {
+                        mExpandImageView.setImageDrawable(mExpandLessDrawable);
+                    }
                     ViewTreeObserver observer = mAnchorView.getViewTreeObserver();
                     if (observer.isAlive()) {
                         observer.removeGlobalOnLayoutListener(mOnGlobalLayoutListener);
@@ -99,9 +108,14 @@ public class PopupList {
                 }
             };
 
-    public PopupList(Context context, View anchorView) {
+    public PopupList(Context context, View anchorView, ImageView expandImageView) {
         mContext = context;
         mAnchorView = anchorView;
+        mExpandImageView = expandImageView;
+        mExpandLessDrawable = mContext.getResources().getDrawable(R.drawable.expand_more);
+    }
+    public PopupList(Context context, View anchorView) {
+        this(context, anchorView, null);
     }
 
     public void setOnPopupItemClickListener(OnPopupItemClickListener listener) {
@@ -143,10 +157,16 @@ public class PopupList {
         mContentList.measure(
                 MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
                 MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.AT_MOST));
-        mPopupWidth = content.getMeasuredWidth() + p.top + p.bottom;
+        DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
+        float density = displayMetrics.density;
+        mPopupWidth = (int) (POPUP_WIDTH * density + 0.5f);
         mPopupHeight = Math.min(maxHeight, content.getMeasuredHeight() + p.left + p.right);
         mPopupOffsetX = -p.left;
-        mPopupOffsetY = -p.top;
+        if (mExpandImageView != null) {
+            mPopupOffsetY = -p.top - mExpandImageView.getMeasuredHeight();
+        } else {
+            mPopupOffsetY = -p.top;
+        }
     }
 
     private PopupWindow createPopupWindow() {
