@@ -6494,9 +6494,21 @@ public class ComposeMessageActivity extends Activity
                 slot = which;
             } else if (which == DialogInterface.BUTTON_POSITIVE) {
                 int [] subId = SubscriptionManager.getSubId(slot);
-                new Thread(new CopyToSimThread(msgItems, subId[0])).start();
+                if (MessageUtils.hasInvalidSmsRecipient(getContext(), msgItems)) {
+                    showInvalidCopyDialog();
+                } else {
+                    new Thread(new CopyToSimThread(msgItems, subId[0])).start();
+                }
             }
         }
+    }
+
+    private void showInvalidCopyDialog() {
+        AlertDialog invalidCopyDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.copy_to_sim_fail)
+                .setMessage(R.string.cannot_copy_to_sim_reason)
+                .setPositiveButton(R.string.yes, null)
+                .show();
     }
 
     private class CopyToSimThread extends Thread {
@@ -6985,7 +6997,11 @@ public class ComposeMessageActivity extends Activity
                         .setSingleChoiceItems(items, 0, listener)
                         .setCancelable(true).show();
             } else {
-                new Thread(new CopyToSimThread(mMessageItems)).start();
+                if (MessageUtils.hasInvalidSmsRecipient(getContext(), mMessageItems)) {
+                    showInvalidCopyDialog();
+                } else {
+                    new Thread(new CopyToSimThread(mMessageItems)).start();
+                }
             }
         }
 

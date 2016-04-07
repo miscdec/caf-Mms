@@ -446,6 +446,7 @@
     <!-- Copy message to sim -->
     <string name="menu_copy_to">复制</string>
     <string name="operation_to_card_memory">复制到SIM卡</string>
+    <string name="cannot_copy_to_sim_reason">信息中包含无效联系人</string>
 
     <string name="confirm_delete_selected_messages">选中的信息将被删除</string>
     <!-- menu item of mailboxmessagecontent -->

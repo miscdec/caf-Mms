@@ -283,6 +283,8 @@ public class MessageUtils {
     public static final float MAX_FONT_SIZE = 80f;
     public static final float MIN_FONT_SIZE = 20f;
     public static final float FONT_SIZE_STEP = 5f;
+    private static final char SBC_CHAR_START = 65281;
+    private static final char SBC_CHAR_END   = 65373;
 
     protected static final int URL_OPTION_MENU_CONNECT = 0;
     protected static final int URL_OPTION_MENU_ADD_TO_LABEL = 1;
@@ -2657,6 +2659,63 @@ public class MessageUtils {
             }
         }
         return isTooLarge;
+    }
+
+    public static boolean hasInvalidSmsRecipient(Context context, ArrayList<MessageItem> msgItems) {
+        for (MessageItem msgItem : msgItems) {
+            String address = msgItem.mAddress;
+            String[] number = null;
+            if (MessageUtils.isWapPushNumber(address)) {
+                number = address.split(":");
+                address = number[0];
+            }
+            if (!isValidAddress(context, address)) {
+                if (MmsConfig.getEmailGateway() == null) {
+                    return true;
+                } else if (!MessageUtils.isAlias(address)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isValidAddress(Context context, String number) {
+        if (hasInvalidCharacter(context, number)) {
+            return false;
+        }
+
+        return PhoneNumberUtils.isWellFormedSmsAddress(number);
+    }
+
+    private static boolean hasInvalidCharacter(Context context, String number) {
+        char[] charNumber = number.trim().toCharArray();
+        int count = charNumber.length;
+        if (context.getResources().getBoolean(R.bool.config_filter_char_address)) {
+            for (int i = 0; i < count; i++) {
+                if (i == 0 && charNumber[i] == '+') {
+                    continue;
+                }
+                if (!isValidCharacter(charNumber[i])) {
+                    return true;
+                }
+            }
+        } else {
+            for (int i = 0; i < count; i++) {
+                if (isSBCCharacter(charNumber, i)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isValidCharacter(char c) {
+        return (c >= '0' && c <= '9') || c == '-' || c == '(' || c == ')' || c == ' ';
+    }
+
+    private static boolean isSBCCharacter(char[] charNumber, int i) {
+        return charNumber[i] >= SBC_CHAR_START && charNumber[i] <= SBC_CHAR_END;
     }
 
     public static String getFilePath(final Context context, final Uri uri) {
