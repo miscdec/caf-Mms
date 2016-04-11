@@ -86,6 +86,8 @@ public class MobilePaperShowActivity extends Activity {
     private static final int MENU_REPLY = 3;
     private static final int MENU_FORWARD = 4;
 
+    private static final int TWO_FINGERS = 2;
+
     // If the finger move over 100px, we don't think it's for click.
     private static final int CLICK_LIMIT = 100;
 
@@ -309,47 +311,38 @@ public class MobilePaperShowActivity extends Activity {
 
                 @Override
                 public boolean onTouchEvent(MotionEvent ev) {
-                    mScaleDetector.onTouchEvent(ev);
-                    final int action = ev.getAction();
-                    switch (action) {
-                        case MotionEvent.ACTION_DOWN: {
-                            currentX = (int) ev.getRawX();
-                            currentY = (int) ev.getRawY();
-                            break;
-                        }
-                        case MotionEvent.ACTION_MOVE: {
-                            int x2 = (int) ev.getRawX();
-                            int y2 = (int) ev.getRawY();
-                            currentX = x2;
-                            currentY = y2;
-                            break;
-                        }
-                    }
-                    super.onTouchEvent(ev);
-                    return true;
+                    return mScaleDetector.onTouchEvent(ev);
                 }
 
                 @Override
                 public boolean onInterceptTouchEvent(MotionEvent ev) {
-                    mScaleDetector.onTouchEvent(ev);
+                    super.onInterceptTouchEvent(ev);
+
                     final int action = ev.getAction();
                     switch (action) {
-                        case MotionEvent.ACTION_DOWN: {
-                            currentX = (int) ev.getRawX();
-                            currentY = (int) ev.getRawY();
-                            move = 0;
+                        case MotionEvent.ACTION_DOWN:{
+                            move=0;
+                            break;
+                        }
+                        case MotionEvent.ACTION_POINTER_2_DOWN: {
+                            currentX = (int) ev.getX(MotionEvent.ACTION_POINTER_INDEX_MASK
+                                    & MotionEvent.ACTION_POINTER_DOWN);
+                            currentY = (int) ev.getY(MotionEvent.ACTION_POINTER_INDEX_MASK
+                                    & MotionEvent.ACTION_POINTER_DOWN);
                             break;
                         }
                         case MotionEvent.ACTION_MOVE: {
-                            int x2 = (int) ev.getRawX();
-                            int y2 = (int) ev.getRawY();
-                            move += Math.abs(currentY - y2);
-                            currentX = x2;
-                            currentY = y2;
+                            if(ev.getPointerCount()>=MobilePaperShowActivity.TWO_FINGERS) {
+                                int x2 = (int) ev.getX(MotionEvent.ACTION_POINTER_INDEX_MASK
+                                        & MotionEvent.ACTION_POINTER_DOWN);
+                                int y2 = (int) ev.getY(MotionEvent.ACTION_POINTER_INDEX_MASK
+                                        & MotionEvent.ACTION_POINTER_DOWN);
+                                move += Math.abs(currentY - y2);
+                            }
                             break;
                         }
                     }
-                    super.onInterceptTouchEvent(ev);
+
                     return move > CLICK_LIMIT;
                 }
             };
