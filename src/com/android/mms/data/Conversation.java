@@ -64,6 +64,8 @@ public class Conversation {
     private static final boolean DEBUG = false;
     private static final boolean DELETEDEBUG = false;
 
+    private static final int INVALID_THREAD_ID = -1;
+
     public static final Uri sAllThreadsUri =
         Threads.CONTENT_URI.buildUpon().appendQueryParameter("simple", "true").build();
 
@@ -675,6 +677,7 @@ public class Conversation {
     }
 
     private static long getOrCreateThreadId(Context context, ContactList list) {
+        long retVal = INVALID_THREAD_ID;
         HashSet<String> recipients = new HashSet<String>();
         Contact cacheContact = null;
         for (Contact c : list) {
@@ -705,7 +708,11 @@ public class Conversation {
                     break;
                 }
             }
-            long retVal = Threads.getOrCreateThreadId(context, recipients);
+            try {
+                retVal = Threads.getOrCreateThreadId(context, recipients);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
             if (DELETEDEBUG || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 LogTag.debug("[Conversation] getOrCreateThreadId for (%s) returned %d",
                         recipients, retVal);
@@ -715,6 +722,7 @@ public class Conversation {
     }
 
     public static long getOrCreateThreadId(Context context, String address) {
+        long retVal = INVALID_THREAD_ID;
         synchronized(sDeletingThreadsLock) {
             if (DELETEDEBUG) {
                 ComposeMessageActivity.log("Conversation getOrCreateThreadId for: " +
@@ -735,7 +743,11 @@ public class Conversation {
                     break;
                 }
             }
-            long retVal = Threads.getOrCreateThreadId(context, address);
+            try {
+                retVal = Threads.getOrCreateThreadId(context, address);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
             if (DELETEDEBUG || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 LogTag.debug("[Conversation] getOrCreateThreadId for (%s) returned %d",
                         address, retVal);
