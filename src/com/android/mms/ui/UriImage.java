@@ -193,6 +193,9 @@ public class UriImage {
             BitmapFactory.Options opt = new BitmapFactory.Options();
             opt.inJustDecodeBounds = true;
             BitmapFactory.decodeStream(input, null, opt);
+            if (TextUtils.isEmpty(mContentType) && mUri.getScheme().equals("file")) {
+                mContentType = opt.outMimeType;
+            }
             mWidth = opt.outWidth;
             mHeight = opt.outHeight;
         } catch (FileNotFoundException e) {
