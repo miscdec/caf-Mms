@@ -25,6 +25,13 @@ import com.android.mms.ui.LetterTileDrawable;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -208,5 +215,37 @@ public class MaterialColorMapUtils {
         drawable.setScale(1.0f);
         drawable.setIsCircular(true);
         return drawable;
+    }
+
+    public static Bitmap getLetterTitleDraw(Context mContext, Contact contact, int size) {
+        if (size <= 0) return null;
+
+        Drawable drawable = getLetterTitleDraw(mContext, contact);
+
+        int w = size;
+        int h = size;
+        Bitmap.Config config = drawable.getOpacity() != android.graphics.PixelFormat.OPAQUE
+                ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
+        Bitmap bitmap = Bitmap.createBitmap(w, h, config);
+        Canvas canvas = new Canvas(bitmap);
+        drawable.setBounds(0, 0, w, h);
+        drawable.draw(canvas);
+        return bitmap;
+    }
+
+    public static Bitmap getCircularBitmap(Context context, Bitmap bitmap) {
+        final int outpustSize = context.getResources().getDimensionPixelSize(
+                android.R.dimen.notification_large_icon_height);
+        final Bitmap output = Bitmap
+                .createBitmap(outpustSize, outpustSize, Bitmap.Config.ARGB_8888);
+        final Canvas canvas = new Canvas(output);
+        final Rect dest = new Rect(0, 0, outpustSize, outpustSize);
+        final RectF oval = new RectF(dest);
+        final Paint paint = new Paint();
+        paint.setAntiAlias(true);
+        canvas.drawOval(oval, paint);
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+        canvas.drawBitmap(bitmap, null, dest, paint);
+        return output;
     }
 }
