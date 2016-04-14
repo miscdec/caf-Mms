@@ -79,7 +79,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                 mUri,
                 mContext,
                 SmsReceiver.class);
-        intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, mPhoneId);
+        intent.putExtra(PhoneConstants.PHONE_KEY, mPhoneId);
         int requestCode = 1;
         intent.putExtra(SmsReceiverService.EXTRA_MESSAGE_SENT_SEND_NEXT, true);
 
