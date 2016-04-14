@@ -262,8 +262,9 @@ public class SmsReceiverService extends Service {
     }
 
     private void handleSendMessage(Intent intent) {
-        int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY,
-                SubscriptionManager.getDefaultSmsSubId());
+        int subId = SubscriptionManager.getDefaultSmsSubId();
+        int defaultId = SubscriptionManager.getPhoneId(subId);
+        int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY, defaultId);
         if (!mSending[phoneId]) {
             sendFirstQueuedMessage(phoneId);
         }
@@ -355,8 +356,9 @@ public class SmsReceiverService extends Service {
         Uri uri = intent.getData();
         int resultCode = intent.getIntExtra("result", 0);
         boolean sendNextMsg = intent.getBooleanExtra(EXTRA_MESSAGE_SENT_SEND_NEXT, false);
-        int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY,
-                SubscriptionManager.getDefaultSmsSubId());
+        int subId = SubscriptionManager.getDefaultSmsSubId();
+        int defaultId = SubscriptionManager.getPhoneId(subId);
+        int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY, defaultId);
         mSending[phoneId] = false;
         if (LogTag.DEBUG_SEND) {
             Log.v(TAG, "handleSmsSent uri: " + uri + " sendNextMsg: " + sendNextMsg +
