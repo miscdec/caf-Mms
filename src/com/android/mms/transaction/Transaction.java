@@ -24,7 +24,6 @@ import java.net.UnknownHostException;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Uri;
-import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.google.android.mms.MmsException;
@@ -189,25 +188,14 @@ public abstract class Transaction extends Observable {
         if (pdu == null) {
             throw new MmsException();
         }
-        if (mContext.getResources().getBoolean(
-                R.bool.config_regional_mms_via_wifi_enable)) {
-            boolean useWifi = MessageUtils.shouldHandleMmsViaWifi(mContext);
-            return HttpUtils.httpConnection(
-                    mContext, token,
-                    mmscUrl,
-                    pdu, HttpUtils.HTTP_POST_METHOD,
-                    useWifi ? false : mTransactionSettings.isProxySet(),
-                    mTransactionSettings.getProxyAddress(),
-                    mTransactionSettings.getProxyPort());
-        } else {
-            return HttpUtils.httpConnection(
-                    mContext, token,
-                    mmscUrl,
-                    pdu, HttpUtils.HTTP_POST_METHOD,
-                    mTransactionSettings.isProxySet(),
-                    mTransactionSettings.getProxyAddress(),
-                    mTransactionSettings.getProxyPort());
-        }
+
+        return HttpUtils.httpConnection(
+                mContext, token,
+                mmscUrl,
+                pdu, HttpUtils.HTTP_POST_METHOD,
+                mTransactionSettings.isProxySet(),
+                mTransactionSettings.getProxyAddress(),
+                mTransactionSettings.getProxyPort());
     }
 
     /**
@@ -220,23 +208,12 @@ public abstract class Transaction extends Observable {
      *         an HTTP error code(>=400) returned from the server.
      */
     protected byte[] getPdu(String url) throws IOException {
-        if (mContext.getResources().getBoolean(
-                R.bool.config_regional_mms_via_wifi_enable)) {
-            boolean useWifi = MessageUtils.shouldHandleMmsViaWifi(mContext);
-            return HttpUtils.httpConnection(
-                    mContext, SendingProgressTokenManager.NO_TOKEN,
-                    url, null, HttpUtils.HTTP_GET_METHOD,
-                    useWifi ? false : mTransactionSettings.isProxySet(),
-                    mTransactionSettings.getProxyAddress(),
-                    mTransactionSettings.getProxyPort());
-        } else {
-            return HttpUtils.httpConnection(
-                    mContext, SendingProgressTokenManager.NO_TOKEN,
-                    url, null, HttpUtils.HTTP_GET_METHOD,
-                    mTransactionSettings.isProxySet(),
-                    mTransactionSettings.getProxyAddress(),
-                    mTransactionSettings.getProxyPort());
-        }
+        return HttpUtils.httpConnection(
+                mContext, SendingProgressTokenManager.NO_TOKEN,
+                url, null, HttpUtils.HTTP_GET_METHOD,
+                mTransactionSettings.isProxySet(),
+                mTransactionSettings.getProxyAddress(),
+                mTransactionSettings.getProxyPort());
     }
 
     public void cancelTransaction(Uri uri) {
