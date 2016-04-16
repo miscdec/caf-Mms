@@ -224,14 +224,6 @@ public class MessagingNotification {
 
     private static final int MAX_MESSAGES_TO_SHOW = 8;  // the maximum number of new messages to
                                                         // show in a single notification.
-    private static int mPhoneState;
-    private static PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
-        @Override
-        public void onCallStateChanged(int state, String ignored) {
-            mPhoneState = state;
-        }
-    };
-
     public static final AudioAttributes AUDIO_ATTRIBUTES_ALARM = new AudioAttributes.Builder()
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .setUsage(AudioAttributes.USAGE_ALARM)
@@ -253,9 +245,6 @@ public class MessagingNotification {
         sNotificationOnDeleteIntent = new Intent(NOTIFICATION_DELETED_ACTION);
 
         sScreenDensity = context.getResources().getDisplayMetrics().density;
-
-        TelephonyManager.getDefault().listen(mPhoneStateListener,
-                PhoneStateListener.LISTEN_CALL_STATE);
     }
 
     /**
@@ -466,7 +455,8 @@ public class MessagingNotification {
         String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                 null);
         if (!includeEmergencySMS) {
-            if (isInCall()) {
+            int state = TelephonyManager.getDefault().getCallState();
+            if (state != TelephonyManager.CALL_STATE_IDLE) {
                 noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
                         AUDIO_ATTRIBUTES_ALARM);
             } else {
@@ -1222,9 +1212,10 @@ public class MessagingNotification {
             String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                     null);
             if (!includeEmergencySMS) {
-                if (isInCall()) {
-                    noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
-                            AUDIO_ATTRIBUTES_ALARM);
+                int state = TelephonyManager.getDefault().getCallState();
+                if (state != TelephonyManager.CALL_STATE_IDLE) {
+                     noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
+                             AUDIO_ATTRIBUTES_ALARM);
                 } else {
                     noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
                 }
@@ -1920,13 +1911,6 @@ public class MessagingNotification {
         return intent;
     }
 
-    /**
-     * This method check whether phone is in call status
-     */
-    protected static boolean isInCall() {
-        return mPhoneState == TelephonyManager.CALL_STATE_RINGING
-                || mPhoneState == TelephonyManager.CALL_STATE_OFFHOOK;
-    }
 
     /* Begin add for RCS */
     public static long getCurrentlyDisplayedThreadId() {
