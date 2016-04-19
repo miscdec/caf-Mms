@@ -115,4 +115,7 @@
 
     <!-- Default value of Maximum line for unread message text. -->
     <integer name="max_unread_message_lines">3</integer>
+
+    <!-- Flag indicating whether send mms over wifi -->
+    <bool name="support_send_mms_over_wifi">false</bool>
 </resources>
