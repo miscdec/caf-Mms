@@ -2787,10 +2787,10 @@ public class MessageUtils {
             builder.setContentIntent(pendingIntent);
             builder.setAutoCancel(true);
             builder.setSmallIcon(R.drawable.wifi_calling_on_notification);
-            builder.setContentTitle(
-                    context.getResources().getString(R.string.no_network_alert_when_send_message));
-            builder.setContentText(
-                    context.getResources().getString(R.string.no_network_alert_when_send_message));
+            builder.setContentTitle(context.getResources().getString(
+                    R.string.no_network_notification_when_send_message));
+            builder.setContentText(context.getResources().getString(
+                    R.string.no_network_notification_when_send_message));
             notiManager.notify(1, builder.build());
             new Thread() {
                 public void run() {
