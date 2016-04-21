@@ -685,13 +685,16 @@ public class ManageSimMessages extends Activity
                             }
                             return true;
                         }
-                    });
+                    },
+                    (ImageView)mMultiSelectActionBarView.findViewById(R.id.expand));
             return true;
         }
 
         @Override
         public void onDestroyActionMode(ActionMode arg0) {
-            mSelectionMenu.dismiss();
+            if (mSelectionMenu != null) {
+                mSelectionMenu.dismiss();
+            }
         }
 
         @Override
@@ -709,8 +712,10 @@ public class ManageSimMessages extends Activity
         public void onItemCheckedStateChanged(ActionMode mode, int arg1, long arg2, boolean arg3) {
             final int checkedCount = getListView().getCheckedItemCount();
 
-            mSelectionMenu.setTitle(getApplicationContext().getString(R.string.selected_count,
-                    checkedCount));
+            if (mSelectionMenu != null) {
+                mSelectionMenu.setTitle(getApplicationContext().getString(R.string.selected_count,
+                        checkedCount));
+            }
             if (checkedCount == 1) {
                 recoredCheckedItemPositions();
             }
@@ -722,7 +727,10 @@ public class ManageSimMessages extends Activity
                 mHasSelectAll = false;
                 Log.d(TAG, "onItemCheck select all false");
             }
-            mSelectionMenu.updateSelectAllMode(mHasSelectAll);
+            if (mSelectionMenu != null) {
+                mSelectionMenu.updateSelectAllMode(mHasSelectAll);
+                mSelectionMenu.updateCheckedCount();
+            }
         }
 
         private void customMenuVisibility(ActionMode mode, int checkedCount) {

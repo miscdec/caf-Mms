@@ -1105,6 +1105,7 @@ public class MailBoxMessageList extends ListActivity implements
             }
             mSelectionMenu.updateSelectAllMode(mHasSelectAll);
             mListAdapter.updateItemBackgroud(position);
+            mSelectionMenu.updateCheckedCount();
         }
     }
 }

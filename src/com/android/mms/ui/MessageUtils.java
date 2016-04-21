@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -2749,49 +2748,6 @@ public class MessageUtils {
         return path;
     }
 
-    public static boolean isCarrierSimCard(Context ctx) {
-        boolean isCarrierSimCard = false;
-        String[] carrierMccMncs = ctx.getResources().getStringArray(
-                R.array.config_regional_carrier_operator_list);
-        TelephonyManager tm = (TelephonyManager)ctx.getSystemService(
-        Context.TELEPHONY_SERVICE);
-        String simOperator = tm.getSimOperator();
-        if (DEBUG) Log.d(TAG,
-            "carrier sim card check: sim operator is " + simOperator);
-        if (simOperator != null) {
-            if (Arrays.asList(carrierMccMncs).contains(simOperator)) {
-                isCarrierSimCard = true;
-            }
-            else {
-                for(String s: Arrays.asList(carrierMccMncs)) {
-                    if (simOperator.indexOf(s) >= 0) {
-                        isCarrierSimCard = true;
-                        break;
-                    }
-                }
-            }
-        }
-        if (DEBUG) {
-            Log.d(TAG,"is home Carrier SIM Card? " + isCarrierSimCard);
-        }
-        return isCarrierSimCard;
-    }
-
-    public static boolean shouldHandleMmsViaWifi(Context ctx) {
-        if (!isCarrierSimCard(ctx)) {
-            //Not all carriers mmsc support send MMS via wifi and so
-            //this feature is only for home carrier
-            return false;
-        }
-        boolean wifiActive = false;
-        ConnectivityManager connMgr = (ConnectivityManager) ctx.getSystemService(
-                Context.CONNECTIVITY_SERVICE);
-        NetworkInfo info = connMgr == null ? null : connMgr.getNetworkInfo(
-                ConnectivityManager.TYPE_WIFI);
-        wifiActive = (info != null && info.isConnected());
-        return wifiActive;
-    }
-
     public static boolean pupConnectWifiAlertDialog(final Context context) {
         if (SystemProperties.getBoolean("persist.sys.wificall.turnon", false)
                 && !cellularNetworkAvailable(context)
@@ -2831,10 +2787,10 @@ public class MessageUtils {
             builder.setContentIntent(pendingIntent);
             builder.setAutoCancel(true);
             builder.setSmallIcon(R.drawable.wifi_calling_on_notification);
-            builder.setContentTitle(
-                    context.getResources().getString(R.string.no_network_alert_when_send_message));
-            builder.setContentText(
-                    context.getResources().getString(R.string.no_network_alert_when_send_message));
+            builder.setContentTitle(context.getResources().getString(
+                    R.string.no_network_notification_when_send_message));
+            builder.setContentText(context.getResources().getString(
+                    R.string.no_network_notification_when_send_message));
             notiManager.notify(1, builder.build());
             new Thread() {
                 public void run() {
