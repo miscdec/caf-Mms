@@ -602,6 +602,8 @@ public class ComposeMessageActivity extends Activity
 
     private boolean mSendMmsMobileDataOff = false;
 
+    private boolean mSendMmsSupportViaWiFi = false;
+
     private boolean isAvoidingSavingDraft = false;
     private static Drawable sDefaultContactImage;
     private static int sPrimaryColorDark;
@@ -1151,7 +1153,7 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
             boolean isMms = mWorkingMessage.requiresMms();
-            if (isMms && mSendMmsMobileDataOff &&
+            if (isMms && !mSendMmsSupportViaWiFi && mSendMmsMobileDataOff &&
                     MessageUtils.isMobileDataDisabled(getApplicationContext())) {
                 showMobileDataDisabledDialog(mSubscription);
             } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
@@ -1321,7 +1323,7 @@ public class ComposeMessageActivity extends Activity
         }
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if (isMms && mSendMmsMobileDataOff &&
+            if (isMms && !mSendMmsSupportViaWiFi && mSendMmsMobileDataOff &&
                     MessageUtils.isMobileDataDisabled(getApplicationContext())) {
                 showMobileDataDisabledDialog(subscription);
             } else {
@@ -1332,7 +1334,7 @@ public class ComposeMessageActivity extends Activity
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog(subscription);
-        } else if (isMms && mSendMmsMobileDataOff &&
+        } else if (isMms && !mSendMmsSupportViaWiFi && mSendMmsMobileDataOff &&
                 MessageUtils.isMobileDataDisabled(getApplicationContext())) {
             showMobileDataDisabledDialog(subscription);
         } else {
@@ -1367,7 +1369,7 @@ public class ComposeMessageActivity extends Activity
 
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if (isMms && mSendMmsMobileDataOff &&
+            if (isMms && !mSendMmsSupportViaWiFi && mSendMmsMobileDataOff &&
                     MessageUtils.isMobileDataDisabled(getApplicationContext())) {
                 showMobileDataDisabledDialog();
             } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
@@ -1382,7 +1384,7 @@ public class ComposeMessageActivity extends Activity
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
-        } else if (isMms && mSendMmsMobileDataOff &&
+        } else if (isMms && !mSendMmsSupportViaWiFi && mSendMmsMobileDataOff &&
                 MessageUtils.isMobileDataDisabled(getApplicationContext())) {
             showMobileDataDisabledDialog();
         } else {
@@ -2514,6 +2516,8 @@ public class ComposeMessageActivity extends Activity
         ConfigResourceUtil configResUtil = new ConfigResourceUtil();
         mSendMmsMobileDataOff = configResUtil.getBooleanValue(this,
                 "config_enable_mms_with_mobile_data_off");
+
+        mSendMmsSupportViaWiFi = getResources().getBoolean(R.bool.support_send_mms_over_wifi);
 
         // Read parameters or previously saved state of this activity. This will load a new
         // mConversation
@@ -6494,9 +6498,21 @@ public class ComposeMessageActivity extends Activity
                 slot = which;
             } else if (which == DialogInterface.BUTTON_POSITIVE) {
                 int [] subId = SubscriptionManager.getSubId(slot);
-                new Thread(new CopyToSimThread(msgItems, subId[0])).start();
+                if (MessageUtils.hasInvalidSmsRecipient(getContext(), msgItems)) {
+                    showInvalidCopyDialog();
+                } else {
+                    new Thread(new CopyToSimThread(msgItems, subId[0])).start();
+                }
             }
         }
+    }
+
+    private void showInvalidCopyDialog() {
+        AlertDialog invalidCopyDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.copy_to_sim_fail)
+                .setMessage(R.string.cannot_copy_to_sim_reason)
+                .setPositiveButton(R.string.yes, null)
+                .show();
     }
 
     private class CopyToSimThread extends Thread {
@@ -6985,7 +7001,11 @@ public class ComposeMessageActivity extends Activity
                         .setSingleChoiceItems(items, 0, listener)
                         .setCancelable(true).show();
             } else {
-                new Thread(new CopyToSimThread(mMessageItems)).start();
+                if (MessageUtils.hasInvalidSmsRecipient(getContext(), mMessageItems)) {
+                    showInvalidCopyDialog();
+                } else {
+                    new Thread(new CopyToSimThread(mMessageItems)).start();
+                }
             }
         }
 

@@ -651,9 +651,8 @@ public class ManageSimMessages extends Activity
                     break;
                 case R.id.copy_to_phone:
                     int pos = mSelectedPos.get(0);
-                    Cursor cursor = (Cursor) getListView().getAdapter().getItem(pos);
                     if (!MessageUtils.checkIsPhoneMessageFull(getContext())) {
-                        new CopyThread(cursor).execute();
+                        new CopyThread().execute(pos);
                     }
                     break;
                 case R.id.reply:
@@ -686,13 +685,16 @@ public class ManageSimMessages extends Activity
                             }
                             return true;
                         }
-                    });
+                    },
+                    (ImageView)mMultiSelectActionBarView.findViewById(R.id.expand));
             return true;
         }
 
         @Override
         public void onDestroyActionMode(ActionMode arg0) {
-            mSelectionMenu.dismiss();
+            if (mSelectionMenu != null) {
+                mSelectionMenu.dismiss();
+            }
         }
 
         @Override
@@ -710,8 +712,10 @@ public class ManageSimMessages extends Activity
         public void onItemCheckedStateChanged(ActionMode mode, int arg1, long arg2, boolean arg3) {
             final int checkedCount = getListView().getCheckedItemCount();
 
-            mSelectionMenu.setTitle(getApplicationContext().getString(R.string.selected_count,
-                    checkedCount));
+            if (mSelectionMenu != null) {
+                mSelectionMenu.setTitle(getApplicationContext().getString(R.string.selected_count,
+                        checkedCount));
+            }
             if (checkedCount == 1) {
                 recoredCheckedItemPositions();
             }
@@ -723,7 +727,10 @@ public class ManageSimMessages extends Activity
                 mHasSelectAll = false;
                 Log.d(TAG, "onItemCheck select all false");
             }
-            mSelectionMenu.updateSelectAllMode(mHasSelectAll);
+            if (mSelectionMenu != null) {
+                mSelectionMenu.updateSelectAllMode(mHasSelectAll);
+                mSelectionMenu.updateCheckedCount();
+            }
         }
 
         private void customMenuVisibility(ActionMode mode, int checkedCount) {
@@ -785,17 +792,14 @@ public class ManageSimMessages extends Activity
         }
     }
 
-    private class CopyThread extends AsyncTask<Void, Void, Boolean> {
-        private Cursor mCursor;
-
-        public CopyThread(Cursor cursor) {
-            mCursor = cursor;
-         }
+    private class CopyThread extends AsyncTask<Integer, Void, Boolean> {
 
         @Override
-        protected Boolean doInBackground(Void... params) {
-            if(mCursor != null) {
-                return copyToPhoneMemory(mCursor);
+        protected Boolean doInBackground(Integer... params) {
+            int pos = params[0];
+            Cursor cursor = (Cursor) getListView().getAdapter().getItem(pos);
+            if (cursor != null) {
+                return copyToPhoneMemory(cursor);
             }
             return false;
         }

@@ -99,7 +99,6 @@
     <!-- automatically retrieve mms messages while roaming, default is false -->
     <bool name="def_mms_roaming_auto_retrieval">false</bool>
 
-    <string-array translatable="false" name="config_regional_carrier_operator_list"></string-array>
     <bool name="def_rcs_sending_policy">true</bool>
 
     <!-- Flag indicating whether OMA CP messages can be viewed -->

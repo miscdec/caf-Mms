@@ -49,6 +49,7 @@ import android.database.sqlite.SqliteWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -59,6 +60,7 @@ import android.provider.BaseColumns;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.Sms;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
 import android.telephony.PhoneStateListener;
 import android.telephony.SubscriptionManager;
 import android.telephony.SubscriptionInfo;
@@ -83,6 +85,7 @@ import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.ConversationList;
+import com.android.mms.ui.LetterTileDrawable;
 import com.android.mms.ui.MailBoxMessageContent;
 import com.android.mms.ui.MailBoxMessageList;
 import com.android.mms.ui.ManageSimMessages;
@@ -91,6 +94,7 @@ import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.ui.MobilePaperShowActivity;
 import com.android.mms.util.AddressUtils;
 import com.android.mms.util.DownloadManager;
+import com.android.mms.util.MaterialColorMapUtils;
 import com.android.mms.widget.MmsWidgetProvider;
 
 import com.google.android.mms.MmsException;
@@ -1147,26 +1151,36 @@ public class MessagingNotification {
             title = context.getString(R.string.message_count_notification, messageCount);
         } else {    // same thread, single or multiple messages
             title = mostRecentNotification.mTitle;
-            BitmapDrawable contactDrawable = (BitmapDrawable)mostRecentNotification.mSender
-                    .getAvatar(context, null);
+            Contact contact = mostRecentNotification.mSender;
+            Drawable contactDrawable = contact.getAvatar(context, null);
+            final int idealIconWidth =
+                    res.getDimensionPixelSize(android.R.dimen.notification_large_icon_width);
+
             if (contactDrawable != null) {
                 // Show the sender's avatar as the big icon. Contact bitmaps are 96x96 so we
                 // have to scale 'em up to 128x128 to fill the whole notification large icon.
-                avatar = contactDrawable.getBitmap();
+                if (contactDrawable instanceof RoundedBitmapDrawable) {
+                    avatar = ((RoundedBitmapDrawable) contactDrawable).getBitmap();
+                }
                 if (avatar != null) {
                     final int idealIconHeight =
-                        res.getDimensionPixelSize(android.R.dimen.notification_large_icon_height);
-                    final int idealIconWidth =
-                         res.getDimensionPixelSize(android.R.dimen.notification_large_icon_width);
+                            res.getDimensionPixelSize(
+                                    android.R.dimen.notification_large_icon_height);
                     if (avatar.getHeight() < idealIconHeight) {
                         // Scale this image to fit the intended size
                         avatar = Bitmap.createScaledBitmap(
                                 avatar, idealIconWidth, idealIconHeight, true);
+                        avatar = MaterialColorMapUtils.getCircularBitmap(context, avatar);
                     }
                     if (avatar != null) {
                         noti.setLargeIcon(avatar);
                     }
                 }
+            } else if (LetterTileDrawable.isEnglishLetterString(contact.getNameForAvatar())) {
+                Bitmap newAvatar = MaterialColorMapUtils.getLetterTitleDraw(context,
+                        contact, idealIconWidth);
+                Bitmap roundBitmap = MaterialColorMapUtils.getCircularBitmap(context, newAvatar);
+                noti.setLargeIcon(roundBitmap);
             }
 
             pendingIntent = PendingIntent.getActivity(context, 0,

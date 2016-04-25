@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -283,6 +282,8 @@ public class MessageUtils {
     public static final float MAX_FONT_SIZE = 80f;
     public static final float MIN_FONT_SIZE = 20f;
     public static final float FONT_SIZE_STEP = 5f;
+    private static final char SBC_CHAR_START = 65281;
+    private static final char SBC_CHAR_END   = 65373;
 
     protected static final int URL_OPTION_MENU_CONNECT = 0;
     protected static final int URL_OPTION_MENU_ADD_TO_LABEL = 1;
@@ -2659,6 +2660,63 @@ public class MessageUtils {
         return isTooLarge;
     }
 
+    public static boolean hasInvalidSmsRecipient(Context context, ArrayList<MessageItem> msgItems) {
+        for (MessageItem msgItem : msgItems) {
+            String address = msgItem.mAddress;
+            String[] number = null;
+            if (MessageUtils.isWapPushNumber(address)) {
+                number = address.split(":");
+                address = number[0];
+            }
+            if (!isValidAddress(context, address)) {
+                if (MmsConfig.getEmailGateway() == null) {
+                    return true;
+                } else if (!MessageUtils.isAlias(address)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isValidAddress(Context context, String number) {
+        if (hasInvalidCharacter(context, number)) {
+            return false;
+        }
+
+        return PhoneNumberUtils.isWellFormedSmsAddress(number);
+    }
+
+    private static boolean hasInvalidCharacter(Context context, String number) {
+        char[] charNumber = number.trim().toCharArray();
+        int count = charNumber.length;
+        if (context.getResources().getBoolean(R.bool.config_filter_char_address)) {
+            for (int i = 0; i < count; i++) {
+                if (i == 0 && charNumber[i] == '+') {
+                    continue;
+                }
+                if (!isValidCharacter(charNumber[i])) {
+                    return true;
+                }
+            }
+        } else {
+            for (int i = 0; i < count; i++) {
+                if (isSBCCharacter(charNumber, i)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isValidCharacter(char c) {
+        return (c >= '0' && c <= '9') || c == '-' || c == '(' || c == ')' || c == ' ';
+    }
+
+    private static boolean isSBCCharacter(char[] charNumber, int i) {
+        return charNumber[i] >= SBC_CHAR_START && charNumber[i] <= SBC_CHAR_END;
+    }
+
     public static String getFilePath(final Context context, final Uri uri) {
         String path = null;
         if (uri.toString().contains("content://")) {
@@ -2688,49 +2746,6 @@ public class MessageUtils {
         }
 
         return path;
-    }
-
-    public static boolean isCarrierSimCard(Context ctx) {
-        boolean isCarrierSimCard = false;
-        String[] carrierMccMncs = ctx.getResources().getStringArray(
-                R.array.config_regional_carrier_operator_list);
-        TelephonyManager tm = (TelephonyManager)ctx.getSystemService(
-        Context.TELEPHONY_SERVICE);
-        String simOperator = tm.getSimOperator();
-        if (DEBUG) Log.d(TAG,
-            "carrier sim card check: sim operator is " + simOperator);
-        if (simOperator != null) {
-            if (Arrays.asList(carrierMccMncs).contains(simOperator)) {
-                isCarrierSimCard = true;
-            }
-            else {
-                for(String s: Arrays.asList(carrierMccMncs)) {
-                    if (simOperator.indexOf(s) >= 0) {
-                        isCarrierSimCard = true;
-                        break;
-                    }
-                }
-            }
-        }
-        if (DEBUG) {
-            Log.d(TAG,"is home Carrier SIM Card? " + isCarrierSimCard);
-        }
-        return isCarrierSimCard;
-    }
-
-    public static boolean shouldHandleMmsViaWifi(Context ctx) {
-        if (!isCarrierSimCard(ctx)) {
-            //Not all carriers mmsc support send MMS via wifi and so
-            //this feature is only for home carrier
-            return false;
-        }
-        boolean wifiActive = false;
-        ConnectivityManager connMgr = (ConnectivityManager) ctx.getSystemService(
-                Context.CONNECTIVITY_SERVICE);
-        NetworkInfo info = connMgr == null ? null : connMgr.getNetworkInfo(
-                ConnectivityManager.TYPE_WIFI);
-        wifiActive = (info != null && info.isConnected());
-        return wifiActive;
     }
 
     public static boolean pupConnectWifiAlertDialog(final Context context) {
@@ -2772,10 +2787,10 @@ public class MessageUtils {
             builder.setContentIntent(pendingIntent);
             builder.setAutoCancel(true);
             builder.setSmallIcon(R.drawable.wifi_calling_on_notification);
-            builder.setContentTitle(
-                    context.getResources().getString(R.string.no_network_alert_when_send_message));
-            builder.setContentText(
-                    context.getResources().getString(R.string.no_network_alert_when_send_message));
+            builder.setContentTitle(context.getResources().getString(
+                    R.string.no_network_notification_when_send_message));
+            builder.setContentText(context.getResources().getString(
+                    R.string.no_network_notification_when_send_message));
             notiManager.notify(1, builder.build());
             new Thread() {
                 public void run() {
