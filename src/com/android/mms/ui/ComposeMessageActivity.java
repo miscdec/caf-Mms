@@ -53,6 +53,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 import java.util.Set;
 
@@ -6586,10 +6587,10 @@ public class ComposeMessageActivity extends Activity
     };
 
     private class CopyToSimSelectListener implements DialogInterface.OnClickListener {
-        private ArrayList<MessageItem> msgItems;
+        private CopyOnWriteArrayList<MessageItem> msgItems;
         private int slot;
 
-        public CopyToSimSelectListener(ArrayList<MessageItem> msgItems) {
+        public CopyToSimSelectListener(CopyOnWriteArrayList<MessageItem> msgItems) {
             super();
             this.msgItems = msgItems;
         }
@@ -6617,15 +6618,15 @@ public class ComposeMessageActivity extends Activity
     }
 
     private class CopyToSimThread extends Thread {
-        private ArrayList<MessageItem> msgItems;
+        private CopyOnWriteArrayList<MessageItem> msgItems;
         private int subscription;
 
-        public CopyToSimThread(ArrayList<MessageItem> msgItems) {
+        public CopyToSimThread(CopyOnWriteArrayList<MessageItem> msgItems) {
             this.msgItems = msgItems;
             this.subscription = SmsManager.getDefault().getDefaultSmsSubscriptionId();
         }
 
-        public CopyToSimThread(ArrayList<MessageItem> msgItems, int subscription) {
+        public CopyToSimThread(CopyOnWriteArrayList<MessageItem> msgItems, int subscription) {
             this.msgItems = msgItems;
             this.subscription = subscription;
         }
@@ -7087,6 +7088,8 @@ public class ComposeMessageActivity extends Activity
                         c.getString(COLUMN_MSG_TYPE), c.getLong(COLUMN_ID), c));
 
             }
+            CopyOnWriteArrayList<MessageItem> messageItems =
+                    new CopyOnWriteArrayList<MessageItem>(mMessageItems);
             if (MessageUtils.getActivatedIccCardCount() > 1) {
                 String[] items = new String[TelephonyManager.getDefault()
                         .getPhoneCount()];
@@ -7095,17 +7098,17 @@ public class ComposeMessageActivity extends Activity
                             ComposeMessageActivity.this, i);
                 }
                 CopyToSimSelectListener listener = new CopyToSimSelectListener(
-                        mMessageItems);
+                        messageItems);
                 new AlertDialog.Builder(ComposeMessageActivity.this)
                         .setTitle(R.string.copy_to_sim)
                         .setPositiveButton(android.R.string.ok, listener)
                         .setSingleChoiceItems(items, 0, listener)
                         .setCancelable(true).show();
             } else {
-                if (MessageUtils.hasInvalidSmsRecipient(getContext(), mMessageItems)) {
+                if (MessageUtils.hasInvalidSmsRecipient(getContext(), messageItems)) {
                     showInvalidCopyDialog();
                 } else {
-                    new Thread(new CopyToSimThread(mMessageItems)).start();
+                    new Thread(new CopyToSimThread(messageItems)).start();
                 }
             }
         }
