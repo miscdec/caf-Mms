@@ -68,7 +68,6 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.ui.ComposeMessageActivity;
-import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.RateController;
 import com.google.android.mms.pdu.GenericPdu;
@@ -424,13 +423,6 @@ public class TransactionService extends Service implements Observer {
             return;
         }
         boolean noNetwork = false;
-        if (getResources().getBoolean(
-                R.bool.config_regional_mms_via_wifi_enable)) {
-            NetworkInfo ni = mConnMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
-            boolean shouldUseWifi = MessageUtils.shouldHandleMmsViaWifi(getApplicationContext());
-            noNetwork = !shouldUseWifi && (!mConnMgr.getMobileDataEnabled()
-                    || !(ni != null && ni.isAvailable()));
-        }
 
         LogTag.debugD("onNewIntent: serviceId: " + serviceId + ": " + intent.getExtras() +
                 " intent=" + intent);
@@ -940,12 +932,6 @@ public class TransactionService extends Service implements Observer {
     protected void beginMmsConnectivity(int subId) throws IOException {
         // Take a wake lock so we don't fall asleep before the message is downloaded.
         createWakeLock();
-        if (getResources().getBoolean(
-                R.bool.config_regional_mms_via_wifi_enable)) {
-            if (MessageUtils.shouldHandleMmsViaWifi(getApplicationContext())){
-                return;
-            }
-        }
 
         int phoneId = SubscriptionManager.getPhoneId(subId);
         Log.v(TAG, "beginMmsConnectivity for subId = " + subId +" phoneId=" + phoneId);
@@ -1312,11 +1298,8 @@ public class TransactionService extends Service implements Observer {
                 */
                 LogTag.debugD("processTransaction: call beginMmsConnectivity on subId = " + subId);
                 beginMmsConnectivity(subId);
-                boolean sendingMmsViaData = !(getResources().getBoolean(
-                                R.bool.config_regional_mms_via_wifi_enable) &&
-                                MessageUtils.shouldHandleMmsViaWifi(getApplicationContext()));
 
-                if (!mIsAvailable[phoneId] && sendingMmsViaData) {
+                if (!mIsAvailable[phoneId]) {
                     mPending.add(transaction);
                     LogTag.debugD("processTransaction: connResult=APN_REQUEST_STARTED, " +
                             "defer transaction pending MMS connectivity");
