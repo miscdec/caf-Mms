@@ -249,6 +249,7 @@ import com.suntek.rcs.ui.common.RcsEmojiInitialize.ViewOnClickListener;
 import com.suntek.rcs.ui.common.RcsFileController;
 import com.suntek.rcs.ui.common.RcsLog;
 
+import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 
@@ -5181,6 +5182,12 @@ public class ComposeMessageActivity extends Activity
             onUserInteraction();
 
             mWorkingMessage.setText(s);
+
+            if (getResources().getBoolean(R.bool.def_mms_remove_accented_chars)) {
+                String normal = Normalizer.normalize(
+                                    s, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
+                mWorkingMessage.setText(normal);
+            }
 
             updateSendButtonState();
 
