@@ -173,6 +173,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Button;
 
+import com.android.ex.chips.RecipientEditTextView;
 import com.android.internal.telephony.ConfigResourceUtil;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.RILConstants;
@@ -2384,6 +2385,11 @@ public class ComposeMessageActivity extends Activity
 
         PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(this, mRecipientsEditor);
 
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.PORTRAIT);
+        } else {
+            mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.LANDSCAPE);
+        }
         mTopPanel.setVisibility(View.VISIBLE);
     }
 
@@ -3033,6 +3039,12 @@ public class ComposeMessageActivity extends Activity
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.PORTRAIT);
+        } else {
+            mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.LANDSCAPE);
+        }
 
         if (resetConfiguration(newConfig)) {
             // Have to re-layout the attachment editor because we have different layouts
