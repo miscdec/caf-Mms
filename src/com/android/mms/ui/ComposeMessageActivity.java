@@ -3047,6 +3047,12 @@ public class ComposeMessageActivity extends Activity
             mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.LANDSCAPE);
         }
 
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.PORTRAIT);
+        } else {
+            mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.LANDSCAPE);
+        }
+
         if (resetConfiguration(newConfig)) {
             // Have to re-layout the attachment editor because we have different layouts
             // depending on whether we're portrait or landscape.
