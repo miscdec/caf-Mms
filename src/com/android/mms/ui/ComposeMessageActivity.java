@@ -5506,6 +5506,12 @@ public class ComposeMessageActivity extends Activity
     private boolean loadDraft() {
         if (mWorkingMessage.isWorthSaving()) {
             Log.w(TAG, "CMA.loadDraft: called with non-empty working message, bail");
+            if (mConversation.hasDraft() &&
+                    mConversation.getMessageCount() == 0) {
+                mWorkingMessage.asyncDeleteDraftSmsMessage(mConversation);
+                mConversation.clearThreadId();
+                mWorkingMessage.setConversation(mConversation);
+            }
             return false;
         }
 
@@ -6091,7 +6097,8 @@ public class ComposeMessageActivity extends Activity
                     }
                     if (tid != mConversation.getThreadId()) {
                         if (mConversation.getThreadId() == 0) {
-                            mConversation.setThreadId(tid);
+                            // Do nothing
+                            // mConversation.setThreadId(tid);
                         } else {
                             log("onQueryComplete: msg history query result is for threadId " +
                                     tid + ", but mConversation has threadId " +
