@@ -552,7 +552,7 @@ public class TransactionService extends Service implements Observer {
                                     Log.d(TAG, "mobileData off or no mms apn or APM, Abort");
                                     if (transactionType == Transaction.RETRIEVE_TRANSACTION) {
                                         downloadManager.markState(uri,
-                                                DownloadManager.STATE_SKIP_RETRYING);
+                                                DownloadManager.STATE_TRANSIENT_FAILURE);
                                     }
                                     onNetworkUnavailable(serviceId, transactionType, uri, inRetry);
                                     break;
@@ -601,7 +601,7 @@ public class TransactionService extends Service implements Observer {
             if ((!isMmsAllowed()) && !getResources().getBoolean(R.bool.config_retry_always)) {
                 Log.d(TAG, "Either mobile data is off or apn not present, Abort");
 
-                downloadManager.markState(uri, DownloadManager.STATE_SKIP_RETRYING);
+                downloadManager.markState(uri, DownloadManager.STATE_TRANSIENT_FAILURE);
 
                 boolean isRetry = getRetryIndex(uri.getLastPathSegment()) > 0;
                 int type = intent.getIntExtra(TransactionBundle.TRANSACTION_TYPE,
