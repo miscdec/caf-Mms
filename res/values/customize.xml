@@ -103,4 +103,6 @@
 
     <!-- Flag indicating whether OMA CP messages can be viewed -->
     <bool name="enableOMACP">false</bool>
+
+    <bool name="def_mms_remove_accented_chars">false</bool>
 </resources>
