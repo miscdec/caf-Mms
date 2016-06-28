@@ -118,4 +118,5 @@
 
     <!-- Flag indicating whether send mms over wifi -->
     <bool name="support_send_mms_over_wifi">false</bool>
+    <bool name="config_regional_presence_enable">false</bool>
 </resources>

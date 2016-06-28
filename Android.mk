@@ -11,6 +11,8 @@ $(shell rm -f $(LOCAL_PATH)/chips)
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
+LOCAL_SRC_FILES += src/org/codeaurora/presenceserv/IPresenceServiceCB.aidl \
+                   src/org/codeaurora/presenceserv/IPresenceService.aidl
 
 LOCAL_PACKAGE_NAME := Mms
 
