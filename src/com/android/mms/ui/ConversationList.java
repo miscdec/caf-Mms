@@ -49,6 +49,10 @@ import android.provider.ContactsContract.Contacts;
 import android.provider.Telephony;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Threads;
+import android.telephony.ServiceState;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.ContextMenu;
@@ -389,6 +393,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         @Override
         public void onContentChanged(ConversationListAdapter adapter) {
             startAsyncQuery();
+            if (mSearchView != null && !TextUtils.isEmpty(mSearchView.getQuery())) {
+                mSearchView.setQuery(mSearchView.getQuery(), false);
+            }
         }
     };
 
