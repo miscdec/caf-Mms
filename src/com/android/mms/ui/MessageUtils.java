@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -2660,7 +2661,8 @@ public class MessageUtils {
         return isTooLarge;
     }
 
-    public static boolean hasInvalidSmsRecipient(Context context, ArrayList<MessageItem> msgItems) {
+    public static boolean hasInvalidSmsRecipient(Context context,
+            CopyOnWriteArrayList<MessageItem> msgItems) {
         for (MessageItem msgItem : msgItems) {
             String address = msgItem.mAddress;
             String[] number = null;
