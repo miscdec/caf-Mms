@@ -20,6 +20,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.util.Pair;
 import android.text.TextUtils;
+import android.text.util.Rfc822Token;
 import android.util.Log;
 import android.widget.Filter;
 import android.widget.Filterable;
@@ -46,6 +47,7 @@ public class ChipsRecipientAdapter extends BaseRecipientAdapter {
         super(context, DEFAULT_PREFERRED_MAX_RESULT_COUNT, QUERY_TYPE_PHONE);
     }
 
+    // Will be called from {@link AutoCompleteTextView} to prepare auto-complete list.
     @Override
     public Filter getFilter() {
         return new ContactFilter();
@@ -131,6 +133,19 @@ public class ChipsRecipientAdapter extends BaseRecipientAdapter {
                 updateEntries(entries);
             } else {
                 updateEntries(Collections.<RecipientEntry>emptyList());
+            }
+        }
+
+        // Subclasses of Filter should override convertResultToString() to convert their results.
+        @Override
+        public CharSequence convertResultToString(Object resultValue) {
+            final RecipientEntry entry = (RecipientEntry)resultValue;
+            final String displayName = entry.getDisplayName();
+            final String emailAddress = entry.getDestination();
+            if (TextUtils.isEmpty(displayName) || TextUtils.equals(displayName, emailAddress)) {
+                 return emailAddress;
+            } else {
+                return new Rfc822Token(displayName, emailAddress, null).toString();
             }
         }
 
