@@ -570,4 +570,5 @@
     <string name="omacp_configuration">OMACP配置</string>
     <string name="configuration_message_key">配置短信</string>
     <string name="configuration_message_key_activity">触摸即可配置您的OMACP短信</string>
+    <string name="deleting_sim_sms">"正在删除SIM卡短信..."</string>
 </resources>
