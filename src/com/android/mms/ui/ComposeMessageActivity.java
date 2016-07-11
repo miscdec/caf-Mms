@@ -53,6 +53,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 import java.util.Set;
 
@@ -75,6 +76,7 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
@@ -82,6 +84,7 @@ import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
@@ -101,6 +104,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.os.Parcelable;
 import android.os.RemoteException;
@@ -132,6 +136,8 @@ import android.telephony.SubscriptionManager;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
 import android.telephony.TelephonyManager;
+import android.telecom.TelecomManager;
+import android.telecom.VideoProfile;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputFilter.LengthFilter;
@@ -231,6 +237,7 @@ import com.google.android.mms.pdu.PduBody;
 import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.SendReq;
+
 import com.suntek.mway.rcs.client.aidl.constant.Actions;
 import com.suntek.mway.rcs.client.aidl.constant.Constants;
 import com.suntek.mway.rcs.client.aidl.constant.Parameter;
@@ -266,6 +273,9 @@ import com.suntek.rcs.ui.common.RcsLog;
 
 import java.util.Arrays;
 import java.util.regex.Matcher;
+
+import org.codeaurora.presenceserv.IPresenceService;
+import org.codeaurora.presenceserv.IPresenceServiceCB;
 
 /**
  * This is the main UI for:
@@ -359,6 +369,7 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_UNFAVOURITE_MESSAGE       = 39;
     private static final int MENU_TOP_CONVERSATION          = 40;
     private static final int MENU_CANCEL_TOP_CONVERSATION   = 41;
+    private static final int MENU_VIDEOCALL_RECIPIENT   = 42;
 
     private static final int MENU_FIERWALL_ADD_BLACKLIST    = 50;
     private static final int MENU_FIERWALL_ADD_WHITELIST    = 51;
@@ -605,6 +616,17 @@ public class ComposeMessageActivity extends Activity
     private boolean mSendMmsSupportViaWiFi = false;
 
     private boolean isAvoidingSavingDraft = false;
+
+    private static volatile IPresenceService mService;
+    private static final int PRESENCE_AVAILABILITY_FETCH = 0;
+    private Handler mAvailabilityfetchHandler;
+    private boolean mVideoCapable = true;
+    private boolean mIsBound;
+    private boolean mEnablePresence;
+    private static final String PRESENCESERV = "com.qualcomm.qti.presenceserv";
+    private static final String PRESENCESERV_PRESENCESERVICE =
+             "com.qualcomm.qti.presenceserv.PresenceService";
+
     private static Drawable sDefaultContactImage;
     private static int sPrimaryColorDark;
     private Drawable mAvatarDrawable;
@@ -2450,6 +2472,28 @@ public class ComposeMessageActivity extends Activity
         intentFilter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
         registerReceiver(mAirplaneModeBroadcastReceiver, intentFilter);
 
+        mEnablePresence = this.getResources().getBoolean(
+                R.bool.config_regional_presence_enable);
+        if (mEnablePresence) {
+            if (!mIsBound) {
+                bindService(this);
+            }
+            mAvailabilityfetchHandler = new Handler(){
+
+                @Override
+                public void handleMessage(Message msg) {
+                    switch (msg.what) {
+                        case PRESENCE_AVAILABILITY_FETCH:
+                            getWindow().invalidatePanelMenu(Window.FEATURE_OPTIONS_PANEL);
+                            if (DEBUG) Log.d(TAG, "AvailabilityFetch result updateContact");
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            };
+        }
+
         IntentFilter simIntentFilter = new IntentFilter();
         simIntentFilter.addAction(SIM_STATE_CHANGE_ACTION);
         registerReceiver(mSimBroadcastReceiver, simIntentFilter);
@@ -3061,6 +3105,13 @@ public class ComposeMessageActivity extends Activity
             mMsgListAdapter.cancelBackgroundLoading();
         }
 
+        mEnablePresence = this.getResources().getBoolean(
+            R.bool.config_regional_presence_enable);
+        if (mEnablePresence) {
+            if (mIsBound) {
+                unbindService(this);
+            }
+        }
         super.onDestroy();
     }
 
@@ -3463,6 +3514,25 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private void videoCallRecipient() {
+        String number = getRecipients().get(0).getNumber();
+        final Intent intent = new Intent(Intent.ACTION_CALL, getCallUri(number));
+        intent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    VideoProfile.STATE_BIDIRECTIONAL);
+        startActivity(intent);
+    }
+
+    public  Uri getCallUri(String number) {
+        if (isUriNumber(number)) {
+            return Uri.fromParts("sip", number, null);
+        }
+        return Uri.fromParts("tel", number, null);
+    }
+
+    public  boolean isUriNumber(String number) {
+        return number != null && (number.contains("@") || number.contains("%40"));
+    }
+
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu) ;
@@ -3475,6 +3545,32 @@ public class ComposeMessageActivity extends Activity
             return true;
         }
 
+        mEnablePresence = this.getResources().getBoolean(
+                R.bool.config_regional_presence_enable);
+        if (mEnablePresence) {
+            if (isRecipientCallable()) {
+                final String number = getRecipients().get(0).getNumber();
+                MenuItem item = menu.add(0, MENU_VIDEOCALL_RECIPIENT, 0, R.string.menu_call);
+                mVideoCapable = getVTCapability(number);
+                new Thread(new Runnable(){
+                     public void run(){
+                         if (null != number) {
+                             boolean newVTCapable = startAvailabilityFetch(number);
+                             if (mVideoCapable != newVTCapable) {
+                                 mAvailabilityfetchHandler
+                                         .sendEmptyMessage(PRESENCE_AVAILABILITY_FETCH);
+                             }
+                         }
+                     }
+                 }).start();
+                if (mVideoCapable) {
+                    item.setIcon(R.drawable.ic_attach_capture_video_holo_light);
+                } else {
+                    item.setIcon(R.drawable.ic_attach_capture_video_disable);
+                }
+                item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            }
+        }
         // Don't show the call icon if the device don't support voice calling.
         boolean voiceCapable =
                 getResources().getBoolean(com.android.internal.R.bool.config_voice_capable);
@@ -3671,6 +3767,9 @@ public class ComposeMessageActivity extends Activity
                 break;
             case MENU_CALL_RECIPIENT:
                 dialRecipient();
+                break;
+            case MENU_VIDEOCALL_RECIPIENT:
+                videoCallRecipient();
                 break;
             case MENU_IMPORT_TEMPLATE:
                 showDialog(DIALOG_IMPORT_TEMPLATE);
@@ -6488,10 +6587,10 @@ public class ComposeMessageActivity extends Activity
     };
 
     private class CopyToSimSelectListener implements DialogInterface.OnClickListener {
-        private ArrayList<MessageItem> msgItems;
+        private CopyOnWriteArrayList<MessageItem> msgItems;
         private int slot;
 
-        public CopyToSimSelectListener(ArrayList<MessageItem> msgItems) {
+        public CopyToSimSelectListener(CopyOnWriteArrayList<MessageItem> msgItems) {
             super();
             this.msgItems = msgItems;
         }
@@ -6519,15 +6618,15 @@ public class ComposeMessageActivity extends Activity
     }
 
     private class CopyToSimThread extends Thread {
-        private ArrayList<MessageItem> msgItems;
+        private CopyOnWriteArrayList<MessageItem> msgItems;
         private int subscription;
 
-        public CopyToSimThread(ArrayList<MessageItem> msgItems) {
+        public CopyToSimThread(CopyOnWriteArrayList<MessageItem> msgItems) {
             this.msgItems = msgItems;
             this.subscription = SmsManager.getDefault().getDefaultSmsSubscriptionId();
         }
 
-        public CopyToSimThread(ArrayList<MessageItem> msgItems, int subscription) {
+        public CopyToSimThread(CopyOnWriteArrayList<MessageItem> msgItems, int subscription) {
             this.msgItems = msgItems;
             this.subscription = subscription;
         }
@@ -6989,6 +7088,8 @@ public class ComposeMessageActivity extends Activity
                         c.getString(COLUMN_MSG_TYPE), c.getLong(COLUMN_ID), c));
 
             }
+            CopyOnWriteArrayList<MessageItem> messageItems =
+                    new CopyOnWriteArrayList<MessageItem>(mMessageItems);
             if (MessageUtils.getActivatedIccCardCount() > 1) {
                 String[] items = new String[TelephonyManager.getDefault()
                         .getPhoneCount()];
@@ -6997,17 +7098,17 @@ public class ComposeMessageActivity extends Activity
                             ComposeMessageActivity.this, i);
                 }
                 CopyToSimSelectListener listener = new CopyToSimSelectListener(
-                        mMessageItems);
+                        messageItems);
                 new AlertDialog.Builder(ComposeMessageActivity.this)
                         .setTitle(R.string.copy_to_sim)
                         .setPositiveButton(android.R.string.ok, listener)
                         .setSingleChoiceItems(items, 0, listener)
                         .setCancelable(true).show();
             } else {
-                if (MessageUtils.hasInvalidSmsRecipient(getContext(), mMessageItems)) {
+                if (MessageUtils.hasInvalidSmsRecipient(getContext(), messageItems)) {
                     showInvalidCopyDialog();
                 } else {
-                    new Thread(new CopyToSimThread(mMessageItems)).start();
+                    new Thread(new CopyToSimThread(messageItems)).start();
                 }
             }
         }
@@ -9299,5 +9400,82 @@ public class ComposeMessageActivity extends Activity
 
     private void setActionBarColor(int color) {
         mActionBarColor = color;
+    }
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            if (DEBUG) Log.d(TAG, "PresenceService connected");
+            mService = IPresenceService.Stub.asInterface(service);
+            try {
+                mService.registerCallback(mCallback);
+            } catch (RemoteException e) {
+                Log.e(TAG, "PresenceService registerCallback error " + e);
+            }
+        }
+        public void onServiceDisconnected(ComponentName className) {
+            if (DEBUG) Log.d(TAG, "PresenceService disconnected");
+            mService = null;
+        }
+    };
+
+    private IPresenceServiceCB mCallback = new IPresenceServiceCB.Stub() {
+
+        public void setIMSEnabledCB() {
+            if (DEBUG) Log.d(TAG, "PresenceService setIMSEnabled callback");
+        }
+    };
+
+    private void bindService(Context context) {
+        if (DEBUG) Log.d(TAG, "PresenceService BindService");
+        Intent intent = new Intent(IPresenceService.class.getName());
+        intent.setClassName(PRESENCESERV, PRESENCESERV_PRESENCESERVICE);
+        mIsBound = context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void unbindService(Context context) {
+        if (DEBUG) Log.d(TAG, "PresenceService unbindService");
+        if (mService != null) {
+            try {
+                mService.unregisterCallback(mCallback);
+            } catch (RemoteException e) {
+                Log.e(TAG, "PresenceService unregister error " + e);
+            }
+        }
+        if (mIsBound) {
+            if (DEBUG) Log.d(TAG, "PresenceService unbind");
+            context.unbindService(mConnection);
+            mIsBound = false;
+        }
+    }
+
+    private boolean startAvailabilityFetch(String number){
+        if (DEBUG) Log.d(TAG, "startAvailabilityFetch   number " + number);
+        if (null != mService) {
+            try {
+                boolean vt = false;
+                vt = mService.invokeAvailabilityFetch(number);
+                return vt;
+            } catch (Exception e) {
+                Log.d(TAG, "getVTCapOfContact ERROR " + e);
+            }
+        }
+        return false;
+    }
+
+    private boolean getVTCapability(String number) {
+        if (DEBUG) Log.d(TAG, "getVTCapability   number " + number);
+        if (null != mService) {
+            try {
+                boolean vt = false;
+                vt = mService.hasVTCapability(number);
+                if (DEBUG) Log.d(TAG,
+                    "getVTCapability success number " + number + " " + vt);
+                return vt;
+            } catch (Exception e) {
+                Log.d(TAG, "getVTCapability ERROR " + e);
+            }
+        }
+        return false;
     }
 }
