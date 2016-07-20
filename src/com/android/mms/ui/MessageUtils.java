@@ -2794,16 +2794,6 @@ public class MessageUtils {
             builder.setContentText(context.getResources().getString(
                     R.string.no_network_notification_when_send_message));
             notiManager.notify(1, builder.build());
-            new Thread() {
-                public void run() {
-                    try {
-                        Thread.currentThread().sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    notiManager.cancel(1);
-                }
-            }.start();
         }
     }
 
