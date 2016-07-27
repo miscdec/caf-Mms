@@ -3535,7 +3535,7 @@ public class ComposeMessageActivity extends Activity
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        super.onPrepareOptionsMenu(menu) ;
+        super.onPrepareOptionsMenu(menu);
 
         menu.clear();
 
@@ -3565,8 +3565,10 @@ public class ComposeMessageActivity extends Activity
                  }).start();
                 if (mVideoCapable) {
                     item.setIcon(R.drawable.ic_attach_capture_video_holo_light);
+                    item.setEnabled(true);
                 } else {
                     item.setIcon(R.drawable.ic_attach_capture_video_disable);
+                    item.setEnabled(false);
                 }
                 item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
             }
