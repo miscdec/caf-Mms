@@ -24,6 +24,7 @@ import static com.android.mms.ui.MessageListAdapter.COLUMN_SMS_BODY;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.AsyncQueryHandler;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -115,6 +116,7 @@ public class ManageSimMessages extends Activity
     private boolean mIsDeleteAll = false;
     private boolean mIsQuery = false;
     private AlertDialog mDeleteDialog;
+    private ProgressDialog mProgressDialog;
 
     public static final int SIM_FULL_NOTIFICATION_ID = 234;
 
@@ -162,6 +164,7 @@ public class ManageSimMessages extends Activity
         setContentView(R.layout.sim_list);
         mSimList = (ListView) findViewById(R.id.messages);
         mMessage = (TextView) findViewById(R.id.empty_message);
+        mProgressDialog = createProgressDialog();
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
@@ -378,15 +381,6 @@ public class ManageSimMessages extends Activity
     }
 
     @Override
-    public void onBackPressed() {
-        if (mIsDeleteAll) {
-            mIsDeleteAll = false;
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-    @Override
     protected void onStop() {
         super.onStop();
         // Simply setting the choice mode causes the previous choice mode to finish and we exit
@@ -398,6 +392,9 @@ public class ManageSimMessages extends Activity
     public void onDestroy() {
         unregisterReceiver(mReceiver);
         mContentResolver.unregisterContentObserver(simChangeObserver);
+        if ((mProgressDialog != null) && mProgressDialog.isShowing()) {
+            mProgressDialog.dismiss();
+        }
         super.onDestroy();
     }
 
@@ -580,6 +577,21 @@ public class ManageSimMessages extends Activity
         return mSimList;
     }
 
+    private ProgressDialog createProgressDialog() {
+        ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setIndeterminate(true);
+        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        dialog.setCancelable(true);
+        dialog.setMessage(getText(R.string.deleting_sim_sms));
+        dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                    mIsDeleteAll = false;
+            }
+        });
+        return dialog;
+    }
+
     private class ModeCallback implements ListView.MultiChoiceModeListener {
         private View mMultiSelectActionBarView;
         private TextView mSelectedConvCount;
@@ -610,21 +622,38 @@ public class ManageSimMessages extends Activity
 
         private class MultiMessagesListener implements OnClickListener {
             public void onClick(DialogInterface dialog, int whichButton) {
+                if ((mProgressDialog != null) && !mProgressDialog.isShowing()) {
+                    mProgressDialog.show();
+                }
                 deleteMessages();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        refreshMessageList();
-                    }
-                });
             }
         }
 
         private void deleteMessages() {
-            for (Uri uri : mSelectedMsg) {
-                Log.d(TAG, "uri:" +uri.toString());
-                SqliteWrapper.delete(getContext(), mContentResolver, uri, null, null);
-            }
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    mIsDeleteAll = true;
+                    for (Uri uri : mSelectedMsg) {
+                        if (!mIsDeleteAll) {
+                            Log.d(TAG, "Deleting SIM SMS interrupted");
+                            break;
+                        }
+                        Log.d(TAG, "uri:" +uri.toString());
+                        SqliteWrapper.delete(getContext(), mContentResolver, uri, null, null);
+                    }
+                    mIsDeleteAll = false;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if ((mProgressDialog != null) && mProgressDialog.isShowing()) {
+                                mProgressDialog.dismiss();
+                            }
+                            refreshMessageList();
+                        }
+                    });
+                }
+            }).start();
         }
 
         private void forwardMessage() {
