@@ -2386,10 +2386,13 @@ public class ComposeMessageActivity extends Activity
 
         PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(this, mRecipientsEditor);
 
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.PORTRAIT);
-        } else {
-            mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.LANDSCAPE);
+        if (mRecipientsEditor != null) {
+            if (getResources().getConfiguration().orientation ==
+                    Configuration.ORIENTATION_PORTRAIT) {
+                mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.PORTRAIT);
+            } else {
+                mRecipientsEditor.setOrientation(RecipientEditTextView.ScreenOrientation.LANDSCAPE);
+            }
         }
         mTopPanel.setVisibility(View.VISIBLE);
     }
