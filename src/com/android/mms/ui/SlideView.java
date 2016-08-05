@@ -220,6 +220,12 @@ public class SlideView extends AbsoluteLayout implements
         return false;
     }
 
+    public void resetImage() {
+        if (mImageView != null) {
+            mImageView.setImageBitmap(null);
+        }
+
+    }
     public void setImage(String name, Bitmap bitmap) {
         if (mImageView == null) {
             mImageView = new ImageView(mContext);
