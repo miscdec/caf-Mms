@@ -352,7 +352,10 @@ public class SlideshowPresenter extends Presenter {
 
     public void onModelChanged(final Model model, final boolean dataChanged) {
         final SlideViewInterface view = (SlideViewInterface) mView;
-
+        if (view instanceof SlideView) {
+            SlideView v = (SlideView)view;
+            v.resetImage();
+        }
         // FIXME: Should be optimized.
         if (model instanceof SlideshowModel) {
             // TODO:
