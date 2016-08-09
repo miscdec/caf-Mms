@@ -934,19 +934,27 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen,
             Preference preference) {
         if (preference == mSmsLimitPref) {
-            new NumberPickerDialog(this,
+            NumberPickerDialog dialog = new NumberPickerDialog(
+                    MessagingPreferenceActivity.this,
                     mSmsLimitListener,
                     mSmsRecycler.getMessageLimit(this),
                     mSmsRecycler.getMessageMinLimit(),
                     mSmsRecycler.getMessageMaxLimit(),
-                    R.string.pref_title_sms_delete).show();
+                    R.string.pref_title_sms_delete);
+            if (!MessagingPreferenceActivity.this.isFinishing()) {
+                dialog.show();
+            }
         } else if (preference == mMmsLimitPref) {
-            new NumberPickerDialog(this,
+            NumberPickerDialog dialog = new NumberPickerDialog(
+                    MessagingPreferenceActivity.this,
                     mMmsLimitListener,
                     mMmsRecycler.getMessageLimit(this),
                     mMmsRecycler.getMessageMinLimit(),
                     mMmsRecycler.getMessageMaxLimit(),
-                    R.string.pref_title_mms_delete).show();
+                    R.string.pref_title_mms_delete);
+            if (!MessagingPreferenceActivity.this.isFinishing()) {
+                dialog.show();
+            }
         } else if (preference == mSmsTemplate) {
             startActivity(new Intent(this, MessageTemplate.class));
         } else if (preference == mManageSimPref) {
@@ -960,7 +968,9 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             intent.putExtra(PhoneConstants.SLOT_KEY, PhoneConstants.SUB2);
             startActivity(intent);
         } else if (preference == mClearHistoryPref) {
-            showDialog(CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG);
+            if (!MessagingPreferenceActivity.this.isFinishing()) {
+                showDialog(CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG);
+            }
             return true;
         } else if (preference == mEnableNotificationsPref) {
             // Update the actual "enable notifications" value that is stored in secure settings.
