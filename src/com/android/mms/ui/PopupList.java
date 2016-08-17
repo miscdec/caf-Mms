@@ -31,6 +31,7 @@ package com.android.mms.ui;
 
 import java.util.ArrayList;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.graphics.Rect;
@@ -138,6 +139,9 @@ public class PopupList {
         updatePopupLayoutParams();
         mPopupWindow.setWidth(mPopupWidth);
         mPopupWindow.setHeight(mPopupHeight);
+        if (((Activity) mContext).isFinishing()) {
+            return;
+        }
         mPopupWindow.showAsDropDown(mAnchorView, mPopupOffsetX, mPopupOffsetY);
     }
 
