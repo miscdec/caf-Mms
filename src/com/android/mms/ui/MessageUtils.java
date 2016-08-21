@@ -2501,7 +2501,10 @@ public class MessageUtils {
 
         @Override
         protected void onPostExecute(StringBuilder memoryStatus) {
-            if(memoryStatus != null && !memoryStatus.toString().isEmpty()) {
+            if (((Activity) mContext).isFinishing()) {
+                return;
+            }
+            if (memoryStatus != null && !memoryStatus.toString().isEmpty()) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
                 builder.setTitle(R.string.memory_status_title);
                 builder.setCancelable(true);
