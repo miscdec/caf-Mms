@@ -2475,7 +2475,12 @@ public class MessageUtils {
         i.putExtra("title", "");
         i.putExtra("url", urlString);
         i.putExtra("extend", "outside");
-        context.startActivity(i);
+        try {
+            context.startActivity(i);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(context, R.string.bookmark_save_app_not_found,
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     private static class ShowDialog extends AsyncTask<String, Void, StringBuilder> {

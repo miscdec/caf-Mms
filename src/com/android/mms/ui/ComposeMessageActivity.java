@@ -6003,7 +6003,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void setSendButtonImage() {
-        Contact contact = Contact.getMe(true);
+        Contact contact = Contact.getMe(false);
         if (sDefaultContactImage == null) {
             sDefaultContactImage = this.getResources().getDrawable(R.drawable.default_avatar);
         }
