@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
  *
@@ -6003,7 +6004,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void setSendButtonImage() {
-        Contact contact = Contact.getMe(true);
+        Contact contact = Contact.getMe(false);
         if (sDefaultContactImage == null) {
             sDefaultContactImage = this.getResources().getDrawable(R.drawable.default_avatar);
         }
