@@ -203,7 +203,7 @@ public class MessageUtils {
 
     public static final int PREFER_SMS_STORE_PHONE = 0;
     public static final int PREFER_SMS_STORE_CARD = 1;
-    private static final Uri BOOKMARKS_URI = Uri.parse("content://browser/bookmarks");
+    private static final String BOOKMARKS_ACTION = "com.android.browser.ADDBOOKMARK";
 
     // Consider oct-strean as the content type of vCard
     public static final String OCT_STREAM = "application/oct-stream";
@@ -2786,7 +2786,7 @@ public class MessageUtils {
     }
 
     private static void addToLabel(Context context, String urlString) {
-        Intent i = new Intent(Intent.ACTION_INSERT, BOOKMARKS_URI);
+        Intent i = new Intent(BOOKMARKS_ACTION);
         i.putExtra("title", "");
         i.putExtra("url", urlString);
         i.putExtra("extend", "outside");
