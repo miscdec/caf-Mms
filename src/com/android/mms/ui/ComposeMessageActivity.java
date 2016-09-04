@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
  *
@@ -505,7 +507,7 @@ public class ComposeMessageActivity extends Activity
 
     private WorkingMessage mWorkingMessage;         // The message currently being composed.
 
-    private AlertDialog mInvalidRecipientDialog;
+    private AlertDialog mInvalidRecipientDialog, mMsgDetailDialog;
 
     private boolean mWaitingForSubActivity;
     private boolean mInAsyncAddAttathProcess = false;
@@ -961,7 +963,7 @@ public class ComposeMessageActivity extends Activity
         }
         String messageDetails = MessageUtils.getMessageDetails(
                 ComposeMessageActivity.this, cursor, messageSize);
-        new AlertDialog.Builder(ComposeMessageActivity.this)
+        mMsgDetailDialog = new AlertDialog.Builder(ComposeMessageActivity.this)
                 .setTitle(R.string.message_details_title)
                 .setMessage(messageDetails)
                 .setCancelable(true)
@@ -3111,6 +3113,14 @@ public class ComposeMessageActivity extends Activity
             if (mIsBound) {
                 unbindService(this);
             }
+        }
+        if (mInvalidRecipientDialog != null && mInvalidRecipientDialog.isShowing()) {
+            mInvalidRecipientDialog.dismiss();
+            mInvalidRecipientDialog = null;
+        }
+        if (mMsgDetailDialog != null && mMsgDetailDialog.isShowing()) {
+            mMsgDetailDialog.dismiss();
+            mMsgDetailDialog = null;
         }
         super.onDestroy();
     }
@@ -5994,7 +6004,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void setSendButtonImage() {
-        Contact contact = Contact.getMe(true);
+        Contact contact = Contact.getMe(false);
         if (sDefaultContactImage == null) {
             sDefaultContactImage = this.getResources().getDrawable(R.drawable.default_avatar);
         }
