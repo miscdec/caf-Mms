@@ -101,11 +101,11 @@ import android.provider.Telephony.Mms;
 import android.provider.Telephony.Mms.Part;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Threads;
-import android.telephony.CellInfo;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.ServiceState;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -3080,8 +3080,9 @@ public class MessageUtils {
 
     public static boolean pupConnectWifiAlertDialog(final Context context) {
         if (SystemProperties.getBoolean("persist.sys.wificall.turnon", false)
-                && !cellularNetworkAvailable(context)
+                && !isServiceStateAvailable(context)
                 && (isWifiOn(context) && !isWifiConnected(context))) {
+            Log.d(TAG, "pupConnectWifiAlertDialog");
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
             builder.setCancelable(true);
             builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
@@ -3100,7 +3101,7 @@ public class MessageUtils {
 
     public static void pupConnectWifiNotification(final Context context) {
         if (SystemProperties.getBoolean("persist.sys.wificall.turnon", false)
-                && !cellularNetworkAvailable(context)
+                && !isServiceStateAvailable(context)
                 && (isWifiOn(context) && !isWifiConnected(context))) {
             final NotificationManager notiManager =
                     (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -3155,17 +3156,15 @@ public class MessageUtils {
         return false;
     }
 
-    private static boolean cellularNetworkAvailable(Context context) {
+    private static boolean isServiceStateAvailable(Context context) {
         boolean available = false;
-        TelephonyManager tm = (TelephonyManager) context.
-                getSystemService(Context.TELEPHONY_SERVICE);
-        List<CellInfo> cellInfoList = tm.getAllCellInfo();
-
-        if (cellInfoList != null) {
-            for (CellInfo cellinfo : cellInfoList) {
-                if (cellinfo.isRegistered()) {
-                    available = true;
-                }
+        TelephonyManager telephonyManager = TelephonyManager.getDefault();
+        int count = telephonyManager.getPhoneCount();
+        for (int i = 0; i < count; i++) {
+            int[] subId = SubscriptionManager.getSubId(i);
+            ServiceState ss = telephonyManager.getServiceStateForSubscriber(subId[0]);
+            if(ss != null && ss.getState() == ServiceState.STATE_IN_SERVICE) {
+                available = true;
             }
         }
         return available;

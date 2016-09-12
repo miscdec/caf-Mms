@@ -132,6 +132,8 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_SUB_ID   = 5;
     private static final int SEND_COLUMN_PRIORITY   = 6;
 
+    private static boolean sIsSavingMessage = false;
+
 
     @Override
     public void onCreate() {
@@ -486,6 +488,7 @@ public class SmsReceiverService extends Service {
     }
 
     private void saveMessageToPhone(SmsMessage[] msgs, int error, String format){
+        setSavingMessage(true);
         Uri messageUri = insertMessage(this, msgs, error, format);
 
         MessageUtils.checkIsPhoneMessageFull(this);
@@ -499,6 +502,7 @@ public class SmsReceiverService extends Service {
         } else {
             LogTag.debugD("saveMessageToPhone messageUri is null !");
         }
+        setSavingMessage(false);
     }
 
     private void handleCbSmsReceived(Intent intent, int error) {
@@ -968,5 +972,13 @@ public class SmsReceiverService extends Service {
             result = MessageUtils.COPY_SMS_INTO_SIM_SUCCESS.equals(uri.getLastPathSegment());
         }
         return result;
+    }
+
+    private static void setSavingMessage(boolean isSaving) {
+        sIsSavingMessage = isSaving;
+    }
+
+    public static boolean getSavingMessage() {
+        return sIsSavingMessage;
     }
 }

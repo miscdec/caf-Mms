@@ -542,4 +542,9 @@ public class MmsConfig {
     public static boolean getZoomMessage() {
         return mZoomMessage;
     }
+
+    public static int getDefaultSlideDuration() {
+        return MmsApp.getApplication().getApplicationContext().getResources()
+                .getInteger(R.integer.def_mms_slide_duration);
+    }
 }

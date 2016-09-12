@@ -119,6 +119,9 @@ public class PermissionGuardActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(final int requestCode, final String permissions[],
             final int[] grantResults) {
+        if (grantResults.length == 0) {
+            return;
+        }
         if (requestCode == PERMISSION_REQUEST_CODE) {
             boolean bGranted = true;
             for (int i = 0; i < grantResults.length; i++) {

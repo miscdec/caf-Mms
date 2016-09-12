@@ -109,4 +109,10 @@
 
     <!-- Flag indicating whether OMA CP messages can be viewed -->
     <bool name="enableOMACP">false</bool>
+
+    <!-- mms read reports enabled.true-On,false-Off,default is false. -->
+    <bool name="def_mms_read_reports">false</bool>
+
+    <!-- mms slide duration -->
+    <integer name="def_mms_slide_duration">2000</integer>
 </resources>

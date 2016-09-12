@@ -322,19 +322,10 @@ public class MailBoxMessageContent extends Activity {
             menu.add(0, MENU_DELETE, 0, R.string.menu_delete_msg);
         } else if (mMsgType == Sms.MESSAGE_TYPE_SENT) {
             menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
-            if (!isRcsMessage()) {
-                menu.add(0, MENU_RESEND, 0, R.string.menu_resend);
-            }
             menu.add(0, MENU_DELETE, 0, R.string.menu_delete_msg);
         } else if (mMsgType == Sms.MESSAGE_TYPE_QUEUED) {
             menu.add(0, MENU_FORWARD, 0, R.string.menu_forward);
             menu.add(0, MENU_DELETE, 0, R.string.menu_delete_msg);
-        }
-
-        if (isLockMessage()) {
-            menu.add(0, MENU_LOCK, 0, R.string.menu_unlock);
-        } else {
-            menu.add(0, MENU_LOCK, 0, R.string.menu_lock);
         }
 
         if (!Contact.get(mMsgFrom, false).existsInDatabase()) {

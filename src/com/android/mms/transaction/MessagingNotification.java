@@ -1220,6 +1220,7 @@ public class MessagingNotification {
                         contact, idealIconWidth);
                 Bitmap roundBitmap = MaterialColorMapUtils.getCircularBitmap(context, newAvatar);
                 noti.setLargeIcon(roundBitmap);
+                avatar = roundBitmap;
             } else {
                 Bitmap newAvatar = MaterialColorMapUtils.getLetterTitleDraw(context,
                         contact, idealIconWidth);
@@ -1230,6 +1231,7 @@ public class MessagingNotification {
                         .vectobitmap(foregroundDrawable, idealIconWidth / 2);
                 Bitmap roundBitmap = MaterialColorMapUtils.toConformBitmap(background, foreground);
                 noti.setLargeIcon(roundBitmap);
+                avatar = roundBitmap;
             }
 
             pendingIntent = PendingIntent.getActivity(context, 0,
@@ -1868,6 +1870,7 @@ public class MessagingNotification {
                     contact, idealIconWidth);
             Bitmap roundBitmap = MaterialColorMapUtils.getCircularBitmap(context, newAvatar);
             notiBuilder.setLargeIcon(roundBitmap);
+            avatar = roundBitmap;
         } else {
             Bitmap newAvatar = MaterialColorMapUtils.getLetterTitleDraw(context,
                     contact, idealIconWidth);
@@ -1878,6 +1881,7 @@ public class MessagingNotification {
                     .vectobitmap(foregroundDrawable, idealIconWidth / 2);
             Bitmap roundBitmap = MaterialColorMapUtils.toConformBitmap(background, foreground);
             notiBuilder.setLargeIcon(roundBitmap);
+            avatar = roundBitmap;
         }
         return avatar;
     }

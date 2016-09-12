@@ -34,6 +34,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
@@ -42,6 +43,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.Telephony.Mms;
@@ -117,6 +119,7 @@ public class ManageSimMessages extends Activity
     private boolean mIsQuery = false;
     private AlertDialog mDeleteDialog;
     private ProgressDialog mProgressDialog;
+    private boolean mIsEnableSelectCopy = false;
 
     public static final int SIM_FULL_NOTIFICATION_ID = 234;
 
@@ -197,6 +200,9 @@ public class ManageSimMessages extends Activity
                 MessageUtils.SUB_INVALID);
         mIccUri = MessageUtils.getIccUriBySubscription(mSlotId);
         updateState(SHOW_BUSY);
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getContext());
+        mIsEnableSelectCopy = sp.getBoolean(MessagingPreferenceActivity.ENABLE_SELECTABLE_COPY,
+                MessagingPreferenceActivity.ENABLE_SELECTABLE_COPY_DEFAULT_VALUE);
         startQuery();
     }
 
@@ -229,15 +235,25 @@ public class ManageSimMessages extends Activity
                             mParent, mCursor, mSimList, false, null);
                     mSimList.setAdapter(mListAdapter);
                     mSimList.setOnCreateContextMenuListener(mParent);
-                    mSimList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    mSimList.setOnItemClickListener(new OnItemDoubleClickListener() {
                         @Override
-                        public void onItemClick(AdapterView<?> parent, View view,
-                                                int position, long id) {
-                            if (view != null) {
+                        public void onItemSingleClick(AdapterView<?> parent, View view,
+                                                      int position, long id) {
+                            if (view != null && view instanceof MessageListItem) {
                                 ((MessageListItem) view).onMessageListItemClick();
                             }
                         }
+
+                        @Override
+                        public void onItemDoubleClick(AdapterView<?> parent, View view,
+                                                      int position, long id) {
+                            if (mIsEnableSelectCopy && view != null
+                                    && view instanceof MessageListItem) {
+                                ((MessageListItem) view).startSelectableCopyActivity();
+                            }
+                        }
                     });
+
                     updateState(SHOW_LIST);
                 } else {
                     mListAdapter.changeCursor(mCursor);

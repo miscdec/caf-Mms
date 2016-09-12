@@ -611,7 +611,7 @@
     <string name="mms_video_attachment_saved_title">视频保存到\"<xliff:g id="albumName">%s</xliff:g>\"相册</string>
     <string name="mms_attachment_saved_fail_title">保存失败</string>
     <string name="notification_mark_as_read">已读</string>
-    <string name="notification_downlaod">下载</string>
+    <string name="notification_download">下载</string>
     <string name="notification_reply">回复</string>
     <string name="notification_reply_to">回复<xliff:g id="name">%s</xliff:g></string>
     <string name="notification_view_message_text">查看消息</string>
