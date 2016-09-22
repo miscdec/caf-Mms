@@ -368,15 +368,19 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         super.onPause();
 
         // Don't listen for changes while we're paused.
-        mListAdapter.setOnContentChangedListener(null);
+        if (null != mListAdapter) {
+            mListAdapter.setOnContentChangedListener(null);
+        }
 
         // Remember where the list is scrolled to so we can restore the scroll position
         // when we come back to this activity and *after* we complete querying for the
         // conversations.
         ListView listView = getListView();
-        mSavedFirstVisiblePosition = listView.getFirstVisiblePosition();
-        View firstChild = listView.getChildAt(0);
-        mSavedFirstItemOffset = (firstChild == null) ? 0 : firstChild.getTop();
+        if (null != listView) {
+            mSavedFirstVisiblePosition = listView.getFirstVisiblePosition();
+            View firstChild = listView.getChildAt(0);
+            mSavedFirstItemOffset = (firstChild == null) ? 0 : firstChild.getTop();
+        }
     }
 
     /**
@@ -747,6 +751,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     public void startAsyncQuery() {
         try {
+            if (null == mListAdapter) {
+                Log.e(TAG, "startAsyncQuery null adapter");
+                ConversationList.this.finish();
+                return;
+            }
             if (null != mEmptyView) {
                 mEmptyView.setText(R.string.loading_conversations);
             }
@@ -1328,6 +1337,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
             switch (token) {
             case THREAD_LIST_QUERY_TOKEN:
+                if (null == mListAdapter) {
+                    if (null != cursor) {
+                        cursor.close();
+                    }
+                    Log.e(TAG, "onQueryComplete null adapter");
+                    ConversationList.this.finish();
+                    return;
+                }
                 mListAdapter.changeCursor(cursor);
 
                 if (mListAdapter.getCount() == 0) {
@@ -1456,7 +1473,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     }
                 }
                 // Make sure the conversation cache reflects the threads in the DB.
-                Conversation.init(ConversationList.this);
+                Conversation.init(getApplicationContext());
 
                 // Update the notification for new messages since they
                 // may be deleted.

@@ -106,7 +106,7 @@
             android:visibility="gone"
             android:ellipsize="end"
             android:singleLine="true"
-            android:text="@string/conversation_list_send_fail_text"
+            android:text="@string/conversation_transaction_fail"
             android:textColor="@color/conversation_item_fail_text_color"
             android:textSize="12sp" />
 

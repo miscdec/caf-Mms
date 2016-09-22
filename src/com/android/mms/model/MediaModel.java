@@ -255,6 +255,9 @@ public abstract class MediaModel extends Model implements EventListener {
                 // size by calling available().
                 if (isVcard() && mSize <= 0) {
                     mSize = input.available();
+                    if (mSize <= 0) {
+                        throw new MmsException("Bad URI");
+                    }
                 }
             } else {
                 while (-1 != input.read()) {

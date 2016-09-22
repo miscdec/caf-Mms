@@ -155,6 +155,7 @@ public class MessageListItem extends ZoomMessageListItem implements
     private TextView mSendFailView;
     private ImageView mDetailsIndicator;
     private ImageView mSimIndicatorView;
+    private TextView mSpnView;
     private ImageButton mSlideShowButton;
     private TextView mSimMessageAddress;
     private TextView mBodyTextView;
@@ -259,6 +260,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         mDetailsIndicator = (ImageView) findViewById(R.id.details_indicator);
         mAvatar = (QuickContactDivot) findViewById(R.id.avatar);
         mSimIndicatorView = (ImageView) findViewById(R.id.sim_indicator_icon);
+        mSpnView = (TextView) findViewById(R.id.spn_view);
         mMessageBlock = findViewById(R.id.message_block);
         mSimMessageAddress = (TextView) findViewById(R.id.sim_message_address);
         mMmsLayout = (LinearLayout) findViewById(R.id.mms_layout_view_parent);
@@ -484,6 +486,7 @@ public class MessageListItem extends ZoomMessageListItem implements
             mSimIndicatorView.setVisibility(View.VISIBLE);
         } else {
             mSimIndicatorView.setVisibility(View.GONE);
+            mSpnView.setVisibility(View.GONE);
         }
     }
 
@@ -1144,8 +1147,15 @@ public class MessageListItem extends ZoomMessageListItem implements
                     .getActiveSubscriptionInfo(subId);
             String displayName =
                     (sir != null) ? sir.getDisplayName().toString() : "";
-
             Log.d(TAG, "subId: " + subId + " displayName " + displayName);
+            boolean mShowSpn =
+                mContext.getResources().getBoolean(R.bool.config_show_spn_on_list_item);
+            if(displayName != null && mShowSpn){
+                mSpnView.setText(displayName);
+                mSpnView.setVisibility(View.VISIBLE);
+            }else{
+                mSpnView.setVisibility(View.GONE);
+            }
         }
 
         if (!TextUtils.isEmpty(body)) {
@@ -1220,7 +1230,11 @@ public class MessageListItem extends ZoomMessageListItem implements
             }
             // Assuming the current message is a failed one, reload it into the compose view so
             // the user can resend it.
-            sendMessage(mMessageItem, MSG_LIST_RESEND);
+            if (mContext.getResources().getBoolean(R.bool.config_resend_to_edit)) {
+                sendMessage(mMessageItem, MSG_LIST_EDIT);
+            } else {
+                sendMessage(mMessageItem, MSG_LIST_RESEND);
+            }
             return;
         }
         // Check for links. If none, do nothing; if 1, open it; if >1, ask user to pick one

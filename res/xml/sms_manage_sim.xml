@@ -31,7 +31,7 @@
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     android:key="pref_key_sms_manage_sim"
-    android:title="@string/pref_title_sms_manage_sim" >
+    android:title="@string/pref_title_manage_sim_messages" >
 
     <Preference
         android:key="pref_key_manage_sim_messages_slot1"

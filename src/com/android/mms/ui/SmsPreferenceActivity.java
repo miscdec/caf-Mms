@@ -284,8 +284,11 @@ public class SmsPreferenceActivity extends PreferenceActivity {
             } else {
                 prefSmsSettings.removePreference(mSmsStorePref1);
                 prefSmsSettings.removePreference(mSmsStorePref2);
+                prefSmsSettings.removePreference(mSmsStorePrefDualSim);
                 if (!MessageUtils.hasIccCard()) {
                     mSmsStorePrefSingleSim.setEnabled(false);
+                } else {
+                    setSmsPrefStorageSummary(MessageUtils.SUB_INVALID);
                 }
             }
         } else {
@@ -332,6 +335,22 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                         });
                 mSmsStorePref2.setSummary(mSmsStorePref2.getEntry());
                 break;
+            case MessageUtils.SUB_INVALID:
+                mSmsStorePrefSingleSim
+                        .setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                            public boolean onPreferenceChange(
+                                    Preference preference, Object newValue) {
+                                final String summary = newValue.toString();
+                                int index = mSmsStorePrefSingleSim
+                                        .findIndexOfValue(summary);
+                                mSmsStorePrefSingleSim
+                                        .setSummary(mSmsStorePrefSingleSim
+                                                .getEntries()[index]);
+                                mSmsStorePrefSingleSim.setValue(summary);
+                                return true;
+                            }
+                        });
+                mSmsStorePrefSingleSim.setSummary(mSmsStorePrefSingleSim.getEntry());
             default:
                 break;
         }

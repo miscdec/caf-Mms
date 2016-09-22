@@ -139,6 +139,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         android:paddingEnd="3dip"
                         android:visibility="gone" />
 
+                    <TextView android:id="@+id/spn_view"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingEnd="3dip"
+                        android:visibility="gone"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:textColor="@color/text_hairline" />
+
                     <TextView
                         android:id="@+id/date_view"
                         android:layout_width="wrap_content"

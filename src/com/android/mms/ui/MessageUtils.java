@@ -84,7 +84,6 @@ import android.os.Bundle;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.StatFs;
-import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
@@ -298,6 +297,10 @@ public class MessageUtils {
     protected static final int URL_OPTION_MENU_CONNECT = 0;
     protected static final int URL_OPTION_MENU_ADD_TO_LABEL = 1;
     protected static final int URL_OPTION_MENU_COPY_URL = 2;
+
+    private static final String WIFI_CALL_TURNON = "wifi_call_turnon";
+    private static final int WIFI_CALLING_DISABLED = 0;
+    private static final int WIFI_CALLING_ENABLED = 1;
 
     //for showing memory status dialog.
     private static AlertDialog memoryStatusDialog = null;
@@ -3079,7 +3082,8 @@ public class MessageUtils {
     }
 
     public static boolean pupConnectWifiAlertDialog(final Context context) {
-        if (SystemProperties.getBoolean("persist.sys.wificall.turnon", false)
+        if ((Settings.Global.getInt(context.getContentResolver(),
+                WIFI_CALL_TURNON, WIFI_CALLING_DISABLED) == WIFI_CALLING_ENABLED)
                 && !isServiceStateAvailable(context)
                 && (isWifiOn(context) && !isWifiConnected(context))) {
             Log.d(TAG, "pupConnectWifiAlertDialog");
@@ -3100,7 +3104,8 @@ public class MessageUtils {
     }
 
     public static void pupConnectWifiNotification(final Context context) {
-        if (SystemProperties.getBoolean("persist.sys.wificall.turnon", false)
+        if ((Settings.Global.getInt(context.getContentResolver(),
+                WIFI_CALL_TURNON, WIFI_CALLING_DISABLED) == WIFI_CALLING_ENABLED)
                 && !isServiceStateAvailable(context)
                 && (isWifiOn(context) && !isWifiConnected(context))) {
             final NotificationManager notiManager =

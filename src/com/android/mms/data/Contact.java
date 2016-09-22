@@ -13,6 +13,7 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.database.CursorWindowAllocationException;
 import android.database.sqlite.SqliteWrapper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -961,21 +962,25 @@ public class Contact {
                     args = new String[] {
                             minMatch, numberE164, numberLen, normalizedNumber, numberLen};
                 }
-
-                Cursor cursor = mContext.getContentResolver().query(
-                        PHONES_WITH_PRESENCE_URI, CALLER_ID_PROJECTION, selection, args, null);
-                if (cursor == null) {
-                    Log.w(TAG, "queryContactInfoByNumber(" + number + ") returned NULL cursor!"
-                            + " contact uri used " + PHONES_WITH_PRESENCE_URI);
-                    return entry;
-                }
-
+                Cursor cursor = null;
                 try {
+                    cursor = mContext.getContentResolver().query(
+                            PHONES_WITH_PRESENCE_URI, CALLER_ID_PROJECTION, selection, args, null);
+                    if (cursor == null) {
+                        Log.w(TAG, "queryContactInfoByNumber(" + number + ") returned NULL cursor!"
+                                + " contact uri used " + PHONES_WITH_PRESENCE_URI);
+                        return entry;
+                    }
+
                     if (cursor.moveToFirst()) {
                         fillPhoneTypeContact(entry, cursor);
                     }
+                } catch (CursorWindowAllocationException e) {
+                    Log.e(TAG, "getContactInfoForPhoneNumber" + e);
                 } finally {
-                    cursor.close();
+                    if (null != cursor) {
+                        cursor.close();
+                    }
                 }
             }
             return entry;

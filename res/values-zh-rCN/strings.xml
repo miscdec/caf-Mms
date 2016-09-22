@@ -616,6 +616,7 @@
     <string name="notification_reply_to">回复<xliff:g id="name">%s</xliff:g></string>
     <string name="notification_view_message_text">查看消息</string>
     <string name="conversation_list_send_fail_text">发送失败，点击即可重发。</string>
+    <string name="conversation_transaction_fail">操作失败，点击即可重试。</string>
     <string name="basic_permission_required">短信应用需要获取 短信, 电话,联系人和手机USB存储权限.</string>
     <plurals name="num_minutes_ago">
         <item quantity="one"><xliff:g id="count">%d</xliff:g>" 分钟前"</item>
@@ -627,6 +628,7 @@
     <string name="exit">退出</string>
     <string name="enable_permission_settings">您可以在 设置 > 应用 > 短信 > 权限 中更改权限.</string>
     <string name="no_permission_save_attachment_to_storage">没有权限保存附件到手机USB存储。</string>
+    <string name="grant_permission_fail">获取权限失败，请重试！</string>
     <string name="delivery_report">发送报告:\u0020</string>
     <string name="read_report">已读报告:\u0020</string>
     <string name="you">你:</string>

@@ -550,12 +550,13 @@ public class UriImage {
                             MediaStore.Images.ImageColumns.ORIENTATION
                         },
                         null, null, null);
-                if (cursor.moveToNext()) {
+                if (cursor != null && cursor.moveToFirst()) {
                     int ori = cursor.getInt(0);
                     return ori;
                 }
             } catch (SQLiteException e) {
             } catch (IllegalArgumentException e) {
+            } catch (IllegalStateException e) {
             } finally {
                 if (cursor != null) {
                     cursor.close();

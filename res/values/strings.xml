@@ -1173,6 +1173,7 @@
     <string name="notification_view_message_text">View Message</string>
 
     <string name="conversation_list_send_fail_text">Not sent, touch to try again</string>
+    <string name="conversation_transaction_fail">Transaction fail, touch to try again</string>
 
     <!-- Abbreviated message to express that something occurred some number of minutes in the past (e.g., 5 minutes ago). -->
     <plurals name="num_minutes_ago">
@@ -1186,6 +1187,7 @@
     <string name="exit">Exit</string>
     <string name="enable_permission_settings">You need enable permissions in Settings > Apps > Messaging > Permissions.</string>
     <string name="no_permission_save_attachment_to_storage">No permission save attachment to external storage</string>
+    <string name="grant_permission_fail">Get permission fail, please try again!</string>
     <string name="you">You:</string>
     <string name="email_app_not_found">Can not find Email application</string>
     <string name="notification_type_message">Type message</string>
