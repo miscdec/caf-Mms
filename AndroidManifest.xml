@@ -590,7 +590,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.PlayVideoOrPicActivity"
-            android:theme="@style/MmsNewStyleTheme" >
+            android:screenOrientation="portrait"
+            android:theme="@style/MmsNewStyleTheme">
         </activity>
         <service android:name="com.android.mms.transaction.MmsNoConfirmationSendService">
             <intent-filter>

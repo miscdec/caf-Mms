@@ -75,6 +75,7 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     private static final int SLIDESHOW_ITEM_POSITION       = 1;
     private static final int CONTACT_INFO_ITEM_POSITION    = 2;
     private static final int VCARD_ITEM_POSITION           = 3;
+    private static final int IMPORT_TEMPLATE_POSITION      = 4;
 
     private static final int ICON_LIST_SIZE = 11;
 
@@ -205,7 +206,8 @@ public class AttachmentPagerAdapter extends PagerAdapter {
                             : R.drawable.ic_attach_vcard_holo_light));
         }
         list.add(new IconListItem(mContext.getString(R.string.import_message_template),
-                R.drawable.ic_attach_template_holo_light));
+                (!mIsReplace && mHasSlideshow) ? R.drawable.ic_attach_template_disalbe
+                        : R.drawable.ic_attach_template_holo_light));
 
         if (isRcsAttachment) {
             list.add(new IconListItem(mContext.getString(R.string.attach_map),
@@ -299,6 +301,7 @@ public class AttachmentPagerAdapter extends PagerAdapter {
                 if (!mIsReplace && ((mHasVcard && position == RECORD_SOUND_ITEM_POSITION)
                         || (mHasVcard && position == SLIDESHOW_ITEM_POSITION)
                         || (mHasSlideshow && position == CONTACT_INFO_ITEM_POSITION)
+                        || (mHasSlideshow && position == IMPORT_TEMPLATE_POSITION)
                         || (mHasAttachment && position == VCARD_ITEM_POSITION))) {
                     return false;
                 }

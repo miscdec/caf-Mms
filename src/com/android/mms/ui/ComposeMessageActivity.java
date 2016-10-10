@@ -4482,7 +4482,7 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case REQUEST_CODE_PICK:
-                if (data != null) {
+                if (data != null && mRecipientsEditor != null) {
                     processPickResult(data);
                 }
                 break;

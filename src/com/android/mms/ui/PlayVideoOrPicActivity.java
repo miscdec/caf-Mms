@@ -393,6 +393,9 @@ public class PlayVideoOrPicActivity extends Activity {
             while ((size = fin.read(buffer)) != -1) {
                 fout.write(buffer, 0, size);
             }
+            // Notify other applications listening to scanner events
+            // that a media file has been added to the sd card
+            sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, targetUri));
         } catch (final Exception ex) {
             Log.e(TAG, "Error while copying content ", ex);
             return false;
