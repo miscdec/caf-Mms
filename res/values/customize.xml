@@ -102,7 +102,7 @@
     <bool name="def_rcs_sending_policy">true</bool>
 
     <!-- Flag indicating whether OMA CP messages can be viewed -->
-    <bool name="enableOMACP">false</bool>
+    <bool name="enableOMACP">true</bool>
 
     <bool name="def_mms_remove_accented_chars">false</bool>
 </resources>
