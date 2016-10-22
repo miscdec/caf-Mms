@@ -181,7 +181,7 @@ public class ContactRecipientEntryUtils {
      */
     public static RecipientEntry createRecipientEntryByContact(final Contact contact,
             final boolean isFirstLevel) {
-        final long contactId = contact.getContactMethodId();
+        final long contactId = contact.getPersonId();
         final String displayName = contact.getName();
         String photoThumbnailUri = null;
         if(contact.getThumbnailUri() != null) {
@@ -191,9 +191,7 @@ public class ContactRecipientEntryUtils {
         final int destinationType = contact.getContactMethodType();
         final String destinationLabel = contact.getLabel();
         final String lookupKey = contact.getLookup();
-
-        // PhoneQuery uses the contact id as the data id ("_id").
-        final long dataId = contactId;
+        final long dataId = contact.getContactMethodId();
 
         return createRecipientEntry(displayName,
                 DisplayNameSources.STRUCTURED_NAME, destination, destinationType,
