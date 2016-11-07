@@ -5348,9 +5348,15 @@ public class ComposeMessageActivity extends Activity
             } else {
                 LogTag.debugD("send MMS button clicked");
             }
-            if (MessageUtils.pupConnectWifiAlertDialog(getContext())) {
-                LogTag.debugD("not send for pupConnectWifiAlertDialog");
-                return ;
+            try {
+                if (MessageUtils.isWfcUnavailable(getContext())) {
+                    MessageUtils.pupConnectWifiAlertDialog(getContext());
+                    MessageUtils.pupConnectWifiNotification(getContext());
+                    LogTag.debugD("not send for pupConnectWifiAlertDialog");
+                    return;
+                }
+            } catch (SettingNotFoundException e) {
+                e.printStackTrace();
             }
             if (mShowTwoButtons) {
                 confirmSendMessageIfNeeded(SubscriptionManager.getSubId(PhoneConstants.SUB1)[0]);

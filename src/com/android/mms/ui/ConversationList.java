@@ -49,6 +49,7 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
+import android.provider.Settings;
 import android.provider.Telephony;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Threads;
@@ -348,7 +349,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mSavedFirstVisiblePosition = AdapterView.INVALID_POSITION;
             mSavedFirstItemOffset = 0;
         }
-        MessageUtils.pupConnectWifiNotification(this);
+        try {
+            if (MessageUtils.isWfcUnavailable(this)) {
+                MessageUtils.pupConnectWifiNotification(this);
+            }
+        } catch (Settings.SettingNotFoundException e) {
+            e.printStackTrace();
+        }
         if (mIsRcsEnabled) {
             registerReceiver(groupReceiver, new IntentFilter(
                     Actions.GroupChatAction.ACTION_GROUP_CHAT_MANAGE_NOTIFY));

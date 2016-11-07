@@ -3081,12 +3081,23 @@ public class MessageUtils {
         return path;
     }
 
-    public static boolean pupConnectWifiAlertDialog(final Context context) {
-        if ((Settings.Global.getInt(context.getContentResolver(),
-                WIFI_CALL_TURNON, WIFI_CALLING_DISABLED) == WIFI_CALLING_ENABLED)
+    private static boolean isWIFICallingEnable(final Context context)
+            throws Settings.SettingNotFoundException {
+        return Settings.Global.getInt(context.getContentResolver(), WIFI_CALL_TURNON)
+                == WIFI_CALLING_ENABLED;
+    }
+
+    public static boolean isWfcUnavailable(final Context context)
+            throws Settings.SettingNotFoundException {
+        return  isWIFICallingEnable(context)
                 && !isServiceStateAvailable(context)
-                && (isWifiOn(context) && !isWifiConnected(context))) {
-            Log.d(TAG, "pupConnectWifiAlertDialog");
+                && (isWifiOn(context) && !isWifiConnected(context));
+    }
+
+    public static void pupConnectWifiAlertDialog(final Context context) {
+            if (LogTag.DEBUG) {
+                Log.d(TAG, "pupConnectWifiAlertDialog");
+            }
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
             builder.setCancelable(true);
             builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
@@ -3098,16 +3109,10 @@ public class MessageUtils {
             });
             builder.setMessage(R.string.no_network_alert_when_send_message);
             builder.show();
-            return true;
-        }
-        return false;
     }
 
     public static void pupConnectWifiNotification(final Context context) {
-        if ((Settings.Global.getInt(context.getContentResolver(),
-                WIFI_CALL_TURNON, WIFI_CALLING_DISABLED) == WIFI_CALLING_ENABLED)
-                && !isServiceStateAvailable(context)
-                && (isWifiOn(context) && !isWifiConnected(context))) {
+
             final NotificationManager notiManager =
                     (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -3126,19 +3131,14 @@ public class MessageUtils {
             builder.setContentTitle(context.getResources().getString(
                     R.string.no_network_notification_when_send_message));
             builder.setContentText(context.getResources().getString(
-                    R.string.no_network_notification_when_send_message));
+                    R.string.alert_user_connect_to_wifi_for_message_text));
             notiManager.notify(1, builder.build());
-            new Thread() {
+            Handler handler = new Handler(context.getMainLooper());
+            handler.postDelayed(new Runnable() {
                 public void run() {
-                    try {
-                        Thread.currentThread().sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                     notiManager.cancel(1);
                 }
-            }.start();
-        }
+            }, 5000);
     }
 
     private static boolean isWifiOn(Context context) {
