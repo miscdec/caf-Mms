@@ -355,7 +355,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 MessageUtils.pupConnectWifiNotification(this);
             }
         } catch (Settings.SettingNotFoundException e) {
-            e.printStackTrace();
+            Log.w(TAG, "SettingNotFoundException wfc");
         }
         if (mIsRcsEnabled) {
             registerReceiver(groupReceiver, new IntentFilter(
