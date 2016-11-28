@@ -715,7 +715,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (mListAdapter != null) {
             mListAdapter.changeCursor(null);
         }
-        mHandler.removeCallbacks(mShowProgressDialogRunnable);
+        if (mHandler != null) {
+            mHandler.removeCallbacks(mShowProgressDialogRunnable);
+        }
         if (mProgressDialog != null && mProgressDialog.isShowing()) {
             LogTag.debugD("dismiss progress dialog");
             mProgressDialog.dismiss();
