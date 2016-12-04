@@ -103,7 +103,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                         );
                 iccISms.sendTextForSubscriberWithSelfPermissions(mSubId,
                         ActivityThread.currentPackageName(), mDest,
-                        mServiceCenter, "", sentIntent, deliveryIntent);
+                        mServiceCenter, "", sentIntent, deliveryIntent, true);
             }
         } catch (RemoteException ex) {
             // ignore it
