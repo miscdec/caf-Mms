@@ -90,7 +90,6 @@ import android.widget.Toast;
 import android.util.Log;
 
 import com.android.internal.telephony.IccCardConstants;
-//import com.android.internal.telephony.OperatorSimInfo;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.SmsApplication;
@@ -358,7 +357,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         } else {
             addPreferencesFromResource(R.xml.preferences);
         }
-
         mSmsDisabledPref = findPreference("pref_key_sms_disabled");
         mSmsEnabledPref = findPreference("pref_key_sms_enabled");
 
@@ -693,18 +691,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         String title = TelephonyManager.getDefault().isMultiSimEnabled()
                 ? getString(R.string.pref_more_smcs, index + 1)
                 : getString(R.string.pref_one_smcs);
-        // check for operator custom label feature
-        /*if (TelephonyManager.getDefault().isMultiSimEnabled()) {
-            OperatorSimInfo operatorSimInfo = new OperatorSimInfo(getApplicationContext());
-            if (operatorSimInfo.isOperatorFeatureEnabled()) {
-                String simCustomLabel = checkForOperatorCustomLabel(index);
-                if (simCustomLabel == null || simCustomLabel.equals("")) {
-                    simCustomLabel = "SIM"+(index + 1);
-                }
-                title = getResources().getString(
-                            R.string.pref_more_smcs, simCustomLabel);
-            }
-        }*/
         return title;
     }
 
@@ -1617,101 +1603,4 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     }
     /* End add for RCS */
 
-    // FIXME: Comment this framework dependency at bring up stage, will restore
-    //        back later.
-    /*private String checkForOperatorCustomLabel(int slotIndex) {
-        String simLabel = null;
-        OperatorSimInfo operatorSimInfo = new OperatorSimInfo(getApplicationContext());
-        boolean isCustomSimFeatureEnabled = operatorSimInfo.isOperatorFeatureEnabled();
-        if (isCustomSimFeatureEnabled) {
-            boolean isSimTypeOperator = operatorSimInfo.isSimTypeOperator(slotIndex);
-            if (isSimTypeOperator) {
-                simLabel = operatorSimInfo.getOperatorDisplayName();
-            } else {
-                int subId = SubscriptionManager.getSubId(slotIndex)[0];
-                String operatorName = TelephonyManager.from(getApplicationContext()).
-                        getSimOperatorNameForSubscription(subId);
-                simLabel = operatorName;
-            }
-        }
-        return simLabel;
-    }*/
-
-    /* If SIM1/SIM2 is absent, then show base SIM label
-       else display custom SIM label.*/
-    // FIXME: Comment this framework dependency at bring up stage, will restore
-    //        back later.
-    /* private void displaySimLabel(boolean isSIMEnabled, int preferenceType, int slot) {
-        OperatorSimInfo operatorSimInfo = new OperatorSimInfo(getApplicationContext());
-        boolean isCustomSimFeatureEnabled = operatorSimInfo.isOperatorFeatureEnabled();
-        if (isCustomSimFeatureEnabled) {
-            Preference currentPref = getPref(slot, preferenceType);
-            String simLabel = getSimLabel(isSIMEnabled, preferenceType, slot);
-            currentPref.setTitle(simLabel);
-            if (preferenceType == PREFERENCE_TYPE_MMS_VALIDITY) {
-                ((ListPreference)currentPref).setDialogTitle(simLabel);
-            }
-        }
-    }
-
-    private Preference getPref(int slot, int prefType) {
-        Preference pref = null;
-        switch (prefType) {
-            case PREFERENCE_TYPE_DELIVERY_REPORT:
-                pref = (slot == MessageUtils.SUB1)
-                        ? mSmsDeliveryReportPrefSub1 : mSmsDeliveryReportPrefSub2;
-                break;
-            case PREFERENCE_TYPE_SMS_VALIDITY:
-                pref = (slot == MessageUtils.SUB1)
-                        ? mSmsValidityCard1Pref : mSmsValidityCard2Pref;
-                break;
-            case PREFERENCE_TYPE_MANAGE_SIM_CARD:
-                pref = (slot == MessageUtils.SUB1)
-                        ? mManageSim1Pref : mManageSim2Pref;
-                break;
-            case PREFERENCE_TYPE_MMS_VALIDITY:
-                pref = (slot == MessageUtils.SUB1)
-                        ? mMmsExpiryCard1Pref : mMmsExpiryCard2Pref;
-                break;
-            default:
-                break;
-        }
-        return pref;
-    }
-
-    private String getSimLabel(boolean isSIMEnabled, int prefType, int slot) {
-        String[] defaultSimLabelsArray = {"SIM1", "SIM2"};
-        String simCustomLabel = isSIMEnabled ?
-                checkForOperatorCustomLabel(slot) : defaultSimLabelsArray[slot];
-        int[] deliverReportsArray = {R.string.pref_title_sms_delivery_reports_slot1,
-                R.string.pref_title_sms_delivery_reports_slot2};
-        int[] smsValidityArray = {R.string.pref_title_sms_validity_period_slot1,
-                R.string.pref_title_sms_validity_period_slot2};
-        int[] manageSimCardArray = {R.string.pref_title_manage_sim_messages_slot1,
-                R.string.pref_title_manage_sim_messages_slot2};
-        int[] mmsValidityArray = {R.string.pref_title_mms_save_time_slot1,
-                R.string.pref_title_mms_save_time_slot2};
-        String label = "";
-        switch (prefType) {
-            case PREFERENCE_TYPE_DELIVERY_REPORT:
-                label = getResources().getString(
-                        deliverReportsArray[slot], simCustomLabel);
-                break;
-            case PREFERENCE_TYPE_SMS_VALIDITY:
-                label = getResources().getString(
-                        smsValidityArray[slot], simCustomLabel);
-                break;
-            case PREFERENCE_TYPE_MANAGE_SIM_CARD:
-                label = getResources().getString(
-                        manageSimCardArray[slot], simCustomLabel);
-                break;
-            case PREFERENCE_TYPE_MMS_VALIDITY:
-                label = getResources().getString(
-                        mmsValidityArray[slot], simCustomLabel);
-                break;
-            default:
-                break;
-        }
-        return label;
-    }*/
 }

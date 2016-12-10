@@ -34,6 +34,7 @@ import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
+import android.text.TextUtils;
 import android.view.MenuItem;
 
 import com.android.internal.telephony.PhoneConstants;
@@ -62,6 +63,9 @@ public class ManageSimSMSPreferenceActivity extends PreferenceActivity {
         addPreferencesFromResource(R.xml.sms_manage_sim);
         mManageSim1Pref = (Preference) findPreference("pref_key_manage_sim_messages_slot1");
         mManageSim2Pref = (Preference) findPreference("pref_key_manage_sim_messages_slot2");
+        if(MessageUtils.checkForOperatorCustomFeature()) {
+            showCustomPrefTitle();
+        }
     }
 
     @Override
@@ -95,5 +99,18 @@ public class ManageSimSMSPreferenceActivity extends PreferenceActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+    }
+
+    private void showCustomPrefTitle() {
+        String sim1CustomLabel = MessageUtils.checkForOperatorCustomLabel(MessageUtils.SUB1);
+        if (TextUtils.isEmpty(sim1CustomLabel)) {
+            sim1CustomLabel = getResources().getString(R.string.settings_pre_sim1);
+        }
+        String sim2CustomLabel = MessageUtils.checkForOperatorCustomLabel(MessageUtils.SUB2);
+        if (TextUtils.isEmpty(sim2CustomLabel)) {
+            sim2CustomLabel = getResources().getString(R.string.settings_pre_sim2);
+        }
+        mManageSim1Pref.setTitle(sim1CustomLabel);
+        mManageSim2Pref.setTitle(sim2CustomLabel);
     }
 }

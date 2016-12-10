@@ -66,6 +66,7 @@ import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.telephony.TelephonyIntents;
 
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.ArrayMap;
 import android.util.Log;
@@ -167,6 +168,12 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
         String title = TelephonyManager.getDefault().isMultiSimEnabled() ? getString(
                 R.string.pref_more_message_smcs, index + 1)
                 : getString(R.string.pref_one_smcs);
+        if(MessageUtils.checkForOperatorCustomFeature()) {
+            String label = MessageUtils.checkForOperatorCustomLabel(index);
+            if(!TextUtils.isEmpty(label)) {
+                title = label;
+            }
+        }
         return title;
     }
 

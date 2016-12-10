@@ -121,6 +121,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.OperatorSimInfo;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -3257,6 +3258,34 @@ public class MessageUtils {
 
     public static boolean hasStoragePermission() {
         return hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+    }
+
+    public static boolean checkForOperatorCustomFeature() {
+        boolean isFeatureExists = false;
+        OperatorSimInfo operatorSimInfo = new OperatorSimInfo(
+                MmsApp.getApplication().getApplicationContext());
+        if (operatorSimInfo.isOperatorFeatureEnabled() &&
+                MessageUtils.isIccCardActivated(MessageUtils.SUB1)
+                && MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
+            isFeatureExists = true;
+        }
+        return isFeatureExists;
+    }
+
+    public static String checkForOperatorCustomLabel(int slotIndex) {
+        String simLabel = null;
+        Context context = MmsApp.getApplication().getApplicationContext();
+        OperatorSimInfo operatorSimInfo = new OperatorSimInfo(context);
+        boolean isSimTypeOperator = operatorSimInfo.isSimTypeOperator(slotIndex);
+        if (isSimTypeOperator) {
+            simLabel = operatorSimInfo.getOperatorDisplayName();
+        } else {
+            int subId = SubscriptionManager.getSubId(slotIndex)[0];
+            String operatorName = TelephonyManager.from(context).
+                    getSimOperatorName(subId);
+            simLabel = operatorName;
+        }
+        return simLabel;
     }
 
 }

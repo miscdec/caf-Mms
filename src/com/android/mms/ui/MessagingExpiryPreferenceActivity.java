@@ -35,6 +35,7 @@ import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.text.TextUtils;
 import android.view.MenuItem;
 
 import com.android.internal.telephony.PhoneConstants;
@@ -47,6 +48,10 @@ public class MessagingExpiryPreferenceActivity extends PreferenceActivity {
     public static final String MMS_VALIDITY_FOR_SIM1 = "pref_key_mms_validity_period_for_sim1";
 
     public static final String MMS_VALIDITY_FOR_SIM2 = "pref_key_mms_validity_period_for_sim2";
+
+    public static final String SMS_VALIDITY_FOR_SIM1 = "pref_key_sms_validity_period_for_sim1";
+
+    public static final String SMS_VALIDITY_FOR_SIM2 = "pref_key_sms_validity_period_for_sim2";
 
     private static String TYPE_MMS = "mms";
 
@@ -85,6 +90,9 @@ public class MessagingExpiryPreferenceActivity extends PreferenceActivity {
             mSmsValidityCard2Pref = (ListPreference)
                     findPreference("pref_key_sms_validity_period_for_sim2");
             setSmsValidityPeriodPref();
+        }
+        if(MessageUtils.checkForOperatorCustomFeature()) {
+            showCustomPrefTitle(mMsgType);
         }
     }
 
@@ -215,5 +223,38 @@ public class MessagingExpiryPreferenceActivity extends PreferenceActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+    }
+
+    private void showCustomPrefTitle(String msgType) {
+        String sim1CustomLabel = MessageUtils.
+                checkForOperatorCustomLabel(MessageUtils.SUB1);
+        if (TextUtils.isEmpty(sim1CustomLabel)) {
+            sim1CustomLabel = getResources().getString(R.string.settings_pre_sim1);
+        }
+        String sim2CustomLabel = MessageUtils.
+                checkForOperatorCustomLabel(MessageUtils.SUB2);
+        if (TextUtils.isEmpty(sim2CustomLabel)) {
+            sim2CustomLabel = getResources().getString(R.string.settings_pre_sim2);
+        }
+        if (msgType.equals(TYPE_MMS)) {
+           ListPreference  mMmsDeliveryReportPrefSub1 = (ListPreference)
+                    findPreference(MMS_VALIDITY_FOR_SIM1);
+           ListPreference mMmsDeliveryReportPrefSub2 = (ListPreference)
+                    findPreference(MMS_VALIDITY_FOR_SIM2);
+            mMmsDeliveryReportPrefSub1.setTitle(sim1CustomLabel);
+            mMmsDeliveryReportPrefSub2.setTitle(sim2CustomLabel);
+            mMmsDeliveryReportPrefSub1.setDialogTitle(getResources().
+                    getString(R.string.pref_title_mms_save_time));
+            mMmsDeliveryReportPrefSub2.setDialogTitle(getResources().
+                    getString(R.string.pref_title_mms_save_time));
+        }
+        else if(msgType.equals(TYPE_SMS)) {
+            ListPreference mSmsDeliveryReportPrefSub1 = (ListPreference)
+                    findPreference(SMS_VALIDITY_FOR_SIM1);
+            ListPreference mSmsDeliveryReportPrefSub2 = (ListPreference)
+                    findPreference(SMS_VALIDITY_FOR_SIM2);
+            mSmsDeliveryReportPrefSub1.setTitle(sim1CustomLabel);
+            mSmsDeliveryReportPrefSub2.setTitle(sim2CustomLabel);
+        }
     }
 }
