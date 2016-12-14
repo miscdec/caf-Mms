@@ -45,6 +45,7 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.util.DownloadManager;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.android.mms.R;
@@ -228,6 +229,16 @@ public class PushReceiver extends BroadcastReceiver {
                             threadId = MessagingNotification.getThreadId(mContext, uri);
                             MessageUtils
                                     .markAsNotificationThreadIfNeed(mContext, threadId, address);
+
+                            if (!DownloadManager.getInstance().isAuto() &&
+                                    !MessageUtils.isMobileDataEnabled(mContext, subId)) {
+                                Log.d(TAG, "Auto retrieve is off, and mobile data is off, do not" +
+                                        " download the MMS, just update" +
+                                        " new message notification for thread " + threadId);
+                                MessagingNotification.blockingUpdateNewMessageIndicator(mContext,
+                                        threadId, false);
+                                break;
+                            }
 
                             // Start service to finish the notification transaction.
                             Intent svc = new Intent(mContext, TransactionService.class);
