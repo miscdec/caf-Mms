@@ -107,7 +107,7 @@ public class NotificationActionHandleReceiver extends BroadcastReceiver {
                 Toast.makeText(context, R.string.mms_too_large, Toast.LENGTH_SHORT).show();
                 return;
             }
-            else if (MessageUtils.isMobileDataDisabled(context)) {
+            else if (!MessageUtils.isMobileDataEnabled(context, (int)subId)) {
                 Toast.makeText(context, context.getString(R.string.inform_data_off),
                         Toast.LENGTH_LONG).show();
                 return;
