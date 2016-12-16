@@ -2779,6 +2779,11 @@ public class ComposeMessageActivity extends Activity
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        if (!(MessageUtils.hasBasicPermissions() && MessageUtils
+                .hasPermissions(MessageUtils.sSMSExtendPermissions)))
+        {
+            return;
+        }
 
         setIntent(intent);
 
