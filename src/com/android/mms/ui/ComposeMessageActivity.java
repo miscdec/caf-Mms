@@ -9689,6 +9689,7 @@ public class ComposeMessageActivity extends Activity
          */
         @Override
         public void prepare(String path, ImageView view, int color) {
+            ImageView oldPlayerView = mPlayPause;
             mPlayPause = view;
             mColor = color;
             if (path == null) return;
@@ -9703,6 +9704,11 @@ public class ComposeMessageActivity extends Activity
                         play();
                     }
                 } else {
+                    mPlayPauseDrawable = getResources().getDrawable(R.drawable.audio_play).mutate();
+                    mPlayPauseDrawable.setTint(mColor);
+                    if (null != oldPlayerView) {
+                        oldPlayerView.setBackground(mPlayPauseDrawable);
+                    }
                     releaseMediaPlayer();
                     initMediaPlayer(path);
                 }
