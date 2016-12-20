@@ -414,7 +414,6 @@ public class Conversation {
                             Log.e(TAG, "Database is full");
                             e.printStackTrace();
                             showStorageFullToast(mContext);
-                        } finally {
                             return null;
                         }
                     }
