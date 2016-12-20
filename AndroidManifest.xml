@@ -480,6 +480,12 @@
                   android:configChanges="orientation|keyboardHidden|screenSize" >
         </activity>
 
+        <activity android:name=".ui.ContactSelectActivity"
+                  android:windowSoftInputMode="stateHidden|adjustResize"
+                  android:configChanges="orientation|keyboardHidden|screenSize"
+                  android:theme="@style/MmsHoloThemeWithNoActionBar">
+        </activity>
+
         <!-- Message Template Content Provider -->
         <provider android:name="MessageTemplateProvider"
                 android:authorities="com.android.mms.MessageTemplateProvider" >
