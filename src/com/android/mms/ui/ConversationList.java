@@ -984,6 +984,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (backupOrRestoreMessageItem != null) {
             backupOrRestoreMessageItem.setVisible(isRcsSupported);
         }
+        if (mSearchItem != null ) {
+            if (mListAdapter.getCount() > 0) {
+                mSearchItem.setVisible(true);
+            } else {
+                mSearchItem.setVisible(false);
+            }
+        }
         return true;
     }
 
