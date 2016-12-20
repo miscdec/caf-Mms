@@ -175,6 +175,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private ProgressDialog mSaveOrBackProgressDialog = null;
     private View mPublicAccountItemView;
     private View mNotificationListItemView;
+    private int mSavedSelectedItem;
+    private boolean mOnPaused;
 
     // keys for extras and icicles
     private final static String LAST_LIST_POS = "last_list_pos";
@@ -454,6 +456,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         mSavedFirstVisiblePosition = listView.getFirstVisiblePosition();
         View firstChild = listView.getChildAt(0);
         mSavedFirstItemOffset = (firstChild == null) ? 0 : firstChild.getTop();
+        mOnPaused = true;
+        mSavedSelectedItem = getListView().getSelectedItemPosition();
     }
 
     @Override
@@ -996,6 +1000,15 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         return true;
     }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_MENU:
+                invalidateOptionsMenu();
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
     private void selectComposeAction() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.menu_compose_new);
@@ -1531,6 +1544,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     // 2. Mark all the conversations as seen.
                     Conversation.markAllConversationsAsSeen(getApplicationContext());
                 }
+                getListView().requestFocus();
                 if (mSavedFirstVisiblePosition != AdapterView.INVALID_POSITION) {
                     // Restore the list to its previous position.
                     getListView().setSelectionFromTop(mSavedFirstVisiblePosition,
@@ -1547,6 +1561,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     cursor.close();
                 }
                 mUnreadConvCount.setText(count > 0 ? Integer.toString(count) : null);
+                if(mOnPaused && mSavedSelectedItem > 0){
+                    getListView().setSelection(mSavedSelectedItem);
+                    mOnPaused = false;
+                }
                 break;
 
             case HAVE_LOCKED_MESSAGES_TOKEN:
