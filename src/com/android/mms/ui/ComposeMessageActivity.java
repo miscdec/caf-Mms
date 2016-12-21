@@ -14,7 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
+ */
 package com.android.mms.ui;
 
 import static android.content.res.Configuration.KEYBOARDHIDDEN_NO;
@@ -362,6 +380,9 @@ public class ComposeMessageActivity extends Activity
 
     private static final long NO_DATE_FOR_DIALOG = -1L;
 
+    private static final int MENU_ADD_CONTACT = 5425;
+    private static final int MENU_ADD_GROUP = 5426;
+
     protected static final String KEY_EXIT_ON_SENT = "exit_on_sent";
     protected static final String KEY_FORWARDED_MESSAGE = "forwarded_message";
     protected static final String KEY_REPLY_MESSAGE = "reply_message";
@@ -448,8 +469,6 @@ public class ComposeMessageActivity extends Activity
     public MessageListAdapter mMsgListAdapter;  // and its corresponding ListAdapter
 
     private RecipientsEditor mRecipientsEditor;  // UI control for editing recipients
-    private ImageButton mRecipientsPicker;       // UI control for recipients picker
-    private ImageButton mRecipientsPickerGroups; // UI control for group recipients picker
 
     private ImageView mIndicatorForSim1, mIndicatorForSim2;
     private View mIndicatorContainer1, mIndicatorContainer2;
@@ -2711,19 +2730,10 @@ public class ComposeMessageActivity extends Activity
         if (stub != null) {
             View stubView = stub.inflate();
             mRecipientsEditor = (RecipientsEditor) stubView.findViewById(R.id.recipients_editor);
-            mRecipientsPicker = (ImageButton) stubView.findViewById(R.id.recipients_picker);
-            mRecipientsPickerGroups= (ImageButton) stubView
-                    .findViewById(R.id.recipients_picker_group);
         } else {
             mRecipientsEditor = (RecipientsEditor)findViewById(R.id.recipients_editor);
             mRecipientsEditor.setVisibility(View.VISIBLE);
-            mRecipientsPicker = (ImageButton)findViewById(R.id.recipients_picker);
-            mRecipientsPicker.setVisibility(View.VISIBLE);
-            mRecipientsPickerGroups= (ImageButton)findViewById(R.id.recipients_picker_group);
-            mRecipientsPickerGroups.setVisibility(View.VISIBLE);
         }
-        mRecipientsPicker.setOnClickListener(this);
-        mRecipientsPickerGroups.setOnClickListener(this);
 
         mRecipientsEditor.setAdapter(new ChipsRecipientAdapter(this));
         mRecipientsEditor.populate(recipients);
@@ -3680,12 +3690,6 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor != null) {
             mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
             mRecipientsEditor.setVisibility(View.GONE);
-            if (mRecipientsPicker != null) {
-                mRecipientsPicker.setVisibility(View.GONE);
-            }
-            if (mRecipientsPickerGroups != null) {
-                mRecipientsPickerGroups.setVisibility(View.GONE);
-            }
             hideOrShowTopPanel();
         }
     }
@@ -4117,6 +4121,11 @@ public class ComposeMessageActivity extends Activity
             }
         }
 
+        if(isRecipientsEditorVisible()){
+            menu.add(0, MENU_ADD_CONTACT, 0, R.string.add_contact_menu);
+            menu.add(0, MENU_ADD_GROUP, 0, R.string.add_group_menu);
+        }
+
         if (isPreparedForSending() && mIsSmsEnabled) {
            if (mShowTwoButtons) {
                 menu.add(0, MENU_SEND_BY_SLOT1, 0, R.string.send_by_slot1)
@@ -4308,6 +4317,12 @@ public class ComposeMessageActivity extends Activity
                 mWorkingMessage.setSubject("", true);
                 updateSendButtonState();
                 mSubjectTextEditor.requestFocus();
+                break;
+            case MENU_ADD_CONTACT:
+                launchMultiplePhonePicker();
+                break;
+            case MENU_ADD_GROUP:
+                launchContactGroupPicker();
                 break;
             case MENU_DISCARD:
                 mWorkingMessage.discard();
@@ -6074,10 +6089,6 @@ public class ComposeMessageActivity extends Activity
         } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
                 mShowTwoButtons && isPreparedForSending()) {
             confirmSendMessageIfNeeded(MSimConstants.SUB2);
-        } else if ((v == mRecipientsPicker)) {
-            launchMultiplePhonePicker();
-        } else if ((v == mRecipientsPickerGroups)) {
-            launchContactGroupPicker();
         } else if ((v == mAddAttachmentButton)) {
             if (mAttachmentSelector.getVisibility() == View.VISIBLE && !mIsReplaceAttachment) {
                 mAttachmentSelector.setVisibility(View.GONE);
