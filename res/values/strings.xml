@@ -1073,8 +1073,4 @@
     <string name="sub">SUB</string>
     <string name="menu_batch_delete">Batch delete conversation</string>
     <string name="download_dialog_title">Comfirm download this MMS?</string>
-
-    <!-- menu option in mms -->
-    <string name="menu_select">Select</string>
-    <string name="menu_delete_selected">Delete selected thread</string>
 </resources>

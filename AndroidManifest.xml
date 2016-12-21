@@ -407,8 +407,7 @@
 
         <activity android:name=".ui.MultiPickContactGroups"
             android:configChanges="orientation|screenSize"
-            android:exported="true"
-            android:theme="@style/MmsHoloThemeWithNoActionBar">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="com.android.mms.MultiPickContactGroups" />
@@ -480,12 +479,6 @@
                   android:configChanges="orientation|keyboardHidden|screenSize" >
         </activity>
 
-        <activity android:name=".ui.ContactSelectActivity"
-                  android:windowSoftInputMode="stateHidden|adjustResize"
-                  android:configChanges="orientation|keyboardHidden|screenSize"
-                  android:theme="@style/MmsHoloThemeWithNoActionBar">
-        </activity>
-
         <!-- Message Template Content Provider -->
         <provider android:name="MessageTemplateProvider"
                 android:authorities="com.android.mms.MessageTemplateProvider" >
@@ -525,12 +518,5 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.ConversationMultiSelectList"
-                  android:configChanges="orientation|screenSize|keyboardHidden"
-                  android:windowSoftInputMode="stateHidden"
-                  android:theme="@style/MmsHoloTheme"
-                  android:exported="false"
-                  android:screenOrientation="portrait"
-                  android:launchMode="singleTop" />
     </application>
 </manifest>

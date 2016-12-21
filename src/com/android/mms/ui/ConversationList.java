@@ -175,8 +175,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private ProgressDialog mSaveOrBackProgressDialog = null;
     private View mPublicAccountItemView;
     private View mNotificationListItemView;
-    private int mSavedSelectedItem;
-    private boolean mOnPaused;
 
     // keys for extras and icicles
     private final static String LAST_LIST_POS = "last_list_pos";
@@ -456,8 +454,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         mSavedFirstVisiblePosition = listView.getFirstVisiblePosition();
         View firstChild = listView.getChildAt(0);
         mSavedFirstItemOffset = (firstChild == null) ? 0 : firstChild.getTop();
-        mOnPaused = true;
-        mSavedSelectedItem = getListView().getSelectedItemPosition();
     }
 
     @Override
@@ -942,10 +938,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-
-        MenuItem createContact = menu.findItem(R.id.action_create_contact);
-        MenuItem viewContact = menu.findItem(R.id.action_view_contact);
-
         //In folder mode, it will jump to MailBoxMessageList,finish current
         //activity, no need prepare option menu.
         if (MessageUtils.isMailboxMode()) {
@@ -960,10 +952,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             // Dim compose if SMS is disabled because it will not work (will show a toast)
             item.getIcon().setAlpha(mIsSmsEnabled ? 255 : 127);
         }
-        item = menu.findItem(R.id.action_select);
-        if (item != null ){
-            item.setVisible((mListAdapter.getCount() > 0));
-        }
+
         if (!getResources().getBoolean(R.bool.config_mailbox_enable)) {
             item = menu.findItem(R.id.action_change_mode);
             if (item != null) {
@@ -991,48 +980,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (backupOrRestoreMessageItem != null) {
             backupOrRestoreMessageItem.setVisible(isRcsSupported);
         }
-        if (mSearchItem != null ) {
-            if (mListAdapter.getCount() > 0) {
-                mSearchItem.setVisible(true);
-            } else {
-                mSearchItem.setVisible(false);
-            }
-        }
-        if (viewContact != null && createContact != null) {
-
-            if (!getListView().hasFocus()) {
-                viewContact.setVisible(false);
-                createContact.setVisible(false);
-
-            } else {
-                ContactList recipientList = getRecipientfromfocusedConv();
-
-                if (recipientList != null && recipientList.size() == 1) {
-                    // do we have this recipient in contacts?
-                    if (recipientList.get(0).existsInDatabase()) {
-                        viewContact.setVisible(true);
-                        createContact.setVisible(false);
-                    } else {
-                        createContact.setVisible(true);
-                        viewContact.setVisible(false);
-                    }
-                } else {
-                    viewContact.setVisible(false);
-                    createContact.setVisible(false);
-                }
-            }
-        }
         return true;
-    }
-
-    ContactList getRecipientfromfocusedConv() {
-        Cursor cursor  = (Cursor) getListView().getItemAtPosition(
-                getListView().getSelectedItemPosition());
-        if (cursor != null && cursor.getCount() > 0) {
-            Conversation conv = Conversation.from(ConversationList.this, cursor);
-            return conv.getRecipients();
-        }
-        return null;
     }
 
     @Override
@@ -1046,15 +994,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mSearchItem.expandActionView();
         }
         return true;
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_MENU:
-                invalidateOptionsMenu();
-        }
-        return super.onKeyDown(keyCode, event);
     }
 
     private void selectComposeAction() {
@@ -1137,10 +1076,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
                 }
                 return true;
-            case R.id.action_select:
-                intent = new Intent(this, ConversationMultiSelectList.class);
-                startActivity(intent);
-                break;
             case R.id.my_favorited:
                 Intent favouriteIntent = new Intent(this, FavouriteMessageList.class);
                 favouriteIntent.putExtra("favorited", true);
@@ -1148,16 +1083,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 break;
             case R.id.backup_or_restore_message:
                 showSaveOrBackDialog(ConversationList.this);
-                break;
-            case R.id.action_view_contact:
-                Contact contact = getRecipientfromfocusedConv().get(0);
-                intent = new Intent(Intent.ACTION_VIEW, contact.getUri());
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-                startActivity(intent);
-                break;
-            case R.id.action_create_contact:
-                String address = getRecipientfromfocusedConv().get(0).getNumber();
-                startActivity(createAddContactIntent(address));
                 break;
             default:
                 return true;
@@ -1606,7 +1531,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     // 2. Mark all the conversations as seen.
                     Conversation.markAllConversationsAsSeen(getApplicationContext());
                 }
-                getListView().requestFocus();
                 if (mSavedFirstVisiblePosition != AdapterView.INVALID_POSITION) {
                     // Restore the list to its previous position.
                     getListView().setSelectionFromTop(mSavedFirstVisiblePosition,
@@ -1623,10 +1547,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     cursor.close();
                 }
                 mUnreadConvCount.setText(count > 0 ? Integer.toString(count) : null);
-                if(mOnPaused && mSavedSelectedItem > 0){
-                    getListView().setSelection(mSavedSelectedItem);
-                    mOnPaused = false;
-                }
                 break;
 
             case HAVE_LOCKED_MESSAGES_TOKEN:

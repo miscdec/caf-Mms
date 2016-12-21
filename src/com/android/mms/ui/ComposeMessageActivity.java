@@ -174,7 +174,6 @@ import com.android.mms.model.MediaModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.transaction.MessagingNotification;
-import com.android.mms.ui.ContactSelectActivity;
 import com.android.mms.ui.MessageListView.OnSizeChangedListener;
 import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
 import com.android.mms.ui.MultiPickContactGroups;
@@ -363,9 +362,6 @@ public class ComposeMessageActivity extends Activity
 
     private static final long NO_DATE_FOR_DIALOG = -1L;
 
-    private static final int MENU_ADD_CONTACT = 5425;
-    private static final int MENU_ADD_GROUP = 5426;
-
     protected static final String KEY_EXIT_ON_SENT = "exit_on_sent";
     protected static final String KEY_FORWARDED_MESSAGE = "forwarded_message";
     protected static final String KEY_REPLY_MESSAGE = "reply_message";
@@ -429,6 +425,7 @@ public class ComposeMessageActivity extends Activity
     private EditText mTextEditor;           // Text editor to type your message into
     private TextView mTextCounter;          // Shows the number of characters used in text editor
     private View mAttachmentSelector;       // View containing the added attachment types
+    private ImageButton mAddAttachmentButton;  // The button for add attachment
     private ViewPager mAttachmentPager;     // Attachment selector pager
     private AttachmentPagerAdapter mAttachmentPagerAdapter;  // Attachment selector pager adapter
     private TextView mSendButtonMms;        // Press to send mms
@@ -451,6 +448,8 @@ public class ComposeMessageActivity extends Activity
     public MessageListAdapter mMsgListAdapter;  // and its corresponding ListAdapter
 
     private RecipientsEditor mRecipientsEditor;  // UI control for editing recipients
+    private ImageButton mRecipientsPicker;       // UI control for recipients picker
+    private ImageButton mRecipientsPickerGroups; // UI control for group recipients picker
 
     private ImageView mIndicatorForSim1, mIndicatorForSim2;
     private View mIndicatorContainer1, mIndicatorContainer2;
@@ -588,8 +587,6 @@ public class ComposeMessageActivity extends Activity
     private List<Long> mTopThread = new ArrayList<Long>();
     private RcsEmojiInitialize mRcsEmojiInitialize = null;
 
-    private AttachmentTypeSelectorAdapter mAttachmentTypeSelectorAdapter;
-
     private GroupChatManagerReceiver mGroupReceiver = new GroupChatManagerReceiver(
             new GroupChatNotifyCallback() {
 
@@ -724,8 +721,8 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void pickContacts(int mode, int requestCode) {
-        Intent intent = new Intent(this, ContactSelectActivity.class);
-        intent.putExtra(ContactSelectActivity.MODE, mode);
+        Intent intent = new Intent(this, MultiPickContactsActivity.class);
+        intent.putExtra(MultiPickContactsActivity.MODE, mode);
         startActivityForResult(intent, requestCode);
     }
 
@@ -761,7 +758,7 @@ public class ComposeMessageActivity extends Activity
                             && mIsReplaceAttachment) {
                         mAttachmentSelector.setVisibility(View.GONE);
                     } else {
-                        showAddAttachmentDialog(true);
+                        showAttachmentSelector(true);
                         Toast.makeText(ComposeMessageActivity.this,
                                 R.string.replace_current_attachment, Toast.LENGTH_SHORT).show();
                     }
@@ -771,7 +768,7 @@ public class ComposeMessageActivity extends Activity
                     // Update the icon state in attachment selector.
                     if (mAttachmentSelector.getVisibility() == View.VISIBLE
                             && !mIsReplaceAttachment) {
-                        showAddAttachmentDialog(true);
+                        showAttachmentSelector(true);
                     }
                     mWorkingMessage.removeAttachment(true);
                     break;
@@ -2714,10 +2711,19 @@ public class ComposeMessageActivity extends Activity
         if (stub != null) {
             View stubView = stub.inflate();
             mRecipientsEditor = (RecipientsEditor) stubView.findViewById(R.id.recipients_editor);
+            mRecipientsPicker = (ImageButton) stubView.findViewById(R.id.recipients_picker);
+            mRecipientsPickerGroups= (ImageButton) stubView
+                    .findViewById(R.id.recipients_picker_group);
         } else {
             mRecipientsEditor = (RecipientsEditor)findViewById(R.id.recipients_editor);
             mRecipientsEditor.setVisibility(View.VISIBLE);
+            mRecipientsPicker = (ImageButton)findViewById(R.id.recipients_picker);
+            mRecipientsPicker.setVisibility(View.VISIBLE);
+            mRecipientsPickerGroups= (ImageButton)findViewById(R.id.recipients_picker_group);
+            mRecipientsPickerGroups.setVisibility(View.VISIBLE);
         }
+        mRecipientsPicker.setOnClickListener(this);
+        mRecipientsPickerGroups.setOnClickListener(this);
 
         mRecipientsEditor.setAdapter(new ChipsRecipientAdapter(this));
         mRecipientsEditor.populate(recipients);
@@ -3674,6 +3680,12 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor != null) {
             mRecipientsEditor.removeTextChangedListener(mRecipientsWatcher);
             mRecipientsEditor.setVisibility(View.GONE);
+            if (mRecipientsPicker != null) {
+                mRecipientsPicker.setVisibility(View.GONE);
+            }
+            if (mRecipientsPickerGroups != null) {
+                mRecipientsPickerGroups.setVisibility(View.GONE);
+            }
             hideOrShowTopPanel();
         }
     }
@@ -4083,14 +4095,9 @@ public class ComposeMessageActivity extends Activity
                 menu.add(0, MENU_ADD_SUBJECT, 0, R.string.add_subject).setIcon(
                         R.drawable.ic_menu_edit);
             }
-
-            // Attachment Menu Item
             if (showAddAttachementButton()) {
-                menu.add(0, MENU_ADD_ATTACHMENT, 0, R.string.add_attachment)
-                        .setTitle(R.string.add_attachment)
-                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);    // add to actionbar
+                mAddAttachmentButton.setVisibility(View.VISIBLE);
             }
-
             if (mConversation.getIsTop() == 0 && !mTopThread.contains(mConversation.getThreadId())) {
                 menu.add(0, MENU_TOP_CONVERSATION, 0, R.string.top_conversation).setIcon(
                         R.drawable.ic_menu_edit);
@@ -4108,11 +4115,6 @@ public class ComposeMessageActivity extends Activity
                     }
                 }
             }
-        }
-
-        if(isRecipientsEditorVisible()){
-            menu.add(0, MENU_ADD_CONTACT, 0, R.string.add_contact_menu);
-            menu.add(0, MENU_ADD_GROUP, 0, R.string.add_group_menu);
         }
 
         if (isPreparedForSending() && mIsSmsEnabled) {
@@ -4307,16 +4309,6 @@ public class ComposeMessageActivity extends Activity
                 updateSendButtonState();
                 mSubjectTextEditor.requestFocus();
                 break;
-            case MENU_ADD_ATTACHMENT:
-                // Launch the add-attachment list dialog
-                showAddAttachmentDialog(false);
-                break;
-            case MENU_ADD_CONTACT:
-                launchMultiplePhonePicker();
-                break;
-            case MENU_ADD_GROUP:
-                launchContactGroupPicker();
-                break;
             case MENU_DISCARD:
                 mWorkingMessage.discard();
                 finish();
@@ -4470,26 +4462,6 @@ public class ComposeMessageActivity extends Activity
         }
 
         return true;
-    }
-
-    private void showAddAttachmentDialog(final boolean replace) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setIcon(R.drawable.ic_dialog_attach);
-        builder.setTitle(R.string.add_attachment);
-
-        if (mAttachmentTypeSelectorAdapter == null) {
-            mAttachmentTypeSelectorAdapter = new AttachmentTypeSelectorAdapter(
-                    this, AttachmentTypeSelectorAdapter.MODE_WITH_SLIDESHOW);
-        }
-        builder.setAdapter(mAttachmentTypeSelectorAdapter, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                addAttachment(mAttachmentTypeSelectorAdapter.buttonToCommand(which), replace);
-                dialog.dismiss();
-            }
-        });
-
-        builder.show();
     }
 
     @Override
@@ -5281,14 +5253,14 @@ public class ComposeMessageActivity extends Activity
             case REQUEST_CODE_ATTACH_ADD_CONTACT_INFO:
                 if (data != null) {
                     String newText = mWorkingMessage.getText() +
-                        data.getStringExtra(ContactSelectActivity.EXTRA_INFO);
+                        data.getStringExtra(MultiPickContactsActivity.EXTRA_INFO);
                     mWorkingMessage.setText(newText);
                 }
                 break;
 
             case REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD:
                 if (data != null) {
-                    String extraVCard = data.getStringExtra(ContactSelectActivity.EXTRA_VCARD);
+                    String extraVCard = data.getStringExtra(MultiPickContactsActivity.EXTRA_VCARD);
                     if (extraVCard != null) {
                         Uri vcard = Uri.parse(extraVCard);
                         addVcard(vcard);
@@ -6024,15 +5996,26 @@ public class ComposeMessageActivity extends Activity
         resetCounter();
 
         if (mWorkingMessage.hasSlideshow()) {
-            mBottomPanel.setVisibility(View.GONE);
-            mAttachmentEditor.requestFocus();
-            return;
+            if (mShowTwoButtons) {
+                mTextEditor.setVisibility(View.GONE);
+                mAttachmentEditor.requestFocus();
+                return;
+            } else {
+                mTextEditor.setVisibility(View.INVISIBLE);
+                mTextEditor.setText("");
+                mAttachmentEditor.hideSlideshowSendButton();
+                mAttachmentEditor.requestFocus();
+                return;
+            }
         }
 
         if (LOCAL_LOGV) {
             Log.v(TAG, "CMA.drawBottomPanel");
         }
-        mBottomPanel.setVisibility(View.VISIBLE);
+        if (mTextEditor.getVisibility() != View.VISIBLE) {
+            mTextEditor.setVisibility(View.VISIBLE);
+        }
+
         CharSequence text = mWorkingMessage.getText();
 
         // TextView.setTextKeepState() doesn't like null input.
@@ -6091,6 +6074,20 @@ public class ComposeMessageActivity extends Activity
         } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
                 mShowTwoButtons && isPreparedForSending()) {
             confirmSendMessageIfNeeded(MSimConstants.SUB2);
+        } else if ((v == mRecipientsPicker)) {
+            launchMultiplePhonePicker();
+        } else if ((v == mRecipientsPickerGroups)) {
+            launchContactGroupPicker();
+        } else if ((v == mAddAttachmentButton)) {
+            if (mAttachmentSelector.getVisibility() == View.VISIBLE && !mIsReplaceAttachment) {
+                mAttachmentSelector.setVisibility(View.GONE);
+            } else {
+                showAttachmentSelector(false);
+                if (mWorkingMessage.hasAttachment()) {
+                    Toast.makeText(this, R.string.add_another_attachment, Toast.LENGTH_SHORT)
+                            .show();
+                }
+            }
         } else if (v == mButtonEmoj) {
             ViewStub viewStub = (ViewStub) findViewById(R.id.emoji_view_stub);
             showEmojiView(viewStub);
@@ -6372,10 +6369,12 @@ public class ComposeMessageActivity extends Activity
             mBottomPanel.setVisibility(View.VISIBLE);
             mTextEditor = (EditText) findViewById(R.id.embedded_text_editor);
             mTextCounter = (TextView) findViewById(R.id.text_counter);
+            mAddAttachmentButton = (ImageButton) findViewById(R.id.add_attachment_first);
             mSendButtonMms = (TextView) findViewById(R.id.send_button_mms);
             mSendButtonSms = (ImageButton) findViewById(R.id.send_button_sms);
             mButtonEmoj = (ImageButton)findViewById(R.id.send_emoj);
             mButtonEmoj.setOnClickListener(this);
+            mAddAttachmentButton.setOnClickListener(this);
             mSendButtonMms.setOnClickListener(this);
             mSendButtonSms.setOnClickListener(this);
         }
@@ -6430,6 +6429,7 @@ public class ComposeMessageActivity extends Activity
         mTextEditor = (EditText) findViewById(R.id.embedded_text_editor_btnstyle);
 
         mTextCounter = (TextView) findViewById(R.id.text_counter_two_buttons);
+        mAddAttachmentButton = (ImageButton) findViewById(R.id.add_attachment_second);
         mSendButtonMms = (TextView) findViewById(R.id.first_send_button_mms_view);
         mSendButtonSms = (ImageButton) findViewById(R.id.first_send_button_sms_view);
         mSendLayoutMmsFir = findViewById(R.id.first_send_button_mms);
@@ -6440,6 +6440,7 @@ public class ComposeMessageActivity extends Activity
                .getMultiSimIcon(this, MSimConstants.SUB1));
         mIndicatorForSimSmsFir.setImageDrawable(MessageUtils
                 .getMultiSimIcon(this, MSimConstants.SUB1));
+        mAddAttachmentButton.setOnClickListener(this);
         mSendButtonMms.setOnClickListener(this);
         mSendButtonSms.setOnClickListener(this);
 
