@@ -446,7 +446,6 @@ public class ComposeMessageActivity extends Activity
     private EditText mTextEditor;           // Text editor to type your message into
     private TextView mTextCounter;          // Shows the number of characters used in text editor
     private View mAttachmentSelector;       // View containing the added attachment types
-    private ImageButton mAddAttachmentButton;  // The button for add attachment
     private ViewPager mAttachmentPager;     // Attachment selector pager
     private AttachmentPagerAdapter mAttachmentPagerAdapter;  // Attachment selector pager adapter
     private TextView mSendButtonMms;        // Press to send mms
@@ -605,6 +604,8 @@ public class ComposeMessageActivity extends Activity
     private boolean mIsBurnMessage = false;
     private List<Long> mTopThread = new ArrayList<Long>();
     private RcsEmojiInitialize mRcsEmojiInitialize = null;
+
+    private AttachmentTypeSelectorAdapter mAttachmentTypeSelectorAdapter;
 
     private GroupChatManagerReceiver mGroupReceiver = new GroupChatManagerReceiver(
             new GroupChatNotifyCallback() {
@@ -777,7 +778,7 @@ public class ComposeMessageActivity extends Activity
                             && mIsReplaceAttachment) {
                         mAttachmentSelector.setVisibility(View.GONE);
                     } else {
-                        showAttachmentSelector(true);
+                        showAddAttachmentDialog(true);
                         Toast.makeText(ComposeMessageActivity.this,
                                 R.string.replace_current_attachment, Toast.LENGTH_SHORT).show();
                     }
@@ -787,7 +788,7 @@ public class ComposeMessageActivity extends Activity
                     // Update the icon state in attachment selector.
                     if (mAttachmentSelector.getVisibility() == View.VISIBLE
                             && !mIsReplaceAttachment) {
-                        showAttachmentSelector(true);
+                        showAddAttachmentDialog(true);
                     }
                     mWorkingMessage.removeAttachment(true);
                     break;
@@ -4099,9 +4100,14 @@ public class ComposeMessageActivity extends Activity
                 menu.add(0, MENU_ADD_SUBJECT, 0, R.string.add_subject).setIcon(
                         R.drawable.ic_menu_edit);
             }
+
+            // Attachment Menu Item
             if (showAddAttachementButton()) {
-                mAddAttachmentButton.setVisibility(View.VISIBLE);
+                menu.add(0, MENU_ADD_ATTACHMENT, 0, R.string.add_attachment)
+                        .setTitle(R.string.add_attachment)
+                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);    // add to actionbar
             }
+
             if (mConversation.getIsTop() == 0 && !mTopThread.contains(mConversation.getThreadId())) {
                 menu.add(0, MENU_TOP_CONVERSATION, 0, R.string.top_conversation).setIcon(
                         R.drawable.ic_menu_edit);
@@ -4318,6 +4324,10 @@ public class ComposeMessageActivity extends Activity
                 updateSendButtonState();
                 mSubjectTextEditor.requestFocus();
                 break;
+            case MENU_ADD_ATTACHMENT:
+                // Launch the add-attachment list dialog
+                showAddAttachmentDialog(false);
+                break;
             case MENU_ADD_CONTACT:
                 launchMultiplePhonePicker();
                 break;
@@ -4477,6 +4487,26 @@ public class ComposeMessageActivity extends Activity
         }
 
         return true;
+    }
+
+    private void showAddAttachmentDialog(final boolean replace) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setIcon(R.drawable.ic_dialog_attach);
+        builder.setTitle(R.string.add_attachment);
+
+        if (mAttachmentTypeSelectorAdapter == null) {
+            mAttachmentTypeSelectorAdapter = new AttachmentTypeSelectorAdapter(
+                    this, AttachmentTypeSelectorAdapter.MODE_WITH_SLIDESHOW);
+        }
+        builder.setAdapter(mAttachmentTypeSelectorAdapter, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                addAttachment(mAttachmentTypeSelectorAdapter.buttonToCommand(which), replace);
+                dialog.dismiss();
+            }
+        });
+
+        builder.show();
     }
 
     @Override
@@ -6011,26 +6041,15 @@ public class ComposeMessageActivity extends Activity
         resetCounter();
 
         if (mWorkingMessage.hasSlideshow()) {
-            if (mShowTwoButtons) {
-                mTextEditor.setVisibility(View.GONE);
-                mAttachmentEditor.requestFocus();
-                return;
-            } else {
-                mTextEditor.setVisibility(View.INVISIBLE);
-                mTextEditor.setText("");
-                mAttachmentEditor.hideSlideshowSendButton();
-                mAttachmentEditor.requestFocus();
-                return;
-            }
+            mBottomPanel.setVisibility(View.GONE);
+            mAttachmentEditor.requestFocus();
+            return;
         }
 
         if (LOCAL_LOGV) {
             Log.v(TAG, "CMA.drawBottomPanel");
         }
-        if (mTextEditor.getVisibility() != View.VISIBLE) {
-            mTextEditor.setVisibility(View.VISIBLE);
-        }
-
+        mBottomPanel.setVisibility(View.VISIBLE);
         CharSequence text = mWorkingMessage.getText();
 
         // TextView.setTextKeepState() doesn't like null input.
@@ -6089,16 +6108,6 @@ public class ComposeMessageActivity extends Activity
         } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
                 mShowTwoButtons && isPreparedForSending()) {
             confirmSendMessageIfNeeded(MSimConstants.SUB2);
-        } else if ((v == mAddAttachmentButton)) {
-            if (mAttachmentSelector.getVisibility() == View.VISIBLE && !mIsReplaceAttachment) {
-                mAttachmentSelector.setVisibility(View.GONE);
-            } else {
-                showAttachmentSelector(false);
-                if (mWorkingMessage.hasAttachment()) {
-                    Toast.makeText(this, R.string.add_another_attachment, Toast.LENGTH_SHORT)
-                            .show();
-                }
-            }
         } else if (v == mButtonEmoj) {
             ViewStub viewStub = (ViewStub) findViewById(R.id.emoji_view_stub);
             showEmojiView(viewStub);
@@ -6380,12 +6389,10 @@ public class ComposeMessageActivity extends Activity
             mBottomPanel.setVisibility(View.VISIBLE);
             mTextEditor = (EditText) findViewById(R.id.embedded_text_editor);
             mTextCounter = (TextView) findViewById(R.id.text_counter);
-            mAddAttachmentButton = (ImageButton) findViewById(R.id.add_attachment_first);
             mSendButtonMms = (TextView) findViewById(R.id.send_button_mms);
             mSendButtonSms = (ImageButton) findViewById(R.id.send_button_sms);
             mButtonEmoj = (ImageButton)findViewById(R.id.send_emoj);
             mButtonEmoj.setOnClickListener(this);
-            mAddAttachmentButton.setOnClickListener(this);
             mSendButtonMms.setOnClickListener(this);
             mSendButtonSms.setOnClickListener(this);
         }
@@ -6440,7 +6447,6 @@ public class ComposeMessageActivity extends Activity
         mTextEditor = (EditText) findViewById(R.id.embedded_text_editor_btnstyle);
 
         mTextCounter = (TextView) findViewById(R.id.text_counter_two_buttons);
-        mAddAttachmentButton = (ImageButton) findViewById(R.id.add_attachment_second);
         mSendButtonMms = (TextView) findViewById(R.id.first_send_button_mms_view);
         mSendButtonSms = (ImageButton) findViewById(R.id.first_send_button_sms_view);
         mSendLayoutMmsFir = findViewById(R.id.first_send_button_mms);
@@ -6451,7 +6457,6 @@ public class ComposeMessageActivity extends Activity
                .getMultiSimIcon(this, MSimConstants.SUB1));
         mIndicatorForSimSmsFir.setImageDrawable(MessageUtils
                 .getMultiSimIcon(this, MSimConstants.SUB1));
-        mAddAttachmentButton.setOnClickListener(this);
         mSendButtonMms.setOnClickListener(this);
         mSendButtonSms.setOnClickListener(this);
 
