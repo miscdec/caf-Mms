@@ -942,6 +942,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
+
+        MenuItem createContact = menu.findItem(R.id.action_create_contact);
+        MenuItem viewContact = menu.findItem(R.id.action_view_contact);
+
         //In folder mode, it will jump to MailBoxMessageList,finish current
         //activity, no need prepare option menu.
         if (MessageUtils.isMailboxMode()) {
@@ -994,7 +998,41 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 mSearchItem.setVisible(false);
             }
         }
+        if (viewContact != null && createContact != null) {
+
+            if (!getListView().hasFocus()) {
+                viewContact.setVisible(false);
+                createContact.setVisible(false);
+
+            } else {
+                ContactList recipientList = getRecipientfromfocusedConv();
+
+                if (recipientList != null && recipientList.size() == 1) {
+                    // do we have this recipient in contacts?
+                    if (recipientList.get(0).existsInDatabase()) {
+                        viewContact.setVisible(true);
+                        createContact.setVisible(false);
+                    } else {
+                        createContact.setVisible(true);
+                        viewContact.setVisible(false);
+                    }
+                } else {
+                    viewContact.setVisible(false);
+                    createContact.setVisible(false);
+                }
+            }
+        }
         return true;
+    }
+
+    ContactList getRecipientfromfocusedConv() {
+        Cursor cursor  = (Cursor) getListView().getItemAtPosition(
+                getListView().getSelectedItemPosition());
+        if (cursor != null && cursor.getCount() > 0) {
+            Conversation conv = Conversation.from(ConversationList.this, cursor);
+            return conv.getRecipients();
+        }
+        return null;
     }
 
     @Override
@@ -1110,6 +1148,16 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 break;
             case R.id.backup_or_restore_message:
                 showSaveOrBackDialog(ConversationList.this);
+                break;
+            case R.id.action_view_contact:
+                Contact contact = getRecipientfromfocusedConv().get(0);
+                intent = new Intent(Intent.ACTION_VIEW, contact.getUri());
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+                startActivity(intent);
+                break;
+            case R.id.action_create_contact:
+                String address = getRecipientfromfocusedConv().get(0).getNumber();
+                startActivity(createAddContactIntent(address));
                 break;
             default:
                 return true;

@@ -21,6 +21,18 @@
         android:icon="@drawable/ic_menu_msg_compose_holo_dark"
         android:showAsAction="always|withText" />
 
+    <item android:id="@+id/action_view_contact"
+          android:title="@string/menu_view_contact"
+          android:orderInCategory="2"
+          android:visible="false"
+          android:showAsAction="never" />
+
+    <item android:id="@+id/action_create_contact"
+          android:title="@string/menu_add_to_contacts"
+          android:orderInCategory="3"
+          android:visible="false"
+          android:showAsAction="never" />
+
     <item android:id="@+id/search"
           android:title="@string/menu_search"
           android:icon="@drawable/ic_menu_search_holo_dark"
