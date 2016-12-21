@@ -192,6 +192,7 @@ import com.android.mms.model.MediaModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.mms.ui.ContactSelectActivity;
 import com.android.mms.ui.MessageListView.OnSizeChangedListener;
 import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
 import com.android.mms.ui.MultiPickContactGroups;
@@ -741,8 +742,8 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void pickContacts(int mode, int requestCode) {
-        Intent intent = new Intent(this, MultiPickContactsActivity.class);
-        intent.putExtra(MultiPickContactsActivity.MODE, mode);
+        Intent intent = new Intent(this, ContactSelectActivity.class);
+        intent.putExtra(ContactSelectActivity.MODE, mode);
         startActivityForResult(intent, requestCode);
     }
 
@@ -5298,14 +5299,14 @@ public class ComposeMessageActivity extends Activity
             case REQUEST_CODE_ATTACH_ADD_CONTACT_INFO:
                 if (data != null) {
                     String newText = mWorkingMessage.getText() +
-                        data.getStringExtra(MultiPickContactsActivity.EXTRA_INFO);
+                        data.getStringExtra(ContactSelectActivity.EXTRA_INFO);
                     mWorkingMessage.setText(newText);
                 }
                 break;
 
             case REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD:
                 if (data != null) {
-                    String extraVCard = data.getStringExtra(MultiPickContactsActivity.EXTRA_VCARD);
+                    String extraVCard = data.getStringExtra(ContactSelectActivity.EXTRA_VCARD);
                     if (extraVCard != null) {
                         Uri vcard = Uri.parse(extraVCard);
                         addVcard(vcard);
