@@ -1097,4 +1097,7 @@
     <!-- Adding menu in the compose message screen-->
     <string name="add_contact_menu">Add Contact</string>
     <string name="add_group_menu">Add Group</string>
+    <!-- menu option in mms -->
+    <string name="menu_select">Select</string>
+    <string name="menu_delete_selected">Delete selected thread</string>
 </resources>

@@ -974,7 +974,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             // Dim compose if SMS is disabled because it will not work (will show a toast)
             item.getIcon().setAlpha(mIsSmsEnabled ? 255 : 127);
         }
-
+        item = menu.findItem(R.id.action_select);
+        if (item != null ){
+            item.setVisible((mListAdapter.getCount() > 0));
+        }
         if (!getResources().getBoolean(R.bool.config_mailbox_enable)) {
             item = menu.findItem(R.id.action_change_mode);
             if (item != null) {
@@ -1114,6 +1117,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
                 }
                 return true;
+            case R.id.action_select:
+                intent = new Intent(this, ConversationMultiSelectList.class);
+                startActivity(intent);
+                break;
             case R.id.my_favorited:
                 Intent favouriteIntent = new Intent(this, FavouriteMessageList.class);
                 favouriteIntent.putExtra("favorited", true);
