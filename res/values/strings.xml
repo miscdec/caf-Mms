@@ -148,11 +148,11 @@
     <!-- Menu item in slideshow edit screen for moving the selected slide down in the order -->
     <string name="move_down">Move down</string>
     <!-- Menu item in slideshow edit screen for removing the selected slide from the slideshow -->
-    <string name="remove_slide">Remove slide</string> 
+    <string name="remove_slide">Remove slide</string>
     <!-- Menu item in slideshow edit screen for adding a new slide to the slideshow -->
     <string name="add_slide">Add slide</string>
     <!-- Text displayed below "Add slide" item in slideshow edit screen -->
-    <string name="add_slide_hint">Touch to create new slide.</string>
+    <string name="add_slide_hint">Click to create new slide.</string>
     <!-- Menu item in slideshow edit screen for discarding the entire slideshow -->
     <string name="discard_slideshow">Discard slideshow</string>
     <!-- Header of slideshow showing which slide is being displayed -->
@@ -390,11 +390,11 @@
     <!-- Title for SMS Disabled -->
     <string name="pref_title_sms_disabled">SMS Disabled</string>
     <!-- Summary for SMS Disabled -->
-    <string name="pref_summary_sms_disabled">Touch to make Messaging your default SMS app</string>
+    <string name="pref_summary_sms_disabled">Click to make Messaging your default SMS app</string>
     <!-- Title for SMS Enabled -->
     <string name="pref_title_sms_enabled">SMS Enabled</string>
     <!-- Summary for SMS Enabled -->
-    <string name="pref_summary_sms_enabled">Touch to change your default SMS app</string>
+    <string name="pref_summary_sms_enabled">Click to change your default SMS app</string>
 
     <!-- Settings item description for entering SIM card message screen -->
     <string name="pref_summary_manage_sim_messages">Manage messages stored on your SIM card</string>
@@ -694,7 +694,7 @@
     <!-- Dialog box title when sending a message failed. -->
     <string name="message_send_failed_title">Message not sent</string>
     <!-- Dialog box message text when failure occurs sending a message. -->
-    <string name="message_failed_body">Touch to review the message and try again.</string>
+    <string name="message_failed_body">Click to review the message and try again.</string>
     <!-- Dialog box message when there's a problem retrieving messages. -->
     <string name="download_later">Can\'t download right now. Try again later.</string>
     <string name="send_failed_retry">Sending failed, auto retry.</string>
@@ -898,11 +898,11 @@
     <string name="switch_data_subscription_failed">failed.</string>
 
     <string name="abort_mms">Messaging: Abort MMS</string>
-    <string name="abort_mms_text ">Touch to abort and switch back.</string>
+    <string name="abort_mms_text ">Click to abort and switch back.</string>
 
     <string name="progress_mms_title">MMS transaction on other sub in progress</string>
     <string name="progress_mms">Messaging: MMS in progress...</string>
-    <string name="progress_mms_text ">Touch to retry again</string>
+    <string name="progress_mms_text ">Click to retry again</string>
     <string name="mail_to">mailto:</string>
     <!-- Menu item to connect the extract url in WwwContextMenuActivity  -->
     <string name="menu_connect_url">Connect</string>
