@@ -449,18 +449,20 @@ public class ComposeMessageActivity extends Activity
     private View mAttachmentSelector;       // View containing the added attachment types
     private ViewPager mAttachmentPager;     // Attachment selector pager
     private AttachmentPagerAdapter mAttachmentPagerAdapter;  // Attachment selector pager adapter
-    private TextView mSendButtonMms;        // Press to send mms
-    private ImageButton mSendButtonSms;     // Press to send sms
-    private ImageButton mButtonEmoj;
+     /* commented for no-touch feature phone*/
+    /*private TextView mSendButtonMms;        // Press to send mms
+    private ImageButton mSendButtonSms;      // Press to send sms
+    private ImageButton mButtonEmoj;*/
     private EditText mSubjectTextEditor;    // Text editor for MMS subject
-    private View mSendLayoutMmsFir;        // The first mms send layout with sim indicator
-    private View mSendLayoutSmsFir;     // The first sms send layout with sim indicator
+     /* commented for no-touch feature phone*/
+    /*private View mSendLayoutMmsFir;        // The first mms send layout with sim indicator
+    private View mSendLayoutSmsFir;      // The first sms send layout with sim indicator
     private View mSendLayoutMmsSec;    // The second mms send layout with sim indicator
     private View mSendLayoutSmsSec;    // The second sms send layout with sim indicator
     private TextView mSendButtonMmsViewSec;    // The second mms send button without sim indicator
     private ImageButton mSendButtonSmsViewSec; // The second sms send button without sim indicator
     private ImageView mIndicatorForSimMmsFir, mIndicatorForSimSmsFir;
-    private ImageView mIndicatorForSimMmsSec, mIndicatorForSimSmsSec;
+    private ImageView mIndicatorForSimMmsSec, mIndicatorForSimSmsSec;*/
 
     private AttachmentEditor mAttachmentEditor;
     private View mAttachmentEditorScrollView;
@@ -983,11 +985,12 @@ public class ComposeMessageActivity extends Activity
             // then won't have to calculate the length unnecessarily.
             final boolean textRemoved = (before > count);
             if (!textRemoved) {
-                if (mShowTwoButtons) {
+                 /* commented for no-touch feature phone*/
+                /*if (mShowTwoButtons) {
                     showTwoSmsOrMmsSendButton(workingMessage.requiresMms());
                 } else {
                     showSmsOrMmsSendButton(workingMessage.requiresMms());
-                }
+                }*/
 
                 return;
             }
@@ -1024,12 +1027,12 @@ public class ComposeMessageActivity extends Activity
                  remainingInCurrentMessage <= CHARS_REMAINING_BEFORE_COUNTER_SHOWN)) {
             showCounter = true;
         }
-
-        if (mShowTwoButtons) {
+         /* commented for no-touch feature phone*/
+        /*if (mShowTwoButtons) {
             showTwoSmsOrMmsSendButton(workingMessage.requiresMms());
         } else {
             showSmsOrMmsSendButton(workingMessage.requiresMms());
-        }
+        }*/
 
         if (showCounter) {
             // Update the remaining characters and number of messages required.
@@ -3727,11 +3730,12 @@ public class ComposeMessageActivity extends Activity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (mShowTwoButtons) {
+                 /* commented for no-touch feature phone*/
+                /*if (mShowTwoButtons) {
                     showTwoSmsOrMmsSendButton(convertToMms);
                 } else {
                     showSmsOrMmsSendButton(convertToMms);
-                }
+                }*/
 
                 if (convertToMms) {
                     // In the case we went from a long sms with a counter to an mms because
@@ -3746,10 +3750,10 @@ public class ComposeMessageActivity extends Activity
             }
         });
     }
-
+     /* commented for no-touch feature phone*/
     // Show or hide the Sms or Mms button as appropriate. Return the view so that the caller
     // can adjust the enableness and focusability.
-    private View showSmsOrMmsSendButton(boolean isMms) {
+    /*private View showSmsOrMmsSendButton(boolean isMms) {
         View showButton;
         View hideButton;
         if (isMms) {
@@ -3785,7 +3789,7 @@ public class ComposeMessageActivity extends Activity
         hideButton[MSimConstants.SUB2].setVisibility(View.GONE);
 
         return showButton;
-    }
+    }*/
 
     Runnable mResetRcsMessageRunnable = new Runnable() {
         @Override
@@ -4134,14 +4138,16 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (isPreparedForSending() && mIsSmsEnabled) {
-           if (mShowTwoButtons) {
+           /* commented for no-touch feature phone*/
+          /* if (mShowTwoButtons) {
                 menu.add(0, MENU_SEND_BY_SLOT1, 0, R.string.send_by_slot1)
                         .setIcon(android.R.drawable.ic_menu_send);
                 menu.add(0, MENU_SEND_BY_SLOT2, 0, R.string.send_by_slot2)
                         .setIcon(android.R.drawable.ic_menu_send);
             } else {
                 menu.add(0, MENU_SEND, 0, R.string.send).setIcon(android.R.drawable.ic_menu_send);
-            }
+            }*/
+            menu.add(0, MENU_SEND, 0, R.string.send);
         }
 
         if ((isSubjectEditorVisible() && mSubjectTextEditor.isFocused())
@@ -6099,8 +6105,8 @@ public class ComposeMessageActivity extends Activity
         boolean isRcsAvailable = RcsApiManager.getSupportApi().isRcsSupported()
                 && RcsApiManager.isRcsOnline();
         mWorkingMessage.setIsBurn(mIsBurnMessage);
-
-        if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
+        /* commented for no-touch feature phone*/
+       /* if ((v == mSendButtonSms || v == mSendButtonMms) && isPreparedForSending()) {
             if (mShowTwoButtons) {
                 confirmSendMessageIfNeeded(MSimConstants.SUB1);
             } else {
@@ -6112,7 +6118,7 @@ public class ComposeMessageActivity extends Activity
         } else if (v == mButtonEmoj) {
             ViewStub viewStub = (ViewStub) findViewById(R.id.emoji_view_stub);
             showEmojiView(viewStub);
-        }
+        }*/
     }
 
     private void showEmojiView(ViewStub emojiViewStub) {
@@ -6161,11 +6167,12 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         public void viewOpenOrCloseListener(boolean isOpen) {
-            if (isOpen) {
+            /* commented for no-touch feature phone*/
+           /* if (isOpen) {
                 mButtonEmoj.setImageResource(R.drawable.rcs_emotion_true);
             } else {
                 mButtonEmoj.setImageResource(R.drawable.rcs_emotion_false);
-            }
+            }*/
         }
     };
 
@@ -6390,12 +6397,13 @@ public class ComposeMessageActivity extends Activity
             mBottomPanel.setVisibility(View.VISIBLE);
             mTextEditor = (EditText) findViewById(R.id.embedded_text_editor);
             mTextCounter = (TextView) findViewById(R.id.text_counter);
-            mSendButtonMms = (TextView) findViewById(R.id.send_button_mms);
+             /* commented for no-touch feature phone*/
+            /*mSendButtonMms = (TextView) findViewById(R.id.send_button_mms);
             mSendButtonSms = (ImageButton) findViewById(R.id.send_button_sms);
             mButtonEmoj = (ImageButton)findViewById(R.id.send_emoj);
             mButtonEmoj.setOnClickListener(this);
             mSendButtonMms.setOnClickListener(this);
-            mSendButtonSms.setOnClickListener(this);
+            mSendButtonSms.setOnClickListener(this);*/
         }
         mTextEditor.setOnEditorActionListener(this);
         mTextEditor.addTextChangedListener(mTextEditorWatcher);
@@ -6431,24 +6439,26 @@ public class ComposeMessageActivity extends Activity
         if (getResources().getBoolean(R.bool.config_two_call_button)) {
             initTwoCallButtonOnActionBar();
         }
-        setEmojBtnGone();
+         /* commented for no-touch feature phone*/
+        /*setEmojBtnGone();*/
     }
-
-    private void setEmojBtnGone(){
+     /* commented for no-touch feature phone*/
+    /*private void setEmojBtnGone(){
         boolean isRcsAvailable = RcsApiManager.getSupportApi().isRcsSupported()
                 && RcsApiManager.isRcsOnline();
         if (!isRcsAvailable) {
             mButtonEmoj.setVisibility(View.GONE);
         }
-    }
+    }*/
 
     private void initTwoSendButton() {
-        mBottomPanel = findViewById(R.id.bottom_panel_btnstyle);
-        mBottomPanel.setVisibility(View.VISIBLE);
+        /* commented for no-touch feature phone*/
+       /* mBottomPanel = findViewById(R.id.bottom_panel_btnstyle);
+        mBottomPanel.setVisibility(View.VISIBLE);*/
         mTextEditor = (EditText) findViewById(R.id.embedded_text_editor_btnstyle);
 
         mTextCounter = (TextView) findViewById(R.id.text_counter_two_buttons);
-        mSendButtonMms = (TextView) findViewById(R.id.first_send_button_mms_view);
+        /*mSendButtonMms = (TextView) findViewById(R.id.first_send_button_mms_view);
         mSendButtonSms = (ImageButton) findViewById(R.id.first_send_button_sms_view);
         mSendLayoutMmsFir = findViewById(R.id.first_send_button_mms);
         mSendLayoutSmsFir = findViewById(R.id.first_send_button_sms);
@@ -6474,7 +6484,7 @@ public class ComposeMessageActivity extends Activity
         mSendButtonMmsViewSec.setOnClickListener(this);
         mSendButtonSmsViewSec.setOnClickListener(this);
         mButtonEmoj = (ImageButton)findViewById(R.id.send_emoj_btnstyle);
-        mButtonEmoj.setOnClickListener(this);
+        mButtonEmoj.setOnClickListener(this);*/
     }
 
     private void confirmDeleteDialog(OnClickListener listener, boolean locked) {
@@ -7084,7 +7094,8 @@ public class ComposeMessageActivity extends Activity
         // invalidate the menu whether the message can be send or can't.
         invalidateOptionsMenu();
         boolean requiresMms = mWorkingMessage.requiresMms();
-        if (mShowTwoButtons) {
+         /* commented for no-touch feature phone*/
+        /*if (mShowTwoButtons) {
             View[] sendButtons = showTwoSmsOrMmsSendButton(requiresMms);
             if (sendButtons[MSimConstants.SUB1] == mSendLayoutMmsFir
                     && sendButtons[MSimConstants.SUB2] == mSendLayoutMmsSec) {
@@ -7103,7 +7114,7 @@ public class ComposeMessageActivity extends Activity
             View sendButton = showSmsOrMmsSendButton(requiresMms);
             sendButton.setEnabled(enable);
             sendButton.setFocusable(enable);
-        }
+        }*/
     }
 
     private long getMessageDate(Uri uri) {

@@ -17,7 +17,24 @@
  * limitations under the License.
  */
 -->
+<!--
+  BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+  Copyright (c) 2016 All rights reserved.
 
+  The source code contained or described herein and all documents
+  related to the source code ("Material") are owned by BORQS Software
+  Solutions Pvt Ltd. No part of the Material may be used,copied,
+  reproduced, modified, published, uploaded,posted, transmitted,
+  distributed, or disclosed in any way without BORQS Software
+  Solutions Pvt Ltd. prior written permission.
+
+  No license under any patent, copyright, trade secret or other
+  intellectual property right is granted to or conferred upon you
+  by disclosure or delivery of the Materials, either expressly, by
+  implication, inducement, estoppel or otherwise. Any license
+  under such intellectual property rights must be express and
+  approved by BORQS Software Solutions Pvt Ltd. in writing.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -170,7 +187,8 @@
                     android:layout_height="50dp"
                     android:drawablePadding="0dip"
                     android:background="@drawable/rcs_emoji_button_bg"
-                    android:src="@drawable/rcs_emotion_false" />
+                    android:src="@drawable/rcs_emotion_false"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:id="@+id/button_with_counter"
@@ -207,7 +225,8 @@
                         android:editable="false"
                         android:text="@string/mms"
                         android:contentDescription="@string/send_mms"
-                        android:nextFocusLeft="@+id/embedded_text_editor" />
+                        android:nextFocusLeft="@+id/embedded_text_editor"
+                        android:visibility="gone" />
 
                     <ImageButton
                         android:id="@+id/send_button_sms"
@@ -219,7 +238,8 @@
                         android:layout_weight="1.0"
                         android:layout_marginLeft="4dip"
                         android:contentDescription="@string/send"
-                        android:nextFocusLeft="@+id/embedded_text_editor" />
+                        android:nextFocusLeft="@+id/embedded_text_editor"
+                        android:visibility="gone" />
 
                 </LinearLayout>
             </LinearLayout>
