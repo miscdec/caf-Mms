@@ -963,17 +963,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         MenuItem createContact = menu.findItem(R.id.action_create_contact);
         MenuItem viewContact = menu.findItem(R.id.action_view_contact);
+        MenuItem deleteSelectedThread = menu.findItem(R.id.action_delete_selected);
 
         //In folder mode, it will jump to MailBoxMessageList,finish current
         //activity, no need prepare option menu.
         if (MessageUtils.isMailboxMode()) {
             return true;
         }
-        MenuItem item = menu.findItem(R.id.action_delete_all);
-        if (item != null) {
-            item.setVisible((mListAdapter.getCount() > 0) && mIsSmsEnabled);
-        }
-        item = menu.findItem(R.id.action_compose_new);
+        MenuItem item = menu.findItem(R.id.action_compose_new);
         if (item != null ){
             // Dim compose if SMS is disabled because it will not work (will show a toast)
             item.getIcon().setAlpha(mIsSmsEnabled ? 255 : 127);
@@ -1014,6 +1011,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 mSearchItem.setVisible(true);
             } else {
                 mSearchItem.setVisible(false);
+            }
+        }
+        if (deleteSelectedThread != null ) {
+            if (getListView().hasFocus() && mListAdapter.getCount() > 0) {
+                deleteSelectedThread.setVisible(true);
+            } else {
+                deleteSelectedThread.setVisible(false);
             }
         }
         if (viewContact != null && createContact != null) {
@@ -1176,6 +1180,12 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             case R.id.action_create_contact:
                 String address = getRecipientfromfocusedConv().get(0).getNumber();
                 startActivity(createAddContactIntent(address));
+                break;
+            case R.id.action_delete_selected:
+                long id = getListView().getSelectedItemId();
+                if (id > 0) {
+                    confirmDeleteThread(id, mQueryHandler);
+                }
                 break;
             default:
                 return true;
