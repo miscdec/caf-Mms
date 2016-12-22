@@ -411,10 +411,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         mQueryHandler = new ThreadListQueryHandler(getContentResolver());
 
         ListView listView = getListView();
-        listView.setOnCreateContextMenuListener(mConvListOnCreateContextMenuListener);
+        /*listView.setOnCreateContextMenuListener(mConvListOnCreateContextMenuListener);*/
         listView.setOnKeyListener(mThreadListKeyListener);
-        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
-        listView.setMultiChoiceModeListener(new ModeCallback());
+        /*listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+        listView.setMultiChoiceModeListener(new ModeCallback());*/
 
         // RCS Features
         addPublicAccountEntranceIfAvailable();
@@ -490,12 +490,12 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         mIsRcsEnabled = RcsApiManager.getSupportApi().isRcsSupported();
 
         // Multi-select is used to delete conversations. It is disabled if we are not the sms app.
-        ListView listView = getListView();
+        /*ListView listView = getListView();
         if (mIsSmsEnabled) {
             listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
         } else {
             listView.setChoiceMode(ListView.CHOICE_MODE_NONE);
-        }
+        }*/
 
         // Show or hide the SMS promo banner
         if (mIsSmsEnabled || MmsConfig.isSmsPromoDismissed(this)) {
@@ -844,7 +844,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         // Simply setting the choice mode causes the previous choice mode to finish and we exit
         // multi-select mode (if we're in it) and remove all the selections.
-        getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+        /*getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);*/
 
     }
 
