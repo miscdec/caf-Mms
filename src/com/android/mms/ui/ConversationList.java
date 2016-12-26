@@ -712,11 +712,16 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
         if (mListAdapter != null) {
             mListAdapter.changeCursor(null);
         }
-
+        if (mHandler != null) {
+            mHandler.removeCallbacks(mShowProgressDialogRunnable);
+        }
+        if (mProgressDialog != null && mProgressDialog.isShowing()) {
+            LogTag.debugD("dismiss progress dialog");
+            mProgressDialog.dismiss();
+        }
         MessageUtils.removeDialogs();
         try {
             if (mIsRcsEnabled) {

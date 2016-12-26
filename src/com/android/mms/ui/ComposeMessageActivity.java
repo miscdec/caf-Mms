@@ -1213,7 +1213,7 @@ public class ComposeMessageActivity extends Activity
         public void onClick(DialogInterface dialog, int whichButton) {
             boolean isMms = mWorkingMessage.requiresMms();
             if (isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(mSubscription) &&
-                    MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                    !MessageUtils.isMobileDataEnabled(getApplicationContext(), mSubscription)) {
                 showMobileDataDisabledDialog(mSubscription);
             } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
                 if (mSubscription == MessageUtils.SUB_INVALID) {
@@ -1404,7 +1404,7 @@ public class ComposeMessageActivity extends Activity
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
             if (isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(subscription) &&
-                    MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                    !MessageUtils.isMobileDataEnabled(getApplicationContext(), subscription)) {
                 showMobileDataDisabledDialog(subscription);
             } else {
                 sendMsimMessage(true, subscription);
@@ -1415,7 +1415,7 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog(subscription);
         } else if (isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(subscription) &&
-                MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                !MessageUtils.isMobileDataEnabled(getApplicationContext(), subscription)) {
             showMobileDataDisabledDialog(subscription);
         } else {
             if (!TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
@@ -1451,7 +1451,8 @@ public class ComposeMessageActivity extends Activity
         if (!isRecipientsEditorVisible()) {
             if (isMms && !mSendMmsSupportViaWiFi &&
                     canSendMmsMobileDataOff(SubscriptionManager.getDefaultSmsSubscriptionId()) &&
-                    MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                    !MessageUtils.isMobileDataEnabled(getApplicationContext(),
+                            SubscriptionManager.getDefaultSmsSubscriptionId())) {
                 showMobileDataDisabledDialog();
             } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
                 LogTag.debugD("sendMsimMessage true");
@@ -1467,7 +1468,8 @@ public class ComposeMessageActivity extends Activity
             showInvalidRecipientDialog();
         } else if (isMms && !mSendMmsSupportViaWiFi &&
                 canSendMmsMobileDataOff(SubscriptionManager.getDefaultSmsSubscriptionId()) &&
-                MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                !MessageUtils.isMobileDataEnabled(getApplicationContext(),
+                        SubscriptionManager.getDefaultSmsSubscriptionId())) {
             showMobileDataDisabledDialog();
         } else {
             if (!TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
@@ -9687,6 +9689,7 @@ public class ComposeMessageActivity extends Activity
          */
         @Override
         public void prepare(String path, ImageView view, int color) {
+            ImageView oldPlayerView = mPlayPause;
             mPlayPause = view;
             mColor = color;
             if (path == null) return;
@@ -9701,6 +9704,11 @@ public class ComposeMessageActivity extends Activity
                         play();
                     }
                 } else {
+                    mPlayPauseDrawable = getResources().getDrawable(R.drawable.audio_play).mutate();
+                    mPlayPauseDrawable.setTint(mColor);
+                    if (null != oldPlayerView) {
+                        oldPlayerView.setBackground(mPlayPauseDrawable);
+                    }
                     releaseMediaPlayer();
                     initMediaPlayer(path);
                 }

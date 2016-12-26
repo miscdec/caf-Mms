@@ -1783,7 +1783,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 return;
             }
             // If mobile data is turned off, inform user start data and try again.
-            else if (MessageUtils.isMobileDataDisabled(mContext)) {
+            else if (!MessageUtils.isMobileDataEnabled(mContext, mMessageItem.mSubId)) {
                 Toast.makeText(mContext, mContext.getString(R.string.inform_data_off),
                         Toast.LENGTH_LONG).show();
                 return;

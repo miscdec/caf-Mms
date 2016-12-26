@@ -2268,6 +2268,20 @@ public class MessageUtils {
         return !mConnService.getMobileDataEnabled();
     }
 
+    public static boolean isMobileDataEnabled(Context context, int subId) {
+        if (isMultiSimEnabledMms()) {
+            LogTag.debugD("isMobileDataEnabled subId:" + subId);
+            if (subId > SUB_INVALID) {
+                return MmsApp.getApplication().getTelephonyManager().getDataEnabled(subId);
+            }
+        } else {
+            LogTag.debugD("isMobileDataEnabled SS");
+
+        }
+        LogTag.debugD("isMobileDataEnabled get default data enable status");
+        return MmsApp.getApplication().getTelephonyManager().getDataEnabled();
+    }
+
     public static boolean isAirplaneModeOn(Context context) {
         return Settings.Global.getInt(context.getContentResolver(),
                 Settings.Global.AIRPLANE_MODE_ON, 0) == 1;
