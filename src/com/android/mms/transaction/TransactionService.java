@@ -1190,11 +1190,11 @@ public class TransactionService extends Service implements Observer {
                 if (!mPending.isEmpty()) {
                     // Get the pending transaction and delete it.
                     tranList.addAll(mPending);
-                    tranList.get(tranList.size() - 1).attach(TransactionService.this);
                     mPending.clear();
                 }
 
                 for (Transaction transaction : tranList) {
+                    transaction.attach(TransactionService.this);
                     transaction.abort();
                 }
             }
