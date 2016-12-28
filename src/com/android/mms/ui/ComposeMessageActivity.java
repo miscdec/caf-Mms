@@ -1253,6 +1253,10 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void LaunchMsimDialog(final boolean bCheckEcmMode) {
+        if (mMsimDialog != null && mMsimDialog.isShowing()) {
+            mMsimDialog.dismiss();
+        }
+
         AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
         LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         View layout = inflater.inflate(R.layout.multi_sim_sms_sender,
