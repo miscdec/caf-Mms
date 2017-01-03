@@ -52,7 +52,7 @@ import android.util.Log;
 abstract class BackgroundLoaderManager {
     private static final String TAG = LogTag.TAG;
 
-    private static final int MAX_THREADS = 2;
+    private static final int MAX_THREADS = 5;
 
     /**
      * URIs for which tasks are currently enqueued. Don't enqueue new tasks for
@@ -168,8 +168,8 @@ abstract class BackgroundLoaderManager {
         public Thread newThread(final Runnable r) {
             Thread t =  new Thread(r, mTag + "-" + mCount.getAndIncrement());
 
-            if (t.getPriority() != Thread.MIN_PRIORITY)
-                t.setPriority(Thread.MIN_PRIORITY);
+            if (t.getPriority() != Thread.NORM_PRIORITY)
+                t.setPriority(Thread.NORM_PRIORITY);
 
             return t;
         }
