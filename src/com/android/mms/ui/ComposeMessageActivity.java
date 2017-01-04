@@ -6648,10 +6648,20 @@ public class ComposeMessageActivity extends Activity
             }
         }
 
+        private Runnable updateAttachTypeRunnable = new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "updateAttachTypeRunnable after onDeleteComplete");
+                updateThreadAttachType();
+            }
+        };
+
         @Override
         protected void onDeleteComplete(int token, Object cookie, int result) {
             super.onDeleteComplete(token, cookie, result);
-            updateThreadAttachType();
+            mHandler.removeCallbacks(updateAttachTypeRunnable);
+            mHandler.postDelayed(updateAttachTypeRunnable, 200);
+
             switch(token) {
                 case ConversationList.DELETE_CONVERSATION_TOKEN:
                     mConversation.setMessageCount(0);
