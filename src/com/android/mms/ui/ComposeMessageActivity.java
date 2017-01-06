@@ -5763,8 +5763,16 @@ public class ComposeMessageActivity extends Activity
         Toast.makeText(this, body, Toast.LENGTH_LONG).show();
     }
 
+    private Runnable messageListQueryRunnable = new Runnable() {
+        @Override
+        public void run() {
+            startMsgListQuery(MESSAGE_LIST_QUERY_TOKEN);
+        }
+    };
+
     private void startMsgListQuery() {
-        startMsgListQuery(MESSAGE_LIST_QUERY_TOKEN);
+        mHandler.removeCallbacks(messageListQueryRunnable);
+        mHandler.postDelayed(messageListQueryRunnable, 200);
     }
 
     private void startMsgListQuery(int token) {
