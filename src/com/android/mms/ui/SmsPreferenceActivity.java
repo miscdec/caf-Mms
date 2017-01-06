@@ -859,7 +859,6 @@ public class SmsPreferenceActivity extends PreferenceActivity {
     protected void onResume() {
         // Initialize the sms signature
         updateSignatureStatus();
-        updateSMSCPref();
         registerListeners();
         super.onResume();
     }
