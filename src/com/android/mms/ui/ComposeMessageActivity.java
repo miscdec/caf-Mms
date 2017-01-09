@@ -5763,8 +5763,16 @@ public class ComposeMessageActivity extends Activity
         Toast.makeText(this, body, Toast.LENGTH_LONG).show();
     }
 
+    private Runnable messageListQueryRunnable = new Runnable() {
+        @Override
+        public void run() {
+            startMsgListQuery(MESSAGE_LIST_QUERY_TOKEN);
+        }
+    };
+
     private void startMsgListQuery() {
-        startMsgListQuery(MESSAGE_LIST_QUERY_TOKEN);
+        mHandler.removeCallbacks(messageListQueryRunnable);
+        mHandler.postDelayed(messageListQueryRunnable, 200);
     }
 
     private void startMsgListQuery(int token) {
@@ -6648,10 +6656,20 @@ public class ComposeMessageActivity extends Activity
             }
         }
 
+        private Runnable updateAttachTypeRunnable = new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "updateAttachTypeRunnable after onDeleteComplete");
+                updateThreadAttachType();
+            }
+        };
+
         @Override
         protected void onDeleteComplete(int token, Object cookie, int result) {
             super.onDeleteComplete(token, cookie, result);
-            updateThreadAttachType();
+            mHandler.removeCallbacks(updateAttachTypeRunnable);
+            mHandler.postDelayed(updateAttachTypeRunnable, 200);
+
             switch(token) {
                 case ConversationList.DELETE_CONVERSATION_TOKEN:
                     mConversation.setMessageCount(0);
