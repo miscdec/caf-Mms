@@ -1901,6 +1901,9 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void resendMessage(MessageItem msgItem) {
+        if (SmsManager.getDefault().isSMSPromptEnabled()) {
+            mWorkingMessage.setWorkingMessageSub(msgItem.mSubId);
+        }
         if (msgItem.isMms()) {
             // If it is mms, we delete current mms and use current mms
             // uri to create new working message object.

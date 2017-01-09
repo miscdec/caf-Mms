@@ -2127,7 +2127,7 @@ public class MessageUtils {
             c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
                     new String[] {ContactsContract.Data.RAW_CONTACT_ID},
                     ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME
-                    + " like '%" + name + "%' ", new String[] {StructuredName.CONTENT_ITEM_TYPE},
+                    + " like '" + name + "%' ", new String[] {StructuredName.CONTENT_ITEM_TYPE},
                     null);
 
             if (c == null) {
