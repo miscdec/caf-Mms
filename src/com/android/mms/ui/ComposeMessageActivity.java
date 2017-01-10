@@ -1253,6 +1253,10 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void LaunchMsimDialog(final boolean bCheckEcmMode) {
+        if (mMsimDialog != null && mMsimDialog.isShowing()) {
+            mMsimDialog.dismiss();
+        }
+
         AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
         LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         View layout = inflater.inflate(R.layout.multi_sim_sms_sender,
@@ -1901,6 +1905,9 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void resendMessage(MessageItem msgItem) {
+        if (SmsManager.getDefault().isSMSPromptEnabled()) {
+            mWorkingMessage.setWorkingMessageSub(msgItem.mSubId);
+        }
         if (msgItem.isMms()) {
             // If it is mms, we delete current mms and use current mms
             // uri to create new working message object.
@@ -2779,6 +2786,11 @@ public class ComposeMessageActivity extends Activity
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        if (!(MessageUtils.hasBasicPermissions() && MessageUtils
+                .hasPermissions(MessageUtils.sSMSExtendPermissions)))
+        {
+            return;
+        }
 
         setIntent(intent);
 
@@ -9689,6 +9701,7 @@ public class ComposeMessageActivity extends Activity
          */
         @Override
         public void prepare(String path, ImageView view, int color) {
+            ImageView oldPlayerView = mPlayPause;
             mPlayPause = view;
             mColor = color;
             if (path == null) return;
@@ -9703,6 +9716,11 @@ public class ComposeMessageActivity extends Activity
                         play();
                     }
                 } else {
+                    mPlayPauseDrawable = getResources().getDrawable(R.drawable.audio_play).mutate();
+                    mPlayPauseDrawable.setTint(mColor);
+                    if (null != oldPlayerView) {
+                        oldPlayerView.setBackground(mPlayPauseDrawable);
+                    }
                     releaseMediaPlayer();
                     initMediaPlayer(path);
                 }
