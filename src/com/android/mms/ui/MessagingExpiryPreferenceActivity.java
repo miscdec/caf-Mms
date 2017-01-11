@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -37,9 +37,9 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.view.MenuItem;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.R;
 import com.android.mms.transaction.TransactionService;
+import com.android.mmswrapper.ConstantsWrapper;
 
 public class MessagingExpiryPreferenceActivity extends PreferenceActivity {
     private static String TAG = "MessagingExpiryPreferenceActivity";
@@ -92,10 +92,10 @@ public class MessagingExpiryPreferenceActivity extends PreferenceActivity {
         if (getResources().getBoolean(R.bool.config_mms_validity)) {
             if (MessageUtils.isMultiSimEnabledMms()) {
                 if (MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
-                    setMmsExpirySummary(PhoneConstants.SUB1);
+                    setMmsExpirySummary(ConstantsWrapper.Phone.SUB1);
                 }
                 if (MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
-                    setMmsExpirySummary(PhoneConstants.SUB2);
+                    setMmsExpirySummary(ConstantsWrapper.Phone.SUB2);
                 }
             }
         }
@@ -103,7 +103,7 @@ public class MessagingExpiryPreferenceActivity extends PreferenceActivity {
 
     private void setMmsExpirySummary(int subscription) {
         switch (subscription) {
-            case PhoneConstants.SUB1:
+            case ConstantsWrapper.Phone.SUB1:
                 mMmsExpiryCard1Pref
                         .setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                             public boolean onPreferenceChange(
@@ -119,7 +119,7 @@ public class MessagingExpiryPreferenceActivity extends PreferenceActivity {
                         });
                 mMmsExpiryCard1Pref.setSummary(mMmsExpiryCard1Pref.getEntry());
                 break;
-            case PhoneConstants.SUB2:
+            case ConstantsWrapper.Phone.SUB2:
                 mMmsExpiryCard2Pref
                         .setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                             public boolean onPreferenceChange(

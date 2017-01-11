@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import android.content.Context;
-import android.provider.Telephony.Mms;
 import android.telephony.PhoneNumberUtils;
 import android.text.Annotation;
 import android.text.Editable;
@@ -234,7 +233,7 @@ public class RecipientsEditor extends RecipientEditTextView {
             // formed SMS addr. CDMA doesn't work that way and has a different parser for SMS
             // address (see CdmaSmsAddress.parse(String address)). We should definitely fix this!!!
             return PhoneNumberUtils.isWellFormedSmsAddress(number)
-                    || Mms.isEmailAddress(number);
+                    || ContactRecipientEntryUtils.isEmailAddress(number);
         }
     }
 
@@ -327,7 +326,7 @@ public class RecipientsEditor extends RecipientEditTextView {
 
         List<String> numbers = mTokenizer.getNumbers();
         for (String number : numbers) {
-            if (Mms.isEmailAddress(number))
+            if (ContactRecipientEntryUtils.isEmailAddress(number))
                 return true;
         }
         return false;

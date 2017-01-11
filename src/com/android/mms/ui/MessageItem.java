@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
@@ -50,6 +50,8 @@ import com.android.mms.util.DownloadManager;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ItemLoadedFuture;
 import com.android.mms.util.PduLoaderManager;
+import com.android.mmswrapper.TelephonyManagerWrapper;
+import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
@@ -172,7 +174,7 @@ public class MessageItem {
             // Set contact and message body
             mBoxId = cursor.getInt(columnsMap.mColumnSmsType);
             mAddress = cursor.getString(columnsMap.mColumnSmsAddress);
-            if (Sms.isOutgoingFolder(mBoxId)) {
+            if (TelephonyWrapper.Sms.isOutgoingFolder(mBoxId)) {
                 String meString = context.getString(
                         R.string.messagelist_sender_self);
 
@@ -352,10 +354,12 @@ public class MessageItem {
 
     public boolean isCdmaInboxMessage() {
         int activePhone;
+        TelephonyManager tm = (TelephonyManager) mContext.
+                getSystemService(Context.TELEPHONY_SERVICE);
         if (MessageUtils.isMultiSimEnabledMms()) {
-            activePhone = TelephonyManager.getDefault().getCurrentPhoneType(mSubId);
+            activePhone = TelephonyManagerWrapper.getCurrentPhoneType(tm, mSubId);
         } else {
-            activePhone = TelephonyManager.getDefault().getPhoneType();
+            activePhone = tm.getPhoneType();
         }
 
         return ((mBoxId == Sms.MESSAGE_TYPE_INBOX

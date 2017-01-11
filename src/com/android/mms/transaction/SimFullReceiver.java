@@ -27,10 +27,10 @@ import android.provider.Settings;
 import android.provider.Telephony;
 import android.util.Log;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.R;
 import com.android.mms.ui.ManageSimMessages;
 import com.android.mms.ui.MessageUtils;
+import com.android.mmswrapper.ConstantsWrapper;
 
 /**
  * Receive Intent.SIM_FULL_ACTION.  Handle notification that SIM is full.
@@ -50,11 +50,11 @@ public class SimFullReceiver extends BroadcastReceiver {
             NotificationManager nm = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
 
-            int slot = intent.getIntExtra(PhoneConstants.SLOT_KEY,
-                    PhoneConstants.SUB1);
+            int slot = intent.getIntExtra(ConstantsWrapper.Phone.SLOT_KEY,
+                    ConstantsWrapper.Phone.SUB1);
             Intent viewSimIntent = new Intent(context, ManageSimMessages.class);
             viewSimIntent.setAction(Intent.ACTION_VIEW);
-            viewSimIntent.putExtra(PhoneConstants.SLOT_KEY, slot);
+            viewSimIntent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, slot);
             viewSimIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             PendingIntent pendingIntent = PendingIntent.getActivity(
                     context, 0, viewSimIntent, PendingIntent.FLAG_UPDATE_CURRENT);

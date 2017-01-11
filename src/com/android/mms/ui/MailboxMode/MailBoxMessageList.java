@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2012 The Android Open Source Project.
@@ -89,6 +89,7 @@ import com.android.mms.ui.SelectionMenu;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.DraftCache;
 import com.android.mms.widget.MmsWidgetProvider;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.google.android.mms.pdu.PduHeaders;
 
 import static com.android.mms.ui.MessageListAdapter.MAILBOX_PROJECTION;
@@ -524,10 +525,10 @@ public class MailBoxMessageList extends ListActivity implements
                 mQueryDone = false;
                 String selStr = null;
                 if (mQuerySlotType == TYPE_SLOT_ONE) {
-                    int subId = SubscriptionManager.getSubId(MessageUtils.SUB1)[0];
+                    int subId = SubscriptionManagerWrapper.getSubId(MessageUtils.SUB1)[0];
                     selStr = "sub_id = " + subId;
                 } else if (mQuerySlotType == TYPE_SLOT_TWO) {
-                    int subId = SubscriptionManager.getSubId(MessageUtils.SUB2)[0];
+                    int subId = SubscriptionManagerWrapper.getSubId(MessageUtils.SUB2)[0];
                     selStr = "sub_id = " + subId;
                 }
                 if (mIsInSearchMode) {

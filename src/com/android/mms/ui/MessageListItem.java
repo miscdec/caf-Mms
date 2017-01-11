@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
@@ -99,6 +99,7 @@ import com.android.mms.util.DownloadManager;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.MaterialColorMapUtils;
 import com.android.mms.util.ThumbnailManager.ImageLoaded;
+import com.android.mmswrapper.TelephonyWrapper;
 
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
@@ -575,7 +576,7 @@ public class MessageListItem extends ZoomMessageListItem implements
         // will set the avatar to the generic avatar then when this method is called again
         // from onPduLoaded, it will reset to the real avatar. This test is to avoid that flash.
         if (!sameItem || haveLoadedPdu) {
-            boolean isSelf = Sms.isOutgoingFolder(mMessageItem.mBoxId);
+            boolean isSelf = TelephonyWrapper.Sms.isOutgoingFolder(mMessageItem.mBoxId);
             String addr = isSelf ? null : mMessageItem.mAddress;
             updateAvatarView(addr, isSelf);
             //After pdu loaded, update the text view according to the slide-layout setting.
@@ -889,7 +890,7 @@ public class MessageListItem extends ZoomMessageListItem implements
             View stub = findViewById(R.id.mms_layout_view_audio_play_stub);
             stub.setVisibility(View.VISIBLE);
         }
-        boolean isSelf = Sms.isOutgoingFolder(mMessageItem.mBoxId);
+        boolean isSelf = TelephonyWrapper.Sms.isOutgoingFolder(mMessageItem.mBoxId);
         final int audioPlayColor = isSelf ? ComposeMessageActivity.getSendContactColor()
                 : mContext.getResources().getColor(R.color.white);
 
@@ -1011,9 +1012,6 @@ public class MessageListItem extends ZoomMessageListItem implements
             fm.ascent -= 10;
         }
     };
-
-    TextAppearanceSpan mTextSmallSpan =
-        new TextAppearanceSpan(mContext, android.R.style.TextAppearance_Small);
 
     ForegroundColorSpan mColorSpan = null;  // set in ctor
 
@@ -1299,7 +1297,7 @@ public class MessageListItem extends ZoomMessageListItem implements
     @Override
     public void setChecked(boolean arg0) {
         mIsCheck = arg0;
-        boolean isSelf = Sms.isOutgoingFolder(mMessageItem.mBoxId);
+        boolean isSelf = TelephonyWrapper.Sms.isOutgoingFolder(mMessageItem.mBoxId);
         String addr = isSelf ? null : mMessageItem.mAddress;
         updateAvatarView(addr, isSelf);
         if (mIsCheck) {

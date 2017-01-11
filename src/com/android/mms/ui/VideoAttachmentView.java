@@ -89,7 +89,7 @@ public class VideoAttachmentView extends LinearLayout implements
 
     public void setVideo(String name, Uri video) {
         try {
-            Bitmap bitmap = createVideoThumbnail(mContext, video);
+            Bitmap bitmap = createVideoThumbnail(getContext(), video);
             if (null == bitmap) {
                 bitmap = BitmapFactory.decodeResource(getResources(),
                         R.drawable.ic_missing_thumbnail_video);

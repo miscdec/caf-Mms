@@ -9,9 +9,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.RemoteException;
-import android.os.ServiceManager;
 import android.preference.PreferenceManager;
-import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsManager;
@@ -19,14 +17,17 @@ import android.telephony.SubscriptionManager;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.android.internal.telephony.ISms;
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.data.Conversation;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.util.ContactRecipientEntryUtils;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SmsManagerWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.MmsException;
 
 public class SmsSingleRecipientSender extends SmsMessageSender {
@@ -52,7 +53,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
     }
 
     private boolean sendEmptyMessage() throws MmsException {
-        boolean moved = Sms.moveMessageToFolder(mContext, mUri, Sms.MESSAGE_TYPE_OUTBOX, 0);
+        boolean moved = TelephonyWrapper.Sms.moveMessageToFolder(mContext, mUri, Sms.MESSAGE_TYPE_OUTBOX, 0);
         if (!moved) {
             throw new MmsException("SmsMessageSender.sendEmptyMessage couldn't move message " +
                     "to outbox: " + mUri);
@@ -76,7 +77,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                 mUri,
                 mContext,
                 SmsReceiver.class);
-        intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, mSubId);
+        intent.putExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, mSubId);
         int requestCode = 1;
         intent.putExtra(SmsReceiverService.EXTRA_MESSAGE_SENT_SEND_NEXT, true);
 
@@ -92,19 +93,16 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
             validityPeriod = -1;
         }
         try {
-            ISms iccISms = ISms.Stub.asInterface(ServiceManager.getService("isms"));
-            if (iccISms != null) {
-                LogTag.debugD("sendTextForSubscriberWithSelfPermissions:"
-                        + "mDest=" + mDest
-                        + "mRequestDeliveryReport=" +mRequestDeliveryReport
-                        + "mServiceCenter=" + mServiceCenter
-                        + "mThreadId=" + mThreadId
-                        + "|mUri=" + mUri
-                        );
-                iccISms.sendTextForSubscriberWithSelfPermissions(mSubId,
-                        ActivityThread.currentPackageName(), mDest,
-                        mServiceCenter, "", sentIntent, deliveryIntent, true);
-            }
+            LogTag.debugD("sendTextForSubscriberWithSelfPermissions:"
+                                    + "mDest=" + mDest
+                                    + "mRequestDeliveryReport=" +mRequestDeliveryReport
+                                    + "mServiceCenter=" + mServiceCenter
+                                    + "mThreadId=" + mThreadId
+                                    + "|mUri=" + mUri
+                                    );
+            TelephonyWrapper.sendTextForSubscriberWithSelfPermissions(mSubId,
+                    ActivityThread.currentPackageName(), mDest,
+                    mServiceCenter, "", sentIntent, deliveryIntent, true);
         } catch (RemoteException ex) {
             // ignore it
         } catch (Exception ex) {
@@ -124,7 +122,8 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
         SmsManager smsManager = SmsManager.getSmsManagerForSubscriptionId(mSubId);
         ArrayList<String> messages = null;
         if ((MmsConfig.getEmailGateway() != null) &&
-                (Mms.isEmailAddress(mDest) || MessageUtils.isAlias(mDest))) {
+                (ContactRecipientEntryUtils.isEmailAddress(mDest)
+                        || MessageUtils.isAlias(mDest))) {
             String msgText;
             msgText = mDest + " " + mMessageText;
             mDest = MmsConfig.getEmailGateway();
@@ -150,7 +149,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
             }
         }
 
-        boolean moved = Sms.moveMessageToFolder(mContext, mUri, Sms.MESSAGE_TYPE_OUTBOX, 0);
+        boolean moved = TelephonyWrapper.Sms.moveMessageToFolder(mContext, mUri, Sms.MESSAGE_TYPE_OUTBOX, 0);
         if (!moved) {
             throw new MmsException("SmsMessageSender.sendMessage: couldn't move message " +
                     "to outbox: " + mUri);
@@ -178,7 +177,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                     mUri,
                     mContext,
                     SmsReceiver.class);
-            intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, mSubId);
+            intent.putExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, mSubId);
             int requestCode = 0;
             if (i == messageCount -1) {
                 // Changing the requestCode so that a different pending intent
@@ -214,7 +213,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                     + "|mSubId=" + mSubId
                     + "|mRequestDeliveryReport=" + mRequestDeliveryReport
                     );
-            smsManager.sendMultipartTextMessage(mDest, mServiceCenter, messages,
+            SmsManagerWrapper.sendMultipartTextMessage(smsManager, mDest, mServiceCenter, messages,
                     sentIntents, deliveryIntents, mPriority, isExpectMore, validityPeriod);
         } catch (Exception ex) {
             Log.e(TAG, "SmsMessageSender.sendMessage: caught", ex);
@@ -228,7 +227,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
         String valitidyPeriod = null;
         if (MessageUtils.isMultiSimEnabledMms()) {
-            int phoneId = SubscriptionManager.getPhoneId(subscription);
+            int phoneId = SubscriptionManagerWrapper.getPhoneId(subscription);
             switch (phoneId) {
                 case MessageUtils.SUB1:
                     if (MessageUtils.isMsimIccCardActive()) {

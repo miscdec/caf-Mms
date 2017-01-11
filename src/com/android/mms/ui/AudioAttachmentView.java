@@ -88,7 +88,7 @@ public class AudioAttachmentView extends LinearLayout implements
 
     synchronized public void startAudio() {
         if (!mIsPlaying && (mAudioUri != null)) {
-            mMediaPlayer = MediaPlayer.create(mContext, mAudioUri);
+            mMediaPlayer = MediaPlayer.create(getContext(), mAudioUri);
             if (mMediaPlayer != null) {
                 mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
                 mMediaPlayer.setOnCompletionListener(new OnCompletionListener() {

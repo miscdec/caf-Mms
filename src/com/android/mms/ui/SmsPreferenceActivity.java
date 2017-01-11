@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -56,8 +56,8 @@ import android.widget.Toast;
 import com.android.mms.R;
 import com.android.mms.MmsConfig;
 import com.android.mms.transaction.TransactionService;
-import com.android.internal.telephony.PhoneConstants;
-import com.android.internal.telephony.TelephonyIntents;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
 
 public class SmsPreferenceActivity extends PreferenceActivity {
     private static String TAG = "SmsPreferenceActivity";
@@ -134,7 +134,6 @@ public class SmsPreferenceActivity extends PreferenceActivity {
     private static final int EVENT_SET_SMSC_DONE = 0;
     private static final int EVENT_GET_SMSC_DONE = 1;
     private static final int EVENT_SET_SMSC_PREF_DONE = 2;
-    private static final String EXTRA_EXCEPTION = "exception";
     private static SmscHandler mHandler = null;
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -222,7 +221,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
             prefSmsSettings.removePreference(mSmsDeliveryReportPref);
             prefSmsSettings.removePreference(mSmsDeliveryReportNoMultiPref);
         } else {
-            if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+            if (MessageUtils.isMultiSimEnabledMms()) {
                 prefSmsSettings.removePreference(mSmsDeliveryReportNoMultiPref);
                 if (!MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
                     prefSmsSettings
@@ -259,7 +258,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
             }
         }
         if (getResources().getBoolean(R.bool.config_savelocation)) {
-            if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+            if (MessageUtils.isMultiSimEnabledMms()) {
                 prefSmsSettings.removePreference(mSmsStorePrefSingleSim);
                 if (!MessageUtils.hasIccCard(MessageUtils.SUB1) &&
                         !MessageUtils.hasIccCard(MessageUtils.SUB2)) {
@@ -399,7 +398,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
         } else {
             prefSmsSettings.removePreference(mSmsCenterNumberSS);
             prefSmsSettings.removePreference(mSmsCenterNumber);
-            int count = TelephonyManager.getDefault().getPhoneCount();
+            int count = MessageUtils.getPhoneCount();
             for (int i = 0; i < count; i++) {
                 final Preference pref = findPreference(String.valueOf(i));
                 pref.setTitle(getSMSCDialogTitle(count, i));
@@ -411,7 +410,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
 
                 mSmscPrefList.add(pref);
                 boolean isCDMA = false;
-                int subId[] = SubscriptionManager.getSubId(i);
+                int subId[] = SubscriptionManagerWrapper.getSubId(i);
                 if (subId != null && subId.length != 0) {
                     isCDMA = MessageUtils.isCDMAPhone(subId[0]);
                 }
@@ -427,7 +426,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
     }
 
     private String getSMSCDialogTitle(int count, int index) {
-        String title = TelephonyManager.getDefault().isMultiSimEnabled()
+        String title = MessageUtils.isMultiSimEnabledMms()
                 ? getString(R.string.pref_more_smcs) : getString(R.string.pref_one_smcs);
         return title;
     }
@@ -446,11 +445,11 @@ public class SmsPreferenceActivity extends PreferenceActivity {
             if (mSmscPrefList == null || mSmscPrefList.size() == 0) {
                 return;
             }
-            int count = TelephonyManager.getDefault().getPhoneCount();
+            int count = MessageUtils.getPhoneCount();
             int iccCardActivited = 0;
             for (int i = 0; i < count; i++) {
                 boolean isCDMA = false;
-                int subId[] = SubscriptionManager.getSubId(i);
+                int subId[] = SubscriptionManagerWrapper.getSubId(i);
                 if (subId != null && subId.length != 0) {
                     isCDMA = MessageUtils.isCDMAPhone(subId[0]);
                 }
@@ -485,7 +484,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                     final Message callback = mHandler
                             .obtainMessage(EVENT_GET_SMSC_DONE);
                     Bundle userParams = new Bundle();
-                    userParams.putInt(PhoneConstants.SLOT_KEY, id);
+                    userParams.putInt(ConstantsWrapper.Phone.SLOT_KEY, id);
                     callback.obj = userParams;
                     MessageUtils.getSmscFromSub(this, id, callback);
                 }
@@ -499,7 +498,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                     final Message callback = mHandler
                             .obtainMessage(EVENT_GET_SMSC_DONE);
                     Bundle userParams = new Bundle();
-                    userParams.putInt(PhoneConstants.SLOT_KEY, id);
+                    userParams.putInt(ConstantsWrapper.Phone.SLOT_KEY, id);
                     callback.obj = userParams;
                     MessageUtils.getSmscFromSub(this, id, callback);
                 }
@@ -674,7 +673,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                                     Log.d(TAG, "set SMSC from sub= " + sub
                                             + " SMSC= " + displayedSMSC);
                                     Bundle userParams = new Bundle();
-                                    userParams.putInt(PhoneConstants.SLOT_KEY,
+                                    userParams.putInt(ConstantsWrapper.Phone.SLOT_KEY,
                                             sub);
                                     if (getResources().getBoolean(
                                             R.bool.def_enable_reset_smsc)) {
@@ -769,14 +768,15 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                 return;
             }
             Throwable exception = (Throwable) bundle
-                    .getSerializable(EXTRA_EXCEPTION);
-            if (exception != null) {
-                Log.d(TAG, "Error: " + exception);
+                    .getSerializable(MessageUtils.EXTRA_EXCEPTION);
+            boolean result = bundle.getBoolean(MessageUtils.EXTRA_SMSC_RESULT, false);
+            if (!result || exception != null) {
+                Log.d(TAG, "Error: " + exception + " result:" + result);
                 mOwner.showToast(R.string.set_smsc_error);
                 return;
             }
 
-            Bundle userParams = (Bundle) bundle.getParcelable("userobj");
+            Bundle userParams = (Bundle) bundle.getParcelable(MessageUtils.EXTRA_USEROBJ);
             if (userParams == null) {
                 Log.d(TAG, "userParams = null");
                 return;
@@ -789,14 +789,14 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                     break;
                 case EVENT_GET_SMSC_DONE:
                     Log.d(TAG, "Get SMSC successfully");
-                    int sub = userParams.getInt(PhoneConstants.SLOT_KEY, -1);
+                    int sub = userParams.getInt(ConstantsWrapper.Phone.SLOT_KEY, -1);
                     if (sub != -1) {
-                        bundle.putInt(PhoneConstants.SLOT_KEY, sub);
+                        bundle.putInt(ConstantsWrapper.Phone.SLOT_KEY, sub);
                         mOwner.updateSmscFromBundle(bundle);
                     }
                     break;
                 case EVENT_SET_SMSC_PREF_DONE:
-                    int key = userParams.getInt(PhoneConstants.SLOT_KEY, -1);
+                    int key = userParams.getInt(ConstantsWrapper.Phone.SLOT_KEY, -1);
                     if (key != -1) {
                         mOwner.updateSmscFromPreference(key);
                     }
@@ -807,7 +807,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
 
     private void updateSmscFromBundle(Bundle bundle) {
         if (bundle != null) {
-            int sub = bundle.getInt(PhoneConstants.SLOT_KEY, -1);
+            int sub = bundle.getInt(ConstantsWrapper.Phone.SLOT_KEY, -1);
             if (sub != -1) {
                 String summary = bundle
                         .getString(MessageUtils.EXTRA_SMSC, null);
@@ -835,10 +835,10 @@ public class SmsPreferenceActivity extends PreferenceActivity {
         editor.commit();
 
         Bundle params = new Bundle();
-        params.putInt(PhoneConstants.SLOT_KEY, sub);
+        params.putInt(ConstantsWrapper.Phone.SLOT_KEY, sub);
         params.putString(MessageUtils.EXTRA_SMSC, smsc);
 
-        params.putParcelable("userobj", (Parcelable) callback.obj);
+        params.putParcelable(MessageUtils.EXTRA_USEROBJ, (Parcelable) callback.obj);
         callback.obj = params;
 
         if (callback.getTarget() != null) {
@@ -865,7 +865,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
 
     private void registerListeners() {
         final IntentFilter intentFilter = new IntentFilter(
-                TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+                ConstantsWrapper.TelephonyIntent.ACTION_SIM_STATE_CHANGED);
         intentFilter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
         registerReceiver(mReceiver, intentFilter);
     }
@@ -900,11 +900,11 @@ public class SmsPreferenceActivity extends PreferenceActivity {
             startActivity(new Intent(this, ManageSimMessages.class));
         } else if (preference == mManageSim1Pref) {
             Intent intent = new Intent(this, ManageSimMessages.class);
-            intent.putExtra(PhoneConstants.SLOT_KEY, PhoneConstants.SUB1);
+            intent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, ConstantsWrapper.Phone.SUB1);
             startActivity(intent);
         } else if (preference == mManageSim2Pref) {
             Intent intent = new Intent(this, ManageSimMessages.class);
-            intent.putExtra(PhoneConstants.SLOT_KEY, PhoneConstants.SUB2);
+            intent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, ConstantsWrapper.Phone.SUB2);
             startActivity(intent);
         } else if (preference == mSmsValidityPref) {
             Intent intent = new Intent(this, MessagingExpiryPreferenceActivity.class);

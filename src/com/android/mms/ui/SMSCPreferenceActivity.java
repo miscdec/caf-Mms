@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -44,8 +44,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Parcelable;
 import android.os.RemoteException;
-import android.os.ServiceManager;
-import android.os.SystemProperties;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
 import android.preference.Preference.OnPreferenceChangeListener;
@@ -55,24 +53,12 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceManager;
-import android.preference.PreferenceScreen;
-import android.preference.SwitchPreference;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.telephony.SubscriptionManager;
 
-import com.android.internal.telephony.PhoneConstants;
-import com.android.internal.telephony.IccCardConstants;
-import com.android.internal.telephony.TelephonyIntents;
-
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.ArrayMap;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -80,6 +66,8 @@ import android.widget.Toast;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.transaction.SmsMessageSender;
 import com.android.mms.transaction.TransactionService;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
 
 import android.content.DialogInterface.OnCancelListener;
 import android.database.Cursor;
@@ -98,7 +86,6 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
     private static final int EVENT_SET_SMSC_DONE = 0;
     private static final int EVENT_GET_SMSC_DONE = 1;
     private static final int EVENT_SET_SMSC_PREF_DONE = 2;
-    private static final String EXTRA_EXCEPTION = "exception";
     private static SmscHandler mHandler = null;
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -125,7 +112,7 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
     }
 
     private void showSmscPref() {
-        int count = TelephonyManager.getDefault().getPhoneCount();
+        int count = MessageUtils.getPhoneCount();
         for (int i = 0; i < count; i++) {
             final Preference pref = new Preference(this);
             pref.setKey(String.valueOf(i));
@@ -149,7 +136,7 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
             mSmscPrefList.add(pref);
             for (int j = 0; j < count; j++) {
                 boolean isCDMA = false;
-                int subId[] = SubscriptionManager.getSubId(j);
+                int subId[] = SubscriptionManagerWrapper.getSubId(j);
                 if (subId != null && subId.length != 0) {
                     isCDMA = MessageUtils.isCDMAPhone(subId[0]);
                 }
@@ -164,7 +151,7 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
     }
 
     private String getSMSCDialogTitle(int count, int index) {
-        String title = TelephonyManager.getDefault().isMultiSimEnabled() ? getString(
+        String title = MessageUtils.isMultiSimEnabledMms() ? getString(
                 R.string.pref_more_message_smcs, index + 1)
                 : getString(R.string.pref_one_smcs);
         return title;
@@ -174,10 +161,10 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
         if (mSmscPrefList == null || mSmscPrefList.size() == 0) {
             return;
         }
-        int count = TelephonyManager.getDefault().getPhoneCount();
+        int count = MessageUtils.getPhoneCount();
         for (int i = 0; i < count; i++) {
             boolean isCDMA = false;
-            int subId[] = SubscriptionManager.getSubId(i);
+            int subId[] = SubscriptionManagerWrapper.getSubId(i);
             if (subId != null && subId.length != 0) {
                 isCDMA = MessageUtils.isCDMAPhone(subId[0]);
             }
@@ -197,7 +184,7 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
                 final Message callback = mHandler
                         .obtainMessage(EVENT_GET_SMSC_DONE);
                 Bundle userParams = new Bundle();
-                userParams.putInt(PhoneConstants.SLOT_KEY, id);
+                userParams.putInt(ConstantsWrapper.Phone.SLOT_KEY, id);
                 callback.obj = userParams;
                 MessageUtils.getSmscFromSub(this, id, callback);
             }
@@ -263,7 +250,7 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
                                     Log.d(TAG, "set SMSC from sub= " + sub
                                             + " SMSC= " + displayedSMSC);
                                     Bundle userParams = new Bundle();
-                                    userParams.putInt(PhoneConstants.SLOT_KEY,
+                                    userParams.putInt(ConstantsWrapper.Phone.SLOT_KEY,
                                             sub);
                                     if (getResources().getBoolean(
                                             R.bool.def_enable_reset_smsc)) {
@@ -358,14 +345,15 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
                 return;
             }
             Throwable exception = (Throwable) bundle
-                    .getSerializable(EXTRA_EXCEPTION);
-            if (exception != null) {
-                Log.d(TAG, "Error: " + exception);
+                    .getSerializable(MessageUtils.EXTRA_EXCEPTION);
+            boolean result = bundle.getBoolean(MessageUtils.EXTRA_SMSC_RESULT, false);
+            if (!result || exception != null) {
+                Log.d(TAG, "Error: " + exception + " result:" + result);
                 mOwner.showToast(R.string.set_smsc_error);
                 return;
             }
 
-            Bundle userParams = (Bundle) bundle.getParcelable("userobj");
+            Bundle userParams = (Bundle) bundle.getParcelable(MessageUtils.EXTRA_USEROBJ);
             if (userParams == null) {
                 Log.d(TAG, "userParams = null");
                 return;
@@ -378,14 +366,14 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
                     break;
                 case EVENT_GET_SMSC_DONE:
                     Log.d(TAG, "Get SMSC successfully");
-                    int sub = userParams.getInt(PhoneConstants.SLOT_KEY, -1);
+                    int sub = userParams.getInt(ConstantsWrapper.Phone.SLOT_KEY, -1);
                     if (sub != -1) {
-                        bundle.putInt(PhoneConstants.SLOT_KEY, sub);
+                        bundle.putInt(ConstantsWrapper.Phone.SLOT_KEY, sub);
                         mOwner.updateSmscFromBundle(bundle);
                     }
                     break;
                 case EVENT_SET_SMSC_PREF_DONE:
-                    int key = userParams.getInt(PhoneConstants.SLOT_KEY, -1);
+                    int key = userParams.getInt(ConstantsWrapper.Phone.SLOT_KEY, -1);
                     if (key != -1) {
                         mOwner.updateSmscFromPreference(key);
                     }
@@ -396,7 +384,7 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
 
     private void updateSmscFromBundle(Bundle bundle) {
         if (bundle != null) {
-            int sub = bundle.getInt(PhoneConstants.SLOT_KEY, -1);
+            int sub = bundle.getInt(ConstantsWrapper.Phone.SLOT_KEY, -1);
             if (sub != -1) {
                 String summary = bundle
                         .getString(MessageUtils.EXTRA_SMSC, null);
@@ -420,10 +408,10 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
         editor.commit();
 
         Bundle params = new Bundle();
-        params.putInt(PhoneConstants.SLOT_KEY, sub);
+        params.putInt(ConstantsWrapper.Phone.SLOT_KEY, sub);
         params.putString(MessageUtils.EXTRA_SMSC, smsc);
 
-        params.putParcelable("userobj", (Parcelable) callback.obj);
+        params.putParcelable(MessageUtils.EXTRA_USEROBJ, (Parcelable) callback.obj);
         callback.obj = params;
 
         if (callback.getTarget() != null) {
@@ -450,7 +438,7 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
 
     private void registerListeners() {
         final IntentFilter intentFilter = new IntentFilter(
-                TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+                ConstantsWrapper.TelephonyIntent.ACTION_SIM_STATE_CHANGED);
         intentFilter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
         registerReceiver(mReceiver, intentFilter);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2017 The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -63,15 +63,16 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.android.internal.telephony.Phone;
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
-import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.RateController;
+import com.android.mmswrapper.ConnectivityManagerWrapper;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mmswrapper.TelephonyManagerWrapper;
 import com.google.android.mms.pdu.GenericPdu;
 import com.google.android.mms.pdu.NotificationInd;
 import com.google.android.mms.pdu.PduHeaders;
@@ -194,13 +195,9 @@ public class TransactionService extends Service implements Observer {
 
     private ConnectivityManager.NetworkCallback  getNetworkCallback(String subId) {
         final String mSubId = subId;
-        final int mPhoneId = SubscriptionManager.getPhoneId(Integer.parseInt(mSubId));
+        final int mPhoneId = SubscriptionManagerWrapper.getPhoneId(Integer.parseInt(mSubId));
 
         return new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onPreCheck(Network network) {
-                Log.d(TAG, "sub:" + mSubId + "NetworkCallback.onPrecheck: network=" + network);
-            }
             @Override
             public void onAvailable(Network network) {
                 mIsAvailable[mPhoneId] = true;
@@ -221,11 +218,6 @@ public class TransactionService extends Service implements Observer {
                 mIsAvailable[mPhoneId] = false;
                 Log.d(TAG, "sub:" + mSubId + "NetworkCallback.onLost: network=" + network +
                         " mIsAvailable=" + mIsAvailable[mPhoneId]);
-            }
-            @Override
-            public void onUnavailable() {
-                Log.d(TAG,"sub:" + mSubId + "NetworkCallback.onUnavailable");
-
             }
             @Override
             public void onCapabilitiesChanged(Network network, NetworkCapabilities nc) {
@@ -253,8 +245,8 @@ public class TransactionService extends Service implements Observer {
             // This is a very specific fix to handle the case where the phone receives an
             // incoming call during the time we're trying to setup the mms connection.
             // When the call ends, restart the process of mms connectivity.
-            if (Phone.REASON_VOICE_CALL_ENDED.equals(mmsNetworkInfo.getReason())) {
-                LogTag.debugD("   reason is " + Phone.REASON_VOICE_CALL_ENDED +
+            if (ConstantsWrapper.Phone.REASON_VOICE_CALL_ENDED.equals(mmsNetworkInfo.getReason())) {
+                LogTag.debugD("   reason is " + ConstantsWrapper.Phone.REASON_VOICE_CALL_ENDED +
                         ", retrying mms connectivity");
                 return;
             }
@@ -288,13 +280,11 @@ public class TransactionService extends Service implements Observer {
     }
 
     private NetworkRequest buildNetworkRequest(String subId) {
-        NetworkRequest networkRequest = new NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_MMS)
-            .build();
-
-        networkRequest.networkCapabilities.setNetworkSpecifier(subId);
-
+        NetworkRequest.Builder builder = new NetworkRequest.Builder();
+        builder.addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR);
+        builder.addCapability(NetworkCapabilities.NET_CAPABILITY_MMS);
+        builder.setNetworkSpecifier(subId);
+        NetworkRequest networkRequest = builder.build();
         return networkRequest;
     }
 
@@ -409,7 +399,8 @@ public class TransactionService extends Service implements Observer {
         boolean flag = false;
         TelephonyManager telephonyManager = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
         flag = (telephonyManager != null
-                && (telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_IWLAN));
+                && (telephonyManager.getNetworkType() ==
+                TelephonyManagerWrapper.NETWORK_TYPE_IWLAN));
         return flag;
     }
 
@@ -627,7 +618,7 @@ public class TransactionService extends Service implements Observer {
             }
 
             Bundle bundle = intent.getExtras();
-            bundle.putInt(PhoneConstants.SUBSCRIPTION_KEY, subId);
+            bundle.putInt(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, subId);
             // For launching NotificationTransaction and test purpose.
             TransactionBundle args = new TransactionBundle(bundle);
             launchTransaction(serviceId, args, noNetwork);
@@ -950,15 +941,16 @@ public class TransactionService extends Service implements Observer {
         // Take a wake lock so we don't fall asleep before the message is downloaded.
         createWakeLock();
 
-        int phoneId = SubscriptionManager.getPhoneId(subId);
+        int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
         Log.v(TAG, "beginMmsConnectivity for subId = " + subId +" phoneId=" + phoneId);
 
         if (mMmsNetworkRequest[phoneId] == null) {
             mMmsNetworkRequest[phoneId] = buildNetworkRequest(Integer.toString(subId));
             mMmsNetworkCallback[phoneId] = getNetworkCallback(Integer.toString(subId));
 
-            mConnMgr.requestNetwork(mMmsNetworkRequest[phoneId], mMmsNetworkCallback[phoneId],
-                    PDP_ACTIVATION_TIMEOUT);
+            ConnectivityManagerWrapper.requestNetwork(mConnMgr,
+                        mMmsNetworkRequest[phoneId], mMmsNetworkCallback[phoneId],
+                        PDP_ACTIVATION_TIMEOUT);
             Log.d(TAG, "beginMmsConnectivity:call ConnectivityManager.requestNetwork ");
             Message message = mServiceHandler.obtainMessage(
                     EVENT_MMS_PDP_ACTIVATION_TIMEOUT);
@@ -969,7 +961,7 @@ public class TransactionService extends Service implements Observer {
     }
 
     private void releaseNetworkRequest(int subId) {
-        int phoneId = SubscriptionManager.getPhoneId(subId);
+        int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
         if (mMmsNetworkCallback[phoneId] != null) {
             mIsAvailable[phoneId] = false;
             Log.d(TAG, "releaseNetworkRequest phoneId=" + phoneId);
@@ -982,7 +974,7 @@ public class TransactionService extends Service implements Observer {
 
     protected void endMmsConnectivity() {
         for (int i = 0; i < mPhoneCount; i++) {
-            int[] subId = SubscriptionManager.getSubId(i);
+            int[] subId = SubscriptionManagerWrapper.getSubId(i);
             endMmsConnectivity(subId[0]);
         }
     }
@@ -1333,7 +1325,7 @@ public class TransactionService extends Service implements Observer {
                 }
 
                 int subId = transaction.getSubId();
-                int phoneId = SubscriptionManager.getPhoneId(subId);
+                int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
                 /*
                 * Make sure that the network connectivity necessary
                 * for MMS traffic is enabled. If it is not, we need

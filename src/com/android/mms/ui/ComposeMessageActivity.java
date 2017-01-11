@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
@@ -47,23 +47,18 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 import java.util.Set;
 
 import android.Manifest;
-import android.R.integer;
 import android.animation.AnimatorSet;
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
 import android.app.ActionBar;
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -94,9 +89,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.StateListDrawable;
 import android.media.AudioManager;
-import android.media.MediaFile;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
@@ -110,7 +103,6 @@ import android.os.Message;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
-import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
@@ -149,13 +141,9 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.TextKeyListener;
 import android.text.style.URLSpan;
-import android.text.util.Linkify;
-import android.util.Base64;
 import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.ActionMode;
-import android.view.ContextMenu;
-import android.view.ContextMenu.ContextMenuInfo;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -163,7 +151,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.ViewGroup;
 import android.view.View;
-import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
 import android.view.ViewStub;
 import android.view.Window;
@@ -179,17 +166,12 @@ import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Toolbar;
 import android.widget.Button;
 
 import com.android.ex.chips.RecipientEditTextView;
-import com.android.internal.telephony.PhoneConstants;
-import com.android.internal.telephony.RILConstants;
-import com.android.internal.telephony.TelephonyIntents;
-import com.android.internal.telephony.TelephonyProperties;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -202,7 +184,6 @@ import com.android.mms.data.Conversation.ConversationQueryHandler;
 import com.android.mms.data.WorkingMessage;
 import com.android.mms.data.WorkingMessage.MessageStatusListener;
 import com.android.mms.drm.DrmUtils;
-import com.android.mms.model.ContentRestriction;
 import com.android.mms.model.ContentRestrictionFactory;
 import com.android.mms.model.MediaModel;
 import com.android.mms.model.SlideModel;
@@ -210,17 +191,22 @@ import com.android.mms.model.SlideshowModel;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.ui.MessageListView.OnSizeChangedListener;
 import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
-import com.android.mms.ui.MultiPickContactGroups;
-import com.android.mms.ui.RecipientsEditor.RecipientContextMenuInfo;
 import com.android.mms.ui.zoom.ZoomGestureOverlayView;
 import com.android.mms.ui.zoom.ZoomGestureOverlayView.IZoomListener;
 import com.android.mms.ui.zoom.ZoomMessageListItem;
+import com.android.mms.util.ContactRecipientEntryUtils;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.MaterialColorMapUtils;
 import com.android.mms.util.MaterialColorMapUtils.MaterialPalette;
 import com.android.mms.util.PhoneNumberFormatter;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.widget.MmsWidgetProvider;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.MediaFileWrapper;
+import com.android.mmswrapper.SmsManagerWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mmswrapper.TelephonyManagerWrapper;
+import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
@@ -452,8 +438,6 @@ public class ComposeMessageActivity extends Activity
     private boolean mWaitingForSubActivity;
     private boolean mInAsyncAddAttathProcess = false;
     private int mLastRecipientCount;            // Used for warning the user on too many recipients.
-    private AttachmentTypeSelectorAdapter mAttachmentTypeSelectorAdapter;
-
     private boolean mSendingMessage;    // Indicates the current message is sending, and shouldn't send again.
 
     private Intent mAddContactIntent;   // Intent used to add a new contact
@@ -1012,7 +996,7 @@ public class ComposeMessageActivity extends Activity
         public void onClick(DialogInterface dialog, int whichButton) {
             if (isMmsWithMobileDataOff(mWorkingMessage.requiresMms(), mSubscription)) {
                 showMobileDataDisabledDialog(mSubscription);
-            } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
+            } else if ((MessageUtils.getPhoneCount()) > 1) {
                 int subId = (mSubscription == MessageUtils.SUB_INVALID)
                         ? SubscriptionManager.getDefaultSmsSubscriptionId()
                         : mSubscription;
@@ -1081,7 +1065,7 @@ public class ComposeMessageActivity extends Activity
         mMsimDialog.setCanceledOnTouchOutside(true);
 
         int[] smsBtnIds = {R.id.BtnSimOne, R.id.BtnSimTwo, R.id.BtnSimThree};
-        int phoneCount = TelephonyManager.getDefault().getPhoneCount();
+        int phoneCount = MessageUtils.getPhoneCount();
         Button[] smsBtns = new Button[phoneCount];
         List<SubscriptionInfo> subInfoList = SubscriptionManager.from(
                 getApplicationContext()).getActiveSubscriptionInfoList();
@@ -1132,8 +1116,9 @@ public class ComposeMessageActivity extends Activity
         try {
             int tddOnly = Settings.Global.getInt(getContentResolver(), LTE_DATA_ONLY_KEY);
             int network = Settings.Global.getInt(getContentResolver(),
-                    Settings.Global.PREFERRED_NETWORK_MODE);
-            return network == RILConstants.NETWORK_MODE_LTE_ONLY && tddOnly == LTE_DATA_ONLY_MODE;
+                    ConstantsWrapper.SettingsGlobal.PREFERRED_NETWORK_MODE);
+            return network == ConstantsWrapper.RIL.NETWORK_MODE_LTE_ONLY
+                    && tddOnly == LTE_DATA_ONLY_MODE;
         } catch (SettingNotFoundException snfe) {
             Log.w(TAG, "isLTEOnlyMode: Could not find PREFERRED_NETWORK_MODE!");
         }
@@ -1142,11 +1127,12 @@ public class ComposeMessageActivity extends Activity
 
     private boolean isLTEOnlyMode(int subscription) {
         try {
-            int tddOnly = TelephonyManager.getIntAtIndex(getContentResolver(),
+            int tddOnly = TelephonyManagerWrapper.getIntAtIndex(getContentResolver(),
                     LTE_DATA_ONLY_KEY, subscription);
-            int network = TelephonyManager.getIntAtIndex(getContentResolver(),
-                    Settings.Global.PREFERRED_NETWORK_MODE, subscription);
-            return network == RILConstants.NETWORK_MODE_LTE_ONLY && tddOnly == LTE_DATA_ONLY_MODE;
+            int network = TelephonyManagerWrapper.getIntAtIndex(getContentResolver(),
+                    ConstantsWrapper.SettingsGlobal.PREFERRED_NETWORK_MODE, subscription);
+            return network == ConstantsWrapper.RIL.NETWORK_MODE_LTE_ONLY
+                    && tddOnly == LTE_DATA_ONLY_MODE;
         } catch (SettingNotFoundException snfe) {
             Log.w(TAG, "isLTEOnlyMode: Could not find PREFERRED_NETWORK_MODE!");
         }
@@ -1156,7 +1142,7 @@ public class ComposeMessageActivity extends Activity
     private void showDisableLTEOnlyDialog(int subscription) {
         Intent intent = new Intent();
         intent.setAction(INTENT_ACTION_LTE_DATA_ONLY_DIALOG);
-        intent.putExtra(PhoneConstants.SLOT_KEY, subscription);
+        intent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, subscription);
         startActivity(intent);
     }
 
@@ -1206,12 +1192,13 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void confirmSendMessageIfNeeded() {
-        int slot = SubscriptionManager.getSlotId(
-                SmsManager.getDefault().getDefaultSmsSubscriptionId());
-        if ((TelephonyManager.getDefault().isMultiSimEnabled() &&
-                isLTEOnlyMode(slot))
-                || (!TelephonyManager.getDefault().isMultiSimEnabled()
-                        && isLTEOnlyMode())) {
+        TelephonyManager tm = (TelephonyManager)getSystemService(
+                Context.TELEPHONY_SERVICE);
+        boolean isMultiSim = TelephonyManagerWrapper.isMultiSimEnabled(tm);
+        int slot = SubscriptionManagerWrapper.getSlotId(
+                    SmsManager.getDefault().getDefaultSmsSubscriptionId());
+        if ((isMultiSim && isLTEOnlyMode(slot))
+                || (!isMultiSim && isLTEOnlyMode())) {
             showDisableLTEOnlyDialog(slot);
             LogTag.debugD("return for disable LTEOnly");
             return;
@@ -1220,8 +1207,8 @@ public class ComposeMessageActivity extends Activity
         boolean isMms = mWorkingMessage.requiresMms();
         int defaultSubId = SubscriptionManager.getDefaultSmsSubscriptionId();
         if (!isRecipientsEditorVisible()) {
-            if (TelephonyManager.getDefault().isMultiSimEnabled()) {
-                if ((TelephonyManager.getDefault().getPhoneCount()) > 1 &&
+            if (isMultiSim) {
+                if ((tm.getPhoneCount()) > 1 &&
                         MessageUtils.isMsimIccCardActive()) {
                     if(SmsManager.getDefault().isSMSPromptEnabled()) {
                         launchMsimDialog(true, isMms);
@@ -1242,7 +1229,7 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
         } else if (TelephonyManager.getDefault().isMultiSimEnabled()) {
-            if ((TelephonyManager.getDefault().getPhoneCount()) > 1 &&
+            if ((tm.getPhoneCount()) > 1 &&
                     MessageUtils.isMsimIccCardActive()) {
                 if(SmsManager.getDefault().isSMSPromptEnabled()) {
                     launchMsimDialog(true, isMms);
@@ -1319,7 +1306,7 @@ public class ComposeMessageActivity extends Activity
         builder.setMessage(getString(R.string.mobile_data_disable));
         builder.setPositiveButton(R.string.yes, new OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
-                if ((TelephonyManager.getDefault().getPhoneCount()) > 1
+                if ((MessageUtils.getPhoneCount()) > 1
                         && (subscription != MessageUtils.SUB_INVALID)) {
                     sendMsimMessage(true, subscription);
                 } else {
@@ -1526,8 +1513,8 @@ public class ComposeMessageActivity extends Activity
                 return false;
             }
         }
-        if (!(Mms.isEmailAddress(name) ||
-                Telephony.Mms.isPhoneNumber(name) ||
+        if (!(ContactRecipientEntryUtils.isEmailAddress(name) ||
+                TelephonyWrapper.Mms.isPhoneNumber(name) ||
                 contact.isMe())) {
             return false;
         }
@@ -1692,7 +1679,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void resendMessage(MessageItem msgItem) {
-        if (SmsManager.getDefault().isSMSPromptEnabled()) {
+        if (SmsManagerWrapper.isSMSPromptEnabled(SmsManager.getDefault())) {
             mWorkingMessage.setWorkingMessageSub(msgItem.mSubId);
         }
         if (msgItem.isMms()) {
@@ -3237,20 +3224,20 @@ public class ComposeMessageActivity extends Activity
         View[] showButton = new View[NUMBER_OF_BUTTONS];
         View[] hideButton = new View[NUMBER_OF_BUTTONS];
         if (isMms) {
-            showButton[PhoneConstants.SUB1] = mSendLayoutMmsFir;
-            showButton[PhoneConstants.SUB2] = mSendLayoutMmsSec;
-            hideButton[PhoneConstants.SUB1] = mSendLayoutSmsFir;
-            hideButton[PhoneConstants.SUB2] = mSendLayoutSmsSec;
+            showButton[ConstantsWrapper.Phone.SUB1] = mSendLayoutMmsFir;
+            showButton[ConstantsWrapper.Phone.SUB2] = mSendLayoutMmsSec;
+            hideButton[ConstantsWrapper.Phone.SUB1] = mSendLayoutSmsFir;
+            hideButton[ConstantsWrapper.Phone.SUB2] = mSendLayoutSmsSec;
         } else {
-            showButton[PhoneConstants.SUB1] = mSendLayoutSmsFir;
-            showButton[PhoneConstants.SUB2] = mSendLayoutSmsSec;
-            hideButton[PhoneConstants.SUB1] = mSendLayoutMmsFir;
-            hideButton[PhoneConstants.SUB2] = mSendLayoutMmsSec;
+            showButton[ConstantsWrapper.Phone.SUB1] = mSendLayoutSmsFir;
+            showButton[ConstantsWrapper.Phone.SUB2] = mSendLayoutSmsSec;
+            hideButton[ConstantsWrapper.Phone.SUB1] = mSendLayoutMmsFir;
+            hideButton[ConstantsWrapper.Phone.SUB2] = mSendLayoutMmsSec;
         }
-        showButton[PhoneConstants.SUB1].setVisibility(View.VISIBLE);
-        showButton[PhoneConstants.SUB2].setVisibility(View.VISIBLE);
-        hideButton[PhoneConstants.SUB1].setVisibility(View.GONE);
-        hideButton[PhoneConstants.SUB2].setVisibility(View.GONE);
+        showButton[ConstantsWrapper.Phone.SUB1].setVisibility(View.VISIBLE);
+        showButton[ConstantsWrapper.Phone.SUB2].setVisibility(View.VISIBLE);
+        hideButton[ConstantsWrapper.Phone.SUB1].setVisibility(View.GONE);
+        hideButton[ConstantsWrapper.Phone.SUB2].setVisibility(View.GONE);
 
         return showButton;
     }
@@ -3391,8 +3378,7 @@ public class ComposeMessageActivity extends Activity
             }
         }
         // Don't show the call icon if the device don't support voice calling.
-        boolean voiceCapable =
-                getResources().getBoolean(com.android.internal.R.bool.config_voice_capable);
+        boolean voiceCapable = ConstantsWrapper.getConfigVoiceCapable(this);
         if (isRecipientCallable() && voiceCapable) {
             MenuItem item = menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
                 .setIcon(R.drawable.call)
@@ -3484,13 +3470,15 @@ public class ComposeMessageActivity extends Activity
             case MENU_SEND_BY_SLOT1:
                 if (isPreparedForSending()) {
                     confirmSendMessageIfNeeded(
-                            SubscriptionManager.getSubId(PhoneConstants.SUB1)[0]);
+                            SubscriptionManagerWrapper.getSubId(
+                                        ConstantsWrapper.Phone.SUB1)[0]);
                 }
                 break;
             case MENU_SEND_BY_SLOT2:
                 if (isPreparedForSending()) {
                     confirmSendMessageIfNeeded(
-                            SubscriptionManager.getSubId(PhoneConstants.SUB2)[0]);
+                            SubscriptionManagerWrapper.getSubId(
+                                        ConstantsWrapper.Phone.SUB2)[0]);
                 }
                 break;
             case MENU_SEARCH:
@@ -4634,23 +4622,23 @@ public class ComposeMessageActivity extends Activity
 
     private boolean isAudioFile(Uri uri) {
         String path = uri.getPath();
-        String mimeType = MediaFile.getMimeTypeForFile(path);
-        int fileType = MediaFile.getFileTypeForMimeType(mimeType);
-        return MediaFile.isAudioFileType(fileType);
+        String mimeType = MediaFileWrapper.getMimeTypeForFile(path);
+        int fileType = MediaFileWrapper.getFileTypeForMimeType(mimeType);
+        return MediaFileWrapper.isAudioFileType(fileType);
     }
 
     private boolean isImageFile(Uri uri) {
         String path = uri.getPath();
-        String mimeType = MediaFile.getMimeTypeForFile(path);
-        int fileType = MediaFile.getFileTypeForMimeType(mimeType);
-        return MediaFile.isImageFileType(fileType);
+        String mimeType = MediaFileWrapper.getMimeTypeForFile(path);
+        int fileType = MediaFileWrapper.getFileTypeForMimeType(mimeType);
+        return MediaFileWrapper.isImageFileType(fileType);
     }
 
     private boolean isVideoFile(Uri uri) {
         String path = uri.getPath();
-        String mimeType = MediaFile.getMimeTypeForFile(path);
-        int fileType = MediaFile.getFileTypeForMimeType(mimeType);
-        return MediaFile.isVideoFileType(fileType);
+        String mimeType = MediaFileWrapper.getMimeTypeForFile(path);
+        int fileType = MediaFileWrapper.getFileTypeForMimeType(mimeType);
+        return MediaFileWrapper.isVideoFileType(fileType);
     }
 
     // mVideoUri will look like this: content://media/external/video/media
@@ -4734,8 +4722,7 @@ public class ComposeMessageActivity extends Activity
                         && fileName.contains(".")) {
                     String fileType = fileName.substring(fileName
                             .lastIndexOf(".") + 1);
-                    return !fileType.isEmpty() && fileType.trim().length() > 0
-                            && fileType != "";
+                    return !TextUtils.isEmpty(fileType) && fileType.trim().length() > 0;
                 }
             }
             return false;
@@ -4838,13 +4825,15 @@ public class ComposeMessageActivity extends Activity
                 e.printStackTrace();
             }
             if (mShowTwoButtons) {
-                confirmSendMessageIfNeeded(SubscriptionManager.getSubId(PhoneConstants.SUB1)[0]);
+                confirmSendMessageIfNeeded(SubscriptionManagerWrapper.
+                            getSubId(ConstantsWrapper.Phone.SUB1)[0]);
             } else {
                 confirmSendMessageIfNeeded();
             }
         } else if ((v == mSendButtonSmsViewSec || v == mSendButtonMmsViewSec) &&
                 mShowTwoButtons && isPreparedForSending()) {
-            confirmSendMessageIfNeeded(SubscriptionManager.getSubId(PhoneConstants.SUB2)[0]);
+            confirmSendMessageIfNeeded(SubscriptionManagerWrapper.
+                        getSubId(ConstantsWrapper.Phone.SUB2)[0]);
         } else if (v == mRecipientsPicker) {
             launchMultiplePhonePicker();
         } else if ((v == mAddAttachmentButton)) {
@@ -4873,7 +4862,7 @@ public class ComposeMessageActivity extends Activity
         Intent intent = new Intent(INTENT_MULTI_PICK_ACTION, Contacts.CONTENT_URI);
         String exsitNumbers = mRecipientsEditor.getExsitNumbers();
         if (!TextUtils.isEmpty(exsitNumbers)) {
-            intent.putExtra(Intents.EXTRA_PHONE_URIS, exsitNumbers);
+            intent.putExtra(ConstantsWrapper.IntentConstants.EXTRA_PHONE_URIS, exsitNumbers);
         }
         try {
             startActivityForResult(intent, REQUEST_CODE_PICK);
@@ -5125,9 +5114,9 @@ public class ComposeMessageActivity extends Activity
         mIndicatorForSimMmsFir = (ImageView) findViewById(R.id.first_sim_card_indicator_mms);
         mIndicatorForSimSmsFir = (ImageView) findViewById(R.id.first_sim_card_indicator_sms);
         mIndicatorForSimMmsFir.setImageDrawable(MessageUtils
-               .getMultiSimIcon(this, PhoneConstants.SUB1));
+               .getMultiSimIcon(this, ConstantsWrapper.Phone.SUB1));
         mIndicatorForSimSmsFir.setImageDrawable(MessageUtils
-                .getMultiSimIcon(this, PhoneConstants.SUB1));
+                .getMultiSimIcon(this, ConstantsWrapper.Phone.SUB1));
         mAddAttachmentButton.setOnClickListener(this);
         mSendButtonMms.setOnClickListener(this);
         mSendButtonSms.setOnClickListener(this);
@@ -5140,9 +5129,9 @@ public class ComposeMessageActivity extends Activity
         mIndicatorForSimMmsSec = (ImageView) findViewById(R.id.second_sim_card_indicator_mms);
         mIndicatorForSimSmsSec = (ImageView) findViewById(R.id.second_sim_card_indicator_sms);
         mIndicatorForSimMmsSec.setImageDrawable(MessageUtils
-               .getMultiSimIcon(this, PhoneConstants.SUB2));
+               .getMultiSimIcon(this, ConstantsWrapper.Phone.SUB2));
         mIndicatorForSimSmsSec.setImageDrawable(MessageUtils
-                .getMultiSimIcon(this, PhoneConstants.SUB2));
+                .getMultiSimIcon(this, ConstantsWrapper.Phone.SUB2));
         mSendButtonMmsViewSec.setOnClickListener(this);
         mSendButtonSmsViewSec.setOnClickListener(this);
     }
@@ -5331,7 +5320,10 @@ public class ComposeMessageActivity extends Activity
     }
 
     private boolean isPreparedForSending() {
-        if (mIsAirplaneModeOn && !TelephonyManager.getDefault().isImsRegistered()) {
+        TelephonyManager tm = (TelephonyManager)getSystemService(
+                Context.TELEPHONY_SERVICE);
+        boolean isImsReg = TelephonyManagerWrapper.isImsRegistered(tm);
+        if (mIsAirplaneModeOn && !isImsReg) {
             LogTag.debugD("airplane mode on and ims not registered");
             return false;
         }
@@ -5345,7 +5337,7 @@ public class ComposeMessageActivity extends Activity
                     mIsSmsEnabled;
         } else {
             return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode() ||
-                    TelephonyManager.getDefault().isImsRegistered()) &&
+                    isImsReg) &&
                     recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
                     mIsSmsEnabled &&
                     (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText() ||
@@ -5366,13 +5358,15 @@ public class ComposeMessageActivity extends Activity
     };
 
     private boolean isCdmaNVMode() {
-        if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+        TelephonyManager tm = (TelephonyManager)getSystemService(
+                Context.TELEPHONY_SERVICE);
+        if (TelephonyManagerWrapper.isMultiSimEnabled(tm)) {
             Log.d(TAG, "isCdmaNVMode: CDMA NV mode just for single SIM");
             return false;
         }
-        int activePhoneType = TelephonyManager.getDefault().getCurrentPhoneType();
+        int activePhoneType = TelephonyManagerWrapper.getCurrentPhoneType(tm);
         int cdmaSubscriptionMode = Settings.Global.getInt(getContentResolver(),
-                Settings.Global.CDMA_SUBSCRIPTION_MODE, CDMA_SUBSCRIPTION_NV);
+                ConstantsWrapper.SettingsGlobal.CDMA_SUBSCRIPTION_MODE, CDMA_SUBSCRIPTION_NV);
         Log.d(TAG, "isCdmaNVMode: activePhoneType=" + activePhoneType + " cdmaSubscriptionMode="
                 + cdmaSubscriptionMode);
         if ((activePhoneType == TelephonyManager.PHONE_TYPE_CDMA) &&
@@ -5445,11 +5439,11 @@ public class ComposeMessageActivity extends Activity
 
         if (bCheckEcmMode) {
             // TODO: expose this in telephony layer for SDK build
-            String inEcm = SystemProperties.get(TelephonyProperties.PROPERTY_INECM_MODE);
+            String inEcm = SystemProperties.get(ConstantsWrapper.TelephonyProperty.PROPERTY_INECM_MODE);
             if (Boolean.parseBoolean(inEcm)) {
                 try {
                     startActivityForResult(
-                            new Intent(TelephonyIntents.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS, null),
+                            new Intent(ConstantsWrapper.TelephonyIntent.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS, null),
                             REQUEST_CODE_ECM_EXIT_DIALOG);
                     return;
                 } catch (ActivityNotFoundException e) {
@@ -5575,14 +5569,14 @@ public class ComposeMessageActivity extends Activity
         boolean requiresMms = mWorkingMessage.requiresMms();
         if (mShowTwoButtons) {
             View[] sendButtons = showTwoSmsOrMmsSendButton(requiresMms);
-            if (sendButtons[PhoneConstants.SUB1] == mSendLayoutMmsFir
-                    && sendButtons[PhoneConstants.SUB2] == mSendLayoutMmsSec) {
+            if (sendButtons[ConstantsWrapper.Phone.SUB1] == mSendLayoutMmsFir
+                    && sendButtons[ConstantsWrapper.Phone.SUB2] == mSendLayoutMmsSec) {
                 mSendButtonMms.setEnabled(enable);
                 mSendButtonMmsViewSec.setEnabled(enable);
                 mSendButtonMms.setFocusable(enable);
                 mSendButtonMmsViewSec.setFocusable(enable);
-            } else if (sendButtons[PhoneConstants.SUB1] == mSendLayoutSmsFir
-                    && sendButtons[PhoneConstants.SUB2] == mSendLayoutSmsSec) {
+            } else if (sendButtons[ConstantsWrapper.Phone.SUB1] == mSendLayoutSmsFir
+                    && sendButtons[ConstantsWrapper.Phone.SUB2] == mSendLayoutSmsSec) {
                 mSendButtonSms.setEnabled(enable);
                 mSendButtonSmsViewSec.setEnabled(enable);
                 mSendButtonSms.setFocusable(enable);
@@ -6098,7 +6092,7 @@ public class ComposeMessageActivity extends Activity
                 Conversation.getLatestMessageAttachmentUri(getContext(), threadId));
         Uri uri = Conversation.getUri(threadId);
         ContentValues values = new ContentValues();
-        values.put(Telephony.Threads.ATTACHMENT_INFO, attachmentInfo);
+        values.put(TelephonyWrapper.ATTACHMENT_INFO, attachmentInfo);
         getContext().getContentResolver().update(uri, values, null, null);
     }
 
@@ -6227,7 +6221,7 @@ public class ComposeMessageActivity extends Activity
             if (which >= 0) {
                 slot = which;
             } else if (which == DialogInterface.BUTTON_POSITIVE) {
-                int [] subId = SubscriptionManager.getSubId(slot);
+                int [] subId = SubscriptionManagerWrapper.getSubId(slot);
                 if (MessageUtils.hasInvalidSmsRecipient(getContext(), msgItems)) {
                     showInvalidCopyDialog();
                 } else {
@@ -6297,7 +6291,7 @@ public class ComposeMessageActivity extends Activity
         boolean ret = true;
         for (String message : messages) {
             ContentValues values = new ContentValues();
-            values.put(PhoneConstants.SUBSCRIPTION_KEY, subId);
+            values.put(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, subId);
             values.put(Sms.ADDRESS, address);
             values.put(Sms.BODY, message);
             values.put(MessageUtils.SMS_BOX_ID, boxId);
@@ -6644,8 +6638,7 @@ public class ComposeMessageActivity extends Activity
             CopyOnWriteArrayList<MessageItem> messageItems =
                     new CopyOnWriteArrayList<MessageItem>(mMessageItems);
             if (MessageUtils.getActivatedIccCardCount() > 1) {
-                String[] items = new String[TelephonyManager.getDefault()
-                        .getPhoneCount()];
+                String[] items = new String[MessageUtils.getPhoneCount()];
                 for (int i = 0; i < items.length; i++) {
                     items[i] = MessageUtils.getMultiSimName(
                             ComposeMessageActivity.this, i);
@@ -6761,7 +6754,7 @@ public class ComposeMessageActivity extends Activity
                 if (mMessageItems.indexOf(msgItem) != 0) {
                     body.append(LINE_BREAK);
                 }
-                if (Sms.isOutgoingFolder(msgItem.mBoxId)) {
+                if (TelephonyWrapper.Sms.isOutgoingFolder(msgItem.mBoxId)) {
                     body.append(msgItem.mContact + COLON + LINE_BREAK);
                 } else {
                     if (Contact.get(msgItem.mAddress, false).existsInDatabase()) {

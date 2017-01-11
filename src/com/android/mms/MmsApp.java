@@ -51,6 +51,7 @@ import com.android.mms.util.DraftCache;
 import com.android.mms.util.PduLoaderManager;
 import com.android.mms.util.RateController;
 import com.android.mms.util.ThumbnailManager;
+import com.android.mmswrapper.ConstantsWrapper;
 
 public class MmsApp extends Application {
     public static final String LOG_TAG = LogTag.TAG;
@@ -131,11 +132,12 @@ public class MmsApp extends Application {
     }
 
     private void registerMobileDataObserver() {
-        int phoneCount = TelephonyManager.getDefault().getPhoneCount();
+        TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        int phoneCount = tm.getPhoneCount();
         final int MOBILE_DATA_ON = 1;
 
         for( int i =0; i < phoneCount; i++) {
-            Uri uri = Settings.Global.getUriFor(Settings.Global.MOBILE_DATA + i);
+            Uri uri = Settings.Global.getUriFor(ConstantsWrapper.SettingsGlobal.MOBILE_DATA + i);
             getContentResolver().registerContentObserver(uri, false, new ContentObserver(null) {
                 @Override
                 public void onChange(boolean selfChange, Uri uri) {
@@ -146,7 +148,7 @@ public class MmsApp extends Application {
 
                      try {
                          int value = Settings.Global.getInt(getContentResolver(),
-                                 Settings.Global.MOBILE_DATA + phoneId);
+                                 ConstantsWrapper.SettingsGlobal.MOBILE_DATA + phoneId);
                          Log.d(LOG_TAG, "value = " + value);
                          if (value == MOBILE_DATA_ON) {
                              if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {

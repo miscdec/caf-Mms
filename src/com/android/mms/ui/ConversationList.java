@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
@@ -23,8 +23,6 @@ import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
-import android.app.SearchManager;
-import android.app.SearchableInfo;
 import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
@@ -49,9 +47,7 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.Settings;
 import android.provider.Telephony;
-import android.provider.Telephony.Mms;
 import android.provider.Telephony.Threads;
-import android.text.Html;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
@@ -77,7 +73,6 @@ import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -96,9 +91,12 @@ import com.android.mms.transaction.SmsRejectedReceiver;
 import com.android.mms.ui.MailBoxMessageList;
 import com.android.mms.ui.PopupList;
 import com.android.mms.ui.SelectionMenu;
+import com.android.mms.util.ContactRecipientEntryUtils;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.pdu.PduHeaders;
 
 import java.util.ArrayList;
@@ -651,9 +649,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
             if (sp.getBoolean(MessagingPreferenceActivity.SEPERATE_NOTIFI_MSG, true)) {
                 Conversation.startQuery(mQueryHandler, THREAD_LIST_QUERY_TOKEN,
-                        Threads.NOTIFICATION + "=0" + " and " + NOT_OBSOLETE);
+                        TelephonyWrapper.NOTIFICATION + "=0" + " and " + NOT_OBSOLETE);
                 Conversation.startQuery(mQueryHandler, NOTIFICATION_THREAD_QUERY_TOKEN,
-                        Threads.NOTIFICATION + "=1" + " and " + NOT_OBSOLETE);
+                        TelephonyWrapper.NOTIFICATION + "=1" + " and " + NOT_OBSOLETE);
             } else {
                 Conversation.startQuery(mQueryHandler, THREAD_LIST_QUERY_TOKEN, NOT_OBSOLETE);
                 toggleNotificationGroup(false);
@@ -690,8 +688,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         cellBroadcastItem.setVisible(false);
         if (cellBroadcastItem != null) {
             // Enable link to Cell broadcast activity depending on the value in config.xml.
-            boolean isCellBroadcastAppLinkEnabled = this.getResources().getBoolean(
-                    com.android.internal.R.bool.config_cellBroadcastAppLinks);
+            boolean isCellBroadcastAppLinkEnabled = ConstantsWrapper.getConfigCellBroadcastAppLinks(this);
             try {
                 if (isCellBroadcastAppLinkEnabled) {
                     PackageManager pm = getPackageManager();
@@ -848,7 +845,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // address must be a single recipient
         Intent intent = new Intent(Intent.ACTION_INSERT_OR_EDIT);
         intent.setType(Contacts.CONTENT_ITEM_TYPE);
-        if (Mms.isEmailAddress(address)) {
+        if (ContactRecipientEntryUtils.isEmailAddress(address)) {
             intent.putExtra(ContactsContract.Intents.Insert.EMAIL, address);
         } else {
             intent.putExtra(ContactsContract.Intents.Insert.PHONE, address);

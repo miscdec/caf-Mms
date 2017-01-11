@@ -30,14 +30,13 @@ import android.telephony.SmsManager;
 import android.telephony.SubscriptionManager;
 import android.util.Log;
 
-import com.android.internal.telephony.IccCardConstants;
-import com.android.internal.telephony.PhoneConstants;
-import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.ConnectivityManagerWrapper;
 
 /**
  * MmsSystemEventReceiver receives the
@@ -81,7 +80,7 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
                 mConnMgr = (ConnectivityManager) context
                         .getSystemService(Context.CONNECTIVITY_SERVICE);
             }
-            if (!mConnMgr.getMobileDataEnabled()) {
+            if (!ConnectivityManagerWrapper.getMobileDataEnabled(mConnMgr)) {
                 if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                     Log.v(TAG, "mobile data turned off, bailing");
                 }
@@ -132,9 +131,9 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
                 Log.d(TAG, "Airplane mode OFF");
                 wakeUpService(context);
             }
-        } else if (action.equals(TelephonyIntents.ACTION_SIM_STATE_CHANGED)) {
-            String stateExtra = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
-            if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
+        } else if (action.equals(ConstantsWrapper.TelephonyIntent.ACTION_SIM_STATE_CHANGED)) {
+            String stateExtra = intent.getStringExtra(ConstantsWrapper.IccCard.INTENT_KEY_ICC_STATE);
+            if (ConstantsWrapper.IccCard.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
                 MessagingNotification.nonBlockingUpdateNewMessageIndicator(
                         context, MessagingNotification.THREAD_NONE, false);
                 if (isMmsNetworkReadyForPendingMsg(context)) {

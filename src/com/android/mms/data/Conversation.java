@@ -43,6 +43,7 @@ import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.AddressUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.DraftCache;
+import com.android.mmswrapper.TelephonyWrapper;
 
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.PduHeaders;
@@ -63,7 +64,7 @@ public class Conversation {
     public static final String[] ALL_THREADS_PROJECTION = {
             Threads._ID, Threads.DATE, Threads.MESSAGE_COUNT, Threads.RECIPIENT_IDS,
             Threads.SNIPPET, Threads.SNIPPET_CHARSET, Threads.READ, Threads.ERROR,
-            Threads.HAS_ATTACHMENT, Threads.ATTACHMENT_INFO
+            Threads.HAS_ATTACHMENT, TelephonyWrapper.ATTACHMENT_INFO
     };
 
     public static final String[] UNREAD_PROJECTION = {
@@ -604,42 +605,6 @@ public class Conversation {
         }
 
         return attachmentUri;
-    }
-
-    public synchronized static void setLatestMessageStatus(Context context, Conversation conv) {
-        int status = DownloadManager.STATE_UNKNOWN;
-        if (conv.mThreadId <= 0) {
-            return;
-        }
-        Cursor cursor = null;
-        try {
-            cursor = SqliteWrapper.query(context, context.getContentResolver(),
-                    getUri(conv.mThreadId),
-                    new String[] {Mms._ID, Mms.STATUS, Sms.TYPE,
-                            Mms.MESSAGE_BOX, MmsSms.TYPE_DISCRIMINATOR_COLUMN},
-                    null, null, null);
-            if (cursor != null && cursor.getCount() != 0) {
-                cursor.moveToFirst();
-                int mmsStatus = cursor.getInt(cursor.getColumnIndexOrThrow(Mms.STATUS));
-                int boxId;
-                String type = cursor.getString(
-                        cursor.getColumnIndexOrThrow(MmsSms.TYPE_DISCRIMINATOR_COLUMN));
-                if ("sms".equals(type)) {
-                    boxId = cursor.getInt(cursor.getColumnIndexOrThrow(Sms.TYPE));
-                } else {
-                    boxId = cursor.getInt(cursor.getColumnIndexOrThrow(Mms.MESSAGE_BOX));
-                }
-                conv.mIsLastMessageMine = Sms.isOutgoingFolder(boxId);
-                if (!conv.mIsLastMessageMine) {
-                    status = MessageUtils.getMmsDownloadStatus(mmsStatus);
-                }
-            }
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-        conv.mLastMessageStatus = status;
     }
 
     /**
@@ -1711,7 +1676,7 @@ public class Conversation {
             LogTag.dumpInternalTables(context);
             return recipientStr;
         }
-        if (PhoneNumberUtils.compareLoosely(recipientStr, address)) {
+        if (PhoneNumberUtils.compare(recipientStr, address)) {
             // Bingo, we've got a match. We're returning the input number because of area
             // codes. We could have a number in the canonical_address name of "232-1012" and
             // assume the user's phone's area code is 650. If the user sends a message to

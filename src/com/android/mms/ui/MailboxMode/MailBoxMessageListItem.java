@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -66,7 +66,7 @@ public class MailBoxMessageListItem extends LinearLayout {
         } else {
             backgroundId = R.drawable.conversation_item_background_read;
         }
-        Drawable background = mContext.getResources().getDrawable(backgroundId);
+        Drawable background = getContext().getResources().getDrawable(backgroundId);
         setBackground(background);
     }
 

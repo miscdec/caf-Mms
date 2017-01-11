@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2017 The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -40,7 +40,6 @@ import android.provider.Telephony.Mms;
 import android.provider.Telephony.Mms.Inbox;
 import android.util.Log;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessageUtils;
@@ -49,6 +48,7 @@ import com.android.mms.util.DownloadManager;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.android.mms.R;
+import com.android.mmswrapper.ConstantsWrapper;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.DeliveryInd;
@@ -146,7 +146,7 @@ public class PushReceiver extends BroadcastReceiver {
                     Method mGetThreadID = mWapPushHandler.getDeclaredMethod("getThreadID");
                     Uri pushMsgUri = (Uri)mHandleWapPush.invoke(WapPushHandlerObj, bais,
                             intent.getType(), mContext,
-                            intent.getIntExtra(PhoneConstants.PHONE_KEY, 0),
+                            intent.getIntExtra(ConstantsWrapper.Phone.PHONE_KEY, 0),
                             intent.getStringExtra("address") + WAP_PUSH);
 
                     if (pushMsgUri != null) {
@@ -215,7 +215,7 @@ public class PushReceiver extends BroadcastReceiver {
                         }
 
                         if (!isDuplicateNotification(mContext, nInd)) {
-                            int subId = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY, 0);
+                            int subId = intent.getIntExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, 0);
                             //Phone ID will be updated in data base
                             Log.d(TAG, "PushReceiver subId : " + subId);
                             ContentValues values = new ContentValues(1);

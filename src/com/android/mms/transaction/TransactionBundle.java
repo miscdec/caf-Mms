@@ -18,9 +18,8 @@
 package com.android.mms.transaction;
 
 import android.os.Bundle;
-
-import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.uicc.IccUtils;
+import com.android.mmswrapper.ConstantsWrapper;
 
 /**
  * A wrapper around the Bundle instances used to start the TransactionService.
@@ -98,7 +97,7 @@ public class TransactionBundle {
     public TransactionBundle(int transactionType, String uri, int subId) {
         this(transactionType);
         mBundle.putString(URI, uri);
-        mBundle.putInt(PhoneConstants.SUBSCRIPTION_KEY, subId);
+        mBundle.putInt(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, subId);
     }
     /**
      * Constructor of a transaction bundle used for incoming bundle instances.
@@ -137,7 +136,7 @@ public class TransactionBundle {
     }
 
     public int getSubId() {
-        return mBundle.getInt(PhoneConstants.SUBSCRIPTION_KEY);
+        return mBundle.getInt(ConstantsWrapper.Phone.SUBSCRIPTION_KEY);
     }
 
     public byte[] getPushData() {

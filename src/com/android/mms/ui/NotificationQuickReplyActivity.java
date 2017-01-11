@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -54,6 +54,7 @@ import com.android.mms.data.Contact;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.SmsMessageSender;
 import com.android.mms.ui.ComposeMessageActivity;
+import com.android.mmswrapper.SmsManagerWrapper;
 
 public class NotificationQuickReplyActivity extends Activity {
 
@@ -222,9 +223,9 @@ public class NotificationQuickReplyActivity extends Activity {
 
     private int getSmsSubscriptionId() {
         int subId = SubscriptionManager.getDefaultSmsSubscriptionId();
-        if ((TelephonyManager.getDefault().getPhoneCount()) > 1 &&
+        if ((MessageUtils.getPhoneCount()) > 1 &&
                 MessageUtils.isMsimIccCardActive() &&
-                SmsManager.getDefault().isSMSPromptEnabled()) {
+                SmsManagerWrapper.isSMSPromptEnabled(SmsManager.getDefault())) {
             if (mMsgSubId >= 0) {
                 subId = mMsgSubId;
             } else {

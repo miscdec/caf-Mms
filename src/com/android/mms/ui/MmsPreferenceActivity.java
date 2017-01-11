@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -27,51 +27,19 @@ import com.android.mms.MmsConfig;
 import com.android.mms.R;
 
 import android.app.ActionBar;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
-import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.RemoteException;
-import android.os.ServiceManager;
-import android.os.SystemProperties;
-import android.preference.CheckBoxPreference;
-import android.preference.Preference.OnPreferenceChangeListener;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.preference.PreferenceCategory;
-import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
-import android.provider.Settings;
-
-import com.android.internal.telephony.PhoneConstants;
 
 import android.telephony.TelephonyManager;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.ArrayMap;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.Toast;
 
-import com.android.mms.transaction.MmsMessageSender;
-import com.android.mms.transaction.SmsMessageSender;
 import com.android.mms.transaction.TransactionService;
-
-import android.content.DialogInterface.OnCancelListener;
-import android.database.Cursor;
+import com.android.mmswrapper.ConstantsWrapper;
 
 public class MmsPreferenceActivity extends PreferenceActivity {
     private static String TAG = "MmsPreferenceActivity";
@@ -163,7 +131,7 @@ public class MmsPreferenceActivity extends PreferenceActivity {
             mMmsSettingsPref.removePreference(mMmsDeliveryReportPrefSub1);
             mMmsSettingsPref.removePreference(mMmsDeliveryReportPrefSub2);
         } else {
-            if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+            if (MessageUtils.isMultiSimEnabledMms()) {
                 mMmsSettingsPref.removePreference(mMmsDeliveryReportPrefSS);
                 if (!MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
                     mMmsSettingsPref.removePreference(mMmsDeliveryReportPref);
@@ -202,7 +170,7 @@ public class MmsPreferenceActivity extends PreferenceActivity {
             mMmsSettingsPref.removePreference(mMmsReadReportPrefSub1);
             mMmsSettingsPref.removePreference(mMmsReadReportPrefSub2);
         } else {
-            if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+            if (MessageUtils.isMultiSimEnabledMms()) {
                 mMmsSettingsPref.removePreference(mMmsReadReportPrefSS);
                 if (!MessageUtils.isIccCardActivated(MessageUtils.SUB1)) {
                     mMmsSettingsPref.removePreference(mMmsReadReportPref);
@@ -242,12 +210,12 @@ public class MmsPreferenceActivity extends PreferenceActivity {
                         && !MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
                     mMmsSettingsPref.removePreference(mMmsExpiryCard2Pref);
                     mMmsSettingsPref.removePreference(mMmsValidityPref);
-                    setMmsExpirySummary(PhoneConstants.SUB1);
+                    setMmsExpirySummary(ConstantsWrapper.Phone.SUB1);
                 } else if (!MessageUtils.isIccCardActivated(MessageUtils.SUB1)
                         && MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
                     mMmsSettingsPref.removePreference(mMmsExpiryCard1Pref);
                     mMmsSettingsPref.removePreference(mMmsValidityPref);
-                    setMmsExpirySummary(PhoneConstants.SUB2);
+                    setMmsExpirySummary(ConstantsWrapper.Phone.SUB2);
                 } else {
                     mMmsSettingsPref.removePreference(mMmsExpiryCard1Pref);
                     mMmsSettingsPref.removePreference(mMmsExpiryCard2Pref);
@@ -286,7 +254,7 @@ public class MmsPreferenceActivity extends PreferenceActivity {
                         });
                 mMmsExpiryNoMultiPref.setSummary(mMmsExpiryNoMultiPref.getEntry());
                 break;
-            case PhoneConstants.SUB1:
+            case ConstantsWrapper.Phone.SUB1:
                 mMmsExpiryCard1Pref
                         .setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                             public boolean onPreferenceChange(
@@ -302,7 +270,7 @@ public class MmsPreferenceActivity extends PreferenceActivity {
                         });
                 mMmsExpiryCard1Pref.setSummary(mMmsExpiryCard1Pref.getEntry());
                 break;
-            case PhoneConstants.SUB2:
+            case ConstantsWrapper.Phone.SUB2:
                 mMmsExpiryCard2Pref
                         .setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                             public boolean onPreferenceChange(

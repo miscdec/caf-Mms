@@ -30,9 +30,9 @@ import android.provider.Telephony;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.android.internal.telephony.TelephonyProperties;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mmswrapper.ConstantsWrapper;
 
 public class MmsConfig {
     private static final String TAG = LogTag.TAG;
@@ -100,7 +100,7 @@ public class MmsConfig {
     private static int mSmsToMmsTextThreshold = -1;
 
     private static boolean mEnableSlideDuration = true;
-    private static boolean mEnableMMSReadReports = true;        // key: "enableMMSReadReports"
+    private static boolean mEnableMMSReadReports = false;        // key: "enableMMSReadReports"
     private static boolean mEnableSMSDeliveryReports = true;    // key: "enableSMSDeliveryReports"
     private static boolean mEnableMMSDeliveryReports = true;    // key: "enableMMSDeliveryReports"
     private static int mMaxTextLength = -1;
@@ -136,7 +136,7 @@ public class MmsConfig {
         }
         // Always put the mnc/mcc in the log so we can tell which mms_config.xml was loaded.
         Log.v(TAG, "mnc/mcc: " +
-                android.os.SystemProperties.get(TelephonyProperties.PROPERTY_ICC_OPERATOR_NUMERIC));
+                android.os.SystemProperties.get(ConstantsWrapper.TelephonyProperty.PROPERTY_ICC_OPERATOR_NUMERIC));
 
         loadMmsSettings(context);
 

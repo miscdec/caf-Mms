@@ -20,15 +20,15 @@ package com.android.mms.transaction;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
-import android.net.NetworkUtils;
 import android.net.Uri;
 import android.provider.Telephony;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
+import com.android.mms.ui.MessageUtils;
+import com.android.mmswrapper.ConstantsWrapper;
 
 /**
  * Container of transaction settings. Instances of this class are contained
@@ -92,7 +92,8 @@ public class TransactionSettings {
         try {
             while (cursor.moveToNext() && TextUtils.isEmpty(mServiceCenter)) {
                 // Read values from APN settings
-                if (isValidApnType(cursor.getString(COLUMN_TYPE), PhoneConstants.APN_TYPE_MMS)) {
+                if (isValidApnType(cursor.getString(COLUMN_TYPE),
+                        ConstantsWrapper.Phone.APN_TYPE_MMS)) {
                     sawValidApn = true;
 
                     String mmsc = cursor.getString(COLUMN_MMSC);
@@ -100,8 +101,8 @@ public class TransactionSettings {
                         continue;
                     }
 
-                    mServiceCenter = NetworkUtils.trimV4AddrZeros(mmsc.trim());
-                    mProxyAddress = NetworkUtils.trimV4AddrZeros(
+                    mServiceCenter = MessageUtils.trimV4AddrZeros(mmsc.trim());
+                    mProxyAddress = MessageUtils.trimV4AddrZeros(
                             cursor.getString(COLUMN_MMSPROXY));
                     if (isProxySet()) {
                         String portString = cursor.getString(COLUMN_MMSPORT);
@@ -172,7 +173,7 @@ public class TransactionSettings {
         }
 
         for (String t : types.split(",")) {
-            if (t.equals(requestType) || t.equals(PhoneConstants.APN_TYPE_ALL)) {
+            if (t.equals(requestType) || t.equals(ConstantsWrapper.Phone.APN_TYPE_ALL)) {
                 return true;
             }
         }

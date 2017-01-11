@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2010-2014, 2017 The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -63,8 +63,6 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.android.internal.telephony.PhoneConstants;
-import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
@@ -75,6 +73,13 @@ import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.Recycler;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.widget.MmsWidgetProvider;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.ServiceStateWrapper;
+import com.android.mmswrapper.SmsManagerWrapper;
+import com.android.mmswrapper.SmsMessageWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mmswrapper.TelephonyManagerWrapper;
+import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.MmsException;
 
 /**
@@ -189,9 +194,9 @@ public class SmsReceiverService extends Service {
                 return "SmsManager.RESULT_ERROR_NULL_PDU";
             case SmsManager.RESULT_ERROR_NO_SERVICE:
                 return "SmsManager.RESULT_ERROR_NO_SERVICE";
-            case SmsManager.RESULT_ERROR_LIMIT_EXCEEDED:
+            case SmsManagerWrapper.RESULT_ERROR_LIMIT_EXCEEDED:
                 return "SmsManager.RESULT_ERROR_LIMIT_EXCEEDED";
-            case SmsManager.RESULT_ERROR_FDN_CHECK_FAILURE:
+            case SmsManagerWrapper.RESULT_ERROR_FDN_CHECK_FAILURE:
                 return "SmsManager.RESULT_ERROR_FDN_CHECK_FAILURE";
             default:
                 return "Unknown error code";
@@ -241,7 +246,8 @@ public class SmsReceiverService extends Service {
                     handleCbSmsReceived(intent, error);
                 } else if (ACTION_BOOT_COMPLETED.equals(action)) {
                     handleBootCompleted();
-                } else if (TelephonyIntents.ACTION_SERVICE_STATE_CHANGED.equals(action)) {
+                } else if (ConstantsWrapper.TelephonyIntent.ACTION_SERVICE_STATE_CHANGED.
+                        equals(action)) {
                     handleServiceStateChanged(intent);
                 } else if (ACTION_SEND_MESSAGE.endsWith(action)) {
                     handleSendMessage(intent);
@@ -257,8 +263,8 @@ public class SmsReceiverService extends Service {
 
     private void handleServiceStateChanged(Intent intent) {
         // If service just returned, start sending out the queued messages
-        ServiceState serviceState = ServiceState.newFromBundle(intent.getExtras());
-        int subId = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY, -1);
+        ServiceState serviceState = ServiceStateWrapper.newFromBundle(intent.getExtras());
+        int subId = intent.getIntExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, -1);
         // if service state is IN_SERVICE & current subscription is same as
         // preferred SMS subscription.i.e.as set under SIM Settings, then
         // sendFirstQueuedMessage.
@@ -268,7 +274,7 @@ public class SmsReceiverService extends Service {
     }
 
     private void handleSendMessage(Intent intent) {
-        int subId = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY,
+        int subId = intent.getIntExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY,
                 SubscriptionManager.getDefaultSmsSubscriptionId());
         if (mSending.get(subId) == null) {
            mSending.put(subId, false);
@@ -358,7 +364,7 @@ public class SmsReceiverService extends Service {
                         Intent intent = new Intent(SmsReceiverService.ACTION_SEND_MESSAGE, null,
                                 this,
                                 SmsReceiver.class);
-                        intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, subscription);
+                        intent.putExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, subscription);
                         sendBroadcast(intent);
                     }
                 }
@@ -372,7 +378,9 @@ public class SmsReceiverService extends Service {
             // In case of MSIM don't unregister service state change if there are any messages
             // pending for process on other subscriptions. There may be a chance of other
             // subscription is register and waiting for sevice state changes to process the message.
-            if (!(TelephonyManager.getDefault().getPhoneCount() > 1) ||
+            TelephonyManager tm = (TelephonyManager)this.
+                    getSystemService(Context.TELEPHONY_SERVICE);
+            if (!(tm.getPhoneCount() > 1) ||
                     isUnRegisterAllowed(subscription)) {
                 unRegisterForServiceStateChanges();
             }
@@ -383,7 +391,7 @@ public class SmsReceiverService extends Service {
         Uri uri = intent.getData();
         int resultCode = intent.getIntExtra("result", 0);
         boolean sendNextMsg = intent.getBooleanExtra(EXTRA_MESSAGE_SENT_SEND_NEXT, false);
-        int subId = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY,
+        int subId = intent.getIntExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY,
                 SubscriptionManager.getDefaultSmsSubscriptionId());
         mSending.put(subId, false);
         LogTag.debugD("handleSmsSent uri: " + uri + " sendNextMsg: " + sendNextMsg +
@@ -393,7 +401,7 @@ public class SmsReceiverService extends Service {
         if (resultCode == Activity.RESULT_OK) {
             if (sendNextMsg) {
                 Log.v(TAG, "handleSmsSent: move message to sent folder uri: " + uri);
-                if (!Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_SENT, error)) {
+                if (!TelephonyWrapper.Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_SENT, error)) {
                     Log.e(TAG, "handleSmsSent: failed to move message " + uri + " to sent folder");
                 }
                 sendFirstQueuedMessage(subId);
@@ -410,14 +418,14 @@ public class SmsReceiverService extends Service {
             // queued up messages.
             registerForServiceStateChanges();
             // We couldn't send the message, put in the queue to retry later.
-            Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_QUEUED, error);
+            TelephonyWrapper.Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_QUEUED, error);
             mToastHandler.post(new Runnable() {
                 public void run() {
                     Toast.makeText(SmsReceiverService.this, getString(R.string.message_queued),
                             Toast.LENGTH_SHORT).show();
                 }
             });
-        } else if (resultCode == SmsManager.RESULT_ERROR_FDN_CHECK_FAILURE) {
+        } else if (resultCode == SmsManagerWrapper.RESULT_ERROR_FDN_CHECK_FAILURE) {
             messageFailedToSend(uri, resultCode);
             mToastHandler.post(new Runnable() {
                 public void run() {
@@ -438,7 +446,7 @@ public class SmsReceiverService extends Service {
 
     private void messageFailedToSend(Uri uri, int error) {
         LogTag.debugD("messageFailedToSend msg failed uri: " + uri + " error: " + error);
-        Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_FAILED, error);
+        TelephonyWrapper.Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_FAILED, error);
         MessagingNotification.notifySendFailed(getApplicationContext(), true);
     }
 
@@ -453,7 +461,7 @@ public class SmsReceiverService extends Service {
                     ", address: " + sms4log.getOriginatingAddress() +
                     ", body: " + sms4log.getMessageBody());
         int saveLoc = MessageUtils.getSmsPreferStoreLocation(this,
-                SubscriptionManager.getPhoneId(msgs[0].getSubId()));
+                SubscriptionManagerWrapper.getPhoneId(SmsMessageWrapper.getSubId(msgs[0])));
         if (getResources().getBoolean(R.bool.config_savelocation)
                 && saveLoc == MessageUtils.PREFER_SMS_STORE_CARD) {
             LogTag.debugD("PREFER SMS STORE CARD");
@@ -461,9 +469,9 @@ public class SmsReceiverService extends Service {
                 SmsMessage sms = msgs[i];
                 boolean saveSuccess = saveMessageToIcc(sms);
                 if (saveSuccess) {
-                    int subId = TelephonyManager.getDefault().isMultiSimEnabled()
-                            ? sms.getSubId() : (int)MessageUtils.SUB_INVALID;
-                    int phoneId = SubscriptionManager.getPhoneId(subId);
+                    int subId = MessageUtils.isMultiSimEnabledMms()
+                            ? SmsMessageWrapper.getSubId(sms) : (int)MessageUtils.SUB_INVALID;
+                    int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
                     String address = MessageUtils.convertIdp(this,
                             sms.getDisplayOriginatingAddress(), phoneId);
                     MessagingNotification.blockingUpdateNewIccMessageIndicator(
@@ -517,12 +525,14 @@ public class SmsReceiverService extends Service {
         if (cbMessage == null) {
             return;
         }
-        boolean isMSim = TelephonyManager.getDefault().isMultiSimEnabled();
+        boolean isMSim = MessageUtils.isMultiSimEnabledMms();
+        TelephonyManager tm = (TelephonyManager)this.
+                getSystemService(Context.TELEPHONY_SERVICE);
         String country = "";
         if (isMSim) {
-            country = TelephonyManager.getDefault().getSimCountryIso(cbMessage.getSubId());
+            country = TelephonyManagerWrapper.getSimCountryIso(tm, cbMessage.getSubId());
         } else {
-            country = TelephonyManager.getDefault().getSimCountryIso();
+            country = tm.getSimCountryIso();
         }
         int serviceCategory = cbMessage.getServiceCategory();
         if ("in".equals(country) && (serviceCategory == CB_CHANNEL_50 ||
@@ -677,16 +687,19 @@ public class SmsReceiverService extends Service {
             StringBuilder body = new StringBuilder();
             for (int i = 0; i < pduCount; i++) {
                 sms = msgs[i];
-                if (sms.mWrappedSmsMessage != null) {
+                try {
                     body.append(sms.getDisplayMessageBody());
+                } catch (NullPointerException e) {
+                    Log.e(TAG, "replaceMessage " + e, e);
                 }
             }
             values.put(Inbox.BODY, replaceFormFeeds(body.toString()));
         }
 
+        int subId = SmsMessageWrapper.getSubId(sms);
         ContentResolver resolver = context.getContentResolver();
         String originatingAddress = MessageUtils.convertIdp(this,
-                sms.getOriginatingAddress(), sms.getSubId());
+                sms.getOriginatingAddress(), subId);
         int protocolIdentifier = sms.getProtocolIdentifier();
         String selection;
         String[] selectionArgs;
@@ -699,7 +712,7 @@ public class SmsReceiverService extends Service {
                     Sms.SUBSCRIPTION_ID +  " = ? ";
         selectionArgs = new String[] {
                 originatingAddress, Integer.toString(protocolIdentifier),
-                Integer.toString(sms.getSubId())
+                Integer.toString(subId)
             };
 
         Cursor cursor = SqliteWrapper.query(context, resolver, Inbox.CONTENT_URI,
@@ -741,7 +754,7 @@ public class SmsReceiverService extends Service {
         // Store the message in the content provider.
         ContentValues values = extractContentValues(sms);
         values.put(Sms.ERROR_CODE, error);
-        values.put(Sms.SUBSCRIPTION_ID, sms.getSubId());
+        values.put(Sms.SUBSCRIPTION_ID, SmsMessageWrapper.getSubId(sms));
 
         int pduCount = msgs.length;
 
@@ -753,8 +766,10 @@ public class SmsReceiverService extends Service {
             StringBuilder body = new StringBuilder();
             for (int i = 0; i < pduCount; i++) {
                 sms = msgs[i];
-                if (sms.mWrappedSmsMessage != null) {
+                try {
                     body.append(sms.getDisplayMessageBody());
+                } catch (NullPointerException e) {
+                    Log.e(TAG, "storeMessage " + e, e);
                 }
             }
             values.put(Inbox.BODY, replaceFormFeeds(body.toString()));
@@ -847,7 +862,7 @@ public class SmsReceiverService extends Service {
         ContentValues values = new ContentValues();
 
         values.put(Inbox.ADDRESS, MessageUtils.convertIdp(this, sms.getDisplayOriginatingAddress(),
-                sms.getSubId()));
+                SmsMessageWrapper.getSubId(sms)));
 
         // Use now for the timestamp to avoid confusion with clock
         // drift between the handset and the SMSC.
@@ -884,14 +899,14 @@ public class SmsReceiverService extends Service {
      *
      */
     private void displayClassZeroMessage(Context context, SmsMessage sms, String format) {
-        int subId = sms.getSubId();
+        int subId = SmsMessageWrapper.getSubId(sms);
 
         // Using NEW_TASK here is necessary because we're calling
         // startActivity from outside an activity.
         Intent smsDialogIntent = new Intent(context, ClassZeroActivity.class)
                 .putExtra("pdu", sms.getPdu())
                 .putExtra("format", format)
-                .putExtra(PhoneConstants.SUBSCRIPTION_KEY, subId)
+                .putExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, subId)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                           | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
 
@@ -903,7 +918,7 @@ public class SmsReceiverService extends Service {
         unRegisterForServiceStateChanges();
 
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED);
+        intentFilter.addAction(ConstantsWrapper.TelephonyIntent.ACTION_SERVICE_STATE_CHANGED);
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
             Log.v(TAG, "registerForServiceStateChanges");
         }
@@ -961,11 +976,11 @@ public class SmsReceiverService extends Service {
 
     private boolean saveMessageToIcc(SmsMessage sms) {
         boolean result = true;
-        int subscription = sms.getSubId();
+        int subscription = SmsMessageWrapper.getSubId(sms);
         String address = MessageUtils.convertIdp(this, sms.getOriginatingAddress(),
             subscription);
         ContentValues values = new ContentValues();
-        values.put(PhoneConstants.SUBSCRIPTION_KEY, subscription);
+        values.put(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, subscription);
         values.put(Sms.ADDRESS, address);
         values.put(Sms.BODY, sms.getMessageBody());
         values.put(MessageUtils.SMS_BOX_ID, Sms.MESSAGE_TYPE_INBOX);

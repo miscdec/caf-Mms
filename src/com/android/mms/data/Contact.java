@@ -40,6 +40,7 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
+import com.android.mms.util.ContactRecipientEntryUtils;
 
 public class Contact {
     public static final int CONTACT_METHOD_TYPE_UNKNOWN = 0;
@@ -242,7 +243,7 @@ public class Contact {
         //                   Tutankhamun <tutank1341@gmail.com>
         //                   (408) 555-1289
         String formattedNumber = number;
-        if (!Mms.isEmailAddress(number)) {
+        if (!ContactRecipientEntryUtils.isEmailAddress(number)) {
             formattedNumber = PhoneNumberUtils.formatNumber(number, numberE164,
                     MmsApp.getApplication().getCurrentCountryIso());
         }
@@ -264,7 +265,7 @@ public class Contact {
     }
 
     public synchronized void setNumber(String number) {
-        if (!Mms.isEmailAddress(number)) {
+        if (!ContactRecipientEntryUtils.isEmailAddress(number)) {
             mNumber = PhoneNumberUtils.formatNumber(number, mNumberE164,
                     MmsApp.getApplication().getCurrentCountryIso());
         } else {
@@ -366,7 +367,7 @@ public class Contact {
     }
 
     public synchronized boolean isEmail() {
-        return Mms.isEmailAddress(mNumber);
+        return ContactRecipientEntryUtils.isEmailAddress(mNumber);
     }
 
     public String getPresenceText() {
@@ -878,7 +879,7 @@ public class Contact {
         private Contact getContactInfo(Contact c) {
             if (c.mIsMe) {
                 return getContactInfoForSelf();
-            } else if (Mms.isEmailAddress(c.mNumber)) {
+            } else if (ContactRecipientEntryUtils.isEmailAddress(c.mNumber)) {
                 return getContactInfoForEmailAddress(c.mNumber);
             } else if (isAlphaNumber(c.mNumber)) {
                 // first try to look it up in the email field
@@ -1216,7 +1217,8 @@ public class Contact {
             synchronized (ContactsCache.this) {
                 // See if we can find "number" in the hashtable.
                 // If so, just return the result.
-                final boolean isNotRegularPhoneNumber = isMe || Mms.isEmailAddress(numberOrEmail) ||
+                final boolean isNotRegularPhoneNumber = isMe ||
+                        ContactRecipientEntryUtils.isEmailAddress(numberOrEmail) ||
                         MessageUtils.isAlias(numberOrEmail) ||
                         MessageUtils.isWapPushNumber(numberOrEmail);
                 final String key = isNotRegularPhoneNumber ?
@@ -1269,8 +1271,8 @@ public class Contact {
             synchronized (ContactsCache.this) {
                 String number = contact.getNumber();
                 final boolean isNotRegularPhoneNumber = contact.isMe() ||
-                                    Mms.isEmailAddress(number) ||
-                                    MessageUtils.isAlias(number);
+                        ContactRecipientEntryUtils.isEmailAddress(number) ||
+                        MessageUtils.isAlias(number);
                 final String key = isNotRegularPhoneNumber ?
                         number : key(number, sStaticKeyBuffer);
                 ArrayList<Contact> candidates = mContactsHash.get(key);
@@ -1304,7 +1306,8 @@ public class Contact {
 
     private static boolean isSpecialPhoneNumber(Contact c) {
         String num = c.getNumber();
-        if (c.isMe() || Mms.isEmailAddress(num) || sContactCache.isAlphaNumber(num)) {
+        if (c.isMe() || ContactRecipientEntryUtils.isEmailAddress(num)
+                || sContactCache.isAlphaNumber(num)) {
             return false;
         }
         return true;
