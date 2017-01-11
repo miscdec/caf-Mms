@@ -1211,16 +1211,13 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         public void onClick(DialogInterface dialog, int whichButton) {
-            boolean isMms = mWorkingMessage.requiresMms();
-            if (isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(mSubscription) &&
-                    !MessageUtils.isMobileDataEnabled(getApplicationContext(), mSubscription)) {
+            if (isMmsWithMobileDataOff(mWorkingMessage.requiresMms(), mSubscription)) {
                 showMobileDataDisabledDialog(mSubscription);
             } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
-                if (mSubscription == MessageUtils.SUB_INVALID) {
-                    sendMsimMessage(true);
-                } else {
-                    sendMsimMessage(true, mSubscription);
-                }
+                int subId = (mSubscription == MessageUtils.SUB_INVALID)
+                        ? SubscriptionManager.getDefaultSmsSubscriptionId()
+                        : mSubscription;
+                sendMsimMessage(true, subId);
             } else {
                 sendMessage(true);
             }
@@ -1239,24 +1236,16 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void dismissMsimDialog() {
-        if (mMsimDialog != null) {
-            mMsimDialog.dismiss();
-        }
-    }
-
-   private void processMsimSendMessage(int subId, final boolean bCheckEcmMode) {
-        if (mMsimDialog != null) {
-            mMsimDialog.dismiss();
-        }
-        mWorkingMessage.setWorkingMessageSub(subId);
-        sendMessage(bCheckEcmMode);
-    }
-
-    private void LaunchMsimDialog(final boolean bCheckEcmMode) {
         if (mMsimDialog != null && mMsimDialog.isShowing()) {
             mMsimDialog.dismiss();
         }
+    }
 
+    private void launchMsimDialog(final boolean bCheckEcmMode, final boolean isMms) {
+        if (mMsimDialog != null && mMsimDialog.isShowing()) {
+            mMsimDialog.dismiss();
+        }
+        LogTag.debugD("LaunchMsimDialog");
         AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
         LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         View layout = inflater.inflate(R.layout.multi_sim_sms_sender,
@@ -1319,42 +1308,31 @@ public class ComposeMessageActivity extends Activity
                 }
             }
             smsBtns[i].setOnClickListener(
-                new View.OnClickListener() {
-                    public void onClick(View v) {
-                        int subId = SubscriptionManager.getSubId(phoneId)[0];
-                        LogTag.debugD("LaunchMsimDialog: subscription selected " + subId);
-                        if (!SubscriptionManager.from(getApplicationContext())
-                                .isActiveSubId(subId)) {
-                            Toast.makeText(ComposeMessageActivity.this,
-                                    getString(R.string.send_via_invalid_sub),
-                                    Toast.LENGTH_LONG).show();
-                            if (mMsimDialog != null) {
-                                mMsimDialog.dismiss();
+                    new View.OnClickListener() {
+                        public void onClick(View v) {
+                            dismissMsimDialog();
+                            int subId = SubscriptionManager.getSubId(phoneId)[0];
+                            LogTag.debugD("LaunchMsimDialog: subscription selected " + subId);
+                            if (!SubscriptionManager.from(getApplicationContext())
+                                    .isActiveSubId(subId)) {
+                                Toast.makeText(ComposeMessageActivity.this,
+                                        getString(R.string.send_via_invalid_sub),
+                                        Toast.LENGTH_LONG).show();
+                            } else if (isMmsWithMobileDataOff(isMms, subId)) {
+                                showMobileDataDisabledDialog(subId);
+                            } else {
+                                sendMsimMessage(bCheckEcmMode, subId);
                             }
-                        } else {
-                            processMsimSendMessage(subId, bCheckEcmMode);
                         }
-                }
-            });
+                    });
         }
         mMsimDialog.show();
     }
 
     private void sendMsimMessage(boolean bCheckEcmMode, int subscription) {
+        LogTag.debugD("sendMsimMessage subscription: " + subscription);
         mWorkingMessage.setWorkingMessageSub(subscription);
         sendMessage(bCheckEcmMode);
-    }
-
-    private void sendMsimMessage(boolean bCheckEcmMode) {
-        if (SmsManager.getDefault().isSMSPromptEnabled()) {
-            LogTag.debugD("sendMsimMessage isSMSPromptEnabled: True");
-            LaunchMsimDialog(bCheckEcmMode);
-        } else {
-            int subId = SubscriptionManager.getDefaultSmsSubscriptionId();
-            LogTag.debugD("sendMsimMessage with default SmsSubId :" + subId);
-            mWorkingMessage.setWorkingMessageSub(subId);
-            sendMessage(bCheckEcmMode);
-        }
     }
 
     private boolean isLTEOnlyMode() {
@@ -1397,6 +1375,7 @@ public class ComposeMessageActivity extends Activity
         if (b != null) {
             result = b.getBoolean("config_enable_mms_with_mobile_data_off");
         }
+        LogTag.debug("canSendMmsMobileDataOff result: " + result);
         return result;
     }
 
@@ -1407,8 +1386,7 @@ public class ComposeMessageActivity extends Activity
         }
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
-            if (isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(subscription) &&
-                    !MessageUtils.isMobileDataEnabled(getApplicationContext(), subscription)) {
+            if (isMmsWithMobileDataOff(isMms, subscription)) {
                 showMobileDataDisabledDialog(subscription);
             } else {
                 sendMsimMessage(true, subscription);
@@ -1418,8 +1396,7 @@ public class ComposeMessageActivity extends Activity
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog(subscription);
-        } else if (isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(subscription) &&
-                !MessageUtils.isMobileDataEnabled(getApplicationContext(), subscription)) {
+        } else if (isMmsWithMobileDataOff(isMms, subscription)) {
             showMobileDataDisabledDialog(subscription);
         } else {
             if (!TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
@@ -1436,12 +1413,14 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void confirmSendMessageIfNeeded() {
+        LogTag.debugD("confirmSendMessageIfNeeded");
         if (mRcsShareVcard) {
             mWorkingMessage.setRcsType(RcsUtils.RCS_MSG_TYPE_VCARD);
             mRcsShareVcard = false;
         }
 
-        int slot = SubscriptionManager.getSlotId(SmsManager.getDefault().getDefaultSmsSubscriptionId());
+        int slot = SubscriptionManager.getSlotId(
+                SmsManager.getDefault().getDefaultSmsSubscriptionId());
         if ((TelephonyManager.getDefault().isMultiSimEnabled() &&
                 isLTEOnlyMode(slot))
                 || (!TelephonyManager.getDefault().isMultiSimEnabled()
@@ -1452,17 +1431,22 @@ public class ComposeMessageActivity extends Activity
         }
 
         boolean isMms = mWorkingMessage.requiresMms();
+        int defaultSubId = SubscriptionManager.getDefaultSmsSubscriptionId();
         if (!isRecipientsEditorVisible()) {
-            if (isMms && !mSendMmsSupportViaWiFi &&
-                    canSendMmsMobileDataOff(SubscriptionManager.getDefaultSmsSubscriptionId()) &&
-                    !MessageUtils.isMobileDataEnabled(getApplicationContext(),
-                            SubscriptionManager.getDefaultSmsSubscriptionId())) {
+            if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+                if ((TelephonyManager.getDefault().getPhoneCount()) > 1 &&
+                        MessageUtils.isMsimIccCardActive()) {
+                    if(SmsManager.getDefault().isSMSPromptEnabled()) {
+                        launchMsimDialog(true, isMms);
+                    } else {
+                        sendMsimMessageNotPrompt(true, isMms, defaultSubId);
+                    }
+                } else {
+                    sendMsimMessageNotPrompt(true, isMms, defaultSubId);
+                }
+            } else if (isMmsWithMobileDataOff(isMms, defaultSubId)) {
                 showMobileDataDisabledDialog();
-            } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
-                LogTag.debugD("sendMsimMessage true");
-                sendMsimMessage(true);
             } else {
-                LogTag.debugD("sendMessage true");
                 sendMessage(true);
             }
             return;
@@ -1470,11 +1454,19 @@ public class ComposeMessageActivity extends Activity
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
-        } else if (isMms && !mSendMmsSupportViaWiFi &&
-                canSendMmsMobileDataOff(SubscriptionManager.getDefaultSmsSubscriptionId()) &&
-                !MessageUtils.isMobileDataEnabled(getApplicationContext(),
-                        SubscriptionManager.getDefaultSmsSubscriptionId())) {
-            showMobileDataDisabledDialog();
+        } else if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+            if ((TelephonyManager.getDefault().getPhoneCount()) > 1 &&
+                    MessageUtils.isMsimIccCardActive()) {
+                if(SmsManager.getDefault().isSMSPromptEnabled()) {
+                    launchMsimDialog(true, isMms);
+                } else {
+                    sendMsimMessageNotPrompt(true, isMms, defaultSubId);
+                }
+            } else {
+                sendMsimMessageNotPrompt(true, isMms, defaultSubId);
+            }
+        } else if (isMmsWithMobileDataOff(isMms, defaultSubId)) {
+            showMobileDataDisabledDialog(defaultSubId);
         } else {
             if (!TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
                     && isMms
@@ -1485,11 +1477,7 @@ public class ComposeMessageActivity extends Activity
             // as the destination.
             ContactList contacts = mRecipientsEditor.constructContactsFromInput(false);
             mDebugRecipients = contacts.serialize();
-            if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
-                sendMsimMessage(true);
-            } else {
-                sendMessage(true);
-            }
+            sendMessage(true);
         }
     }
 
@@ -1519,22 +1507,34 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private void sendMsimMessageNotPrompt(boolean bCheckEcmMode, boolean isMms, int subId) {
+        if (isMmsWithMobileDataOff(isMms, subId)) {
+            showMobileDataDisabledDialog(subId);
+        } else {
+            sendMsimMessage(bCheckEcmMode, subId);
+        }
+    }
+
+    private boolean isMmsWithMobileDataOff(boolean isMms, int subscription) {
+        LogTag.debug("isMmsWithMobileDataOff subscription: " + subscription);
+        return isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(subscription)
+                && !MessageUtils.isMobileDataEnabled(getApplicationContext(), subscription);
+    }
+
     private void showMobileDataDisabledDialog() {
         showMobileDataDisabledDialog(MessageUtils.SUB_INVALID);
     }
 
     private void showMobileDataDisabledDialog(final int subscription) {
+        LogTag.debug("showMobileDataDisabledDialog subscription: " + subscription);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.send);
         builder.setMessage(getString(R.string.mobile_data_disable));
         builder.setPositiveButton(R.string.yes, new OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
-                if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
-                    if (subscription == MessageUtils.SUB_INVALID) {
-                        sendMsimMessage(true);
-                    } else {
-                        sendMsimMessage(true, subscription);
-                    }
+                if ((TelephonyManager.getDefault().getPhoneCount()) > 1
+                        && (subscription != MessageUtils.SUB_INVALID)) {
+                    sendMsimMessage(true, subscription);
                 } else {
                     sendMessage(true);
                 }
@@ -6046,6 +6046,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void sendMessage(boolean bCheckEcmMode) {
+        LogTag.debugD("sendMessage true");
         if (mIsRcsEnabled && hasConvertRcsAttachmentToMmsAndSent()) {
             return;
         }
