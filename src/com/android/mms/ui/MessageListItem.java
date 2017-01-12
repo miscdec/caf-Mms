@@ -958,6 +958,10 @@ public class MessageListItem extends ZoomMessageListItem implements
         }
         switch (mMessageItem.mAttachmentType) {
             case MessageItem.ATTACHMENT_TYPE_NOT_LOADED:
+                if (null != mDownloadingTitle) {
+                    mDownloadingTitle.setVisibility(View.VISIBLE);
+                    mDownloadingTitle.setText(R.string.mms_loading);
+                }
                 break;
             case WorkingMessage.AUDIO:
                 initPlayAudioView(visible);
