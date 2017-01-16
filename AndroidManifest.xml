@@ -42,8 +42,6 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INSTALL_DRM" />
     <uses-permission android:name="android.permission.WRITE_APN_SETTINGS" />
-    <uses-permission android:name="com.suntek.rcs.permission.READ_DATABASE" />
-    <uses-permission android:name="com.suntek.rcs.permission.WRITE_DATABASE" />
     <!-- System apps can access the  receiver through intent-->
     <permission android:name="android.permission.MMS_SEND_OUTBOX_MSG"
                 android:protectionLevel="signatureOrSystem"
@@ -56,8 +54,6 @@
     <uses-permission android:name="android.permission.GET_TASKS"/>
     <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
     <uses-permission android:name="android.permission.MANAGE_DOCUMENTS" />
-    <uses-permission android:name="com.android.firewall.READ_GRAVITY"/>
-    <uses-permission android:name="com.android.firewall.WRITE_GRAVITY"/>
     <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE"/>
     <!-- Needed for OMA Client Provisioning -->
     <uses-permission android:name="org.codeaurora.omacp.permission.SHOW_CONFIGURATION_MESSAGE" />
@@ -74,7 +70,6 @@
             android:allowTaskReparenting="true"
             android:supportsRtl="true">
         <uses-library android:name="com.qrd.wappush" android:required="false" />
-        <uses-library android:name="com.suntek.mway.rcs.client.api" android:required="false" />
 
         <service android:name=".transaction.TransactionService"
                  android:exported="false" />
@@ -88,7 +83,6 @@
                   android:theme="@style/MmsNewStyleTheme"
                   android:launchMode="singleTop">
             <intent-filter>
-                <action android:name="com.suntek.rcs.action.ACTION_PICK_CONVERSATION" />
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -442,10 +436,6 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-            <intent-filter>
-               <action android:name="com.suntek.rcs.action.ACTION_PICK_CONTACTGROUPS" />
-               <category android:name="android.intent.category.DEFAULT" />
-           </intent-filter>
         </activity>
 
         <meta-data android:name="android.app.default_searchable"
@@ -521,50 +511,6 @@
         <provider android:name="MessageTemplateProvider"
                 android:authorities="com.android.mms.MessageTemplateProvider" >
         </provider>
-        <receiver android:name=".rcs.RcsMessageStatusReceiver" >
-            <intent-filter>
-                <action android:name="com.suntek.rcs.action.ACTION_MESSAGE_SMS_POLICY_NOT_SET" />
-                <action android:name="com.suntek.rcs.action.ACTION_MESSAGE_FILE_TRANSFER_PROGRESS" />
-                <action android:name="com.suntek.rcs.action.ACTION_MESSAGE_STATUS_CHANGED" />
-                <action android:name="com.suntek.rcs.action.ACTION_MESSAGE_NOTIFY" />
-            </intent-filter>
-        </receiver>
-
-        <service
-            android:name=".rcs.RcsMessageStatusService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.suntek.rcs.action.ACTION_MESSAGE_STATUS_CHANGED_SERVICE"/>
-            </intent-filter>
-        </service>
-
-       <activity android:name=".rcs.FavouriteMessageList"
-            android:label="@string/app_label"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:uiOptions="splitActionBarWhenNarrow"
-            android:launchMode="singleTop">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".rcs.FavoriteDetailActivity"
-            android:label="@string/message_detail"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:launchMode="singleTop" >
-        </activity>
-
-        <activity
-            android:name=".rcs.RcsCreateGroupChatActivity"
-            android:label="@string/new_group_chat"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.suntek.rcs.action.CREATR_GROUP_CHAT" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
 
         <activity
             android:name=".transaction.MmsNoConfirmationSendActivity"
@@ -577,16 +523,6 @@
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
                 <data android:mimeType="vnd.android/mms" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".rcs.RcsConfirmDialogActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:theme="@style/confirmdialog" >
-            <intent-filter>
-                <action android:name="com.suntek.rcs.action.ACTION_LUNCHER_CONFRMDIALOG" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
         <activity android:name=".ui.PlayVideoOrPicActivity"

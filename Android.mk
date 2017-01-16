@@ -21,7 +21,6 @@ LOCAL_PACKAGE_NAME := Mms
 #LOCAL_SDK_VERSION := current
 
 LOCAL_JAVA_LIBRARIES += telephony-common org.apache.http.legacy
-LOCAL_JAVA_LIBRARIES += rcs_service_api
 LOCAL_STATIC_JAVA_LIBRARIES += android-common jsr305
 LOCAL_STATIC_JAVA_LIBRARIES += libchips
 LOCAL_STATIC_JAVA_LIBRARIES += libphonenumber
@@ -30,8 +29,6 @@ LOCAL_STATIC_JAVA_LIBRARIES += android-support-v7-recyclerview
 LOCAL_RESOURCE_DIR := $(addprefix $(LOCAL_PATH)/, $(res_dirs))
 LOCAL_AAPT_FLAGS := --auto-add-overlay
 LOCAL_AAPT_FLAGS += --extra-packages com.android.ex.chips
-
-LOCAL_REQUIRED_MODULES := SoundRecorder
 
 LOCAL_PROGUARD_FLAG_FILES := proguard.flags
 

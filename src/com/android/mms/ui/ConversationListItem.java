@@ -20,8 +20,6 @@
 package com.android.mms.ui;
 
 import android.content.Context;
-import android.content.res.Resources;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -29,10 +27,8 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.Typeface;
 import android.graphics.Rect;
-import android.net.Uri;
 import android.os.Handler;
 import android.provider.Telephony;
-import android.provider.Telephony.Sms;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.telephony.TelephonyManager;
@@ -55,18 +51,13 @@ import android.widget.TextView;
 
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
-import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
-import com.android.mms.R;
-import com.android.mms.rcs.RcsUtils;
 import com.android.mms.ui.LetterTileDrawable;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.MaterialColorMapUtils;
-import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
-import com.suntek.mway.rcs.client.aidl.common.RcsColumns;
 
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -92,8 +83,6 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     private QuickContactBadge mAvatarView;
 
     static private Drawable sDefaultContactImage;
-    private static Drawable sDefaultGroupChatImage; // The RCS Group Chat photo.
-    private static Drawable sDefaultToPcChatImage;
     private static Drawable sDefaultCheckedImageDrawable;
     private static Drawable sDefaultGroupContactImage;
 
@@ -117,15 +106,6 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
         if (sDefaultContactImage == null) {
             sDefaultContactImage = context.getResources().getDrawable(R.drawable.stranger);
-        }
-
-        if (MmsConfig.isRcsVersion() && sDefaultGroupChatImage == null) {
-            sDefaultGroupChatImage = context.getResources().getDrawable(
-                    R.drawable.rcs_ic_group_chat_photo);
-        }
-        if (MmsConfig.isRcsVersion() && sDefaultToPcChatImage == null) {
-            sDefaultToPcChatImage = context.getResources().getDrawable(
-                    R.drawable.rcs_ic_topc_chat_photo);
         }
         if (sDefaultCheckedImageDrawable == null) {
             sDefaultCheckedImageDrawable = context.getResources().getDrawable(R.drawable.selected);
@@ -167,23 +147,7 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
     private CharSequence formatMessage() {
         final int color = android.R.styleable.Theme_textColorSecondary;
-        String from;
-        if (MmsConfig.isRcsVersion()) {
-            if (mConversation.isPcChat()) {
-                from = mContext.getResources().getString(R.string.rcs_to_pc_conversion);
-            } else if (mConversation.isGroupChat()) {
-                GroupChat groupChat = mConversation.getGroupChat();
-                if (groupChat != null) {
-                    from = RcsUtils.getDisplayName(groupChat);
-                } else {
-                    from = mContext.getResources().getString(R.string.group_chat);
-                }
-            } else {
-                from = mConversation.getRecipients().formatNames(", ");
-            }
-        } else {
-            from = mConversation.getRecipients().formatNames(", ");
-        }
+        String from = mConversation.getRecipients().formatNames(", ");
         if (MessageUtils.isWapPushNumber(from)) {
             String[] mAddresses = from.split(":");
             from = mAddresses[mContext.getResources().getInteger(
@@ -253,21 +217,6 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     }
 
     private void updateAvatarView() {
-        if (MmsConfig.isRcsVersion()) {
-            if (mConversation.isGroupChat()) {
-                mAvatarView.assignContactUri(null);
-                mAvatarView.setImageDrawable(sDefaultGroupChatImage);
-                mAvatarView.setVisibility(View.VISIBLE);
-                return;
-            }
-            if (mConversation.isPcChat()) {
-                mAvatarView.assignContactUri(null);
-                mAvatarView.setImageDrawable(sDefaultToPcChatImage);
-                mAvatarView.setVisibility(View.VISIBLE);
-                return;
-            }
-        }
-
         ViewGroup parent = (ViewGroup) findViewById(R.id.avatar_layout);
         parent.removeAllViews();
         if (mConversation.isChecked()) {
@@ -316,10 +265,9 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     private void setContactDrawable(QuickContactBadge view, Contact contact, boolean isGroup) {
         view.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         view.setOverlay(null);
-
+        Drawable defaultContactImage = isGroup ? sDefaultGroupContactImage : sDefaultContactImage;
         Drawable backgroundDrawable = null;
         Drawable avatarDrawable;
-        Drawable defaultContactImage = isGroup ? sDefaultGroupContactImage : sDefaultContactImage;
         if (contact == null) {
             avatarDrawable = sDefaultCheckedImageDrawable;
             view.setBackgroundResource(R.drawable.selected_icon_background);
@@ -413,44 +361,16 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
             Log.v(TAG, "bind: contacts.addListeners " + this);
         }
         Contact.addListener(this);
-        if (MmsConfig.isRcsVersion()) {
-            int messageID = conversation.getRcsLastMsgId();
-                // Date
-                if (!mConversation.hasDraft()) {
-                    mDateView.setText(formateUnreadToBold(MessageUtils.
-                            formatTimeStampString(context, conversation.getDate())));
-                }
-                // Subject
-                String snippet = RcsUtils.formatConversationSnippet(getContext(),
-                        conversation.getSnippet(), conversation.getRcsLastMsgType());
-                // TODO judge the latest message is notification message.
-                if (TextUtils.isEmpty(snippet)) {
-                    mSubjectView.setVisibility(View.GONE);
-                } else {
-                    mSubjectView.setVisibility(View.VISIBLE);
-                }
-                if (conversation.isGroupChat()) {
-                    snippet = RcsUtils.getStringOfNotificationBody(context, snippet);
-                    mSubjectView.setText(snippet);
-                } else if (mConversation.hasUnreadMessages()) {
-                    SpannableStringBuilder buf = new SpannableStringBuilder(snippet);
-                    buf.setSpan(STYLE_BOLD, 0, buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
-                    mSubjectView.setText(buf);
-                } else {
-                    mSubjectView.setText(snippet);
-                }
-        } else {
-            String snippet = conversation.getSnippet();
-            if (!TextUtils.isEmpty(snippet)) {
-                if (isLastMessageMms && !mConversation.hasDraft()
-                        && (mConversation.getSnippetCs() != 0)) {
-                    snippet = mContext.getResources().getString(R.string.subject_label) + snippet;
-                }
-                mSubjectView.setText(formateUnreadToBold(snippet));
-                mSubjectView.setVisibility(View.VISIBLE);
-            } else {
-                mSubjectView.setVisibility(View.GONE);
+        String snippet = conversation.getSnippet();
+        if (!TextUtils.isEmpty(snippet)) {
+            if (isLastMessageMms && !mConversation.hasDraft()
+                    && (mConversation.getSnippetCs() != 0)) {
+                snippet = mContext.getResources().getString(R.string.subject_label) + snippet;
             }
+            mSubjectView.setText(formateUnreadToBold(snippet));
+            mSubjectView.setVisibility(View.VISIBLE);
+        } else {
+            mSubjectView.setVisibility(View.GONE);
         }
 
         // Transmission error indicator.
@@ -582,36 +502,4 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     public void toggle() {
         mConversation.setIsChecked(!mConversation.isChecked());
     }
-
-    /* Begin add for RCS */
-    public void setGroupChatImage(Drawable drawable){
-        this.sDefaultGroupChatImage = drawable;
-    }
-
-    public void bindAvatar(Drawable drawable){
-        mAvatarView.assignContactUri(null);
-        mAvatarView.setImageDrawable(drawable);
-        mAvatarView.setVisibility(View.VISIBLE);
-    }
-
-    public boolean isBurnMsg(int messageID){
-        boolean isBurnMsg = false;
-        Cursor cursor = null;
-        try {
-            Uri uri = Uri.parse("content://sms/");
-            cursor = mContext.getContentResolver().query (uri, null, Sms._ID + " = ? and "
-                    + Sms.TYPE + " != 0", new String[] {String.valueOf(messageID)}, null);
-            if (cursor != null && cursor.moveToFirst()) {
-                isBurnMsg = (cursor.getInt(cursor.getColumnIndex(
-                        RcsColumns.SmsRcsColumns.RCS_BURN))> RcsUtils.RCS_NOT_A_BURN_MESSAGE);
-            }
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-        return isBurnMsg;
-    }
-    /* End add for RCS */
-
 }

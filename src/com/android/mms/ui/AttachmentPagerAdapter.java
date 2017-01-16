@@ -47,7 +47,6 @@ import android.widget.SimpleAdapter;
 
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
-import com.android.mms.rcs.RcsUtils;
 
 public class AttachmentPagerAdapter extends PagerAdapter {
     public static final int GRID_COLUMN_COUNT = 3;
@@ -65,7 +64,6 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     public static final int ADD_CONTACT_AS_TEXT  = 8;
     public static final int ADD_CONTACT_AS_VCARD = 9;
     public static final int ADD_TEMPLATE         = 10;
-    public static final int ADD_MAP              = 11;
 
     private static final String GRID_ITEM_IMAGE = "grid_item_image";
     private static final String GRID_ITEM_TEXT  = "grid_item_text";
@@ -77,7 +75,7 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     private static final int VCARD_ITEM_POSITION           = 3;
     private static final int IMPORT_TEMPLATE_POSITION      = 4;
 
-    private static final int ICON_LIST_SIZE = 11;
+    private static final int ICON_LIST_SIZE = 10;
 
     private boolean mHasAttachment;
     private boolean mHasVcard;
@@ -163,7 +161,6 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     }
 
     private List<IconListItem> getAttachmentData() {
-        boolean isRcsAttachment = RcsUtils.isRcsAttachmentEnabled(mContext);
         List<IconListItem> list = new ArrayList<IconListItem>(ICON_LIST_SIZE);
         list.add(new IconListItem(mContext.getString(R.string.attach_subject),
                 (!mIsReplace && mShowAddSubject) ? R.drawable.ic_attach_subject_holo_light
@@ -200,19 +197,10 @@ public class AttachmentPagerAdapter extends PagerAdapter {
                     (!mIsReplace && mHasAttachment) ? R.drawable.ic_attach_vcard_disable
                             : R.drawable.ic_attach_vcard_holo_light));
 
-        } else if (isRcsAttachment) {
-            list.add(new IconListItem(mContext.getString(R.string.attach_add_contact_as_vcard),
-                    (!mIsReplace && mHasAttachment) ? R.drawable.ic_attach_vcard_disable
-                            : R.drawable.ic_attach_vcard_holo_light));
         }
         list.add(new IconListItem(mContext.getString(R.string.import_message_template),
                 (!mIsReplace && mHasSlideshow) ? R.drawable.ic_attach_template_disalbe
                         : R.drawable.ic_attach_template_holo_light));
-
-        if (isRcsAttachment) {
-            list.add(new IconListItem(mContext.getString(R.string.attach_map),
-                    R.drawable.rcs_caiyun_sharefile));
-        }
 
         return list;
     }

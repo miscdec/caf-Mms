@@ -1310,11 +1310,9 @@ public class Contact {
         return true;
     }
 
-    /* Begin add for RCS */
     public synchronized long getPersonId() {
         return mPersonId;
     }
-    /* End add for RCS */
 
     /*
      * Set color for contact avatar and compose activity

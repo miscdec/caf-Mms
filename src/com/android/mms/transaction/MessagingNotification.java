@@ -2484,12 +2484,4 @@ public class MessagingNotification {
 
         return intent;
     }
-
-
-    /* Begin add for RCS */
-    public static long getCurrentlyDisplayedThreadId() {
-        return sCurrentlyDisplayedThreadId;
-    }
-    /* End add for RCS */
-
 }

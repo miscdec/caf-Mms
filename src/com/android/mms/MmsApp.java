@@ -52,8 +52,6 @@ import com.android.mms.util.PduLoaderManager;
 import com.android.mms.util.RateController;
 import com.android.mms.util.ThumbnailManager;
 
-import com.suntek.rcs.ui.common.RcsApiManager;
-
 public class MmsApp extends Application {
     public static final String LOG_TAG = LogTag.TAG;
 
@@ -109,7 +107,6 @@ public class MmsApp extends Application {
         RateController.init(this);
         LayoutManager.init(this);
         MessagingNotification.init(this);
-        RcsApiManager.init(this);
         if (MessageUtils.hasBasicPermissions()) {
             initPermissionRelated();
         }
