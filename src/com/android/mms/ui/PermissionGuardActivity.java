@@ -167,12 +167,14 @@ public class PermissionGuardActivity extends Activity {
     }
 
     private void enter() {
-        finish();
         if (!mGrantPermission) {
-            startActivity(mOriginalIntent);
+            Intent intent = new Intent(mOriginalIntent);
+            intent.setPackage("com.android.mms.ui.PermissionGuardActivity");
+            PermissionGuardActivity.this.startActivity(intent);
         } else {
             Toast.makeText(this,R.string.grant_permission_fail,Toast.LENGTH_SHORT).show();
         }
+        PermissionGuardActivity.this.finish();
     }
 
     @Override
