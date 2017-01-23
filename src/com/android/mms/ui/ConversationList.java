@@ -771,7 +771,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 mQueryHandler = new ThreadListQueryHandler(getContentResolver());
             }
 
-            Conversation.startQuery(mQueryHandler, THREAD_LIST_QUERY_TOKEN, NOT_OBSOLETE);
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
             if (sp.getBoolean(MessagingPreferenceActivity.SEPERATE_NOTIFI_MSG, true)) {
                 Conversation.startQuery(mQueryHandler, THREAD_LIST_QUERY_TOKEN,
