@@ -91,6 +91,7 @@ public class ManageSimMessages extends Activity
     private static final Uri ICC1_URI = Uri.parse("content://sms/icc1");
     private static final Uri ICC2_URI = Uri.parse("content://sms/icc2");
     private static final String TAG = LogTag.TAG;
+    private static final String SUB_TAG = "ManageSimMessages";
     private static final int MENU_COPY_TO_PHONE_MEMORY = 0;
     private static final int MENU_DELETE_FROM_SIM = 1;
     private static final int MENU_VIEW = 2;
@@ -105,6 +106,9 @@ public class ManageSimMessages extends Activity
     private static final int SHOW_LIST = 0;
     private static final int SHOW_EMPTY = 1;
     private static final int SHOW_BUSY = 2;
+    private static final int LOADING_MESSAGES_MAX_DELAY_MS = 2000;
+    private static final int LOADING_MESSAGES_MIN_DELAY_MS = 200;
+
     private int mState;
     private int mSlotId;
 
@@ -117,6 +121,7 @@ public class ManageSimMessages extends Activity
     private AsyncQueryHandler mQueryHandler = null;
     private boolean mIsDeleteAll = false;
     private boolean mIsQuery = false;
+    private boolean mNeedQuery = false;
     private AlertDialog mDeleteDialog;
     private ProgressDialog mProgressDialog;
     private boolean mIsEnableSelectCopy = false;
@@ -128,13 +133,30 @@ public class ManageSimMessages extends Activity
     public static final String FORWARD_MESSAGE_ACTIVITY_NAME =
             "com.android.mms.ui.ForwardMessageActivity";
 
+    private Handler mHandler = new Handler();
+
     private final ContentObserver simChangeObserver =
             new ContentObserver(new Handler()) {
         @Override
         public void onChange(boolean selfUpdate) {
+            LogTag.debugD(SUB_TAG + " SIM change");
+            startSimMsgListQuery(LOADING_MESSAGES_MAX_DELAY_MS);
+        }
+    };
+
+    private Runnable messageListRefreshRunnable =
+            new Runnable() {
+        @Override
+        public void run() {
             refreshMessageList();
         }
     };
+
+    private void startSimMsgListQuery(long delayMillis) {
+        LogTag.debugD(SUB_TAG + " startSimMsgListQuery");
+        mHandler.removeCallbacks(messageListRefreshRunnable);
+        mHandler.postDelayed(messageListRefreshRunnable, delayMillis);
+    }
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -154,7 +176,7 @@ public class ManageSimMessages extends Activity
                         }
                     }
                 }
-                refreshMessageList();
+                startSimMsgListQuery(LOADING_MESSAGES_MIN_DELAY_MS);
             }
         }
     };
@@ -199,11 +221,10 @@ public class ManageSimMessages extends Activity
         mSlotId = getIntent().getIntExtra(PhoneConstants.SLOT_KEY,
                 MessageUtils.SUB_INVALID);
         mIccUri = MessageUtils.getIccUriBySubscription(mSlotId);
-        updateState(SHOW_BUSY);
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getContext());
         mIsEnableSelectCopy = sp.getBoolean(MessagingPreferenceActivity.ENABLE_SELECTABLE_COPY,
                 MessagingPreferenceActivity.ENABLE_SELECTABLE_COPY_DEFAULT_VALUE);
-        startQuery();
+        startSimMsgListQuery(LOADING_MESSAGES_MIN_DELAY_MS);
     }
 
     private class QueryHandler extends AsyncQueryHandler {
@@ -269,6 +290,11 @@ public class ManageSimMessages extends Activity
             mSimList.setMultiChoiceModeListener(new ModeCallback());
             mSimList.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
             mIsQuery = false;
+            if (mNeedQuery) {
+                mNeedQuery = false;
+                LogTag.debugD(SUB_TAG + " startSimMsgListQuery onQueryComplete");
+                startSimMsgListQuery(LOADING_MESSAGES_MIN_DELAY_MS);
+            }
         }
     }
 
@@ -276,6 +302,7 @@ public class ManageSimMessages extends Activity
         try {
             Log.d(TAG, "IsQuery :" + mIsQuery + " iccUri :" + mIccUri);
             if (mIsQuery) {
+                mNeedQuery = true;
                 return;
             }
             mIsQuery = true;
@@ -286,6 +313,7 @@ public class ManageSimMessages extends Activity
     }
 
     private void refreshMessageList() {
+        LogTag.debugD(SUB_TAG + " refreshMessageList");
         if (mDeleteDialog != null && mDeleteDialog.isShowing()) {
             mDeleteDialog.dismiss();
         }
