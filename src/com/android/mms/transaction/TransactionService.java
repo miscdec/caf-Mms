@@ -945,10 +945,10 @@ public class TransactionService extends Service implements Observer {
             mConnMgr.requestNetwork(mMmsNetworkRequest[phoneId], mMmsNetworkCallback[phoneId],
                     PDP_ACTIVATION_TIMEOUT);
             Log.d(TAG, "beginMmsConnectivity:call ConnectivityManager.requestNetwork ");
-            mServiceHandler.sendMessageDelayed(mServiceHandler.obtainMessage(
-                               EVENT_MMS_PDP_ACTIVATION_TIMEOUT),
-                               PDP_ACTIVATION_TIMEOUT);
-
+            Message message = mServiceHandler.obtainMessage(
+                    EVENT_MMS_PDP_ACTIVATION_TIMEOUT);
+            message.arg1 = subId;
+            mServiceHandler.sendMessageDelayed(message, PDP_ACTIVATION_TIMEOUT);
         }
         acquireWakeLock();
     }
@@ -1170,7 +1170,7 @@ public class TransactionService extends Service implements Observer {
                     }
                     return;
                 case EVENT_MMS_PDP_ACTIVATION_TIMEOUT:
-                    onPDPTimeout();
+                    onPDPTimeout(msg.arg1);
                     return;
                 default:
                     Log.w(TAG, "what=" + msg.what);
@@ -1178,19 +1178,27 @@ public class TransactionService extends Service implements Observer {
             }
         }
 
-        private void onPDPTimeout() {
+        private void onPDPTimeout(int subId) {
             LogTag.debugD("PDP activation timer expired, declare failure");
             synchronized (mProcessing) {
                 ArrayList<Transaction> tranList = new ArrayList<Transaction>();
                 if (!mProcessing.isEmpty()) {
                     // Get the process transaction
-                    tranList.addAll(mProcessing);
+                    for (Transaction processTransaction : mProcessing) {
+                        if (processTransaction.getSubId() == subId) {
+                            tranList.add(processTransaction);
+                        }
+                    }
                 }
 
                 if (!mPending.isEmpty()) {
                     // Get the pending transaction and delete it.
-                    tranList.addAll(mPending);
-                    mPending.clear();
+                    for (Transaction pendingTransaction : mPending) {
+                        if (pendingTransaction.getSubId() == subId) {
+                            tranList.add(pendingTransaction);
+                            mPending.remove(pendingTransaction);
+                        }
+                    }
                 }
 
                 for (Transaction transaction : tranList) {
