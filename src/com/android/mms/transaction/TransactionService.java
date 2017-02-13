@@ -559,6 +559,13 @@ public class TransactionService extends Service implements Observer {
                                     break;
                                 }
 
+                                if (!SubscriptionManager.from(getApplicationContext())
+                                        .isActiveSubId(subId)) {
+                                    LogTag.debugD("SubId is not active:" + subId);
+                                    stopSelfIfIdle(serviceId);
+                                    break;
+                                }
+
                                 TransactionBundle args = new TransactionBundle(transactionType,
                                         uri.toString(), subId);
                                 // FIXME: We use the same startId for all MMs.
@@ -608,6 +615,12 @@ public class TransactionService extends Service implements Observer {
                 int type = intent.getIntExtra(TransactionBundle.TRANSACTION_TYPE,
                         Transaction.NOTIFICATION_TRANSACTION);
                 onNetworkUnavailable(serviceId, type, uri, isRetry);
+                return;
+            }
+
+            if (!SubscriptionManager.from(getApplicationContext()).isActiveSubId(subId)) {
+                LogTag.debugD("SubId is not active:" + subId);
+                stopSelfIfIdle(serviceId);
                 return;
             }
 
