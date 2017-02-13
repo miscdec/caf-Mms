@@ -5533,13 +5533,15 @@ public class ComposeMessageActivity extends Activity
     }
 
     private final TextWatcher mSubjectEditorWatcher = new TextWatcher() {
+        private boolean mNotify = true;
+
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
 
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
             if (s.toString().getBytes().length <= SUBJECT_MAX_LENGTH) {
-                mWorkingMessage.setSubject(s, true);
+                mWorkingMessage.setSubject(s, mNotify);
                 updateSendButtonState();
                 if (s.toString().getBytes().length == SUBJECT_MAX_LENGTH
                         && before < SUBJECT_MAX_LENGTH) {
@@ -5558,8 +5560,10 @@ public class ComposeMessageActivity extends Activity
                 while (subject.getBytes().length > SUBJECT_MAX_LENGTH) {
                     subject = subject.substring(0, subject.length() - 1);
                 }
+                mNotify = false;
                 s.clear();
                 s.append(subject);
+                mNotify = true;
             }
         }
     };
