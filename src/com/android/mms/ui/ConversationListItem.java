@@ -442,7 +442,8 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         } else {
             String snippet = conversation.getSnippet();
             if (!TextUtils.isEmpty(snippet)) {
-                if (isLastMessageMms && !mConversation.hasDraft()) {
+                if (isLastMessageMms && !mConversation.hasDraft()
+                        && (mConversation.getSnippetCs() != 0)) {
                     snippet = mContext.getResources().getString(R.string.subject_label) + snippet;
                 }
                 mSubjectView.setText(formateUnreadToBold(snippet));
