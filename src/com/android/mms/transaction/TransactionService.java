@@ -185,6 +185,8 @@ public class TransactionService extends Service implements Observer {
     private final int maxLaunchRetryAttempts = 5;
     private ArrayList<TxnRequest> mTxnSubIdMap = new ArrayList();
 
+    private boolean isBeginMmsFailed = false;
+
     public Handler mToastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -1487,22 +1489,29 @@ public class TransactionService extends Service implements Observer {
                         }
                     } finally {
                         if (transaction == null) {
-                            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
-                                Log.v(TAG, "Transaction was null. Stopping self: " + serviceId);
-                            }
-
-                            launchRetryAttempt++;
-                            if (launchRetryAttempt <= maxLaunchRetryAttempts) {
-                                Log.d(TAG, "launchTransaction retry attempt - "
-                                        + launchRetryAttempt);
-                                TransactionBundle args = (TransactionBundle) msg.obj;
-                                sleep(5*1000);
-                                launchTransaction(serviceId, args, false);
+                            if (isBeginMmsFailed) {
+                                isBeginMmsFailed = false;
+                                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                                    Log.v(TAG, "beginMmsConnectivity failed, Stopping self: " +
+                                            serviceId);
+                                }
                             } else {
-                                Log.e(TAG, "Multiple launchTransaction retries failed");
-                                launchRetryAttempt = 0;
-                                decRefCount();
+                                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                                    Log.v(TAG, "Transaction was null. Stopping self: " + serviceId);
+                                }
 
+                                launchRetryAttempt++;
+                                if (launchRetryAttempt <= maxLaunchRetryAttempts) {
+                                    Log.d(TAG, "launchTransaction retry attempt - "
+                                            + launchRetryAttempt);
+                                    TransactionBundle args = (TransactionBundle) msg.obj;
+                                    sleep(5*1000);
+                                    launchTransaction(serviceId, args, false);
+                                } else {
+                                    Log.e(TAG, "Multiple launchTransaction retries failed");
+                                    launchRetryAttempt = 0;
+                                    decRefCount();
+                                }
                             }
                         }
                     }
@@ -1660,14 +1669,28 @@ public class TransactionService extends Service implements Observer {
                 int subId = transaction.getSubId();
                 Log.d(TAG, "processTransaction: call beginMmsConnectivity on subId=" + subId);
 
-                int connectivityResult = beginMmsConnectivity(transaction, subId);
-                if (connectivityResult == PhoneConstants.APN_REQUEST_STARTED) {
-                    mPending.add(transaction);
-                    if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) || DEBUG) {
-                        Log.v(TAG, "processTransaction: connResult=APN_REQUEST_STARTED, " +
-                                "defer transaction pending MMS connectivity");
+                try {
+                    int connectivityResult = beginMmsConnectivity(transaction, subId);
+                    if (connectivityResult == PhoneConstants.APN_REQUEST_STARTED) {
+                        mPending.add(transaction);
+                        if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG) || DEBUG) {
+                            Log.v(TAG, "processTransaction: connResult=APN_REQUEST_STARTED, " +
+                                    "defer transaction pending MMS connectivity");
+                        }
+                        return true;
+                     }
+                } catch (IOException e) {
+                    Log.w(TAG, "beginMmsConnectivity failed");
+                    isBeginMmsFailed = true;
+                    endMmsConnectivity(subId);
+                    removeNotification();
+                    decRefCount();
+                    if (mRef == 0) {
+                        int ddsSub = MultiSimUtility.
+                                getDefaultDataSubscription(getApplicationContext());
+                        launchSelectMmsSubscription(ddsSub);
                     }
-                    return true;
+                    return false;
                 }
 
                 Log.d(TAG, "Adding transaction to 'mProcessing' list: " + transaction);
