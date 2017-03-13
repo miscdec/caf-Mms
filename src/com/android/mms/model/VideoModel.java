@@ -102,15 +102,32 @@ public class VideoModel extends RegionMediaModel {
         if (c != null) {
             try {
                 if (c.moveToFirst()) {
-                    String path;
+                    String path = null;
                     try {
                         // Local videos will have a data column
                         path = c.getString(c.getColumnIndexOrThrow(Images.Media.DATA));
+                        if (LOCAL_LOGV) {
+                            Log.d(TAG, "initFromContentUri path:" + path);
+                        }
                     } catch (IllegalArgumentException e) {
                         // For non-local videos, the path is the uri
-                        path = uri.toString();
+                        Log.e(TAG, "Cannot fetch path from uri");
                     }
-                    mSrc = path.substring(path.lastIndexOf('/') + 1);
+                    if (null == path) {
+                        try {
+                            // Local videos will have a display name column
+                            mSrc = c.getString(c.getColumnIndexOrThrow(Images.Media.DISPLAY_NAME));
+                            if (LOCAL_LOGV) {
+                                Log.d(TAG, "initFromContentUri display name:" + mSrc);
+                            }
+                        } catch (IllegalArgumentException e) {
+                            Log.e(TAG, "Cannot fetch display name from uri");
+                            path = uri.toString();
+                            mSrc = path.substring(path.lastIndexOf('/') + 1);
+                        }
+                    } else {
+                        mSrc = path.substring(path.lastIndexOf('/') + 1);
+                    }
                     if (VideoModel.isMmsUri(uri)) {
                         mContentType = c.getString(c.getColumnIndexOrThrow(
                                 Part.CONTENT_TYPE));
