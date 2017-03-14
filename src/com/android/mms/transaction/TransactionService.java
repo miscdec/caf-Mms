@@ -22,6 +22,7 @@ package com.android.mms.transaction;
 import java.io.IOException;
 import java.lang.Long;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import android.app.NotificationManager;
 import android.app.Notification;
@@ -205,7 +206,8 @@ public class TransactionService extends Service implements Observer {
                 mIsAvailable[mPhoneId] = true;
                 Log.d(TAG, "sub:" + mSubId + "NetworkCallback.onAvailable: network=" + network +
                         " mIsAvailable=" + mIsAvailable[mPhoneId]);
-                mServiceHandler.removeMessages(EVENT_MMS_PDP_ACTIVATION_TIMEOUT);
+                mServiceHandler.removeMessages(EVENT_MMS_PDP_ACTIVATION_TIMEOUT,
+                        Integer.parseInt(mSubId));
                 onMmsPdpConnected(mSubId, network);
 
             }
@@ -960,7 +962,7 @@ public class TransactionService extends Service implements Observer {
             Log.d(TAG, "beginMmsConnectivity:call ConnectivityManager.requestNetwork ");
             Message message = mServiceHandler.obtainMessage(
                     EVENT_MMS_PDP_ACTIVATION_TIMEOUT);
-            message.arg1 = subId;
+            message.obj = subId;
             mServiceHandler.sendMessageDelayed(message, PDP_ACTIVATION_TIMEOUT);
         }
         acquireWakeLock();
@@ -1183,7 +1185,7 @@ public class TransactionService extends Service implements Observer {
                     }
                     return;
                 case EVENT_MMS_PDP_ACTIVATION_TIMEOUT:
-                    onPDPTimeout(msg.arg1);
+                    onPDPTimeout((int)msg.obj);
                     return;
                 default:
                     Log.w(TAG, "what=" + msg.what);
@@ -1192,7 +1194,7 @@ public class TransactionService extends Service implements Observer {
         }
 
         private void onPDPTimeout(int subId) {
-            LogTag.debugD("PDP activation timer expired, declare failure");
+            LogTag.debugD("PDP activation timer expired, declare failure sub: "+ subId);
             synchronized (mProcessing) {
                 ArrayList<Transaction> tranList = new ArrayList<Transaction>();
                 if (!mProcessing.isEmpty()) {
@@ -1206,10 +1208,13 @@ public class TransactionService extends Service implements Observer {
 
                 if (!mPending.isEmpty()) {
                     // Get the pending transaction and delete it.
-                    for (Transaction pendingTransaction : mPending) {
+                    Iterator<Transaction> it = mPending.iterator();
+                    while (it.hasNext()) {
+                        Transaction pendingTransaction = it.next();
                         if (pendingTransaction.getSubId() == subId) {
                             tranList.add(pendingTransaction);
-                            mPending.remove(pendingTransaction);
+                            it.remove();
+                            LogTag.debugD("onPDPTimeout Remove req sub" + subId);
                         }
                     }
                 }
@@ -1250,7 +1255,23 @@ public class TransactionService extends Service implements Observer {
             int numProcessTransaction = 0;
             synchronized (mProcessing) {
                 if (mPending.size() != 0) {
-                    transaction = mPending.remove(0);
+                    boolean isPendingFound = false;
+                    for (int index = 0; index < mPending.size(); index++) {
+                        Transaction trans = mPending.get(index);
+                        int phoneId = SubscriptionManager.getPhoneId(trans.getSubId());
+                        if (mIsAvailable[phoneId]) {
+                            transaction = mPending.remove(index);
+                            LogTag.debugD("processPendingTxn: handle mPending[" + index + "]"
+                                    + " sub" + transaction.getSubId());
+                            isPendingFound = true;
+                            break;
+                        }
+                    }
+                    if (!isPendingFound) {
+                        transaction = mPending.remove(0);
+                        LogTag.debugD("processPendingTxn: no suitable item, try item0 sub"
+                                + transaction.getSubId());
+                    }
                 }
                 numProcessTransaction = mProcessing.size();
             }
