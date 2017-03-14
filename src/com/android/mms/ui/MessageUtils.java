@@ -3240,13 +3240,22 @@ public class MessageUtils {
      * Check basic permission before enter app
      */
     public static boolean checkPermissionsIfNeeded(Activity activity) {
-        if (hasBasicPermissions()) {
-            MmsApp.getApplication().initPermissionRelated();
-            if (hasPermissions(sSMSExtendPermissions)) {
-                return false;
-            }
+        boolean hasBasicPermission = hasBasicPermissions();
+        boolean hasExtPermission = hasPermissions(sSMSExtendPermissions);
+
+        if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+            log("checkPermission: Basic=" + hasBasicPermission +
+                    " Ext=" + hasExtPermission);
         }
-        launchPermissionCheckActivity(activity, sSMSExtendPermissions);
+        if (hasBasicPermission) {
+            MmsApp.getApplication().initPermissionRelated();
+        }
+        if (hasBasicPermission && hasExtPermission) {
+            return false;
+        } else {
+            launchPermissionCheckActivity(activity,
+                    hasExtPermission ? null : sSMSExtendPermissions);
+        }
         activity.finish();
         return true;
     }
