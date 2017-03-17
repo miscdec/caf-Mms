@@ -5809,6 +5809,8 @@ public class ComposeMessageActivity extends Activity
 
     private void initMessageList() {
         if (mMsgListAdapter != null) {
+            LogTag.debugD("setOnDataSetChangedListener");
+            mMsgListAdapter.setOnDataSetChangedListener(mDataSetChangedListener);
             return;
         }
 
@@ -7886,6 +7888,8 @@ public class ComposeMessageActivity extends Activity
                     mRcsForwardItems.addAll(mMessageItems);
                 }
             }
+            LogTag.debugD("clear DataSetChangedListener");
+            mMsgListAdapter.setOnDataSetChangedListener(null);
 
             final MessageItem msgItem = mMessageItems.get(0);
             getAsyncDialog().runAsync(new Runnable() {
