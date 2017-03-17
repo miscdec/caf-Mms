@@ -87,20 +87,7 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
                 }
                 return;
             }
-            NetworkInfo mmsNetworkInfo = mConnMgr
-                    .getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
-            if (mmsNetworkInfo == null) {
-                return;
-            }
-            boolean available = mmsNetworkInfo.isAvailable();
-            boolean isConnected = mmsNetworkInfo.isConnected();
-
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
-                Log.v(TAG, "TYPE_MOBILE_MMS available = " + available +
-                           ", isConnected = " + isConnected);
-            }
-
-            if (available && !isConnected) {
+            if (isMmsNetworkReadyForPendingMsg(context)) {
                 wakeUpService(context);
             }
         } else if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
@@ -150,7 +137,36 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
             if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
                 MessagingNotification.nonBlockingUpdateNewMessageIndicator(
                         context, MessagingNotification.THREAD_NONE, false);
+                if (isMmsNetworkReadyForPendingMsg(context)) {
+                    wakeUpService(context);
+                }
             }
+        }
+    }
+
+    /**
+     * isMmsNetworkReadyForPendingMsg
+     *
+     * @param context
+     * @return mms network is available but not connected, means
+     * it is ready to process pending list but not processing now.
+     */
+    private boolean isMmsNetworkReadyForPendingMsg(Context context) {
+        if (null == mConnMgr) {
+            mConnMgr = (ConnectivityManager) context
+                    .getSystemService(Context.CONNECTIVITY_SERVICE);
+        }
+        NetworkInfo mmsNetworkInfo = mConnMgr
+                .getNetworkInfo(ConnectivityManager.TYPE_MOBILE_MMS);
+        if (null != mmsNetworkInfo) {
+            boolean available = mmsNetworkInfo.isAvailable();
+            boolean isConnected = mmsNetworkInfo.isConnected();
+            LogTag.debugD("isMmsNetworkReadyForPendingMsg available = " + available +
+                    ", isConnected = " + isConnected);
+            return available && (!isConnected);
+        } else {
+            Log.e(TAG, "Empty mmsNetworkInfo!");
+            return false;
         }
     }
 }
