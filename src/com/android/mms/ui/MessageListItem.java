@@ -958,6 +958,10 @@ public class MessageListItem extends ZoomMessageListItem implements
         }
         switch (mMessageItem.mAttachmentType) {
             case MessageItem.ATTACHMENT_TYPE_NOT_LOADED:
+                if (null != mDownloadingTitle) {
+                    mDownloadingTitle.setVisibility(View.VISIBLE);
+                    mDownloadingTitle.setText(R.string.mms_loading);
+                }
                 break;
             case WorkingMessage.AUDIO:
                 initPlayAudioView(visible);
@@ -970,6 +974,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 initPlayVideoPicView(visible, WorkingMessage.IMAGE);
                 break;
             case WorkingMessage.TEXT:
+            case WorkingMessage.VCARD:
                 if (mPlayVideoPicLayout != null) {
                     mPlayVideoPicLayout.setVisibility(View.GONE);
                 }
@@ -1783,7 +1788,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 return;
             }
             // If mobile data is turned off, inform user start data and try again.
-            else if (MessageUtils.isMobileDataDisabled(mContext)) {
+            else if (!MessageUtils.isMobileDataEnabled(mContext, mMessageItem.mSubId)) {
                 Toast.makeText(mContext, mContext.getString(R.string.inform_data_off),
                         Toast.LENGTH_LONG).show();
                 return;

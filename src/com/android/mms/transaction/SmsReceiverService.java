@@ -425,6 +425,9 @@ public class SmsReceiverService extends Service {
                             Toast.LENGTH_SHORT).show();
                 }
             });
+            if (sendNextMsg) {
+                sendFirstQueuedMessage(subId);
+            }
         } else {
             messageFailedToSend(uri, error);
             if (sendNextMsg) {

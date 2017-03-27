@@ -712,11 +712,16 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
         if (mListAdapter != null) {
             mListAdapter.changeCursor(null);
         }
-
+        if (mHandler != null) {
+            mHandler.removeCallbacks(mShowProgressDialogRunnable);
+        }
+        if (mProgressDialog != null && mProgressDialog.isShowing()) {
+            LogTag.debugD("dismiss progress dialog");
+            mProgressDialog.dismiss();
+        }
         MessageUtils.removeDialogs();
         try {
             if (mIsRcsEnabled) {
@@ -771,7 +776,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 mQueryHandler = new ThreadListQueryHandler(getContentResolver());
             }
 
-            Conversation.startQuery(mQueryHandler, THREAD_LIST_QUERY_TOKEN, NOT_OBSOLETE);
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
             if (sp.getBoolean(MessagingPreferenceActivity.SEPERATE_NOTIFI_MSG, true)) {
                 Conversation.startQuery(mQueryHandler, THREAD_LIST_QUERY_TOKEN,

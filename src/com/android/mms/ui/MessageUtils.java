@@ -2126,7 +2126,7 @@ public class MessageUtils {
             c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
                     new String[] {ContactsContract.Data.RAW_CONTACT_ID},
                     ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME
-                    + " like '%" + name + "%' ", new String[] {StructuredName.CONTENT_ITEM_TYPE},
+                    + " like '" + name + "%' ", new String[] {StructuredName.CONTENT_ITEM_TYPE},
                     null);
 
             if (c == null) {
@@ -2266,6 +2266,20 @@ public class MessageUtils {
         ConnectivityManager mConnService = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         return !mConnService.getMobileDataEnabled();
+    }
+
+    public static boolean isMobileDataEnabled(Context context, int subId) {
+        if (isMultiSimEnabledMms()) {
+            LogTag.debugD("isMobileDataEnabled subId:" + subId);
+            if (subId > SUB_INVALID) {
+                return MmsApp.getApplication().getTelephonyManager().getDataEnabled(subId);
+            }
+        } else {
+            LogTag.debugD("isMobileDataEnabled SS");
+
+        }
+        LogTag.debugD("isMobileDataEnabled get default data enable status");
+        return MmsApp.getApplication().getTelephonyManager().getDataEnabled();
     }
 
     public static boolean isAirplaneModeOn(Context context) {
@@ -3226,13 +3240,22 @@ public class MessageUtils {
      * Check basic permission before enter app
      */
     public static boolean checkPermissionsIfNeeded(Activity activity) {
-        if (hasBasicPermissions()) {
-            MmsApp.getApplication().initPermissionRelated();
-            if (hasPermissions(sSMSExtendPermissions)) {
-                return false;
-            }
+        boolean hasBasicPermission = hasBasicPermissions();
+        boolean hasExtPermission = hasPermissions(sSMSExtendPermissions);
+
+        if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+            log("checkPermission: Basic=" + hasBasicPermission +
+                    " Ext=" + hasExtPermission);
         }
-        launchPermissionCheckActivity(activity, sSMSExtendPermissions);
+        if (hasBasicPermission) {
+            MmsApp.getApplication().initPermissionRelated();
+        }
+        if (hasBasicPermission && hasExtPermission) {
+            return false;
+        } else {
+            launchPermissionCheckActivity(activity,
+                    hasExtPermission ? null : sSMSExtendPermissions);
+        }
         activity.finish();
         return true;
     }
