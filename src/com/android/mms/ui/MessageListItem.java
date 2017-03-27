@@ -970,6 +970,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 initPlayVideoPicView(visible, WorkingMessage.IMAGE);
                 break;
             case WorkingMessage.TEXT:
+            case WorkingMessage.VCARD:
                 if (mPlayVideoPicLayout != null) {
                     mPlayVideoPicLayout.setVisibility(View.GONE);
                 }
