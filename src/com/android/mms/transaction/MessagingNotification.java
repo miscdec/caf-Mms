@@ -1461,10 +1461,8 @@ public class MessagingNotification {
 
                 uniqueThreads.clear();
 
-                //1. send group summary notification
-                notifyUserIfFullScreen(context, title);
-                doNotify(notification, context);
-                //2. send notification for every conversation.
+
+                //1. send notification for every conversation.
                 for (int j = 0; j < uniqueThreadMessageCount; j++) {
                     int index = uniqueThreadMessageCount - j - 1;
                     if (index < 0) {
@@ -1485,6 +1483,10 @@ public class MessagingNotification {
                     notiSet.clear();
                 }
                 mostRecentNotifPerThread.clear();
+
+                //2. send group summary notification
+                notifyUserIfFullScreen(context, title);
+                doNotify(notification, context);
 
                 if (DEBUG) {
                     Log.d(TAG, "updateNotification: multi messages," +
@@ -1549,49 +1551,6 @@ public class MessagingNotification {
         if (peopleReferenceUri != null) {
             noti.addPerson(peopleReferenceUri.toString());
         }
-
-        int defaults = 0;
-
-        if (isNew) {
-            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
-
-            boolean vibrate = false;
-            if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE)) {
-                // The most recent change to the vibrate preference is to store a boolean
-                // value in NOTIFICATION_VIBRATE. If prefs contain that preference, use that
-                // first.
-                vibrate = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE,
-                        false);
-            } else if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN)) {
-                // This is to support the pre-JellyBean MR1.1 version of vibrate preferences
-                // when vibrate was a tri-state setting. As soon as the user opens the Messaging
-                // app's settings, it will migrate this setting from NOTIFICATION_VIBRATE_WHEN
-                // to the boolean value stored in NOTIFICATION_VIBRATE.
-                String vibrateWhen =
-                        sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN, null);
-                vibrate = "always".equals(vibrateWhen);
-            }
-            if (vibrate) {
-                defaults |= Notification.DEFAULT_VIBRATE;
-            }
-
-            String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
-                    null);
-            if (!includeEmergencySMS) {
-                int state = TelephonyManager.getDefault().getCallState();
-                if (state != TelephonyManager.CALL_STATE_IDLE) {
-                    noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
-                            AudioManager.STREAM_ALARM);
-                } else {
-                    noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
-                }
-            }
-
-        }
-
-        defaults |= Notification.DEFAULT_LIGHTS;
-
-        noti.setDefaults(defaults);
 
         final Notification notification;
 
@@ -1703,7 +1662,6 @@ public class MessagingNotification {
         }
 
         notification.flags |= Notification.FLAG_AUTO_CANCEL;
-        notifyUserIfFullScreen(context, mostRecentNotification.mTitle);
         doNotify(notification, context, threadId);
     }
 
