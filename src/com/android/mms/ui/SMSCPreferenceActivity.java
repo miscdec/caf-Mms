@@ -442,8 +442,6 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
 
     @Override
     protected void onResume() {
-        // Initialize the sms signature
-        updateSMSCPref();
         registerListeners();
         super.onResume();
     }

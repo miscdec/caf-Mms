@@ -1113,19 +1113,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     }
 
     private void updateSMSCPref() {
-        if (mSmscPrefList == null || mSmscPrefList.size() == 0) {
-            return;
-        }
-        int count = TelephonyManager.getDefault().getPhoneCount();
-        for (int i = 0; i < count; i++) {
-            boolean isCDMA = false;
-            int subId[] = SubscriptionManager.getSubId(i);
-            if (subId != null && subId.length != 0) {
-                isCDMA = MessageUtils.isCDMAPhone(subId[0]);
-            }
-            setSMSCPrefState(i, !isCDMA && !isAirPlaneModeOn()
-                    && MessageUtils.hasActivatedIccCard(i));
-        }
+        // Do not query SMSC here, it moved to SmsPreferenceActivity.
     }
 
     private void updateSmscFromBundle(Bundle bundle) {
