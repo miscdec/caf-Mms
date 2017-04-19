@@ -204,17 +204,8 @@ public class MaterialColorMapUtils {
             if (TextUtils.isEmpty(lookup)) {
                 lookup = contact.getNumber();
             }
-            if (TextUtils.isEmpty(mAvatarName)) {
-                mAvatarName = contact.getNumber();
-            }
         }
-
-        if(mAvatarName != null && lookup != null) {
-            drawable.setContactDetails(mAvatarName, lookup);
-        } else {
-            drawable.setContactDetails(null,null);
-        }
-
+        drawable.setContactDetails(mAvatarName, lookup);
         int mColor = drawable.getColor();
 
         if (contact != null) {

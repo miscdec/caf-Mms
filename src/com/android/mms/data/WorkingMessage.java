@@ -197,6 +197,7 @@ public class WorkingMessage {
 
     // Flag indicate resend sms that the recipient of conversion is more than one.
     private boolean mResendMultiRecipients;
+    private static boolean mIsSending = false;
 
     /* Begin add for RCS */
     private static final int DEFAULT_RCS_BURN_TIME = 1;
@@ -1458,6 +1459,7 @@ public class WorkingMessage {
     // Message sending stuff
 
     private void preSendSmsWorker(Conversation conv, String msgText, String recipientsInUI) {
+        mIsSending = true;
         // If user tries to send the message, it's a signal the inputted text is what they wanted.
         UserHappinessSignals.userAcceptedImeText(mActivity);
 
@@ -1500,6 +1502,7 @@ public class WorkingMessage {
             // Be paranoid and clean any draft SMS up.
             deleteDraftSmsMessage(threadId);
         }
+        mIsSending = false;
     }
 
     private void sendSmsWorker(String msgText, String semiSepRecipients, long threadId) {
@@ -2061,6 +2064,10 @@ public class WorkingMessage {
         if (!conv.getRecipients().isEmpty()) {
             conv.ensureThreadId();
         }
+    }
+
+    public static boolean getSendingStatus() {
+        return mIsSending;
     }
 
     /* Begin add for RCS */

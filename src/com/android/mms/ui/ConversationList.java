@@ -92,6 +92,7 @@ import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
 import com.android.mms.data.Conversation.ConversationQueryHandler;
 import com.android.mms.data.RecipientIdCache;
+import com.android.mms.data.WorkingMessage;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
@@ -354,7 +355,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 MessageUtils.pupConnectWifiNotification(this);
             }
         } catch (Settings.SettingNotFoundException e) {
-            e.printStackTrace();
+            Log.w(TAG, "SettingNotFoundException wfc");
         }
         if (mIsRcsEnabled) {
             registerReceiver(groupReceiver, new IntentFilter(
@@ -770,7 +771,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 mQueryHandler = new ThreadListQueryHandler(getContentResolver());
             }
 
-            Conversation.startQuery(mQueryHandler, THREAD_LIST_QUERY_TOKEN, NOT_OBSOLETE);
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
             if (sp.getBoolean(MessagingPreferenceActivity.SEPERATE_NOTIFI_MSG, true)) {
                 Conversation.startQuery(mQueryHandler, THREAD_LIST_QUERY_TOKEN,
@@ -1309,6 +1309,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 mHandler.postDelayed(mDeleteObsoleteThreadsRunnable, 1000);
             } else if (SmsReceiverService.getSavingMessage()) {
                 LogTag.debug("mDeleteObsoleteThreadsRunnable saving new message, trying again");
+                mHandler.postDelayed(mDeleteObsoleteThreadsRunnable, 1000);
+            } else if (WorkingMessage.getSendingStatus()) {
+                LogTag.debug("mDeleteObsoleteThreadsRunnable is sending new message, trying again");
                 mHandler.postDelayed(mDeleteObsoleteThreadsRunnable, 1000);
             } else {
                 if (DEBUGCLEANUP) {

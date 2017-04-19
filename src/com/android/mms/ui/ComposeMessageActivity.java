@@ -1213,7 +1213,7 @@ public class ComposeMessageActivity extends Activity
         public void onClick(DialogInterface dialog, int whichButton) {
             boolean isMms = mWorkingMessage.requiresMms();
             if (isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(mSubscription) &&
-                    MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                    !MessageUtils.isMobileDataEnabled(getApplicationContext(), mSubscription)) {
                 showMobileDataDisabledDialog(mSubscription);
             } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
                 if (mSubscription == MessageUtils.SUB_INVALID) {
@@ -1404,7 +1404,7 @@ public class ComposeMessageActivity extends Activity
         boolean isMms = mWorkingMessage.requiresMms();
         if (!isRecipientsEditorVisible()) {
             if (isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(subscription) &&
-                    MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                    !MessageUtils.isMobileDataEnabled(getApplicationContext(), subscription)) {
                 showMobileDataDisabledDialog(subscription);
             } else {
                 sendMsimMessage(true, subscription);
@@ -1415,7 +1415,7 @@ public class ComposeMessageActivity extends Activity
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog(subscription);
         } else if (isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(subscription) &&
-                MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                !MessageUtils.isMobileDataEnabled(getApplicationContext(), subscription)) {
             showMobileDataDisabledDialog(subscription);
         } else {
             if (!TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
@@ -1451,7 +1451,8 @@ public class ComposeMessageActivity extends Activity
         if (!isRecipientsEditorVisible()) {
             if (isMms && !mSendMmsSupportViaWiFi &&
                     canSendMmsMobileDataOff(SubscriptionManager.getDefaultSmsSubscriptionId()) &&
-                    MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                    !MessageUtils.isMobileDataEnabled(getApplicationContext(),
+                            SubscriptionManager.getDefaultSmsSubscriptionId())) {
                 showMobileDataDisabledDialog();
             } else if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
                 LogTag.debugD("sendMsimMessage true");
@@ -1467,7 +1468,8 @@ public class ComposeMessageActivity extends Activity
             showInvalidRecipientDialog();
         } else if (isMms && !mSendMmsSupportViaWiFi &&
                 canSendMmsMobileDataOff(SubscriptionManager.getDefaultSmsSubscriptionId()) &&
-                MessageUtils.isMobileDataDisabled(getApplicationContext())) {
+                !MessageUtils.isMobileDataEnabled(getApplicationContext(),
+                        SubscriptionManager.getDefaultSmsSubscriptionId())) {
             showMobileDataDisabledDialog();
         } else {
             if (!TextUtils.isEmpty(getString(R.string.mms_recipient_Limit))
@@ -1899,6 +1901,9 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void resendMessage(MessageItem msgItem) {
+        if (SmsManager.getDefault().isSMSPromptEnabled()) {
+            mWorkingMessage.setWorkingMessageSub(msgItem.mSubId);
+        }
         if (msgItem.isMms()) {
             // If it is mms, we delete current mms and use current mms
             // uri to create new working message object.
@@ -2777,6 +2782,11 @@ public class ComposeMessageActivity extends Activity
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        if (!(MessageUtils.hasBasicPermissions() && MessageUtils
+                .hasPermissions(MessageUtils.sSMSExtendPermissions)))
+        {
+            return;
+        }
 
         setIntent(intent);
 
@@ -3361,14 +3371,6 @@ public class ComposeMessageActivity extends Activity
         if (!mWorkingMessage.isWorthSaving()) {
             exit.run();
             mWorkingMessage.discard();
-            new Thread() {
-                @Override
-                public void run() {
-                    // Remove the obsolete threads in database.
-                    getContentResolver().delete(
-                            android.provider.Telephony.Threads.OBSOLETE_THREADS_URI, null, null);
-                }
-            }.start();
             return;
         }
 
@@ -4588,9 +4590,13 @@ public class ComposeMessageActivity extends Activity
         // The EXTRA_PHONE_URIS stores the phone's urls that were selected by user in the
         // multiple phone picker.
         Bundle bundle = data.getExtras().getBundle("result");
+        if (null == bundle) {
+            bundle = new Bundle();
+        }
+        Bundle onlyNumberBundle = data.getExtras().getBundle("result_only_number");
+        final Bundle numberBundle = (null != onlyNumberBundle) ? onlyNumberBundle : (new Bundle());
         final Set<String> keySet = bundle.keySet();
         final int recipientCount = (keySet != null) ? keySet.size() : 0;
-        final Bundle numberBundle = data.getExtras().getBundle("result_only_number");
         final Set<String> numberKeySet = numberBundle.keySet();
         final int numberRecipientCount = (numberKeySet != null) ? numberKeySet.size() : 0;
 
@@ -5527,13 +5533,15 @@ public class ComposeMessageActivity extends Activity
     }
 
     private final TextWatcher mSubjectEditorWatcher = new TextWatcher() {
+        private boolean mNotify = true;
+
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
 
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
             if (s.toString().getBytes().length <= SUBJECT_MAX_LENGTH) {
-                mWorkingMessage.setSubject(s, true);
+                mWorkingMessage.setSubject(s, mNotify);
                 updateSendButtonState();
                 if (s.toString().getBytes().length == SUBJECT_MAX_LENGTH
                         && before < SUBJECT_MAX_LENGTH) {
@@ -5552,8 +5560,10 @@ public class ComposeMessageActivity extends Activity
                 while (subject.getBytes().length > SUBJECT_MAX_LENGTH) {
                     subject = subject.substring(0, subject.length() - 1);
                 }
+                mNotify = false;
                 s.clear();
                 s.append(subject);
+                mNotify = true;
             }
         }
     };
@@ -6142,7 +6152,7 @@ public class ComposeMessageActivity extends Activity
 
         // Close the soft on-screen keyboard if we're in landscape mode so the user can see the
         // conversation.
-        if (mIsLandscape) {
+        if (mIsLandscape || isInMultiWindowMode()) {
             hideKeyboard();
         }
 
@@ -6194,7 +6204,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void setSendButtonImage() {
-        Contact contact = Contact.getMe(true);
+        Contact contact = Contact.getMe(false);
         if (sDefaultContactImage == null) {
             sDefaultContactImage = this.getResources().getDrawable(R.drawable.default_avatar);
         }

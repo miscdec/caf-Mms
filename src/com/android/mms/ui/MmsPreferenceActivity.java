@@ -52,13 +52,13 @@ import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
 import android.provider.Settings;
 
+import com.android.internal.telephony.OperatorSimInfo;
 import com.android.internal.telephony.PhoneConstants;
 
 import android.telephony.TelephonyManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.ArrayMap;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -243,11 +243,19 @@ public class MmsPreferenceActivity extends PreferenceActivity {
                     mMmsSettingsPref.removePreference(mMmsExpiryCard2Pref);
                     mMmsSettingsPref.removePreference(mMmsValidityPref);
                     setMmsExpirySummary(PhoneConstants.SUB1);
+                    if(checkForOperatorCustomFeature()) {
+                        mMmsExpiryCard1Pref.setDialogTitle(getResources().
+                                getString(R.string.pref_title_mms_save_time));
+                    }
                 } else if (!MessageUtils.isIccCardActivated(MessageUtils.SUB1)
                         && MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
                     mMmsSettingsPref.removePreference(mMmsExpiryCard1Pref);
                     mMmsSettingsPref.removePreference(mMmsValidityPref);
                     setMmsExpirySummary(PhoneConstants.SUB2);
+                    if(checkForOperatorCustomFeature()) {
+                        mMmsExpiryCard2Pref.setDialogTitle(getResources().
+                                getString(R.string.pref_title_mms_save_time));
+                    }
                 } else {
                     mMmsSettingsPref.removePreference(mMmsExpiryCard1Pref);
                     mMmsSettingsPref.removePreference(mMmsExpiryCard2Pref);
@@ -265,6 +273,15 @@ public class MmsPreferenceActivity extends PreferenceActivity {
             mMmsSettingsPref.removePreference(mMmsExpiryNoMultiPref);
             mMmsSettingsPref.removePreference(mMmsValidityPref);
         }
+    }
+
+    private boolean checkForOperatorCustomFeature() {
+        boolean isFeatureExists = false;
+        OperatorSimInfo operatorSimInfo = new OperatorSimInfo(getApplicationContext());
+        if (operatorSimInfo.isOperatorFeatureEnabled()) {
+            isFeatureExists = true;
+        }
+        return isFeatureExists;
     }
 
     private void setMmsExpirySummary(int subscription) {

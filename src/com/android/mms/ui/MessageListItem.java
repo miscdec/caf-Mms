@@ -423,9 +423,11 @@ public class MessageListItem extends ZoomMessageListItem implements
             mBodyTextView.setText(formatMessage(mMessageItem, null,
                     mMessageItem.mSubId, mMessageItem.mSubject,
                     mMessageItem.mHighlight, mMessageItem.mTextContentType));
+            mBodyTextView.setVisibility(View.VISIBLE);
 
             mDateView.setText(buildTimestampLine(msgSizeText + ", "
                     + mMessageItem.mTimestamp));
+            mDateView.setVisibility(View.VISIBLE);
         }
 
         updateSimIndicatorView(mMessageItem.mSubId);
@@ -510,7 +512,8 @@ public class MessageListItem extends ZoomMessageListItem implements
 
     private void updateAvatarView(String addr, boolean isSelf) {
         mAvatar.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        boolean avatarVisible = !mMessageItem.getCanClusterWithPreviousMessage();
+        boolean avatarVisible = isSimCardMessage() ||
+                !mMessageItem.getCanClusterWithPreviousMessage();
         Drawable backgroundDrawable = null;
         Drawable avatarDrawable;
 
@@ -967,6 +970,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 initPlayVideoPicView(visible, WorkingMessage.IMAGE);
                 break;
             case WorkingMessage.TEXT:
+            case WorkingMessage.VCARD:
                 if (mPlayVideoPicLayout != null) {
                     mPlayVideoPicLayout.setVisibility(View.GONE);
                 }
@@ -1780,7 +1784,7 @@ public class MessageListItem extends ZoomMessageListItem implements
                 return;
             }
             // If mobile data is turned off, inform user start data and try again.
-            else if (MessageUtils.isMobileDataDisabled(mContext)) {
+            else if (!MessageUtils.isMobileDataEnabled(mContext, mMessageItem.mSubId)) {
                 Toast.makeText(mContext, mContext.getString(R.string.inform_data_off),
                         Toast.LENGTH_LONG).show();
                 return;

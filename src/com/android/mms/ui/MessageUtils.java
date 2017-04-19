@@ -121,6 +121,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.OperatorSimInfo;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -2126,7 +2127,7 @@ public class MessageUtils {
             c = context.getContentResolver().query(ContactsContract.Data.CONTENT_URI,
                     new String[] {ContactsContract.Data.RAW_CONTACT_ID},
                     ContactsContract.Data.MIMETYPE + " =? AND " + StructuredName.DISPLAY_NAME
-                    + " like '%" + name + "%' ", new String[] {StructuredName.CONTENT_ITEM_TYPE},
+                    + " like '" + name + "%' ", new String[] {StructuredName.CONTENT_ITEM_TYPE},
                     null);
 
             if (c == null) {
@@ -2266,6 +2267,20 @@ public class MessageUtils {
         ConnectivityManager mConnService = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         return !mConnService.getMobileDataEnabled();
+    }
+
+    public static boolean isMobileDataEnabled(Context context, int subId) {
+        if (isMultiSimEnabledMms()) {
+            LogTag.debugD("isMobileDataEnabled subId:" + subId);
+            if (subId > SUB_INVALID) {
+                return MmsApp.getApplication().getTelephonyManager().getDataEnabled(subId);
+            }
+        } else {
+            LogTag.debugD("isMobileDataEnabled SS");
+
+        }
+        LogTag.debugD("isMobileDataEnabled get default data enable status");
+        return MmsApp.getApplication().getTelephonyManager().getDataEnabled();
     }
 
     public static boolean isAirplaneModeOn(Context context) {
@@ -3257,6 +3272,34 @@ public class MessageUtils {
 
     public static boolean hasStoragePermission() {
         return hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+    }
+
+    public static boolean checkForOperatorCustomFeature() {
+        boolean isFeatureExists = false;
+        OperatorSimInfo operatorSimInfo = new OperatorSimInfo(
+                MmsApp.getApplication().getApplicationContext());
+        if (operatorSimInfo.isOperatorFeatureEnabled() &&
+                MessageUtils.isIccCardActivated(MessageUtils.SUB1)
+                && MessageUtils.isIccCardActivated(MessageUtils.SUB2)) {
+            isFeatureExists = true;
+        }
+        return isFeatureExists;
+    }
+
+    public static String checkForOperatorCustomLabel(int slotIndex) {
+        String simLabel = null;
+        Context context = MmsApp.getApplication().getApplicationContext();
+        OperatorSimInfo operatorSimInfo = new OperatorSimInfo(context);
+        boolean isSimTypeOperator = operatorSimInfo.isSimTypeOperator(slotIndex);
+        if (isSimTypeOperator) {
+            simLabel = operatorSimInfo.getOperatorDisplayName();
+        } else {
+            int subId = SubscriptionManager.getSubId(slotIndex)[0];
+            String operatorName = TelephonyManager.from(context).
+                    getSimOperatorName(subId);
+            simLabel = operatorName;
+        }
+        return simLabel;
     }
 
 }

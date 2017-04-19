@@ -76,6 +76,9 @@ public class MessagingReportsPreferenceActivity extends PreferenceActivity {
         } else if (mMsgType.equals(SMS_DELIVERY_REPORTS)) {
             addPreferencesFromResource(R.xml.sms_delivery_reports);
         }
+        if(MessageUtils.checkForOperatorCustomFeature()) {
+            showCustomPrefTitle(mMsgType);
+        }
     }
 
     @Override
@@ -94,5 +97,42 @@ public class MessagingReportsPreferenceActivity extends PreferenceActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+    }
+
+    private void showCustomPrefTitle(String msgType) {
+        String sim1CustomLabel = MessageUtils.
+                checkForOperatorCustomLabel(MessageUtils.SUB1);
+        if (sim1CustomLabel == null || sim1CustomLabel.equals("")) {
+            sim1CustomLabel = getResources().getString(R.string.settings_pre_sim1);
+        }
+        String sim2CustomLabel = MessageUtils.
+                checkForOperatorCustomLabel(MessageUtils.SUB2);
+        if (sim2CustomLabel == null || sim2CustomLabel.equals("")) {
+            sim2CustomLabel = getResources().getString(R.string.settings_pre_sim2);
+        }
+        if (msgType.equals(MMS_DELIVERY_REPORTS)) {
+            SwitchPreference mMmsDeliveryReportPrefSub1 = (SwitchPreference)
+                    findPreference(MmsPreferenceActivity.MMS_DELIVERY_REPORT_SUB1);
+            SwitchPreference mMmsDeliveryReportPrefSub2 = (SwitchPreference)
+                    findPreference(MmsPreferenceActivity.MMS_DELIVERY_REPORT_SUB2);
+            mMmsDeliveryReportPrefSub1.setTitle(sim1CustomLabel);
+            mMmsDeliveryReportPrefSub2.setTitle(sim2CustomLabel);
+        }
+        else if(msgType.equals(SMS_DELIVERY_REPORTS)) {
+            SwitchPreference mSmsDeliveryReportPrefSub1 = (SwitchPreference)
+                    findPreference(SMS_DELIVERY_REPORT_SUB1);
+            SwitchPreference mSmsDeliveryReportPrefSub2 = (SwitchPreference)
+                    findPreference(SMS_DELIVERY_REPORT_SUB2);
+            mSmsDeliveryReportPrefSub1.setTitle(sim1CustomLabel);
+            mSmsDeliveryReportPrefSub2.setTitle(sim2CustomLabel);
+        }
+        else if(msgType.equals(MMS_READ_REPORTS)) {
+            SwitchPreference mSmsDeliveryReportPrefSub1 = (SwitchPreference)
+                    findPreference(MmsPreferenceActivity.MMS_READ_REPORT_SUB1);
+            SwitchPreference mSmsDeliveryReportPrefSub2 = (SwitchPreference)
+                    findPreference(MmsPreferenceActivity.MMS_READ_REPORT_SUB2);
+            mSmsDeliveryReportPrefSub1.setTitle(sim1CustomLabel);
+            mSmsDeliveryReportPrefSub2.setTitle(sim2CustomLabel);
+        }
     }
 }

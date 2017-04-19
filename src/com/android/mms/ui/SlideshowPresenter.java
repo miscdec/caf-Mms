@@ -354,7 +354,11 @@ public class SlideshowPresenter extends Presenter {
         final SlideViewInterface view = (SlideViewInterface) mView;
         if (view instanceof SlideView) {
             SlideView v = (SlideView)view;
-            v.resetImage();
+            mHandler.post(new Runnable() {
+                public void run() {
+                    v.resetImage();
+                }
+            });
         }
         // FIXME: Should be optimized.
         if (model instanceof SlideshowModel) {
