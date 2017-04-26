@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
@@ -20,17 +20,12 @@
 package com.android.mms.ui;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.Typeface;
-import android.graphics.Rect;
 import android.os.Handler;
 import android.provider.Telephony;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.telephony.TelephonyManager;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
@@ -55,7 +50,7 @@ import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
-import com.android.mms.ui.LetterTileDrawable;
+import com.android.mms.util.ContactRecipientEntryUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.MaterialColorMapUtils;
 
@@ -146,7 +141,6 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     }
 
     private CharSequence formatMessage() {
-        final int color = android.R.styleable.Theme_textColorSecondary;
         String from = mConversation.getRecipients().formatNames(", ");
         if (MessageUtils.isWapPushNumber(from)) {
             String[] mAddresses = from.split(":");
@@ -294,7 +288,7 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
             view.assignContactUri(contact.getUri());
         } else {
             // identify it is phone number or email address,handle it respectively
-            if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
+            if (ContactRecipientEntryUtils.isEmailAddress(contact.getNumber())) {
                 view.assignContactFromEmail(contact.getNumber(), true);
             } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
                 view.assignContactFromPhone(

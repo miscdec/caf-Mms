@@ -35,12 +35,13 @@ import android.telephony.ServiceState;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.android.internal.telephony.TelephonyIntents;
-import com.android.internal.telephony.TelephonyProperties;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.ui.MmsPreferenceActivity;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.ServiceStateWrapper;
+
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.NotificationInd;
@@ -89,12 +90,13 @@ public class DownloadManager {
         new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (TelephonyIntents.ACTION_SERVICE_STATE_CHANGED.equals(intent.getAction())) {
+            if (ConstantsWrapper.TelephonyIntent.ACTION_SERVICE_STATE_CHANGED.
+                    equals(intent.getAction())) {
                 if (LOCAL_LOGV) {
                     Log.v(TAG, "Service state changed: " + intent.getExtras());
                 }
 
-                ServiceState state = ServiceState.newFromBundle(intent.getExtras());
+                ServiceState state = ServiceStateWrapper.newFromBundle(intent.getExtras());
                 boolean isRoaming = state.getRoaming();
                 if (LOCAL_LOGV) {
                     Log.v(TAG, "roaming ------> " + isRoaming);
@@ -119,7 +121,7 @@ public class DownloadManager {
 
         context.registerReceiver(
                 mRoamingStateListener,
-                new IntentFilter(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED));
+                new IntentFilter(ConstantsWrapper.TelephonyIntent.ACTION_SERVICE_STATE_CHANGED));
 
         mAutoDownload = getAutoDownloadState(mPreferences);
         if (LOCAL_LOGV) {
@@ -179,7 +181,7 @@ public class DownloadManager {
     static boolean isRoaming() {
         // TODO: fix and put in Telephony layer
         String roaming = SystemProperties.get(
-                TelephonyProperties.PROPERTY_OPERATOR_ISROAMING, null);
+                ConstantsWrapper.TelephonyProperty.PROPERTY_OPERATOR_ISROAMING, null);
         if (LOCAL_LOGV) {
             Log.v(TAG, "roaming ------> " + roaming);
         }

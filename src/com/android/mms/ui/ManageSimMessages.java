@@ -72,13 +72,14 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.internal.telephony.IccCardConstants;
-import com.android.internal.telephony.PhoneConstants;
-import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SmsManagerWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mmswrapper.TelephonyWrapper;
 
 import java.util.ArrayList;
 
@@ -162,12 +163,12 @@ public class ManageSimMessages extends Activity
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action)) {
+            if (ConstantsWrapper.TelephonyIntent.ACTION_SIM_STATE_CHANGED.equals(action)) {
                 Log.d(TAG, "receive broadcast ACTION_SIM_STATE_CHANGED");
                 if (MessageUtils.isMultiSimEnabledMms()) {
-                    int subId = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                    int subId = intent.getIntExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY,
                             SubscriptionManager.getDefaultSubscriptionId());
-                    int[] subIdArray = SubscriptionManager.getSubId(mSlotId);
+                    int[] subIdArray = SubscriptionManagerWrapper.getSubId(mSlotId);
                     if(subIdArray != null && subIdArray.length > 0) {
                         int currentSubId = subIdArray[0];
                         Log.d(TAG, "subId: " + subId + " currentSubId: " + currentSubId);
@@ -201,7 +202,7 @@ public class ManageSimMessages extends Activity
         actionBar.setDisplayHomeAsUpEnabled(true);
 
         IntentFilter filter = new IntentFilter();
-        filter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+        filter.addAction(ConstantsWrapper.TelephonyIntent.ACTION_SIM_STATE_CHANGED);
         registerReceiver(mReceiver, filter);
 
         init();
@@ -218,7 +219,7 @@ public class ManageSimMessages extends Activity
     private void init() {
         MessagingNotification.cancelNotification(getApplicationContext(),
                 SIM_FULL_NOTIFICATION_ID);
-        mSlotId = getIntent().getIntExtra(PhoneConstants.SLOT_KEY,
+        mSlotId = getIntent().getIntExtra(ConstantsWrapper.Phone.SLOT_KEY,
                 MessageUtils.SUB_INVALID);
         mIccUri = MessageUtils.getIccUriBySubscription(mSlotId);
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -453,21 +454,16 @@ public class ManageSimMessages extends Activity
                 mIccUri, true, simChangeObserver);
     }
 
-    private boolean copyToPhoneMemory(Cursor cursor) {
-        String address = cursor.getString(
-                cursor.getColumnIndexOrThrow("address"));
-        String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
-        Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
-        int subId = MessageUtils.SUB_INVALID;
-        subId = cursor.getInt(cursor.getColumnIndexOrThrow("sub_id"));
-
+    private boolean copyToPhoneMemory(String address, String body,
+                                      Long date, int subId, int status) {
         boolean success = true;
         try {
-            if (isIncomingMessage(cursor)) {
-                Sms.Inbox.addMessage(subId, mContentResolver, address, body, null,
+            if (isIncomingMessage(status)) {
+                TelephonyWrapper.Sms.Inbox.addMessage(subId, mContentResolver, address, body, null,
                         date, true /* read */);
             } else {
-                Sms.Sent.addMessage(subId, mContentResolver, address, body, null, date);
+                TelephonyWrapper.Sms.Sent.addMessage(subId, mContentResolver, address, body,
+                        null, date);
             }
         } catch (SQLiteException e) {
             SqliteWrapper.checkSQLiteException(this, e);
@@ -482,10 +478,7 @@ public class ManageSimMessages extends Activity
         Toast.makeText(getContext(), getString(resId), Toast.LENGTH_SHORT).show();
     }
 
-    private boolean isIncomingMessage(Cursor cursor) {
-        int messageStatus = cursor.getInt(
-                cursor.getColumnIndexOrThrow("status"));
-
+    private boolean isIncomingMessage(int messageStatus) {
         return (messageStatus == SmsManager.STATUS_ON_ICC_READ) ||
                (messageStatus == SmsManager.STATUS_ON_ICC_UNREAD);
     }
@@ -566,11 +559,11 @@ public class ManageSimMessages extends Activity
         capacityMessage.append(getString(R.string.sim_capacity));
         int iccCapacityAll = -1;
         if (MessageUtils.isMultiSimEnabledMms()) {
-            int[] subId = SubscriptionManager.getSubId(mSlotId);
-            iccCapacityAll = SmsManager.getSmsManagerForSubscriptionId(subId[0])
-                    .getSmsCapacityOnIcc();
+            int[] subId = SubscriptionManagerWrapper.getSubId(mSlotId);
+            SmsManager sm = SmsManager.getSmsManagerForSubscriptionId(subId[0]);
+                iccCapacityAll = SmsManagerWrapper.getSmsCapacityOnIcc(sm);
         } else {
-            iccCapacityAll = SmsManager.getDefault().getSmsCapacityOnIcc();
+            iccCapacityAll = SmsManagerWrapper.getSmsCapacityOnIcc(SmsManager.getDefault());
         }
 
         capacityMessage.append(" " + iccCapacityAll);
@@ -731,7 +724,18 @@ public class ManageSimMessages extends Activity
                 case R.id.copy_to_phone:
                     int pos = mSelectedPos.get(0);
                     if (!MessageUtils.checkIsPhoneMessageFull(getContext())) {
-                        new CopyThread().execute(pos);
+                        final Cursor cursor = (Cursor) getListView().getAdapter().getItem(pos);
+                        if (null != cursor ) {
+                            String address = cursor.getString(
+                                    cursor.getColumnIndexOrThrow("address"));
+                            String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
+                            Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
+                            int subId = cursor.getInt(cursor.getColumnIndexOrThrow("sub_id"));
+                            int status = cursor.getInt(cursor.getColumnIndexOrThrow("status"));
+                            new CopyThread(address, body, date, subId, status).execute();
+                        } else {
+                            showToast(false);
+                        }
                     }
                     break;
                 case R.id.reply:
@@ -869,22 +873,30 @@ public class ManageSimMessages extends Activity
         }
     }
 
-    private class CopyThread extends AsyncTask<Integer, Void, Boolean> {
+    private class CopyThread extends AsyncTask<Void, Void, Boolean> {
+        private String mAddress = null;
+        private String mBody = null;
+        private Long mDate;
+        private int mSubId = MessageUtils.SUB_INVALID;
+        private int mStatus;
+
+        public CopyThread(String address, String body, Long date, int sub, int status) {
+            mAddress = address;
+            mBody = body;
+            mDate = date;
+            mSubId = sub;
+            mStatus = status;
+        }
 
         @Override
-        protected Boolean doInBackground(Integer... params) {
-            int pos = params[0];
-            Cursor cursor = (Cursor) getListView().getAdapter().getItem(pos);
-            if (cursor != null) {
-                return copyToPhoneMemory(cursor);
-            }
-            return false;
+        protected Boolean doInBackground(Void... params) {
+            return copyToPhoneMemory(mAddress, mBody, mDate, mSubId, mStatus);
         }
 
         @Override
         protected void onPostExecute(Boolean result) {
             showToast(result);
         }
-     }
+    }
 }
 

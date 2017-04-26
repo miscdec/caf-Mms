@@ -57,7 +57,7 @@ public class WarnOfStorageLimitsActivity extends Activity implements DialogInter
         if (MessageUtils.checkPermissionsIfNeeded(this)) {
             return;
         }
-        mAlert = new AlertController(this, this, getWindow());
+        mAlert = AlertController.create(this, this, getWindow());
         mAlertParams = new AlertController.AlertParams(this);
 
         // Set up the "dialog"

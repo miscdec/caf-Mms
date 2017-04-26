@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016-2017 The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2012 The Android Open Source Project.
@@ -56,6 +56,7 @@ import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MailboxMode.MailBoxMessageListItem;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.PduPersister;
 
@@ -99,10 +100,12 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
     private String mName;
     private int mMsgBox;
     private int mWapPushAddressIndex;
+    private Context mContext;
 
     public MailBoxMessageListAdapter(Context context, OnListContentChangedListener changedListener,
             Cursor cursor) {
         super(context, cursor);
+        mContext = context;
         mListView = ((ListActivity) context).getListView();
         // Cache the LayoutInflate to avoid asking for a new one each time.
         mInflater = LayoutInflater.from(context);
@@ -147,7 +150,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         }
 
         if (!isDraft && MessageUtils.isMsimIccCardActive()) {
-            int phoneId = SubscriptionManager.getPhoneId(mSubscription);
+            int phoneId = SubscriptionManagerWrapper.getPhoneId(mSubscription);
             sDefaultContactImage = (phoneId == MessageUtils.SUB1) ? mContext.getResources()
                     .getDrawable(R.drawable.ic_contact_picture_card1) : mContext.getResources()
                     .getDrawable(R.drawable.ic_contact_picture_card2);

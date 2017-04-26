@@ -1,6 +1,5 @@
 # Copyright 2007-2008 The Android Open Source Project
 
-ifneq ($(TARGET_USES_AOSP),true)
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 # Include res dir from chips
@@ -20,11 +19,12 @@ LOCAL_PACKAGE_NAME := Mms
 # Builds against the public SDK
 #LOCAL_SDK_VERSION := current
 
-LOCAL_JAVA_LIBRARIES += telephony-common org.apache.http.legacy
+LOCAL_JAVA_LIBRARIES += telephony-common org.apache.http.legacy telephony-ext
 LOCAL_STATIC_JAVA_LIBRARIES += android-common jsr305
 LOCAL_STATIC_JAVA_LIBRARIES += libchips
 LOCAL_STATIC_JAVA_LIBRARIES += libphonenumber
 LOCAL_STATIC_JAVA_LIBRARIES += android-support-v7-recyclerview
+LOCAL_STATIC_JAVA_LIBRARIES += MmsWrapper
 
 LOCAL_RESOURCE_DIR := $(addprefix $(LOCAL_PATH)/, $(res_dirs))
 LOCAL_AAPT_FLAGS := --auto-add-overlay
@@ -40,4 +40,3 @@ include $(BUILD_PACKAGE)
 
 # This finds and builds the test apk as well, so a single make does both.
 include $(call all-makefiles-under,$(LOCAL_PATH))
-endif

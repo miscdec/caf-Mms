@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
@@ -33,13 +33,15 @@ import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.ui.MessagingReportsPreferenceActivity;
 import com.android.mms.ui.SmsPreferenceActivity;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.MmsException;
 
 public class SmsMessageSender implements MessageSender {
@@ -99,15 +101,15 @@ public class SmsMessageSender implements MessageSender {
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
         boolean requestDeliveryReport = false;
-        if (TelephonyManager.getDefault().isMultiSimEnabled()) {
-            int slotId = SubscriptionManager.getSlotId(mSubId);
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            int slotId = SubscriptionManagerWrapper.getSlotId(mSubId);
             if (MessageUtils.isMsimIccCardActive()) {
-                requestDeliveryReport = prefs.getBoolean((slotId == PhoneConstants.SUB1) ?
+                requestDeliveryReport = prefs.getBoolean((slotId == ConstantsWrapper.Phone.SUB1) ?
                         MessagingReportsPreferenceActivity.SMS_DELIVERY_REPORT_SUB1 :
                         MessagingReportsPreferenceActivity.SMS_DELIVERY_REPORT_SUB2,
                         DEFAULT_DELIVERY_REPORT_MODE);
             } else {
-                requestDeliveryReport = prefs.getBoolean((slotId == PhoneConstants.SUB1) ?
+                requestDeliveryReport = prefs.getBoolean((slotId == ConstantsWrapper.Phone.SUB1) ?
                         SmsPreferenceActivity.SMS_DELIVERY_REPORT_SIM1 :
                         SmsPreferenceActivity.SMS_DELIVERY_REPORT_SIM2,
                         DEFAULT_DELIVERY_REPORT_MODE);
@@ -135,7 +137,7 @@ public class SmsMessageSender implements MessageSender {
                     break;
                 }
                 log("updating Database with subId = " + mSubId);
-                Sms.addMessageToUri(mSubId, mContext.getContentResolver(),
+                TelephonyWrapper.Sms.addMessageToUri(mSubId, mContext.getContentResolver(),
                         Uri.parse("content://sms/queued"), mDests[i],
                         mMessageText, null, mTimestamp,
                         true /* read */,
@@ -151,7 +153,7 @@ public class SmsMessageSender implements MessageSender {
         }
         Intent intent = new Intent(SmsReceiverService.ACTION_SEND_MESSAGE, null, mContext,
                 SmsReceiver.class);
-        intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, mSubId);
+        intent.putExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, mSubId);
         // Notify the SmsReceiverService to send the message out
         mContext.sendBroadcast(intent);
         return false;

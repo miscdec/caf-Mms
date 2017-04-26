@@ -29,8 +29,8 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.data.Conversation;
 import com.android.mms.transaction.SmsMessageSender;
+import com.android.mmswrapper.ConstantsWrapper;
 
-import com.android.internal.telephony.PhoneConstants;
 /**
  * Respond to a special intent and send an SMS message without the user's intervention.
  */
@@ -69,7 +69,7 @@ public class NoConfirmationSendService extends IntentService {
             ComposeMessageActivity.log("Called to send SMS but no extras");
             return;
         }
-        int sub = extras.getInt(PhoneConstants.SUBSCRIPTION_KEY, SubscriptionManager
+        int sub = extras.getInt(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, SubscriptionManager
                 .getDefaultSubscriptionId());
 
         String message = extras.getString(Intent.EXTRA_TEXT);

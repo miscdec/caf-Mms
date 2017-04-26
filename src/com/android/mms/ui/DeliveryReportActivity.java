@@ -42,6 +42,8 @@ import android.widget.ListView;
 
 import com.android.mms.LogTag;
 import com.android.mms.R;
+import com.android.mms.util.ContactRecipientEntryUtils;
+import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.pdu.PduHeaders;
 
 /**
@@ -221,8 +223,8 @@ public class DeliveryReportActivity extends ListActivity {
         }
 
         String recipient = request.getRecipient();
-        recipient = (Mms.isEmailAddress(recipient))?
-                Mms.extractAddrSpec(recipient): PhoneNumberUtils.stripSeparators(recipient);
+        recipient = (ContactRecipientEntryUtils.isEmailAddress(recipient))?
+                TelephonyWrapper.Mms.extractAddrSpec(recipient): PhoneNumberUtils.stripSeparators(recipient);
         MmsReportStatus status = queryStatusByRecipient(reportStatus, recipient);
         if (status == null) {
             // haven't received any reports.
@@ -261,7 +263,7 @@ public class DeliveryReportActivity extends ListActivity {
         Iterator<String> iterator = recipientSet.iterator();
         while (iterator.hasNext()) {
             String r = iterator.next();
-            if (Mms.isEmailAddress(recipient)) {
+            if (ContactRecipientEntryUtils.isEmailAddress(recipient)) {
                 if (TextUtils.equals(r, recipient)) {
                     return status.get(r);
                 }
@@ -310,8 +312,8 @@ public class DeliveryReportActivity extends ListActivity {
 
             while (c.moveToNext()) {
                 String recipient = c.getString(COLUMN_RECIPIENT);
-                recipient = (Mms.isEmailAddress(recipient))?
-                                        Mms.extractAddrSpec(recipient):
+                recipient = (ContactRecipientEntryUtils.isEmailAddress(recipient))?
+                                        TelephonyWrapper.Mms.extractAddrSpec(recipient):
                                             PhoneNumberUtils.stripSeparators(recipient);
                 MmsReportStatus status = new MmsReportStatus(
                                         c.getInt(COLUMN_DELIVERY_STATUS),

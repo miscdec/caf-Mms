@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016-2017, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -61,9 +61,9 @@ public class AttachmentPagerAdapter extends PagerAdapter {
     public static final int ADD_SOUND            = 5;
     public static final int RECORD_SOUND         = 6;
     public static final int ADD_SLIDESHOW        = 7;
-    public static final int ADD_CONTACT_AS_TEXT  = 8;
-    public static final int ADD_CONTACT_AS_VCARD = 9;
-    public static final int ADD_TEMPLATE         = 10;
+    public static final int ADD_TEMPLATE         = 8;
+    public static final int ADD_CONTACT_AS_TEXT  = 9;
+    public static final int ADD_CONTACT_AS_VCARD = 10;
 
     private static final String GRID_ITEM_IMAGE = "grid_item_image";
     private static final String GRID_ITEM_TEXT  = "grid_item_text";
@@ -71,9 +71,9 @@ public class AttachmentPagerAdapter extends PagerAdapter {
 
     private static final int RECORD_SOUND_ITEM_POSITION    = 0;
     private static final int SLIDESHOW_ITEM_POSITION       = 1;
-    private static final int CONTACT_INFO_ITEM_POSITION    = 2;
-    private static final int VCARD_ITEM_POSITION           = 3;
-    private static final int IMPORT_TEMPLATE_POSITION      = 4;
+    private static final int IMPORT_TEMPLATE_POSITION      = 2;
+    private static final int CONTACT_INFO_ITEM_POSITION    = 3;
+    private static final int VCARD_ITEM_POSITION           = 4;
 
     private static final int ICON_LIST_SIZE = 10;
 

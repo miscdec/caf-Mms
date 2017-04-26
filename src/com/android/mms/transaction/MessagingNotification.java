@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014, 2016, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2010-2014, 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
@@ -76,7 +76,6 @@ import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
@@ -100,6 +99,8 @@ import com.android.mms.util.AddressUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.MaterialColorMapUtils;
 import com.android.mms.widget.MmsWidgetProvider;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
 
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
@@ -405,7 +406,7 @@ public class MessagingNotification {
 
     public static void blockingUpdateNewIccMessageIndicator(Context context, String address,
             String message, int subId, long timeMillis) {
-        int phoneId = SubscriptionManager.getPhoneId(subId);
+        int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
         if (MessageUtils.getSimThreadByPhoneId(phoneId) == sCurrentlyDisplayedThreadId) {
             // We are already diplaying the messages list view, no need to send notification.
             // Just play notification sound.
@@ -465,7 +466,9 @@ public class MessagingNotification {
         String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                 null);
         if (!includeEmergencySMS) {
-            int state = TelephonyManager.getDefault().getCallState();
+            TelephonyManager tm = (TelephonyManager)context.getSystemService(
+                    Context.TELEPHONY_SERVICE);
+            int state = tm.getCallState();
             if (state != TelephonyManager.CALL_STATE_IDLE) {
                 noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
                         AUDIO_ATTRIBUTES_ALARM);
@@ -1057,7 +1060,7 @@ public class MessagingNotification {
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-        clickIntent.putExtra(PhoneConstants.SLOT_KEY, SubscriptionManager.getPhoneId(subId));
+        clickIntent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, SubscriptionManagerWrapper.getPhoneId(subId));
         String senderInfo = buildTickerMessage(
                 context, address, null, null, subId).toString();
         String senderInfoName = senderInfo.substring(
@@ -1290,7 +1293,9 @@ public class MessagingNotification {
             String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                     null);
             if (!includeEmergencySMS) {
-                int state = TelephonyManager.getDefault().getCallState();
+                TelephonyManager tm = (TelephonyManager)context.getSystemService(
+                        Context.TELEPHONY_SERVICE);
+                int state = tm.getCallState();
                 if (state != TelephonyManager.CALL_STATE_IDLE) {
                      noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
                              AUDIO_ATTRIBUTES_ALARM);
@@ -1436,6 +1441,8 @@ public class MessagingNotification {
                         mostRecentNotifPerThread.add(notificationInfo);
                     }
                 }
+                uniqueThreads.clear();
+
                 // When collapsed, show all the senders like this:
                 //     Fred Flinstone, Barry Manilow, Pete...
                 noti.setContentText(formatSenders(context, mostRecentNotifPerThread));
@@ -1459,12 +1466,7 @@ public class MessagingNotification {
                 }
                 notification = inboxStyle.build();
 
-                uniqueThreads.clear();
-
-                //1. send group summary notification
-                notifyUserIfFullScreen(context, title);
-                doNotify(notification, context);
-                //2. send notification for every conversation.
+                //1. send notification for every conversation.
                 for (int j = 0; j < uniqueThreadMessageCount; j++) {
                     int index = uniqueThreadMessageCount - j - 1;
                     if (index < 0) {
@@ -1485,6 +1487,10 @@ public class MessagingNotification {
                     notiSet.clear();
                 }
                 mostRecentNotifPerThread.clear();
+
+                //2. send group summary notification
+                notifyUserIfFullScreen(context, title);
+                doNotify(notification, context);
 
                 if (DEBUG) {
                     Log.d(TAG, "updateNotification: multi messages," +
@@ -1549,49 +1555,6 @@ public class MessagingNotification {
         if (peopleReferenceUri != null) {
             noti.addPerson(peopleReferenceUri.toString());
         }
-
-        int defaults = 0;
-
-        if (isNew) {
-            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
-
-            boolean vibrate = false;
-            if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE)) {
-                // The most recent change to the vibrate preference is to store a boolean
-                // value in NOTIFICATION_VIBRATE. If prefs contain that preference, use that
-                // first.
-                vibrate = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE,
-                        false);
-            } else if (sp.contains(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN)) {
-                // This is to support the pre-JellyBean MR1.1 version of vibrate preferences
-                // when vibrate was a tri-state setting. As soon as the user opens the Messaging
-                // app's settings, it will migrate this setting from NOTIFICATION_VIBRATE_WHEN
-                // to the boolean value stored in NOTIFICATION_VIBRATE.
-                String vibrateWhen =
-                        sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN, null);
-                vibrate = "always".equals(vibrateWhen);
-            }
-            if (vibrate) {
-                defaults |= Notification.DEFAULT_VIBRATE;
-            }
-
-            String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
-                    null);
-            if (!includeEmergencySMS) {
-                int state = TelephonyManager.getDefault().getCallState();
-                if (state != TelephonyManager.CALL_STATE_IDLE) {
-                    noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr),
-                            AudioManager.STREAM_ALARM);
-                } else {
-                    noti.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
-                }
-            }
-
-        }
-
-        defaults |= Notification.DEFAULT_LIGHTS;
-
-        noti.setDefaults(defaults);
 
         final Notification notification;
 
@@ -1703,7 +1666,6 @@ public class MessagingNotification {
         }
 
         notification.flags |= Notification.FLAG_AUTO_CANCEL;
-        notifyUserIfFullScreen(context, mostRecentNotification.mTitle);
         doNotify(notification, context, threadId);
     }
 
@@ -1912,7 +1874,7 @@ public class MessagingNotification {
                 : displayAddress.replace('\n', ' ').replace('\r', ' '));
         buf.append(' ');
 
-        if ((TelephonyManager.getDefault().getPhoneCount()) > 1 &&
+        if ((MessageUtils.getPhoneCount()) > 1 &&
                 MessageUtils.isMsimIccCardActive()) {
             SubscriptionInfo sir = SubscriptionManager.from(context)
                     .getActiveSubscriptionInfo(subId);

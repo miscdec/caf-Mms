@@ -41,8 +41,6 @@ import com.android.mms.util.DownloadManager;
 import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
 
-import com.android.internal.telephony.PhoneConstants;
-
 public class RetryScheduler implements Observer {
     private static final String TAG = LogTag.TAG;
     private static final boolean DEBUG = false;

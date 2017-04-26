@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -42,6 +42,7 @@ import android.widget.TextView;
 import com.android.mms.R;
 import com.android.mms.data.Conversation;
 import com.android.mms.ui.MessageUtils;
+import com.android.mmswrapper.TelephonyWrapper;
 
 import java.util.HashSet;
 
@@ -66,7 +67,7 @@ public class NotificationConversationList extends ConversationList {
             mEmptyView.setText(R.string.loading_conversations);
 
             Conversation.startQuery(mQueryHandler, THREAD_LIST_QUERY_TOKEN,
-                    Threads.NOTIFICATION + "=1" + " and " + NOT_OBSOLETE);
+                    TelephonyWrapper.NOTIFICATION + "=1" + " and " + NOT_OBSOLETE);
             Conversation.startQuery(mQueryHandler, UNREAD_THREADS_QUERY_TOKEN,
                     Threads.READ + "=0" + " and " + NOT_OBSOLETE);
         } catch (SQLiteException e) {

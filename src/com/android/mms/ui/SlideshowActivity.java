@@ -58,6 +58,7 @@ import com.android.mms.model.LayoutModel;
 import com.android.mms.model.RegionModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.SmilHelper;
+import com.android.mmswrapper.ConstantsWrapper;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.PduPersister;
@@ -313,8 +314,7 @@ public class SlideshowActivity extends Activity implements EventListener {
             if (mMediaController != null) {
                 // Must set the seek bar change listener null, otherwise if we rotate it
                 // while tapping progress bar continuously, window will leak.
-                View seekBar = mMediaController
-                        .findViewById(com.android.internal.R.id.mediacontroller_progress);
+                View seekBar = ConstantsWrapper.getMediacontrollerProgress(mMediaController);
                 if (seekBar instanceof SeekBar) {
                     ((SeekBar)seekBar).setOnSeekBarChangeListener(null);
                 }

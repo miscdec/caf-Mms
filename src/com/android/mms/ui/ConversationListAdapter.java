@@ -80,22 +80,11 @@ public class ConversationListAdapter extends CursorAdapter implements AbsListVie
 
     @Override
     protected void onContentChanged() {
-        if (mCursor != null && !mCursor.isClosed()) {
+        Cursor cursor = getCursor();
+        if (cursor != null && !cursor.isClosed()) {
             if (mOnContentChangedListener != null) {
                 mOnContentChangedListener.onContentChanged(this);
             }
-        }
-    }
-
-    public void uncheckAll() {
-        int count = getCount();
-        for (int i = 0; i < count; i++) {
-            Cursor cursor = (Cursor)getItem(i);
-            if (cursor == null || cursor.getPosition() < 0) {
-                continue;
-            }
-            Conversation conv = Conversation.from(mContext, cursor);
-            conv.setIsChecked(false);
         }
     }
 }

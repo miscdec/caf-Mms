@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2012 The Android Open Source Project.
@@ -74,6 +74,7 @@ import com.android.mms.transaction.SmsMessageSender;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessageUtils;
 
+import com.android.mms.util.ContactRecipientEntryUtils;
 import com.google.android.mms.MmsException;
 
 public class MailBoxMessageContent extends Activity {
@@ -324,7 +325,7 @@ public class MailBoxMessageContent extends Activity {
         // address must be a single recipient
         Intent intent = new Intent(Intent.ACTION_INSERT_OR_EDIT);
         intent.setType(Contacts.CONTENT_ITEM_TYPE);
-        if (Mms.isEmailAddress(address)) {
+        if (ContactRecipientEntryUtils.isEmailAddress(address)) {
             intent.putExtra(ContactsContract.Intents.Insert.EMAIL, address);
         } else {
             intent.putExtra(ContactsContract.Intents.Insert.PHONE, address);

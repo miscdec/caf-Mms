@@ -37,8 +37,6 @@ import android.util.Log;
 
 import com.android.mms.R;
 
-import junit.framework.Assert;
-
 /**
  * A drawable that encapsulates all the functionality needed to display a letter tile to
  * represent a contact image.
@@ -227,7 +225,6 @@ public class LetterTileDrawable extends Drawable {
      * The default is 0.0f.
      */
     public void setOffset(float offset) {
-        Assert.assertTrue(offset >= -0.5f && offset <= 0.5f);
         mOffset = offset;
     }
 

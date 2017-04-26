@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
@@ -45,7 +45,8 @@ import com.android.mms.ui.MmsPreferenceActivity;
 import com.android.mms.ui.MessagingExpiryPreferenceActivity;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.SendingProgressTokenManager;
-import com.android.internal.telephony.PhoneConstants;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.google.android.mms.InvalidHeaderValueException;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
@@ -161,10 +162,10 @@ public class MmsMessageSender implements MessageSender {
         sendReq.setPriority(prefs.getInt(MessagingPreferenceActivity.PRIORITY, DEFAULT_PRIORITY));
 
         // Delivery report.
-        int slotId = SubscriptionManager.getSlotId(mSubId);
+        int slotId = SubscriptionManagerWrapper.getSlotId(mSubId);
         boolean dr = false;
         if (MessageUtils.isMultiSimEnabledMms()) {
-            dr = prefs.getBoolean((slotId == PhoneConstants.SUB1) ?
+            dr = prefs.getBoolean((slotId == ConstantsWrapper.Phone.SUB1) ?
                     MmsPreferenceActivity.MMS_DELIVERY_REPORT_SUB1 :
                     MmsPreferenceActivity.MMS_DELIVERY_REPORT_SUB2,
                     DEFAULT_DELIVERY_REPORT_MODE);
@@ -176,7 +177,7 @@ public class MmsMessageSender implements MessageSender {
         // Read report.
         boolean rr = false;
         if (MessageUtils.isMultiSimEnabledMms()) {
-            rr = prefs.getBoolean((slotId == PhoneConstants.SUB1) ?
+            rr = prefs.getBoolean((slotId == ConstantsWrapper.Phone.SUB1) ?
                     MmsPreferenceActivity.MMS_READ_REPORT_SUB1 :
                     MmsPreferenceActivity.MMS_READ_REPORT_SUB2,
                     DEFAULT_READ_REPORT_MODE);
@@ -191,14 +192,14 @@ public class MmsMessageSender implements MessageSender {
         long expiryTime = 0;
         if (MessageUtils.isMsimIccCardActive()) {
             expiryTime = Long.parseLong(
-                    prefs.getString((mSubId == PhoneConstants.SUB1) ?
+                    prefs.getString((mSubId == ConstantsWrapper.Phone.SUB1) ?
                             MessagingExpiryPreferenceActivity.MMS_VALIDITY_FOR_SIM1 :
                             MessagingExpiryPreferenceActivity.MMS_VALIDITY_FOR_SIM2, "0"));
             return expiryTime;
         }
-        if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+        if (MessageUtils.isMultiSimEnabledMms()) {
             expiryTime = Long.parseLong(
-                    prefs.getString((mSubId == PhoneConstants.SUB1) ?
+                    prefs.getString((mSubId == ConstantsWrapper.Phone.SUB1) ?
                             MmsPreferenceActivity.MMS_VALIDITY_SIM1:
                             MmsPreferenceActivity.MMS_VALIDITY_SIM2, "0"));
         } else {

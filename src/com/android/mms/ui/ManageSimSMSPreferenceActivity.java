@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -36,9 +36,9 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
 import android.view.MenuItem;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.R;
 import com.android.mms.transaction.TransactionService;
+import com.android.mmswrapper.ConstantsWrapper;
 
 public class ManageSimSMSPreferenceActivity extends PreferenceActivity {
     private static String TAG = "ManageSimSMSPreferenceActivity";
@@ -69,11 +69,11 @@ public class ManageSimSMSPreferenceActivity extends PreferenceActivity {
             Preference preference) {
         if (preference == mManageSim1Pref) {
             Intent intent = new Intent(this, ManageSimMessages.class);
-            intent.putExtra(PhoneConstants.SLOT_KEY, PhoneConstants.SUB1);
+            intent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, ConstantsWrapper.Phone.SUB1);
             startActivity(intent);
         } else if (preference == mManageSim2Pref) {
             Intent intent = new Intent(this, ManageSimMessages.class);
-            intent.putExtra(PhoneConstants.SLOT_KEY, PhoneConstants.SUB2);
+            intent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, ConstantsWrapper.Phone.SUB2);
             startActivity(intent);
         }
         return super.onPreferenceTreeClick(preferenceScreen, preference);

@@ -52,7 +52,6 @@ import android.util.Pair;
 
 import com.android.common.contacts.DataUsageStatUpdater;
 import com.android.common.userhappiness.UserHappinessSignals;
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.ContentRestrictionException;
 import com.android.mms.ExceedMessageSizeException;
 import com.android.mms.LogTag;
@@ -72,6 +71,7 @@ import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.ui.SlideshowEditor;
+import com.android.mms.util.ContactRecipientEntryUtils;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
 import com.android.mms.util.ThumbnailManager;
@@ -1367,7 +1367,8 @@ public class WorkingMessage {
             String[] dests = conv.getRecipients().getNumbers();
             int length = dests.length;
             for (int i = 0; i < length; i++) {
-                if (Mms.isEmailAddress(dests[i]) || MessageUtils.isAlias(dests[i])) {
+                if (ContactRecipientEntryUtils.isEmailAddress(dests[i])
+                        || MessageUtils.isAlias(dests[i])) {
                     String mtext = dests[i] + " " + text;
                     int[] params = SmsMessage.calculateLength(mtext, false);
                     if (params[0] > 1) {
@@ -1458,6 +1459,7 @@ public class WorkingMessage {
         boolean forwardMessage = conv.getHasMmsForward();
         boolean sameRecipient = false;
         ContactList contactList = conv.getRecipients();
+        int phoneCount = MessageUtils.getPhoneCount();
         if (contactList != null) {
             String[] numbers = contactList.getNumbers();
             String[] forward = conv.getForwardRecipientNumber();
@@ -1524,7 +1526,7 @@ public class WorkingMessage {
                 if (textOnly) {
                     values.put(Mms.TEXT_ONLY, 1);
                 }
-                if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
+                if ((phoneCount) > 1) {
                     values.put(Mms.SUBSCRIPTION_ID, mCurrentConvSubId);
                 } else {
                     values.put(Mms.SUBSCRIPTION_ID,
@@ -1595,7 +1597,7 @@ public class WorkingMessage {
         }
 
         ContentValues values = new ContentValues(1);
-        if ((TelephonyManager.getDefault().getPhoneCount()) > 1) {
+        if ((phoneCount) > 1) {
             values.put(Mms.SUBSCRIPTION_ID, mCurrentConvSubId);
         } else {
             values.put(Mms.SUBSCRIPTION_ID, SubscriptionManager.getDefaultDataSubscriptionId());
@@ -1995,4 +1997,5 @@ public class WorkingMessage {
     public static boolean getSendingStatus() {
         return mIsSending;
     }
+
 }

@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.android.mms.R;
+import com.android.mmswrapper.ConstantsWrapper;
 
 public class SmsStorageMonitor extends BroadcastReceiver {
     private Context mContext;
@@ -36,9 +37,11 @@ public class SmsStorageMonitor extends BroadcastReceiver {
             mNotificationManager =
                     (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
         }
-        if (intent.getAction().equals(Intent.ACTION_DEVICE_STORAGE_FULL)) {
+        if (intent.getAction().equals(
+                ConstantsWrapper.IntentConstants.ACTION_DEVICE_STORAGE_FULL)) {
             notifyReachStorageLimited();
-        } else if (intent.getAction().equals(Intent.ACTION_DEVICE_STORAGE_NOT_FULL)) {
+        } else if (intent.getAction().equals(
+                ConstantsWrapper.IntentConstants.ACTION_DEVICE_STORAGE_NOT_FULL)) {
             cancelStorageLimitedWarning();
         }
     }

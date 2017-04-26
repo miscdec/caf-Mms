@@ -24,7 +24,6 @@ import android.provider.Telephony.Mms;
 import android.provider.Telephony.Mms.Addr;
 import android.text.TextUtils;
 
-import com.android.i18n.phonenumbers.PhoneNumberUtil;
 import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.google.android.mms.pdu.EncodedStringValue;
@@ -32,7 +31,6 @@ import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
 
 public class AddressUtils {
-    private static PhoneNumberUtil mPhoneNumberUtil;
 
     private AddressUtils() {
         // Forbidden being instantiated.
@@ -65,20 +63,5 @@ public class AddressUtils {
             }
         }
         return context.getString(R.string.hidden_sender_address);
-    }
-
-    /**
-     * isPossiblePhoneNumberCanDoFileAccess does a more accurate test if the input is a
-     * phone number, but it can do file access to load country prefixes and other info, so
-     * it's not safe to call from the UI thread.
-     * @param query the phone number to test
-     * @return true if query looks like a valid phone number
-     */
-    public static boolean isPossiblePhoneNumberCanDoFileAccess(String query) {
-        String currentCountry = MmsApp.getApplication().getCurrentCountryIso().toUpperCase();
-        if (mPhoneNumberUtil == null) {
-            mPhoneNumberUtil = PhoneNumberUtil.getInstance();
-        }
-        return mPhoneNumberUtil.isPossibleNumber(query, currentCountry);
     }
 }

@@ -131,7 +131,7 @@ public class BasicSlideEditorView extends LinearLayout implements
 
     public void setVideo(String name, Uri video) {
         try {
-            Bitmap bitmap = VideoAttachmentView.createVideoThumbnail(mContext, video);
+            Bitmap bitmap = VideoAttachmentView.createVideoThumbnail(getContext(), video);
             if (null == bitmap) {
                 bitmap = BitmapFactory.decodeResource(getResources(),
                         R.drawable.ic_missing_thumbnail_video);

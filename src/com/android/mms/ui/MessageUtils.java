@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2008 Esmertec AG.
@@ -83,8 +83,10 @@ import android.os.Handler;
 import android.os.Bundle;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.Parcelable;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.StatFs;
-import android.os.UserHandle;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
@@ -119,7 +121,6 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -138,8 +139,14 @@ import com.android.mms.model.VcardModel;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.util.AddressUtils;
+import com.android.mms.util.ContactRecipientEntryUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.widget.MmsWidgetProvider;
+import com.android.mmswrapper.ConnectivityManagerWrapper;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mmswrapper.TelephonyManagerWrapper;
+import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.CharacterSets;
@@ -152,6 +159,7 @@ import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
+import org.codeaurora.internal.IExtTelephony;
 
 /**
  * An utility class for managing messages.
@@ -311,6 +319,10 @@ public class MessageUtils {
     private static final String METHOD_GET_SMSC = "get_smsc";
     private static final String METHOD_SET_SMSC = "set_smsc";
     public static final String EXTRA_SMSC = "smsc";
+    public static final String EXTRA_SMSC_RESULT = "result";
+    public static final String EXTRA_EXCEPTION = "exception";
+    public static final String EXTRA_USEROBJ = "userobj";
+
     // add for obtaining all short message count
     public static final Uri MESSAGES_COUNT_URI = Uri.parse("content://mms-sms/messagescount");
 
@@ -633,7 +645,7 @@ public class MessageUtils {
                 / SlideshowModel.SLIDESHOW_SLOP + 1);
         details.append(" KB");
 
-        if (Sms.isOutgoingFolder(msgBox)) {
+        if (TelephonyWrapper.Sms.isOutgoingFolder(msgBox)) {
             // Delivery report
             ReportStatus reportStatus = getMmsReportStatus(context, id);
             String deliveryReport = cursor.getString(COLUMN_MMS_DELIVERY_REPORT);
@@ -743,7 +755,7 @@ public class MessageUtils {
         // Address: ***
         details.append('\n');
         int smsType = cursor.getInt(cursor.getColumnIndexOrThrow(Sms.TYPE));
-        if (Sms.isOutgoingFolder(smsType)) {
+        if (TelephonyWrapper.Sms.isOutgoingFolder(smsType)) {
             details.append(res.getString(R.string.to_address_label));
         } else {
             details.append(res.getString(R.string.from_label));
@@ -789,7 +801,7 @@ public class MessageUtils {
         details.append(MessageUtils.formatTimeStampString(context, date, true));
 
         // Delivery report
-        if (Sms.isOutgoingFolder(smsType)) {
+        if (TelephonyWrapper.Sms.isOutgoingFolder(smsType)) {
             long status = cursor.getLong(COLUMN_SMS_STATUS);
             // If the 31-16 bits is not 0, means this is a CDMA sms.
             if ((status >> CDMA_STATUS_SHIFT) > 0) {
@@ -932,7 +944,7 @@ public class MessageUtils {
                 if (needMarkAsNotificationThread) {
                     Uri uri = Conversation.getUri(threadId);
                     ContentValues values = new ContentValues();
-                    values.put(Threads.NOTIFICATION, NOTIFICATION_MSG_FLAG);
+                    values.put(TelephonyWrapper.NOTIFICATION, NOTIFICATION_MSG_FLAG);
                     try {
                         context.getContentResolver().update(uri, values, null, null);
                     } catch (Exception e) {
@@ -975,7 +987,7 @@ public class MessageUtils {
                 Conversation.getLatestMessageAttachmentUri(context, threadId));
         Uri uri = Conversation.getUri(threadId);
         ContentValues values = new ContentValues();
-        values.put(Telephony.Threads.ATTACHMENT_INFO, attachmentInfo);
+        values.put(TelephonyWrapper.ATTACHMENT_INFO, attachmentInfo);
         try {
             context.getContentResolver().update(uri, values, null, null);
         } catch (Exception e) {
@@ -1353,8 +1365,9 @@ public class MessageUtils {
     }
 
     public static String getLocalNumber(int subId) {
-        sLocalNumber = MmsApp.getApplication().getTelephonyManager()
-            .getLine1Number(subId);
+        TelephonyManager tm = (TelephonyManager) MmsApp.getApplication().
+                getSystemService(Context.TELEPHONY_SERVICE);
+        sLocalNumber = TelephonyManagerWrapper.getLine1Number(tm, subId);
         return sLocalNumber;
     }
 
@@ -1376,7 +1389,7 @@ public class MessageUtils {
         try {
             cursor = SqliteWrapper.query(context, context.getContentResolver(),
                     Conversation.sAllThreadsUri, new String[] {Threads._ID, Threads.READ},
-                    Threads.NOTIFICATION + " = 1 AND " + Threads.READ + " = 0 ", null, null);
+                    TelephonyWrapper.NOTIFICATION + " = 1 AND " + Threads.READ + " = 0 ", null, null);
             if (cursor != null && cursor.getCount() != 0) {
                 while (cursor.moveToNext()) {
                     long threadId = cursor.getLong(cursor.getColumnIndexOrThrow(Threads._ID));
@@ -1821,7 +1834,7 @@ public class MessageUtils {
      * Returns true if the address is callable.
      */
     public static boolean isRecipientCallable(String address) {
-        return (!Mms.isEmailAddress(address) && !isWapPushNumber(address));
+        return (!ContactRecipientEntryUtils.isEmailAddress(address) && !isWapPushNumber(address));
     }
 
     /**
@@ -1832,7 +1845,7 @@ public class MessageUtils {
      */
     public static String parseMmsAddress(String address) {
         // if it's a valid Email address, use that.
-        if (Mms.isEmailAddress(address)) {
+        if (ContactRecipientEntryUtils.isEmailAddress(address)) {
             return address;
         }
 
@@ -1852,10 +1865,10 @@ public class MessageUtils {
     }
 
     public static void dialRecipient(Context context, String address, int subscription) {
-        if (!Mms.isEmailAddress(address)) {
+        if (!ContactRecipientEntryUtils.isEmailAddress(address)) {
             Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + address));
             if (isMultiSimEnabledMms()) {
-                dialIntent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, subscription);
+                dialIntent.putExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, subscription);
             }
             context.startActivity(dialIntent);
         }
@@ -1873,9 +1886,10 @@ public class MessageUtils {
      */
     public static boolean hasIccCard(int subscription) {
         boolean hasCard = false;
-        TelephonyManager telephonyManager = TelephonyManager.getDefault();
+        TelephonyManager telephonyManager = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
         if (isMultiSimEnabledMms()) {
-            hasCard = telephonyManager.hasIccCard(subscription);
+            hasCard = TelephonyManagerWrapper.hasIccCard(telephonyManager, subscription);
         } else {
             if (subscription == SubscriptionManager.getDefaultSubscriptionId()) {
                 hasCard = telephonyManager.hasIccCard();
@@ -1888,64 +1902,103 @@ public class MessageUtils {
      * Return whether it has card no matter in DSDS or not
      */
     public static boolean hasIccCard() {
-        return TelephonyManager.getDefault().hasIccCard();
-    }
-
-    public static boolean isPhoneFeatureEnabled(Context context) {
-        return (UserHandle.myUserId() == UserHandle.USER_OWNER &&
-                context.getContentResolver().acquireProvider(URI_PHONE_FEATURE) != null);
-    }
-
-    private static Bundle callBinder(Context context, String method, Bundle extras) {
-        if (!isPhoneFeatureEnabled(context)) {
-            return null;
-        }
-        return context.getContentResolver().call(URI_PHONE_FEATURE, method, null, extras);
+        TelephonyManager tm = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
+        return tm.hasIccCard();
     }
 
     public static void setSmscForSub(Context context, int sub, String smsc, Message callback) {
-        if (callback != null) {
+        if (callback == null) {
+            return;
+        } else {
             callback.replyTo = new Messenger(callback.getTarget());
         }
-        log("Set: sub = " + sub + " smsc= " + smsc);
-        Bundle params = new Bundle();
-        params.putInt(PhoneConstants.SLOT_KEY, sub);
-        params.putString(EXTRA_SMSC, smsc);
-        params.putParcelable("callback", callback);
-        callBinder(context, METHOD_SET_SMSC, params);
+        IExtTelephony extTelephony = IExtTelephony.Stub.asInterface(ServiceManager
+                .getService("extphone"));
+        boolean ret = false;
+        Bundle bundle = new Bundle();
+        try {
+            ret = extTelephony.setSmscAddress(sub, smsc);
+        } catch (NullPointerException e) {
+            log(METHOD_SET_SMSC + e);
+            bundle.putSerializable(EXTRA_EXCEPTION, e);
+        } catch (RemoteException ex) {
+            log(METHOD_SET_SMSC + ex);
+            bundle.putSerializable(EXTRA_EXCEPTION, ex);
+        }
+        log("Set: sub = " + sub + " smsc= " + smsc + " ret=" + ret);
+        bundle.putBoolean(EXTRA_SMSC_RESULT, ret);
+        smscResponse(bundle, callback);
     }
 
     public static void getSmscFromSub(Context context, int sub, Message callback) {
         if (callback == null) {
             return;
         }
-        log("Get: sub = " + sub);
-        callback.replyTo = new Messenger(callback.getTarget());
-        Bundle params = new Bundle();
-        params.putInt(PhoneConstants.SLOT_KEY, sub);
-        params.putParcelable("callback", callback);
-        callBinder(context, METHOD_GET_SMSC, params);
+        IExtTelephony extTelephony = IExtTelephony.Stub.asInterface(ServiceManager
+                .getService("extphone"));
+        String smsc = null;
+        Bundle bundle = new Bundle();
+        try {
+            smsc = extTelephony.getSmscAddress(sub);
+        } catch (NullPointerException e) {
+            log(METHOD_GET_SMSC + e);
+            bundle.putSerializable(EXTRA_EXCEPTION, e);
+        } catch (RemoteException ex) {
+            log(METHOD_GET_SMSC + ex);
+            bundle.putSerializable(EXTRA_EXCEPTION, ex);
+        }
+        log("Get: sub = " + sub + " smsc=" + smsc);
+        bundle.putString(EXTRA_SMSC, smsc);
+        bundle.putBoolean(EXTRA_SMSC_RESULT, (null != smsc) ? true : false);
+        smscResponse(bundle, callback);
     }
+
+    public static void smscResponse(Bundle bundle, Message callback) {
+        if (callback.obj != null && callback.obj instanceof Parcelable) {
+            if (bundle == null) {
+                bundle = new Bundle();
+            }
+            bundle.putParcelable(EXTRA_USEROBJ, (Parcelable) callback.obj);
+        }
+        callback.obj = bundle;
+        if (callback.replyTo != null) {
+            try {
+                callback.replyTo.send(callback);
+            } catch (RemoteException e) {
+                Log.d(TAG, "failed to response result", e);
+            }
+        } else if (callback.getTarget() != null) {
+            callback.sendToTarget();
+        } else {
+            Log.d(TAG, "smscResponse, replyTo and target are all null!");
+        }
+    }
+
 
     /**
      * Return whether the card is activated according to Subscription
      * used for DSDS
      */
     public static boolean isIccCardActivated(int subscription) {
-        TelephonyManager tm = TelephonyManager.getDefault();
-        int simState = tm.getSimState(subscription);
+        TelephonyManager tm = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
+        int simState = TelephonyManagerWrapper.getSimState(tm, subscription);
         return (simState != TelephonyManager.SIM_STATE_ABSENT)
                     && (simState != TelephonyManager.SIM_STATE_UNKNOWN);
     }
     public static boolean isIccCardActivated() {
-        TelephonyManager tm = TelephonyManager.getDefault();
+        TelephonyManager tm = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
         int simState = tm.getSimState();
         return (simState != TelephonyManager.SIM_STATE_ABSENT)
                     && (simState != TelephonyManager.SIM_STATE_UNKNOWN);
     }
 
     public static boolean hasActivatedIccCard(int subscription) {
-        return TelephonyManager.getDefault().isMultiSimEnabled() ?
+        TelephonyManager tm = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
+        return TelephonyManagerWrapper.isMultiSimEnabled(tm) ?
                 isIccCardActivated(subscription) :
                 isIccCardActivated(SubscriptionManager.getDefaultSubscriptionId());
     }
@@ -1966,7 +2019,8 @@ public class MessageUtils {
 
         while (pHandles.hasNext()) {
             PhoneAccount account = telecomManager.getPhoneAccount(pHandles.next());
-            int subId = telephonyManager.getSubIdForPhoneAccount(account);
+            int subId = TelephonyManagerWrapper.getSubIdForPhoneAccount(
+                        telephonyManager, account);
             if (subId == subscription) {
                 return account.getIcon().loadDrawable(context);
             }
@@ -2008,7 +2062,8 @@ public class MessageUtils {
      * Return the sim name of subscription.
      */
     public static String getMultiSimName(Context context, int subscription) {
-        if (subscription >= TelephonyManager.getDefault().getPhoneCount() || subscription < 0) {
+        TelephonyManager tm = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+        if (subscription >= tm.getPhoneCount() || subscription < 0) {
             return null;
         }
         //String multiSimName = Settings.System.getString(context.getContentResolver(),
@@ -2110,12 +2165,10 @@ public class MessageUtils {
      * Return the activated card number
      */
     public static int getActivatedIccCardCount() {
-        TelephonyManager tm = TelephonyManager.getDefault();
-        int phoneCount = tm.getPhoneCount();
+        int phoneCount = getPhoneCount();
         if(DEBUG) Log.d(TAG, "isIccCardActivated phoneCount " + phoneCount);
         int count = 0;
         for (int i = 0; i < phoneCount; i++) {
-            if(DEBUG) Log.d(TAG, "isIccCardActivated subscription " + tm.getSimState(i));
             // Because the status of slot1/2 will return SIM_STATE_UNKNOWN under airplane mode.
             // So we add check about SIM_STATE_UNKNOWN.
             if (isIccCardActivated(i)) {
@@ -2129,14 +2182,24 @@ public class MessageUtils {
      * Decide whether the current product  is DSDS in MMS
      */
     public static boolean isMultiSimEnabledMms() {
-        return TelephonyManager.getDefault().isMultiSimEnabled();
+        TelephonyManager tm = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
+        return TelephonyManagerWrapper.isMultiSimEnabled(tm);
+    }
+
+    public static int getPhoneCount(){
+        TelephonyManager tm = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
+        return tm.getPhoneCount();
     }
 
     public static boolean isCDMAPhone(int subscription) {
         boolean isCDMA = false;
+        TelephonyManager tm = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
         int activePhone = isMultiSimEnabledMms()
-                ? TelephonyManager.getDefault().getCurrentPhoneType(subscription)
-                        : TelephonyManager.getDefault().getPhoneType();
+                ? TelephonyManagerWrapper.getCurrentPhoneType(tm, subscription)
+                        : tm.getPhoneType();
         if (TelephonyManager.PHONE_TYPE_CDMA == activePhone) {
             isCDMA = true;
         }
@@ -2153,9 +2216,11 @@ public class MessageUtils {
     }
 
     private static boolean isNetworkRoaming(int subscription) {
+        TelephonyManager tm = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
         return isMultiSimEnabledMms()
-                ? TelephonyManager.getDefault().isNetworkRoaming(subscription)
-                : TelephonyManager.getDefault().isNetworkRoaming();
+                ? TelephonyManagerWrapper.isNetworkRoaming(tm, subscription)
+                : tm.isNetworkRoaming();
     }
 
     public static boolean isCDMAInternationalRoaming(int subscription) {
@@ -2187,21 +2252,12 @@ public class MessageUtils {
     public static boolean isMobileDataDisabled(Context context) {
         ConnectivityManager mConnService = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
-        return !mConnService.getMobileDataEnabled();
+        return !ConnectivityManagerWrapper.getMobileDataEnabled(mConnService);
     }
 
     public static boolean isMobileDataEnabled(Context context, int subId) {
-        if (isMultiSimEnabledMms()) {
-            LogTag.debugD("isMobileDataEnabled subId:" + subId);
-            if (subId > SUB_INVALID) {
-                return MmsApp.getApplication().getTelephonyManager().getDataEnabled(subId);
-            }
-        } else {
-            LogTag.debugD("isMobileDataEnabled SS");
-
-        }
-        LogTag.debugD("isMobileDataEnabled get default data enable status");
-        return MmsApp.getApplication().getTelephonyManager().getDataEnabled();
+        return TelephonyManagerWrapper.isMobileDataEnabled(
+                MmsApp.getApplication().getTelephonyManager(), subId);
     }
 
     public static boolean isAirplaneModeOn(Context context) {
@@ -2600,7 +2656,7 @@ public class MessageUtils {
         int msgCount = 0;
 
         Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
-                Sms.CONTENT_URI, null, null, null, null);
+                MESSAGES_COUNT_URI, null, null, null, null);
 
         if (cursor != null) {
             try {
@@ -2860,7 +2916,9 @@ public class MessageUtils {
     }
 
     public static boolean isRoaming(int subscription) {
-        return TelephonyManager.getDefault().isNetworkRoaming(subscription);
+        TelephonyManager tm = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
+       return TelephonyManagerWrapper.isNetworkRoaming(tm, subscription);
     }
 
     private static boolean checkIdpEnable(Context context, int subscription) {
@@ -3099,11 +3157,13 @@ public class MessageUtils {
 
     private static boolean isServiceStateAvailable(Context context) {
         boolean available = false;
-        TelephonyManager telephonyManager = TelephonyManager.getDefault();
+        TelephonyManager telephonyManager = (TelephonyManager)MmsApp.
+                getApplication().getSystemService(Context.TELEPHONY_SERVICE);
         int count = telephonyManager.getPhoneCount();
         for (int i = 0; i < count; i++) {
-            int[] subId = SubscriptionManager.getSubId(i);
-            ServiceState ss = telephonyManager.getServiceStateForSubscriber(subId[0]);
+            int[] subId = SubscriptionManagerWrapper.getSubId(i);
+            ServiceState ss = TelephonyManagerWrapper.
+                        getServiceStateForSubscriber(telephonyManager, subId[0]);
             if(ss != null && ss.getState() == ServiceState.STATE_IN_SERVICE) {
                 available = true;
             }
@@ -3202,6 +3262,25 @@ public class MessageUtils {
 
     public static boolean hasStoragePermission() {
         return hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+    }
+
+    public static String trimV4AddrZeros(String addr) {
+        if (addr == null) return null;
+        String[] octets = addr.split("\\.");
+        if (octets.length != 4) return addr;
+        StringBuilder builder = new StringBuilder(16);
+        String result = null;
+        for (int i = 0; i < 4; i++) {
+            try {
+                if (octets[i].length() > 3) return addr;
+                builder.append(Integer.parseInt(octets[i]));
+            } catch (NumberFormatException e) {
+                return addr;
+            }
+            if (i < 3) builder.append('.');
+        }
+        result = builder.toString();
+        return result;
     }
 
 }

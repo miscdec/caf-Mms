@@ -40,10 +40,12 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.Window;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.SmsMessageWrapper;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
 
 import java.util.ArrayList;
 
@@ -92,8 +94,8 @@ public class ClassZeroActivity extends Activity {
     private boolean queueMsgFromIntent(Intent msgIntent) {
         byte[] pdu = msgIntent.getByteArrayExtra("pdu");
         String format = msgIntent.getStringExtra("format");
-        mSubId = msgIntent.getIntExtra(PhoneConstants.PHONE_KEY,
-                SubscriptionManager.INVALID_PHONE_INDEX);
+        mSubId = msgIntent.getIntExtra(ConstantsWrapper.Phone.PHONE_KEY,
+                SubscriptionManagerWrapper.INVALID_PHONE_INDEX);
         SmsMessage rawMessage = SmsMessage.createFromPdu(pdu, format);
         String message = rawMessage.getMessageBody();
         if (TextUtils.isEmpty(message)) {
@@ -233,7 +235,7 @@ public class ClassZeroActivity extends Activity {
         ContentValues values = new ContentValues();
 
         values.put(Inbox.ADDRESS, MessageUtils.convertIdp(this,
-                sms.getDisplayOriginatingAddress(), sms.getSubId()));
+                sms.getDisplayOriginatingAddress(), SmsMessageWrapper.getSubId(sms)));
 
         // Use now for the timestamp to avoid confusion with clock
         // drift between the handset and the SMSC.
@@ -258,7 +260,7 @@ public class ClassZeroActivity extends Activity {
 
         ContentResolver resolver = getContentResolver();
         String originatingAddress = MessageUtils.convertIdp(this,
-                sms.getOriginatingAddress(), sms.getSubId());
+                sms.getOriginatingAddress(), SmsMessageWrapper.getSubId(sms));
         int protocolIdentifier = sms.getProtocolIdentifier();
         String selection = Sms.ADDRESS + " = ? AND " + Sms.PROTOCOL + " = ?";
         String[] selectionArgs = new String[] { originatingAddress,

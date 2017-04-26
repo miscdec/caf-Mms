@@ -1,5 +1,5 @@
  /*
- * Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015, 2017, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -31,33 +31,25 @@ package com.android.mms.transaction;
 
 import java.io.File;
 
-import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
-import android.media.MediaFile;
 import android.net.Uri;
-import android.os.IBinder;
 import android.provider.Telephony.Mms;
 import android.telephony.SubscriptionManager;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 
-import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
-import com.android.mms.data.WorkingMessage;
-import com.android.mms.transaction.MmsNoConfirmationSendActivity;
-import com.android.mms.transaction.MmsMessageSender;
-import com.android.mms.transaction.MessageSender;
-import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.ui.NoConfirmationSendService;
 import com.android.mms.ui.UriImage;
+import com.android.mmswrapper.MediaFileWrapper;
 import com.google.android.mms.InvalidHeaderValueException;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
@@ -123,11 +115,11 @@ public class MmsNoConfirmationSendService extends NoConfirmationSendService {
                 return null;
             }
 
-            int fileType = MediaFile.getFileTypeForMimeType(mimetype);
+            int fileType = MediaFileWrapper.getFileTypeForMimeType(mimetype);
 
             PduPart attPart = new PduPart();
             try {
-                if (MediaFile.isVideoFileType(fileType)) {
+                if (MediaFileWrapper.isVideoFileType(fileType)) {
                     if (MessageUtils.isTooLargeFile(this, attachment)) {
                         Log.w(TAG, "Too Large File cannot Send");
                         Toast.makeText(context,
@@ -155,7 +147,7 @@ public class MmsNoConfirmationSendService extends NoConfirmationSendService {
                                 Toast.LENGTH_SHORT).show();
                         return null;
                     }
-                } else if (MediaFile.isImageFileType(fileType)) {
+                } else if (MediaFileWrapper.isImageFileType(fileType)) {
                     if (MessageUtils.isTooLargeFile(this, attachment)) {
                         Log.w(TAG, "Too Large File cannot Send");
                         Toast.makeText(context,

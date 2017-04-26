@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013, 2016, The Linux Foundation. All Rights Reserved.
+ * Copyright (C) 2013, 2016-2017, The Linux Foundation. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -333,9 +333,10 @@ public class MultiPickContactGroups extends ListActivity implements
 
         // update UI items.
         mOKButton.setText(getOKString());
-        int count = mList.getChildCount();
+        ListView list = getListView();
+        int count = list.getChildCount();
         for (int i = 0; i < count; i++) {
-            View v = mList.getChildAt(i);
+            View v = list.getChildAt(i);
             CheckBox checkBox = (CheckBox) v.findViewById(R.id.pick_group_check);
             checkBox.setChecked(isSelected);
         }
@@ -442,17 +443,17 @@ public class MultiPickContactGroups extends ListActivity implements
 
         public View getView(int position, View convertView, ViewGroup parent) {
             View v;
-
-            if (!mCursor.moveToPosition(position)) {
+            Cursor cursor = getCursor();
+            if (null != cursor && !cursor.moveToPosition(position)) {
                 throw new IllegalStateException(
                         "couldn't move cursor to position " + position);
             }
             if (convertView != null && convertView.getTag() != null) {
                 v = convertView;
             } else {
-                v = newView(mContext, mCursor, parent);
+                v = newView(mContext, cursor, parent);
             }
-            bindView(v, mContext, mCursor);
+            bindView(v, mContext, cursor);
             return v;
         }
 
