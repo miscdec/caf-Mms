@@ -457,6 +457,7 @@ public class TransactionService extends Service implements Observer {
                     int columnIndexOfRetryIndex = cursor.getColumnIndexOrThrow(
                             PendingMessages.RETRY_INDEX);
 
+                    int inActiveSubCount = 0;
                     while (cursor.moveToNext()) {
                         int msgType = cursor.getInt(columnIndexOfMsgType);
                         int transactionType = getTransactionType(msgType);
@@ -555,7 +556,11 @@ public class TransactionService extends Service implements Observer {
                                 if (!SubscriptionManager.from(getApplicationContext())
                                         .isActiveSubId(subId)) {
                                     LogTag.debugD("SubId is not active:" + subId);
-                                    stopSelfIfIdle(serviceId);
+                                    inActiveSubCount ++;
+                                    if (inActiveSubCount == count) {
+                                        LogTag.debugD("No active SubId found, stop self: " + count);
+                                        stopSelfIfIdle(serviceId);
+                                    }
                                     break;
                                 }
 
@@ -782,9 +787,8 @@ public class TransactionService extends Service implements Observer {
         }
 
         releaseWakeLock();
-
         mServiceHandler.sendEmptyMessage(EVENT_QUIT);
-
+        endMmsConnectivity();
         sInstance = null;
     }
 
@@ -982,9 +986,6 @@ public class TransactionService extends Service implements Observer {
     protected void endMmsConnectivity(int subId) {
         try {
             LogTag.debugD("endMmsConnectivity for subId = " + subId);
-
-            // cancel timer for renewal of lease
-            mServiceHandler.removeMessages(EVENT_CONTINUE_MMS_CONNECTIVITY);
             if (mConnMgr != null) {
                 releaseNetworkRequest(subId);
             }

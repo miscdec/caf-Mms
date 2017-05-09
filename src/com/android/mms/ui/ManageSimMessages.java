@@ -243,6 +243,13 @@ public class ManageSimMessages extends Activity
             if (mCursor != null) {
                 stopManagingCursor(mCursor);
             }
+            if (null == mParent || mParent.isFinishing()) {
+                if (null != cursor) {
+                    cursor.close();
+                }
+                LogTag.debugD(SUB_TAG + " onQueryComplete activity finished.");
+                return;
+            }
             mCursor = cursor;
             if (mCursor != null) {
                 if (!mCursor.moveToFirst()) {
@@ -445,6 +452,9 @@ public class ManageSimMessages extends Activity
         mContentResolver.unregisterContentObserver(simChangeObserver);
         if ((mProgressDialog != null) && mProgressDialog.isShowing()) {
             mProgressDialog.dismiss();
+        }
+        if (null != mListAdapter) {
+            mListAdapter.changeCursor(null);
         }
         super.onDestroy();
     }

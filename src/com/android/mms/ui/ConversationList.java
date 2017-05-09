@@ -1147,6 +1147,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         @Override
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+            if (ConversationList.this.isFinishing()) {
+                Log.w(TAG, "ConversationList is finished, do nothing ");
+                if (cursor != null) {
+                    cursor.close();
+                }
+                return;
+            }
+
             switch (token) {
             case THREAD_LIST_QUERY_TOKEN:
                 if (null == mListAdapter) {
@@ -1231,13 +1239,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 break;
 
             case HAVE_LOCKED_MESSAGES_TOKEN:
-                if (ConversationList.this.isFinishing()) {
-                    Log.w(TAG, "ConversationList is finished, do nothing ");
-                    if (cursor != null) {
-                        cursor.close();
-                    }
-                    return ;
-                }
                 @SuppressWarnings("unchecked")
                 Collection<Long> threadIds = (Collection<Long>)cookie;
                 confirmDeleteThreadDialog(new DeleteThreadListener(threadIds, mQueryHandler,

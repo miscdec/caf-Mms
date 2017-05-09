@@ -1736,6 +1736,9 @@ public class WorkingMessage {
         } catch (IllegalStateException e) {
             Log.e(TAG,"failed to create draft mms "+ e);
             return null;
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "failed to create draft mms " + e);
+            return null;
         }
     }
 
