@@ -101,8 +101,6 @@ public class MmsApp extends Application {
         LayoutManager.init(this);
         MessagingNotification.init(this);
         RcsApiManager.init(this);
-        RcsMessageThreadMng.getInstance().start();
-
         activePendingMessages();
     }
 
