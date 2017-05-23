@@ -5857,6 +5857,14 @@ public class ComposeMessageActivity extends Activity
 
         @Override
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+            if (ComposeMessageActivity.this.isFinishing()) {
+                Log.w(TAG, "ComposeMessageActivity is finished, do nothing ");
+                if (cursor != null) {
+                    cursor.close();
+                }
+                return;
+            }
+
             switch(token) {
                 case MESSAGE_LIST_QUERY_TOKEN:
                     mConversation.blockMarkAsRead(false);
@@ -5971,13 +5979,6 @@ public class ComposeMessageActivity extends Activity
                     return;
 
                 case ConversationList.HAVE_LOCKED_MESSAGES_TOKEN:
-                    if (ComposeMessageActivity.this.isFinishing()) {
-                        Log.w(TAG, "ComposeMessageActivity is finished, do nothing ");
-                        if (cursor != null) {
-                            cursor.close();
-                        }
-                        return ;
-                    }
                     @SuppressWarnings("unchecked")
                     ArrayList<Long> threadIds = (ArrayList<Long>)cookie;
                     ConversationList.confirmDeleteThreadDialog(

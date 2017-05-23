@@ -55,7 +55,7 @@ import java.util.Set;
 
 public class MultiPickContactsActivity extends ExpandableListActivity implements OnClickListener,
         TextWatcher {
-    private static final String TAG = "MultiPickContactsActivity";
+    private static final String TAG = "MultiPickContacts";
     private static final boolean DEBUG = false;
 
     public static final String MODE = "mode";
@@ -327,6 +327,13 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
 
             @Override
             protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+                if (null == mActivity || mActivity.isFinishing()) {
+                    if (null != cursor) {
+                        cursor.close();
+                    }
+                    Log.w(TAG, "onQueryComplete activity finished.");
+                    return;
+                }
                 mActivity.init(cursor);
             }
         }

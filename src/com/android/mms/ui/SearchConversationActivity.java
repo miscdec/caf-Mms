@@ -388,6 +388,13 @@ public class SearchConversationActivity extends Activity implements View.OnClick
 
         @Override
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+            if (SearchConversationActivity.this.isFinishing()) {
+                Log.w(TAG, "onQueryComplete activity finished.");
+                if (null != cursor) {
+                    cursor.close();
+                    return;
+                }
+            }
             logD(TAG, "onQueryComplete:" + token);
             switch (token) {
                 case SEARCH_LIST_QUERY_TOKEN:
@@ -398,6 +405,9 @@ public class SearchConversationActivity extends Activity implements View.OnClick
                     break;
                 default:
                     logD(TAG, "onQueryComplete unknown token: " + token);
+                    if (null != cursor) {
+                        cursor.close();
+                    }
                     break;
             }
         }
