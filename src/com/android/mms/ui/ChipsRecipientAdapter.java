@@ -27,6 +27,7 @@ import android.widget.Filterable;
 
 import com.android.ex.chips.BaseRecipientAdapter;
 import com.android.ex.chips.RecipientEntry;
+import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.util.ContactRecipientEntryUtils;
 
@@ -145,13 +146,16 @@ public class ChipsRecipientAdapter extends BaseRecipientAdapter {
         protected void publishResults(final CharSequence constraint, FilterResults results) {
             mCurrentConstraint = constraint;
             clearTempEntries();
-
-            if (results.values != null) {
-                @SuppressWarnings("unchecked")
-                final List<RecipientEntry> entries = (List<RecipientEntry>) results.values;
-                updateEntries(entries);
-            } else {
-                updateEntries(Collections.<RecipientEntry>emptyList());
+            try {
+                if (results.values != null) {
+                    @SuppressWarnings("unchecked")
+                    final List<RecipientEntry> entries = (List<RecipientEntry>) results.values;
+                    updateEntries(entries);
+                } else {
+                    updateEntries(Collections.<RecipientEntry>emptyList());
+                }
+            } catch (IllegalArgumentException e) {
+                Log.e(LogTag.TAG, "ChipsRecipientAdapter publishResults exception:" + e);
             }
         }
 
