@@ -2561,7 +2561,7 @@ public class MessageUtils {
                 new String[] {
                         "body"
                 }, null, null, null);
-        if (cursor != null && cursor.moveToFirst()) {
+        if (cursor != null) {
             count = cursor.getCount();
             try {
                 while (cursor.moveToNext()) {
@@ -2590,7 +2590,7 @@ public class MessageUtils {
                         "m_size"
                 }, MMS_SELECTION, null, null);
 
-        if (cursor != null && cursor.moveToFirst()) {
+        if (cursor != null) {
             mmsCount = cursor.getCount();
             try {
                 while (cursor.moveToNext()) {
@@ -2637,6 +2637,8 @@ public class MessageUtils {
                 size /= KILOBYTE_SIZE;
                 hasMb = true;
             }
+        } else {
+            suffix = " B";
         }
 
         formatter.setGroupingSize(DECIMAL_FORMATTOR_GROUPING_SIZE);
