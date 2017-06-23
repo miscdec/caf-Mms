@@ -3285,4 +3285,21 @@ public class MessageUtils {
         return result;
     }
 
+    public static String appendSMSSignatureInfo(Context context, String msgText) {
+        // Add user's signature first if this feature is enabled.
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+        if (sp.getBoolean("pref_key_enable_signature", false)) {
+            String signature = (sp.getString("pref_key_edit_signature", "")).trim();
+            if (signature.length() > 0) {
+                String sigBlock = "\n" + signature;
+                if (msgText != null && !msgText.endsWith(sigBlock)) {
+                    // Signature should be written behind the text in a
+                    // newline while the signature has changed.
+                    msgText += sigBlock;
+                }
+            }
+        }
+
+        return msgText;
+    }
 }
