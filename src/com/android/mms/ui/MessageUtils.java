@@ -3282,4 +3282,12 @@ public class MessageUtils {
         return hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
     }
 
+    public static String getPicSuffix(String pic_path) {
+        if (pic_path == null || pic_path.indexOf(".") == -1) {
+            return "";
+        }
+        return pic_path.substring(pic_path.lastIndexOf(".") + 1).
+                trim().toLowerCase();
+    }
+
 }
