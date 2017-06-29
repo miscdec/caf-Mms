@@ -95,8 +95,11 @@ public class NoConfirmationSendService extends IntentService {
             // Using invalid threadId 0 here. When the message is inserted into the db, the
             // provider looks up the threadId based on the recipient(s).
             long threadId = 0;
-            SmsMessageSender smsMessageSender = new SmsMessageSender(this, dests, message, threadId,
-                    sub);
+
+            //append signature when enable signature setting before sending the sms
+            String newMessage = MessageUtils.appendSMSSignatureInfo(this, message);
+            SmsMessageSender smsMessageSender = new SmsMessageSender(this, dests,
+                    newMessage, threadId, sub);
             try {
                 // This call simply puts the message on a queue and sends a broadcast to start
                 // a service to send the message. In queing up the message, however, it does

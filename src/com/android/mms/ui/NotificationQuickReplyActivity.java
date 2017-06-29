@@ -211,7 +211,10 @@ public class NotificationQuickReplyActivity extends Activity {
     private void sendSms(String msgText, String address, long threadId) {
         String[] dests = TextUtils.split(address, ";");
         int subId = getSmsSubscriptionId();
-        SmsMessageSender sender = new SmsMessageSender(this, dests, msgText, threadId, subId);
+
+        //append signature when enable signature setting before sending the sms
+        String newMsgText = MessageUtils.appendSMSSignatureInfo(this, msgText);
+        SmsMessageSender sender = new SmsMessageSender(this, dests, newMsgText, threadId, subId);
         try {
             sender.sendMessage(threadId);
         } catch (Exception e) {
