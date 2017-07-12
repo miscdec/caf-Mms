@@ -42,12 +42,6 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INSTALL_DRM" />
     <uses-permission android:name="android.permission.WRITE_APN_SETTINGS" />
-    <!-- System apps can access the  receiver through intent-->
-    <permission android:name="android.permission.MMS_SEND_OUTBOX_MSG"
-                android:protectionLevel="signatureOrSystem"
-                android:label="@string/label_mms_send_outbox_msg"
-                android:description="@string/desc_mms_send_outbox_msg"/>
-    <uses-permission android:name="android.permission.MMS_SEND_OUTBOX_MSG"/>
     <uses-permission android:name="com.android.browser.permission.READ_HISTORY_BOOKMARKS" />
     <uses-permission android:name="com.android.browser.permission.WRITE_HISTORY_BOOKMARKS"/>
     <uses-permission android:name="com.qualcomm.permission.USE_PHONE_SERVICE"/>
@@ -302,12 +296,6 @@
                 <data android:mimeType="application/vnd.wap.slc" />
             </intent-filter>
         </receiver>
-     <receiver android:name=".transaction.MmsPushOutboxMessages"
-            android:permission="android.permission.MMS_SEND_OUTBOX_MSG">
-            <intent-filter>
-                <action android:name="android.intent.action.MMS_SEND_OUTBOX_MSG" />
-            </intent-filter>
-        </receiver>
         <receiver android:name=".transaction.MmsSystemEventReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.CONTENT_CHANGED" />
@@ -363,9 +351,6 @@
                 <action android:name="com.android.mms.transaction.MESSAGE_SENT" />
                 <!-- TODO Do a better data match here. -->
                 <data android:scheme="content" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND_MESSAGE" />
             </intent-filter>
             <intent-filter>
                 <action android:name="com.android.mms.transaction.SEND_MESSAGE" />
@@ -471,12 +456,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <receiver android:name=".ui.SmsStorageMonitor" >
-            <intent-filter>
-                <action android:name="android.intent.action.DEVICE_STORAGE_FULL" />
-                <action android:name="android.intent.action.DEVICE_STORAGE_NOT_FULL" />
-            </intent-filter>
-        </receiver>
 
         <!-- Widget
         <receiver android:name=".widget.MmsWidgetProvider"  android:label="@string/app_label">
