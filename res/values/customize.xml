@@ -108,7 +108,7 @@
     <bool name="def_rcs_sending_policy">true</bool>
 
     <!-- Flag indicating whether OMA CP messages can be viewed -->
-    <bool name="enableOMACP">false</bool>
+    <bool name="enableOMACP">true</bool>
 
     <!-- mms read reports enabled.true-On,false-Off,default is false. -->
     <bool name="def_mms_read_reports">false</bool>
