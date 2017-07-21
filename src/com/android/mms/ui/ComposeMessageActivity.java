@@ -4581,42 +4581,38 @@ public class ComposeMessageActivity extends Activity
 
     private String getAttachmentMimeType(Uri uri) {
         ContentResolver contentResolver = getContentResolver();
-        String scheme = uri.getScheme();
         String attachmentType = "*/*";
-        // Support uri with "content" scheme
-        if ("content".equals(scheme)) {
-            Cursor metadataCursor = null;
-            try {
-                metadataCursor = contentResolver.query(uri, new String[] {
-                        Document.COLUMN_MIME_TYPE}, null, null, null);
-            } catch (SQLiteException e) {
-                // some content providers don't support the COLUMN_MIME_TYPE columns
-                if (metadataCursor != null) {
-                    metadataCursor.close();
-                }
-                metadataCursor = null;
-            } catch (Exception e) {
-                metadataCursor = null;
-            }
-
-            if (metadataCursor != null) {
-                try {
-                    if (metadataCursor.moveToFirst()) {
-                        attachmentType = metadataCursor.getString(0);
-                        Log.d(TAG, "attachmentType = " + attachmentType);
-                    }
-                 } finally {
-                     metadataCursor.close();
-                 }
-            }
-        } else if ("file".equals(scheme)) {
+        if (MediaModel.isFileUri(uri)) {
             String ext = MimeTypeMap.getFileExtensionFromUrl(uri.getPath());
             if (MessageUtils.is3GPP(ext) || MessageUtils.is3GPP2(ext)) {
                 attachmentType = MessageUtils.getMimeType(uri.getPath(), ext);
                 Log.d(TAG, "remap file " + ext + " to " + attachmentType);
             }
+        } else {
+            attachmentType = contentResolver.getType(uri);
+            if (TextUtils.isEmpty(attachmentType)) {
+                Cursor cursor = null;
+                try {
+                    cursor = contentResolver.query(uri, null, null, null, null);
+                    if (cursor != null && cursor.moveToFirst()) {
+                        attachmentType = cursor.getString(cursor.getColumnIndexOrThrow(
+                                Document.COLUMN_MIME_TYPE));
+                    }
+                } catch (SQLiteException e) {
+                    Log.e(TAG, "getAttachmentMimeType " + e);
+                } catch (IllegalArgumentException ex) {
+                    Log.e(TAG, "getAttachmentMimeType " + ex);
+                } finally {
+                    if (null != cursor) {
+                        cursor.close();
+                    }
+                }
+                attachmentType = (attachmentType == null) ? "" : attachmentType;
+            }
         }
-
+        if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+            Log.d(TAG, "getAttachmentMimeType " + uri + " ="+ attachmentType);
+        }
         return attachmentType;
     }
 
