@@ -4879,6 +4879,7 @@ public class ComposeMessageActivity extends Activity
             });
             return;
         }
+        mWorkingMessage.saveAsMms(false);
         updateMmsSizeIndicator();
         handleAddAttachmentError(result, R.string.type_picture);
     }
@@ -4932,6 +4933,7 @@ public class ComposeMessageActivity extends Activity
                     return;
                 }
             }
+            mWorkingMessage.saveAsMms(false);
             updateMmsSizeIndicator();
             handleAddAttachmentError(result, R.string.type_video);
         }
@@ -4973,7 +4975,7 @@ public class ComposeMessageActivity extends Activity
                     return;
                 }
             }
-
+            mWorkingMessage.saveAsMms(false);
             updateMmsSizeIndicator();
             handleAddAttachmentError(result, R.string.type_audio);
         }
@@ -4981,6 +4983,9 @@ public class ComposeMessageActivity extends Activity
 
     private void addVcard(Uri uri) {
         int result = mWorkingMessage.setAttachment(WorkingMessage.VCARD, uri, false);
+        if (WorkingMessage.OK == result) {
+            mWorkingMessage.saveAsMms(false);
+        }
         handleAddAttachmentError(result, R.string.type_vcard);
     }
 

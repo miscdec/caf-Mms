@@ -63,6 +63,9 @@ public class MediaModelFactory {
             if (src.startsWith("cid:")) {
                 part = pb.getPartByContentId("<" + src.substring("cid:".length()) + ">");
             } else {
+                if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                    Log.d(TAG, "findPart:" + src);
+                }
                 part = pb.getPartByName(src);
                 if (part == null) {
                     part = pb.getPartByFileName(src);
