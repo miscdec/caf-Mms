@@ -2561,7 +2561,7 @@ public class MessageUtils {
                 new String[] {
                         "body"
                 }, null, null, null);
-        if (cursor != null && cursor.moveToFirst()) {
+        if (cursor != null) {
             count = cursor.getCount();
             try {
                 while (cursor.moveToNext()) {
@@ -2590,7 +2590,7 @@ public class MessageUtils {
                         "m_size"
                 }, MMS_SELECTION, null, null);
 
-        if (cursor != null && cursor.moveToFirst()) {
+        if (cursor != null) {
             mmsCount = cursor.getCount();
             try {
                 while (cursor.moveToNext()) {
@@ -2637,6 +2637,8 @@ public class MessageUtils {
                 size /= KILOBYTE_SIZE;
                 hasMb = true;
             }
+        } else {
+            suffix = " B";
         }
 
         formatter.setGroupingSize(DECIMAL_FORMATTOR_GROUPING_SIZE);
@@ -3283,4 +3285,21 @@ public class MessageUtils {
         return result;
     }
 
+    public static String appendSMSSignatureInfo(Context context, String msgText) {
+        // Add user's signature first if this feature is enabled.
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+        if (sp.getBoolean("pref_key_enable_signature", false)) {
+            String signature = (sp.getString("pref_key_edit_signature", "")).trim();
+            if (signature.length() > 0) {
+                String sigBlock = "\n" + signature;
+                if (msgText != null && !msgText.endsWith(sigBlock)) {
+                    // Signature should be written behind the text in a
+                    // newline while the signature has changed.
+                    msgText += sigBlock;
+                }
+            }
+        }
+
+        return msgText;
+    }
 }
