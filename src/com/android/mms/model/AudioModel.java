@@ -62,7 +62,7 @@ public class AudioModel extends MediaModel {
         Cursor c = null;
         boolean initFromFile = false;
         Log.d(TAG, "Audio uri:" + uri);
-        if (uri.getScheme().equals("file")) {
+        if (isFileUri(uri)) {
             initFromFile = true;
             c = cr.query(Audio.Media.EXTERNAL_CONTENT_URI, null,
                     Audio.Media.DATA + "=?", new String[] { uri.getPath() }, null);
@@ -84,8 +84,15 @@ public class AudioModel extends MediaModel {
                         mSrc = path.substring(path.lastIndexOf('/') + 1);
                     } else {
                         mSrc = c.getString(c.getColumnIndexOrThrow(Document.COLUMN_DISPLAY_NAME));
-                        mContentType = c.getString(c.getColumnIndexOrThrow(
-                                Document.COLUMN_MIME_TYPE));
+                        mContentType = cr.getType(uri);
+                        if (TextUtils.isEmpty(mContentType)) {
+                            try {
+                                mContentType = c.getString(c.getColumnIndexOrThrow(
+                                        Document.COLUMN_MIME_TYPE));
+                            } catch (IllegalArgumentException ex) {
+                                Log.e(TAG, "initFromFile: cannot fetch mime type");
+                            }
+                        }
                         // Get more extras information which would be useful
                         // to the user.
                         if (initFromFile) {

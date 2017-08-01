@@ -70,9 +70,9 @@ public class UriImage {
         }
 
         String scheme = uri.getScheme();
-        if (scheme.equals("content")) {
+        if (TextUtils.equals(ContentResolver.SCHEME_CONTENT, scheme)) {
             initFromContentUri(context, uri);
-        } else if (uri.getScheme().equals("file")) {
+        } else if (ImageModel.isFileUri(uri)) {
             initFromFile(context, uri);
         }
 
