@@ -20,6 +20,7 @@ package com.android.mms;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.database.ContentObserver;
 import android.drm.DrmManagerClient;
@@ -46,6 +47,7 @@ import com.android.mms.transaction.MmsSystemEventReceiver;
 import com.android.mms.transaction.SmsReceiver;
 import com.android.mms.transaction.SmsReceiverService;
 import com.android.mms.ui.MessageUtils;
+import com.android.mms.ui.SmsStorageMonitor;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.PduLoaderManager;
@@ -66,6 +68,7 @@ public class MmsApp extends Application {
     private ThumbnailManager mThumbnailManager;
     private DrmManagerClient mDrmManagerClient;
     public static boolean hasPermissionRelated = false;
+    private SmsStorageMonitor mSmsStorageMonitor = new SmsStorageMonitor();
 
     @Override
     public void onCreate() {
@@ -118,6 +121,11 @@ public class MmsApp extends Application {
         pm_plugger.setComponentEnabledSetting(new ComponentName(this,
                 MmsNoConfirmationSendActivity.class), enablePlugger,
                 PackageManager.DONT_KILL_APP);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ConstantsWrapper.IntentConstants.ACTION_DEVICE_STORAGE_FULL);
+        filter.addAction(ConstantsWrapper.IntentConstants.ACTION_DEVICE_STORAGE_NOT_FULL);
+        registerReceiver(mSmsStorageMonitor, filter);
     }
 
     public void initPermissionRelated() {
@@ -185,7 +193,9 @@ public class MmsApp extends Application {
 
     @Override
     public void onTerminate() {
+        super.onTerminate();
         mCountryDetector.removeCountryListener(mCountryListener);
+        unregisterReceiver(mSmsStorageMonitor);
     }
 
     @Override

@@ -27,10 +27,10 @@ import org.w3c.dom.events.EventListener;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.mms.LogTag;
@@ -284,7 +284,11 @@ public abstract class MediaModel extends Model implements EventListener {
     }
 
     public static boolean isMmsUri(Uri uri) {
-        return uri.getAuthority().startsWith("mms");
+        return uri != null && uri.getAuthority().startsWith("mms");
+    }
+
+    public static boolean isFileUri(final Uri uri) {
+        return uri != null && TextUtils.equals(uri.getScheme(), ContentResolver.SCHEME_FILE);
     }
 
     public int getSeekTo() {
