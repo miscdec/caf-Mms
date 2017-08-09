@@ -23,6 +23,7 @@ LOCAL_JAVA_LIBRARIES += telephony-common org.apache.http.legacy telephony-ext
 LOCAL_STATIC_JAVA_LIBRARIES += android-common jsr305
 LOCAL_STATIC_JAVA_LIBRARIES += libchips
 LOCAL_STATIC_JAVA_LIBRARIES += libphonenumber
+LOCAL_STATIC_JAVA_LIBRARIES += android-support-v4
 LOCAL_STATIC_JAVA_LIBRARIES += android-support-v7-recyclerview
 LOCAL_STATIC_JAVA_LIBRARIES += MmsWrapper
 
