@@ -73,9 +73,9 @@ public class VcardModel extends MediaModel {
             return;
         }
 
-        if (scheme.equals("file")) {
+        if (isFileUri(uri)) {
             mSrc = uri.getLastPathSegment();
-        } else if (scheme.equals("content")){
+        } else if (TextUtils.equals(ContentResolver.SCHEME_CONTENT, scheme)){
             Cursor c = null;
             try {
                 if (DOCUMENTS_AUTHORITY.equals(uri.getAuthority())) {

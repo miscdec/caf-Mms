@@ -51,6 +51,7 @@ import com.android.mms.MmsApp;
 import com.android.mms.dom.smil.SmilDocumentImpl;
 import com.android.mms.dom.smil.parser.SmilXmlParser;
 import com.android.mms.dom.smil.parser.SmilXmlSerializer;
+import com.android.mms.ui.MessageUtils;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.PduBody;
@@ -333,6 +334,11 @@ public class SmilHelper {
                                                          LayoutModel.TEXT_REGION_ID,
                                                          txtRegionPresentInLayout);
                 } else if (media instanceof ImageModel) {
+                    if (!TextUtils.equals(media.getContentType(), ContentType.IMAGE_PNG) &&
+                            TextUtils.equals(MessageUtils.getPicSuffix(src), "png")) {
+                        src = src.substring(0, src.lastIndexOf("."));
+                        Log.d(TAG, "SmilHelper modified src=" + src);
+                    }
                     sme = SmilHelper.createMediaElement(SmilHelper.ELEMENT_TAG_IMAGE, document, src);
                     imgRegionPresentInLayout = setRegion((SMILRegionMediaElement) sme,
                                                          smilRegions,
