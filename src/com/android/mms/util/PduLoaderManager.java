@@ -85,7 +85,9 @@ public class PduLoaderManager extends BackgroundLoaderManager {
         }
         final SlideshowModel slideshow = (requestSlideshow && !DEBUG_DISABLE_CACHE) ?
                 mSlideshowCache.get(uri) : null;
-
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "get cached slideshow: " + uri + " =" + slideshow);
+        }
         final boolean slideshowExists = (!requestSlideshow || slideshow != null);
         final boolean pduExists = (cacheEntry != null && cacheEntry.getPdu() != null);
         final boolean taskExists = mPendingTaskUris.contains(uri);
@@ -208,7 +210,7 @@ public class PduLoaderManager extends BackgroundLoaderManager {
                         }
                     }
                     // Add the slideshow to the soft cache if the load succeeded
-                    if (resultSlideshow != null) {
+                    if (resultSlideshow != null && resultException == null) {
                         mSlideshowCache.put(mUri, resultSlideshow);
                     }
 
