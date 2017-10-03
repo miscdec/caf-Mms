@@ -45,7 +45,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.http.AndroidHttpClient;
 import android.os.SystemClock;
-import android.os.SystemProperties;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Config;
@@ -53,7 +52,6 @@ import android.util.Log;
 
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
-import com.android.mms.ui.MessageUtils;
 
 public class HttpUtils {
     private static final String TAG = LogTag.TRANSACTION;
@@ -86,8 +84,7 @@ public class HttpUtils {
     private static final String INTENT_HTTP_TIMEOUT_ALARM = "org.codeaurora.mms.http_timeout";
     private static final String INTENT_EXTRA_TAG = "mmstag";
     // 3min default timeout
-    private static final long HTTP_TIMEOUT =
-            SystemProperties.getLong("persist.radio.mms.http_timeout", 3 * 60 * 1000);
+    private static final long HTTP_TIMEOUT = 3 * 60 * 1000;
     private static long sAlarmTag = 0;
     private static HttpRequestBase sHttpReq = null;
     private static PendingIntent sAlarmIntent = null;

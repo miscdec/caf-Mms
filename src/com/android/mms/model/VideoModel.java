@@ -25,7 +25,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
-import android.provider.MediaStore.Images;
+import android.provider.MediaStore.Video;
+import android.provider.Telephony.Mms.Part;
 import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -38,7 +39,6 @@ import com.android.mms.dom.smil.SmilMediaElementImpl;
 import com.android.mms.util.ItemLoadedCallback;
 import com.android.mms.util.ItemLoadedFuture;
 import com.android.mms.util.ThumbnailManager;
-import android.provider.Telephony.Mms.Part;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 
@@ -62,9 +62,9 @@ public class VideoModel extends RegionMediaModel {
 
     private void initModelFromUri(Uri uri) throws MmsException {
         String scheme = uri.getScheme();
-        if (scheme.equals("content")) {
+        if (TextUtils.equals(ContentResolver.SCHEME_CONTENT, scheme)) {
             initFromContentUri(uri);
-        } else if (uri.getScheme().equals("file")) {
+        } else if (isFileUri(uri)) {
             initFromFile(uri);
         }
         initMediaDuration();
@@ -102,41 +102,29 @@ public class VideoModel extends RegionMediaModel {
         if (c != null) {
             try {
                 if (c.moveToFirst()) {
-                    String path = null;
                     try {
-                        // Local videos will have a data column
-                        path = c.getString(c.getColumnIndexOrThrow(Images.Media.DATA));
+                        // Local videos will have a display name column
+                        mSrc = c.getString(c.getColumnIndexOrThrow(Video.Media.DISPLAY_NAME));
                         if (LOCAL_LOGV) {
-                            Log.d(TAG, "initFromContentUri path:" + path);
+                            Log.d(TAG, "initFromContentUri display name:" + mSrc);
                         }
                     } catch (IllegalArgumentException e) {
-                        // For non-local videos, the path is the uri
-                        Log.e(TAG, "Cannot fetch path from uri");
-                    }
-                    if (null == path) {
-                        try {
-                            // Local videos will have a display name column
-                            mSrc = c.getString(c.getColumnIndexOrThrow(Images.Media.DISPLAY_NAME));
-                            if (LOCAL_LOGV) {
-                                Log.d(TAG, "initFromContentUri display name:" + mSrc);
-                            }
-                        } catch (IllegalArgumentException e) {
-                            Log.e(TAG, "Cannot fetch display name from uri");
-                            path = uri.toString();
-                            mSrc = path.substring(path.lastIndexOf('/') + 1);
-                        }
-                    } else {
+                        Log.e(TAG, "Cannot fetch display name from uri");
+                        String path = uri.toString();
                         mSrc = path.substring(path.lastIndexOf('/') + 1);
                     }
-                    if (VideoModel.isMmsUri(uri)) {
+                    if (isMmsUri(uri)) {
                         mContentType = c.getString(c.getColumnIndexOrThrow(
                                 Part.CONTENT_TYPE));
                     } else {
-                        try {
-                            mContentType = c.getString(c.getColumnIndexOrThrow(
-                                    Images.Media.MIME_TYPE));
-                        } catch (IllegalArgumentException e) {
-                            mContentType = ContentType.VIDEO_MP4;
+                        mContentType = cr.getType(uri);
+                        if (TextUtils.isEmpty(mContentType)) {
+                            try {
+                                mContentType = c.getString(c.getColumnIndexOrThrow(
+                                        Video.Media.MIME_TYPE));
+                            } catch (IllegalArgumentException e) {
+                                mContentType = ContentType.VIDEO_MP4;
+                            }
                         }
                     }
                     if (TextUtils.isEmpty(mContentType)) {
