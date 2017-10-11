@@ -817,9 +817,10 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                 Log.d(TAG, "Update SMSC: sub= " + sub + " SMSC= " + summary);
                 int end = summary.lastIndexOf("\"");
                 if (!MessageUtils.isMultiSimEnabledMms()) {
-                    mSmsCenterNumberSS.setSummary(summary.substring(1, end));
+                    mSmsCenterNumberSS.setSummary((end > 0)? summary.substring(1, end) : summary);
                 } else {
-                    mSmscPrefList.get(sub).setSummary(summary.substring(1, end));
+                    mSmscPrefList.get(sub).setSummary(
+                            (end > 0)? summary.substring(1, end) : summary);
                 }
             }
         }
