@@ -64,6 +64,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.android.mms.LogTag;
+import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
@@ -1340,6 +1341,11 @@ public class TransactionService extends Service implements Observer {
                     mPending.add(transaction);
                     LogTag.debugD("processTransaction: connResult=APN_REQUEST_STARTED, " +
                             "defer transaction pending MMS connectivity");
+                    if (transaction instanceof SendTransaction) {
+                        LogTag.debugD("remove cache while deferring");
+                        MmsApp.getApplication().getPduLoaderManager().removePdu(
+                                ((SendTransaction) transaction).mSendReqURI);
+                    }
                     return true;
                 }
                 // If there is already a transaction in processing list, because of the previous
