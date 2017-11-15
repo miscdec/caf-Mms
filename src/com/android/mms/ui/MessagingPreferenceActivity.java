@@ -1099,7 +1099,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 }
                 Log.d(TAG, "Update SMSC: sub= " + sub + " SMSC= " + summary);
                 int end = summary.lastIndexOf("\"");
-                mSmscPrefList.get(sub).setSummary(summary.substring(1, end));
+                mSmscPrefList.get(sub).setSummary((end > 0)? summary.substring(1, end) : summary);
             }
         }
     }
