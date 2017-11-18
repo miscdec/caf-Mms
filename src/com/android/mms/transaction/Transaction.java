@@ -24,8 +24,10 @@ import java.net.UnknownHostException;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Uri;
+import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.SendingProgressTokenManager;
+import com.android.mmswrapper.TelephonyManagerWrapper;
 import com.google.android.mms.MmsException;
 
 /**
@@ -188,7 +190,7 @@ public abstract class Transaction extends Observable {
         if (pdu == null) {
             throw new MmsException();
         }
-
+        setSocketTimeOut();
         return HttpUtils.httpConnection(
                 mContext, token,
                 mmscUrl,
@@ -208,12 +210,21 @@ public abstract class Transaction extends Observable {
      *         an HTTP error code(>=400) returned from the server.
      */
     protected byte[] getPdu(String url) throws IOException {
+        setSocketTimeOut();
         return HttpUtils.httpConnection(
                 mContext, SendingProgressTokenManager.NO_TOKEN,
                 url, null, HttpUtils.HTTP_GET_METHOD,
                 mTransactionSettings.isProxySet(),
                 mTransactionSettings.getProxyAddress(),
                 mTransactionSettings.getProxyPort());
+    }
+
+    private void setSocketTimeOut() {
+        if (TelephonyManagerWrapper.is1xNetwork(mContext, mSubId)) {
+            MmsConfig.setHttpSocketTimeout(60*1000*3);
+        } else {
+            MmsConfig.setHttpSocketTimeout(60*1000);
+        }
     }
 
     public void cancelTransaction(Uri uri) {

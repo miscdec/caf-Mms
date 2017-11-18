@@ -29,6 +29,7 @@
 
 package com.android.mmswrapper;
 
+import android.content.Context;
 import android.provider.Settings.SettingNotFoundException;
 import android.telecom.PhoneAccount;
 import android.telephony.ServiceState;
@@ -123,4 +124,17 @@ public class TelephonyManagerWrapper {
         LogUtils.logd(TAG, "isMobileDataEnabled: " + ret);
         return ret;
     }
+
+    public static boolean is1xNetwork(Context context, int sub) {
+        boolean ret = false;
+        TelephonyManager tm = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+        int dataType = tm.getNetworkType(sub);
+        if (dataType == TelephonyManager.NETWORK_TYPE_1xRTT
+                || dataType == TelephonyManager.NETWORK_TYPE_CDMA) {
+            ret = true;
+        }
+        LogUtils.logd(TAG, "sub:" + sub + " is1xNetwork:" + ret);
+        return ret;
+    }
+
 }
