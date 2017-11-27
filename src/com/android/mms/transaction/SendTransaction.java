@@ -29,6 +29,7 @@ import android.telephony.SubscriptionManager;
 import android.util.Log;
 
 import com.android.mms.LogTag;
+import com.android.mms.MmsApp;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.RateController;
 import com.android.mms.util.SendingProgressTokenManager;
@@ -162,6 +163,8 @@ public class SendTransaction extends Transaction implements Runnable {
         } catch (Throwable t) {
             Log.e(TAG, Log.getStackTraceString(t));
         } finally {
+            LogTag.debugD("[SendTransaction]remove cache:" + mSendReqURI);
+            MmsApp.getApplication().getPduLoaderManager().removePdu(mSendReqURI);
             if (mTransactionState.getState() != TransactionState.SUCCESS) {
                 mTransactionState.setState(TransactionState.FAILED);
                 mTransactionState.setContentUri(mSendReqURI);
