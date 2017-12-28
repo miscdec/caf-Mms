@@ -111,6 +111,7 @@ public class Conversation {
     private long mDate;                 // The last update time.
     private int mMessageCount;          // Number of messages.
     private String mSnippet;            // Text of the most recent message.
+    private int mSnippetCs;             // Snippet_cs for subject
     private boolean mHasUnreadMessages; // True if there are unread messages.
     private boolean mHasAttachment;     // True if any message has an attachment.
     private boolean mHasError;          // True if any message is in an error state.
@@ -835,6 +836,10 @@ public class Conversation {
         return mSnippet;
     }
 
+    public synchronized int getSnippetCs() {
+        return mSnippetCs;
+    }
+
     /**
      * Returns true if there are any unread messages in the conversation.
      */
@@ -1230,6 +1235,7 @@ public class Conversation {
             String snippet = MessageUtils.cleanseMmsSubject(context,
                     MessageUtils.extractEncStrFromCursor(c, SNIPPET, SNIPPET_CS));
             conv.mSnippet = snippet;
+            conv.mSnippetCs = c.getInt(SNIPPET_CS);
 
             conv.setHasUnreadMessages(c.getInt(READ) == 0);
             conv.mHasError = (c.getInt(ERROR) != 0);

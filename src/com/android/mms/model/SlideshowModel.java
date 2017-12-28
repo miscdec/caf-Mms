@@ -332,7 +332,15 @@ public class SlideshowModel extends Model
                 }
 
                 // Set Content-Location.
-                part.setContentLocation(location.getBytes());
+                if (!startWithContentId &&
+                        !TextUtils.equals(media.getContentType(), ContentType.IMAGE_PNG) &&
+                        TextUtils.equals(MessageUtils.getPicSuffix(src), "png")) {
+                    String cl = location.substring(0, location.lastIndexOf("."));
+                    Log.d(TAG, "makePduBody modified src=" + cl);
+                    part.setContentLocation(cl.getBytes());
+                } else {
+                    part.setContentLocation(location.getBytes());
+                }
 
                 // Set Content-Id.
                 if (startWithContentId) {

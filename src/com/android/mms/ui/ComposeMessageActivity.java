@@ -649,6 +649,7 @@ public class ComposeMessageActivity extends Activity
     private Drawable mAvatarDrawable;
     private static int mActionBarColor;
     private static int mSendContactColor;
+    private UpdateAttachmentInfo mUpdateAttachmentTask = null;
 
     /* Begin add for RCS */
 
@@ -4879,6 +4880,7 @@ public class ComposeMessageActivity extends Activity
             });
             return;
         }
+        mWorkingMessage.saveAsMms(false);
         updateMmsSizeIndicator();
         handleAddAttachmentError(result, R.string.type_picture);
     }
@@ -4932,6 +4934,7 @@ public class ComposeMessageActivity extends Activity
                     return;
                 }
             }
+            mWorkingMessage.saveAsMms(false);
             updateMmsSizeIndicator();
             handleAddAttachmentError(result, R.string.type_video);
         }
@@ -4973,7 +4976,7 @@ public class ComposeMessageActivity extends Activity
                     return;
                 }
             }
-
+            mWorkingMessage.saveAsMms(false);
             updateMmsSizeIndicator();
             handleAddAttachmentError(result, R.string.type_audio);
         }
@@ -4981,6 +4984,9 @@ public class ComposeMessageActivity extends Activity
 
     private void addVcard(Uri uri) {
         int result = mWorkingMessage.setAttachment(WorkingMessage.VCARD, uri, false);
+        if (WorkingMessage.OK == result) {
+            mWorkingMessage.saveAsMms(false);
+        }
         handleAddAttachmentError(result, R.string.type_vcard);
     }
 
@@ -6698,13 +6704,11 @@ public class ComposeMessageActivity extends Activity
         }
     }
     private void updateThreadAttachType() {
-        long threadId = mConversation.getThreadId();
-        String attachmentInfo = Conversation.getAttachmentInfo(getContext(),
-                Conversation.getLatestMessageAttachmentUri(getContext(), threadId));
-        Uri uri = Conversation.getUri(threadId);
-        ContentValues values = new ContentValues();
-        values.put(Telephony.Threads.ATTACHMENT_INFO, attachmentInfo);
-        getContext().getContentResolver().update(uri, values, null, null);
+        final Context context = getApplicationContext();
+        if (null == mUpdateAttachmentTask) {
+            mUpdateAttachmentTask = new UpdateAttachmentInfo(context, mConversation.getThreadId());
+        }
+        mUpdateAttachmentTask.requestUpdate();
     }
 
     @Override
@@ -9887,5 +9891,56 @@ public class ComposeMessageActivity extends Activity
             }
         }
         return false;
+    }
+
+    private class UpdateAttachmentInfo {
+        private static final String SUB_TAG = "UpdateAttachmentInfo";
+        private Context mContext;
+        private boolean mNewQuery;
+        private boolean mIsRunning;
+        private final long mThreadId;
+
+        public UpdateAttachmentInfo(Context context, long thread) {
+            mContext = context;
+            mThreadId = thread;
+            mNewQuery = false;
+            mIsRunning = false;
+        }
+
+        public void requestUpdate() {
+            if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                Log.d(TAG, SUB_TAG + " requestUpdate mIsRunning=" + mIsRunning);
+            }
+            mNewQuery = true;
+            if (!mIsRunning) {
+                handleUpdate();
+            }
+        }
+
+        private void handleUpdate() {
+            new AsyncTask<Void, Void, Void>() {
+                @Override
+                protected Void doInBackground(Void... params) {
+                    if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                        Log.d(TAG, SUB_TAG + " handleUpdate run");
+                    }
+                    mIsRunning = true;
+                    mNewQuery = false;
+                    MessageUtils.updateThreadAttachTypeByThreadId(mContext, mThreadId);
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void result) {
+                    if (LogTag.VERBOSE || Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                        Log.d(TAG, SUB_TAG + " onPostExecute mNewQuery=" + mNewQuery);
+                    }
+                    mIsRunning = false;
+                    if (mNewQuery) {
+                        handleUpdate();
+                    }
+                }
+            }.execute((Void) null);
+        }
     }
 }
