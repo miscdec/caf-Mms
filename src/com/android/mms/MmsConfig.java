@@ -262,6 +262,11 @@ public class MmsConfig {
         return mHttpSocketTimeout;
     }
 
+    public static void setHttpSocketTimeout(int timeOut) {
+        Log.v(TAG, "setHttpSocketTimeout: " + timeOut);
+        mHttpSocketTimeout = timeOut;
+    }
+
     public static int getMinimumSlideElementDuration() {
         return mMinimumSlideElementDuration;
     }
