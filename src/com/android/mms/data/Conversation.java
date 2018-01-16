@@ -396,8 +396,9 @@ public class Conversation {
                     // do the query compared to the update, even when there's nothing to
                     // update.
                     boolean needUpdate = true;
+                    ContentResolver cr = mContext.getContentResolver();
 
-                    Cursor c = mContext.getContentResolver().query(threadUri,
+                    Cursor c = cr.query(threadUri,
                             UNREAD_PROJECTION, UNREAD_SELECTION, null, null);
                     if (c != null) {
                         try {
@@ -412,7 +413,7 @@ public class Conversation {
                         LogTag.debug("markAsRead: update read/seen for thread uri: " +
                                 threadUri);
                         try {
-                            mContext.getContentResolver().update(threadUri,
+                            cr.update(threadUri,
                                     sReadContentValues, UNREAD_SELECTION, null);
                         } catch (SQLiteFullException e) {
                             Log.e(TAG, "Database is full");
@@ -422,6 +423,30 @@ public class Conversation {
                         }
                         MessagingNotification.blockingUpdateAllNotifications(mContext,
                                 MessagingNotification.THREAD_NONE);
+                    } else {
+                        boolean needCleanReadFlag = false;
+                        String[] projection = new String[]{Threads.READ};
+                        Uri.Builder builder = Threads.CONTENT_URI.buildUpon();
+                        builder.appendQueryParameter("simple", "true");
+                        Cursor cursor = null;
+                        try {
+                            cursor = SqliteWrapper.query(mContext, cr, builder.build(),
+                                    projection, Threads._ID + "=" + mThreadId, null, null);
+                            if (null != cursor && (cursor.getCount() == 1)
+                                    && cursor.moveToFirst()) {
+                                needCleanReadFlag = (cursor.getInt(0) == 0);
+                            }
+                        } finally {
+                            if (null != cursor) {
+                                cursor.close();
+                            }
+                        }
+                        LogTag.debugD("markAsRead:needCleanReadFlag=" + needCleanReadFlag);
+                        if (needCleanReadFlag) {
+                            ContentValues values = new ContentValues();
+                            values.put(Threads.READ, 1);
+                            SqliteWrapper.update(mContext, cr, threadUri, values, null, null);
+                        }
                     }
                     setHasUnreadMessages(false);
                 }
