@@ -65,7 +65,7 @@
         <item name="android:singleLine">true</item>
     </style>
 
-    <style name="MmsNewStyleTheme" parent="@android:style/Theme.Material.Light.DarkActionBar">
+    <style name="MmsNewStyleTheme" parent="@android:style/Theme.Holo.Light.DarkActionBar">
        <item name="android:actionMenuTextAppearance">
            @style/MMSTextAppearance.Holo.Widget.ActionBar.Menu
        </item>
@@ -79,7 +79,7 @@
        <item name="android:actionOverflowButtonStyle">@style/OverFlow</item>
     </style>
 
-    <style name="MmsSettingStyleTheme" parent="@android:style/Theme.Material.Light.DarkActionBar">
+    <style name="MmsSettingStyleTheme" parent="@android:style/Theme.Holo.Light.DarkActionBar">
        <item name="android:actionMenuTextAppearance">
            @style/MMSTextAppearance.Holo.Widget.ActionBar.Menu
        </item>
