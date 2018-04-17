@@ -28,8 +28,10 @@ LOCAL_SRC_FILES := $(call all-java-files-under, src)
 # automatically get all of its classes loaded into our environment.
 
 LOCAL_PACKAGE_NAME := MmsTests
+LOCAL_PRIVATE_PLATFORM_APIS := true
 
 LOCAL_INSTRUMENTATION_FOR := Mms
+
 
 include $(BUILD_PACKAGE)
 

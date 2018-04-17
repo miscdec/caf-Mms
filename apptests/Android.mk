@@ -11,6 +11,7 @@ LOCAL_PACKAGE_NAME := MmsAppTests
 
 # Builds against the public SDK
 #LOCAL_SDK_VERSION := current
+LOCAL_PRIVATE_PLATFORM_APIS := true
 
 LOCAL_STATIC_JAVA_LIBRARIES += android-common jsr305
 
