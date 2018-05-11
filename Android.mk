@@ -18,6 +18,7 @@ LOCAL_PACKAGE_NAME := Mms
 
 # Builds against the public SDK
 #LOCAL_SDK_VERSION := current
+LOCAL_PRIVATE_PLATFORM_APIS:=true
 
 LOCAL_JAVA_LIBRARIES += telephony-common org.apache.http.legacy telephony-ext
 LOCAL_STATIC_JAVA_LIBRARIES += android-common jsr305
