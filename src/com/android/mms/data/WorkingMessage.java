@@ -415,6 +415,13 @@ public class WorkingMessage {
             // this working message no longer has an attachment.
             mStatusListener.onAttachmentChanged();
         }
+
+        if (mConversation != null
+            && mConversation.getMessageCount() == 0
+            && !hasText()
+            && !hasSubject()) {
+            mConversation.clearThreadId();
+        }
     }
 
     public static void removeThumbnailsFromCache(SlideshowModel slideshow) {
