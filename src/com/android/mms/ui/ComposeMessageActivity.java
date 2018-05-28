@@ -669,6 +669,91 @@ public class ComposeMessageActivity extends Activity
         }
     };
 
+    private MediaPlayer mAudioMediaPlayer;
+    private boolean mPlayFlag = false;
+    private void viewAudio(SlideshowModel slideshow) {
+        if (mPlayFlag) {
+            releaseAudioPlayer();
+            changeButtionName();
+            changeButtionState(true);
+        } else {
+            initAudioPlayer(slideshow);
+        }
+    }
+
+    private void initAudioPlayer(SlideshowModel slideshow) {
+        if (slideshow == null) {
+            return;
+        }
+        if (mAudioMediaPlayer == null) {
+            mAudioMediaPlayer = new MediaPlayer();
+            mAudioMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                   Log.d("Mms","onCompletion");
+                   releaseAudioPlayer();
+                   changeButtionName();
+                   changeButtionState(true);
+                }
+            });
+        }
+        try {
+            MediaModel mm = slideshow.get(0).getAudio();
+            mAudioMediaPlayer.setDataSource(ComposeMessageActivity.this, mm.getUri());
+            mAudioMediaPlayer.prepareAsync();
+            changeButtionState(false);
+            mAudioMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                public void onPrepared(MediaPlayer mp) {
+                     mp.start();
+                     mPlayFlag = true;
+                     changeButtionState(true);
+                     changeButtionName();
+                }
+            });
+        } catch (IOException e) {
+            handleAudioPlayException(e);
+        } catch (IllegalArgumentException e) {
+            handleAudioPlayException(e);
+        } catch (SecurityException e) {
+            handleAudioPlayException(e);
+        } catch (IllegalStateException e) {
+            handleAudioPlayException(e);
+        }
+    }
+
+    private void handleAudioPlayException(Exception e) {
+        Log.d("Mms","play audio exception:"+e);
+        releaseAudioPlayer();
+        changeButtionState(true);
+        changeButtionName();
+    }
+
+    private void changeButtionName() {
+        final Button playButton = mAttachmentEditor.getPlayAudioButton();
+        if (playButton != null) {
+            int nameId = mPlayFlag ? R.string.audio_stop : R.string.play;
+            playButton.setText(nameId);
+        }
+    }
+
+    private void changeButtionState(boolean enable) {
+        final Button playButton = mAttachmentEditor.getPlayAudioButton();
+        if (playButton != null) {
+            playButton.setEnabled(enable);
+        }
+    }
+
+    private void releaseAudioPlayer() {
+        if (mAudioMediaPlayer != null) {
+            if (mAudioMediaPlayer.isPlaying()) {
+                mAudioMediaPlayer.pause();
+                mAudioMediaPlayer.stop();
+            }
+            mAudioMediaPlayer.release();
+            mAudioMediaPlayer = null;
+        }
+        mPlayFlag = false;
+    }
 
     private void viewMmsMessageAttachment(final int requestCode) {
         SlideshowModel slideshow = mWorkingMessage.getSlideshow();
@@ -677,6 +762,9 @@ public class ComposeMessageActivity extends Activity
         }
         if (slideshow.isSimple()) {
             MessageUtils.viewSimpleSlideshow(this, slideshow);
+        } else if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO
+                && slideshow.isSimpleAudio()) {
+            viewAudio(slideshow);
         } else {
             // The user wants to view the slideshow. That requires us to persist the slideshow to
             // disk as a PDU in saveAsMms. This code below does that persisting in a background
@@ -697,18 +785,6 @@ public class ComposeMessageActivity extends Activity
                     if (mTempMmsUri == null) {
                         return;
                     }
-
-                    SlideshowModel slideshowModel = mWorkingMessage.getSlideshow();
-                    if (requestCode == AttachmentEditor.MSG_PLAY_AUDIO &&
-                            (slideshowModel != null) && slideshowModel.isSimpleAudio()) {
-                        MediaModel mm = slideshowModel.get(0).getAudio();
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                        intent.setDataAndType(mm.getUri(), mm.getContentType());
-                        startActivityForResult(intent, requestCode);
-                        return;
-                     }
-
                     MessageUtils.launchSlideshowActivity(ComposeMessageActivity.this, mTempMmsUri,
                             requestCode);
                 }
@@ -2866,6 +2942,9 @@ public class ComposeMessageActivity extends Activity
         if (mMMSAudioPlayer != null && mMediaPlayer != null && mMediaPlayer.isPlaying()) {
             mMMSAudioPlayer.pause();
         }
+        releaseAudioPlayer();
+        changeButtionName();
+        changeButtionState(true);
     }
 
     @Override
