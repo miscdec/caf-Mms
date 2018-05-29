@@ -71,6 +71,7 @@ public class AttachmentEditor extends LinearLayout {
     private Button mSendButton;
     private TextView mSizeIndicator;
     private int mMediaSize = 0;
+    private Button mPlayAudioButton;
 
     public AttachmentEditor(Context context, AttributeSet attr) {
         super(context, attr);
@@ -223,6 +224,11 @@ public class AttachmentEditor extends LinearLayout {
         Button viewButton = (Button) view.findViewById(view_button_id);
         Button replaceButton = (Button) view.findViewById(replace_button_id);
         Button removeButton = (Button) view.findViewById(remove_button_id);
+        if (view_button_id == R.id.play_audio_button) {
+            mPlayAudioButton = viewButton;
+        } else {
+            mPlayAudioButton = null;
+        }
 
         if (viewButton != null) {
             viewButton.setTextSize(ATTACHMENT_FONT_SIZE);
@@ -337,5 +343,9 @@ public class AttachmentEditor extends LinearLayout {
 
     private int getSizeWithOverHead(int size) {
         return (size + KILOBYTE -1) / KILOBYTE + 1;
+    }
+
+    public Button getPlayAudioButton() {
+        return mPlayAudioButton;
     }
 }
