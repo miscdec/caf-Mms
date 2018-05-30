@@ -137,4 +137,10 @@ public class TelephonyManagerWrapper {
         return ret;
     }
 
+    public static String getNai(Context context, int phoneId) {
+        boolean ret = false;
+        TelephonyManager tm = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+        return tm.getNai(phoneId);
+    }
+
 }
