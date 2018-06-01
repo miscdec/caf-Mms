@@ -221,6 +221,8 @@ import java.util.regex.Matcher;
 import org.codeaurora.presenceserv.IPresenceService;
 import org.codeaurora.presenceserv.IPresenceServiceCB;
 
+import java.util.HashSet;
+
 /**
  * This is the main UI for:
  * 1. Composing a new message;
@@ -1146,16 +1148,59 @@ public class ComposeMessageActivity extends Activity
         startActivity(intent);
     }
 
-    private boolean canSendMmsMobileDataOff(int subscription) {
-        boolean result = false;
-        CarrierConfigManager configManager = (CarrierConfigManager)
-                getSystemService(Context.CARRIER_CONFIG_SERVICE);
-        PersistableBundle b = configManager.getConfigForSubId(subscription);
-        if (b != null) {
-            result = b.getBoolean("config_enable_mms_with_mobile_data_off");
+    private boolean isMmsApnUnmetered(int subId) {
+        try {
+            boolean isRoaming = TelephonyManagerWrapper.isNetworkRoaming(this, subId);
+            boolean isIwlan = TelephonyManagerWrapper.isCurrentRatIwlan(this, subId);
+            Log.d(TAG, "isMmsApnUnmetered: isRoaming=" + isRoaming + ", isIwlan=" + isIwlan);
+
+            String carrierConfig;
+            if (isIwlan) {
+                carrierConfig = CarrierConfigManager.KEY_CARRIER_METERED_IWLAN_APN_TYPES_STRINGS;
+            } else if (isRoaming) {
+                carrierConfig = CarrierConfigManager.KEY_CARRIER_METERED_ROAMING_APN_TYPES_STRINGS;
+            } else {
+                carrierConfig = CarrierConfigManager.KEY_CARRIER_METERED_APN_TYPES_STRINGS;
+            }
+            CarrierConfigManager configManager = (CarrierConfigManager) getSystemService(
+                    Context.CARRIER_CONFIG_SERVICE);
+            if (configManager == null) {
+                Log.e(TAG, "Carrier config service is not available");
+                return false;
+            }
+
+            PersistableBundle b = configManager.getConfigForSubId(subId);
+            if (b == null) {
+                Log.e(TAG, "Can't get the config. subId = " + subId);
+                return false;
+            }
+
+            String[] meteredApnTypes = b.getStringArray(carrierConfig);
+            if (meteredApnTypes == null) {
+                Log.e(TAG, carrierConfig + " is not available. " + "subId = " + subId);
+                return false;
+            }
+
+            HashSet<String> meteredApnSet = new HashSet<>(Arrays.asList(meteredApnTypes));
+            Log.d(TAG, "For subId = " + subId + ", metered APN types are "
+                                      + Arrays.toString(meteredApnSet.toArray()));
+
+            if (meteredApnSet.contains(ConstantsWrapper.Phone.APN_TYPE_ALL)) {
+                Log.d(TAG, "All APN types are metered.");
+                return false;
+            }
+
+            if (meteredApnSet.contains(ConstantsWrapper.Phone.APN_TYPE_MMS)) {
+                Log.d(TAG, "mms is metered.");
+                return false;
+            }
+
+            Log.d(TAG, "mms is not metered.");
+            return true;
+        } catch (Exception e) {
+            Log.d(TAG, "isMmsApnUnmetered has exception: " + e);
+            return false;
         }
-        LogTag.debug("canSendMmsMobileDataOff result: " + result);
-        return result;
     }
 
     private void confirmSendMessageIfNeeded(int subscription) {
@@ -1291,7 +1336,7 @@ public class ComposeMessageActivity extends Activity
 
     private boolean isMmsWithMobileDataOff(boolean isMms, int subscription) {
         LogTag.debug("isMmsWithMobileDataOff subscription: " + subscription);
-        return isMms && !mSendMmsSupportViaWiFi && canSendMmsMobileDataOff(subscription)
+        return isMms && !mSendMmsSupportViaWiFi && isMmsApnUnmetered(subscription)
                 && !MessageUtils.isMobileDataEnabled(getApplicationContext(), subscription);
     }
 
