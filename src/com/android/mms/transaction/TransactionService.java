@@ -1212,7 +1212,7 @@ public class TransactionService extends Service implements Observer {
                         }
                     }
                 }
-
+                endMmsConnectivity(subId);
                 for (Transaction transaction : tranList) {
                     transaction.attach(TransactionService.this);
                     transaction.abort();
@@ -1328,14 +1328,34 @@ public class TransactionService extends Service implements Observer {
 
                 int subId = transaction.getSubId();
                 int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
-                /*
-                * Make sure that the network connectivity necessary
-                * for MMS traffic is enabled. If it is not, we need
-                * to defer processing the transaction until
-                * connectivity is established.
-                */
-                LogTag.debugD("processTransaction: call beginMmsConnectivity on subId = " + subId);
-                beginMmsConnectivity(subId);
+                boolean isRequestNetworkQueued = true;
+                LogTag.debugD("processTransaction :subId="+subId
+                    + "; phoneId = " + phoneId
+                    + "; mPhoneCount = "+ mPhoneCount);
+                for (int id =0; id < mPhoneCount; id++) {
+                    if ((id != phoneId) && (mMmsNetworkRequest[id] != null)) {
+                        isRequestNetworkQueued = false;
+                        break;
+                    }
+                }
+                LogTag.debugD("processTransaction :isRequestNetworkQueued="+isRequestNetworkQueued);
+                // If there is already a transaction in processing list, because of the previous
+                // beginMmsConnectivity call and there is another transaction just at a time,
+                // when the pdp is connected, there will be a case of adding the new transaction
+                // to the Processing list. But Processing list is never traversed to
+                // resend, resulting in transaction not completed/sent.
+                if ((mProcessing.size() > 0) || !isRequestNetworkQueued) {
+                    LogTag.debugD("Adding transaction to 'mPending' list: " + transaction);
+                    mPending.add(transaction);
+                    return true;
+                } else {
+                    /*
+                    * Make sure that the network connectivity necessary
+                    * for MMS traffic is enabled. If it is not, we need
+                    * to defer processing the transaction until
+                    * connectivity is established.
+                    */
+                    beginMmsConnectivity(subId);
 
                 if (!mIsAvailable[phoneId]) {
                     mPending.add(transaction);
@@ -1346,18 +1366,9 @@ public class TransactionService extends Service implements Observer {
                         MmsApp.getApplication().getPduLoaderManager().removePdu(
                                 ((SendTransaction) transaction).mSendReqURI);
                     }
-                    return true;
-                }
-                // If there is already a transaction in processing list, because of the previous
-                // beginMmsConnectivity call and there is another transaction just at a time,
-                // when the pdp is connected, there will be a case of adding the new transaction
-                // to the Processing list. But Processing list is never traversed to
-                // resend, resulting in transaction not completed/sent.
-                if (mProcessing.size() > 0) {
-                    LogTag.debugD("Adding transaction to 'mPending' list: " + transaction);
-                    mPending.add(transaction);
-                    return true;
-                } else {
+                        return true;
+                    }
+
                     LogTag.debugD("Adding transaction to 'mProcessing' list: " + transaction);
                     mProcessing.add(transaction);
                 }

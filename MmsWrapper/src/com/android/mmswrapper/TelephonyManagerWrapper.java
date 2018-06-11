@@ -137,4 +137,29 @@ public class TelephonyManagerWrapper {
         return ret;
     }
 
+    public static String getNai(Context context, int phoneId) {
+        boolean ret = false;
+        TelephonyManager tm = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+        return tm.getNai(phoneId);
+    }
+
+    public static boolean isCurrentRatIwlan(Context context, int subId) {
+        boolean flag = false;
+        TelephonyManager telephonyManager =
+                (TelephonyManager) context.getSystemService(context.TELEPHONY_SERVICE);
+        flag = (telephonyManager != null
+                && (telephonyManager.getDataNetworkType(subId)
+                        == TelephonyManagerWrapper.NETWORK_TYPE_IWLAN));
+        LogUtils.logi(TAG, "isCurrentRatIwlan subId=" + subId + "flag=" + flag);
+        return flag;
+    }
+
+    public static boolean isNetworkRoaming(Context context, int subId) {
+        boolean flag = false;
+        TelephonyManager telephonyManager =
+                (TelephonyManager) context.getSystemService(context.TELEPHONY_SERVICE);
+        flag = (telephonyManager != null && telephonyManager.isNetworkRoaming(subId));
+        LogUtils.logi(TAG, "isNetworkRoaming subId=" + subId + "flag=" + flag);
+        return flag;
+    }
 }
