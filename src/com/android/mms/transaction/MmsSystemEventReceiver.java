@@ -89,42 +89,7 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
             if (isMmsNetworkReadyForPendingMsg(context)) {
                 wakeUpService(context);
             }
-        } else if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
-            // We should check whether there are unread incoming
-            // messages in the Inbox and then update the notification icon.
-            // Called on the UI thread so don't block.
-            MessagingNotification.nonBlockingUpdateNewMessageIndicator(
-                    context, MessagingNotification.THREAD_NONE, false);
 
-            // Scan and send pending Mms once after boot completed since
-            // ACTION_ANY_DATA_CONNECTION_STATE_CHANGED wasn't registered in a whole life cycle
-            wakeUpService(context);
-
-            if (context.getResources().getBoolean(R.bool.def_enable_reset_smsc)) {
-                SharedPreferences prefs = PreferenceManager
-                        .getDefaultSharedPreferences(context);
-                SharedPreferences.Editor prefsEditor = prefs.edit();
-                prefsEditor.putString(MessagingPreferenceActivity.SMSC_DEFAULT,
-                        ""/*SmsManager.getDefault().getSmscAddressFromIcc()*/);
-                prefsEditor.apply();
-                prefsEditor.commit();
-            }
-
-            intent.setClass(context,SmsReceiverService.class);
-            SmsReceiver.beginStartingService(context,intent);
-
-        /*} else if (action.equals(TelephonyIntents.ACTION_SUBSCRIPTION_SET_UICC_RESULT)) {
-
-            int status = intent.getIntExtra(TelephonyIntents.EXTRA_RESULT, PhoneConstants.FAILURE);
-            int state = intent.getIntExtra(TelephonyIntents.EXTRA_NEW_SUB_STATE,
-                    SubscriptionManager.INACTIVE);
-            int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY, PhoneConstants.PHONE_ID1);
-            Log.d(TAG, "ACTION_SUBSCRIPTION_SET_UICC_RESULT status = " + status + ", state = "
-                    + state + " phoneId: " + phoneId);
-            // Scan and send pending Mms if subscription is activated
-            if (status == PhoneConstants.SUCCESS && state == SubscriptionManager.ACTIVE) {
-                wakeUpService(context);
-            }*/
         } else if (action.equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
             boolean apm = intent.getBooleanExtra("state", false);
             if (!apm) {
