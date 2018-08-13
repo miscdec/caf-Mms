@@ -29,7 +29,7 @@ import android.util.Log;
 import com.android.mms.R;
 import com.android.mms.ui.ConversationList;
 import com.android.mms.ui.MessageUtils;
-
+import android.app.NotificationChannel;
 
 /**
  * Receive Intent.SMS_REJECTED.  Handle notification that received SMS messages are being
@@ -58,7 +58,9 @@ public class SmsRejectedReceiver extends BroadcastReceiver {
 
             NotificationManager nm = (NotificationManager)
             context.getSystemService(Context.NOTIFICATION_SERVICE);
-
+            final Notification.Builder noti =
+                    new Notification.Builder(context,
+                            MessagingNotification.REJECTED_MESSAGE_CHANNEL_ID);
             Intent viewConvIntent = new Intent(context, ConversationList.class);
             viewConvIntent.setAction(Intent.ACTION_VIEW);
             viewConvIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
@@ -67,7 +69,7 @@ public class SmsRejectedReceiver extends BroadcastReceiver {
             PendingIntent pendingIntent = PendingIntent.getActivity(
                     context, 0, viewConvIntent, 0);
 
-            Notification notification = new Notification();
+            Notification notification = new Notification.BigTextStyle(noti).build();
 
             // TODO: need appropriate icons
             notification.icon = R.drawable.stat_sys_no_sim;
@@ -87,6 +89,11 @@ public class SmsRejectedReceiver extends BroadcastReceiver {
                     context, context.getString(titleId),
                     context.getString(bodyId),
                     pendingIntent);
+            NotificationChannel channel = new NotificationChannel(
+                    MessagingNotification.REJECTED_MESSAGE_CHANNEL_ID,
+                    context.getString(R.string.rejected_message_notification),
+                    NotificationManager.IMPORTANCE_HIGH);
+            nm.createNotificationChannel(channel);
             nm.notify(SMS_REJECTED_NOTIFICATION_ID, notification);
         }
     }
