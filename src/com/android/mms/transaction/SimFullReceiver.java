@@ -31,6 +31,7 @@ import com.android.mms.R;
 import com.android.mms.ui.ManageSimMessages;
 import com.android.mms.ui.MessageUtils;
 import com.android.mmswrapper.ConstantsWrapper;
+import android.app.NotificationChannel;
 
 /**
  * Receive Intent.SIM_FULL_ACTION.  Handle notification that SIM is full.
@@ -49,7 +50,8 @@ public class SimFullReceiver extends BroadcastReceiver {
 
             NotificationManager nm = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
-
+            final Notification.Builder noti =
+                    new Notification.Builder(context, MessagingNotification.SIM_FULL_CHANNEL_ID);
             int slot = intent.getIntExtra(ConstantsWrapper.Phone.SLOT_KEY,
                     ConstantsWrapper.Phone.SUB1);
             Intent viewSimIntent = new Intent(context, ManageSimMessages.class);
@@ -59,7 +61,7 @@ public class SimFullReceiver extends BroadcastReceiver {
             PendingIntent pendingIntent = PendingIntent.getActivity(
                     context, 0, viewSimIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-            Notification notification = new Notification();
+            Notification notification = new Notification.BigTextStyle(noti).build();
             notification.icon = R.drawable.stat_sys_no_sim;
             notification.tickerText = context.getString(R.string.sim_full_title);
             notification.defaults = Notification.DEFAULT_ALL;
@@ -68,6 +70,11 @@ public class SimFullReceiver extends BroadcastReceiver {
                     context, context.getString(R.string.sim_full_title),
                     context.getString(R.string.sim_full_body),
                     pendingIntent);
+            NotificationChannel channel = new NotificationChannel(
+                    MessagingNotification.SIM_FULL_CHANNEL_ID,
+                    context.getString(R.string.sim_full_notification),
+                    NotificationManager.IMPORTANCE_HIGH);
+            nm.createNotificationChannel(channel);
             nm.notify(ManageSimMessages.SIM_FULL_NOTIFICATION_ID, notification);
        }
     }

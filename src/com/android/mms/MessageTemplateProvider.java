@@ -374,7 +374,8 @@ public class MessageTemplateProvider extends android.content.ContentProvider {
 
         FileOutputStream out = null;
         try {
-            out = getContext().openFileOutput(MESSAGFILE, Context.MODE_WORLD_WRITEABLE);
+            out = getContext().openFileOutput(MESSAGFILE,
+                    Context.MODE_PRIVATE);
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block
             if (DBG)

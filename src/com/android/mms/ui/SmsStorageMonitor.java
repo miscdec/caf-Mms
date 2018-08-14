@@ -23,7 +23,9 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.android.mms.R;
+import com.android.mms.transaction.MessagingNotification;
 import com.android.mmswrapper.ConstantsWrapper;
+import android.app.NotificationChannel;
 
 public class SmsStorageMonitor extends BroadcastReceiver {
     private Context mContext;
@@ -39,20 +41,25 @@ public class SmsStorageMonitor extends BroadcastReceiver {
         }
         if (intent.getAction().equals(
                 ConstantsWrapper.IntentConstants.ACTION_DEVICE_STORAGE_FULL)) {
-            notifyReachStorageLimited();
+            notifyReachStorageLimited(context);
         } else if (intent.getAction().equals(
                 ConstantsWrapper.IntentConstants.ACTION_DEVICE_STORAGE_NOT_FULL)) {
             cancelStorageLimitedWarning();
         }
     }
 
-    private void notifyReachStorageLimited() {
+    private void notifyReachStorageLimited(Context context) {
         Notification.Builder mBuilder =
-                new Notification.Builder(mContext)
+                new Notification.Builder(mContext,MessagingNotification.DEVICE_FULL_CHANNEL_ID)
                         .setSmallIcon(R.mipmap.ic_launcher_smsmms)
                         .setContentTitle(mContext.getString(R.string.storage_warning_title))
                         .setContentText(mContext.getString(R.string.storage_warning_content))
                         .setOngoing(true);
+        NotificationChannel channel = new NotificationChannel(
+                MessagingNotification.DEVICE_FULL_CHANNEL_ID,
+                context.getString(R.string.device_full_notification),
+                NotificationManager.IMPORTANCE_HIGH);
+        mNotificationManager.createNotificationChannel(channel);
         mNotificationManager.notify(NOTIFICATION_STORAGE_LIMITED_ID, mBuilder.build());
     }
 
