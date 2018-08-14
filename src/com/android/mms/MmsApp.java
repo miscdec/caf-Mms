@@ -54,6 +54,10 @@ import com.android.mms.util.PduLoaderManager;
 import com.android.mms.util.RateController;
 import com.android.mms.util.ThumbnailManager;
 import com.android.mmswrapper.ConstantsWrapper;
+import android.provider.Telephony.Mms;
+import android.net.ConnectivityManager;
+import com.android.mms.transaction.SmsRejectedReceiver;
+import android.provider.Telephony.Sms;
 
 public class MmsApp extends Application {
     public static final String LOG_TAG = LogTag.TAG;
@@ -69,6 +73,9 @@ public class MmsApp extends Application {
     private DrmManagerClient mDrmManagerClient;
     public static boolean hasPermissionRelated = false;
     private SmsStorageMonitor mSmsStorageMonitor = new SmsStorageMonitor();
+
+    private MmsSystemEventReceiver mSystemEventReceiver = new MmsSystemEventReceiver();
+    private SmsRejectedReceiver mSmsRejectedReceiver = new SmsRejectedReceiver();
 
     @Override
     public void onCreate() {
@@ -126,6 +133,24 @@ public class MmsApp extends Application {
         filter.addAction(ConstantsWrapper.IntentConstants.ACTION_DEVICE_STORAGE_FULL);
         filter.addAction(ConstantsWrapper.IntentConstants.ACTION_DEVICE_STORAGE_NOT_FULL);
         registerReceiver(mSmsStorageMonitor, filter);
+
+        registSystemReceiver();
+        registSmsRejectedReceiver();
+    }
+
+    private void registSystemReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Mms.Intents.CONTENT_CHANGED_ACTION);
+        filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(ConstantsWrapper.TelephonyIntent.ACTION_SIM_STATE_CHANGED);
+        registerReceiver(mSystemEventReceiver, filter);
+    }
+
+    private void registSmsRejectedReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Sms.Intents.SMS_REJECTED_ACTION);
+        registerReceiver(mSmsRejectedReceiver, filter);
     }
 
     public void initPermissionRelated() {
@@ -196,6 +221,9 @@ public class MmsApp extends Application {
         super.onTerminate();
         mCountryDetector.removeCountryListener(mCountryListener);
         unregisterReceiver(mSmsStorageMonitor);
+
+        unregisterReceiver(mSystemEventReceiver);
+        unregisterReceiver(mSmsRejectedReceiver);
     }
 
     @Override
