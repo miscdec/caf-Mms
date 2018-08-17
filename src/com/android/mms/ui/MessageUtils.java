@@ -160,6 +160,9 @@ import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
 import org.codeaurora.internal.IExtTelephony;
+import android.app.ActivityManager;
+import android.app.Service;
+import android.support.v4.content.FileProvider;
 
 /**
  * An utility class for managing messages.
@@ -1215,8 +1218,19 @@ public class MessageUtils {
 
         String contentType;
         contentType = mm.getContentType();
-        intent.setDataAndType(mm.getUri(), contentType);
+        intent.setDataAndType(getUriFromFile(context, mm),
+                contentType);
         context.startActivity(intent);
+    }
+
+    private static Uri getUriFromFile(Context context, MediaModel mm) {
+        Uri uri = mm.getUri();
+        if (uri != null && mm.isFileUri(uri)) {
+            return FileProvider.getUriForFile(context,
+                    context.getPackageName() + ".fileProvider",
+                    new File(uri.getPath()));
+        }
+        return uri;
     }
 
     public static void showErrorDialog(Activity activity,
