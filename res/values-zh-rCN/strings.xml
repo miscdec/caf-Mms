@@ -638,4 +638,9 @@
     <string name="deleting_sim_sms">"正在删除SIM卡短信..."</string>
     <string name="send_via_invalid_sub">"当前卡槽没有有效的SIM卡，无法发送信息。"</string>
     <string name="mms_loading">正在加载...</string>
+
+    <string name="message_notification">消息通知</string>
+    <string name="sim_full_notification">SIM卡满通知</string>
+    <string name="device_full_notification">内存空间满通知</string>
+    <string name="rejected_message_notification">拒绝消息通知</string>
 </resources>
