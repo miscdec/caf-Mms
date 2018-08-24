@@ -1197,4 +1197,9 @@
     <string name="deleting_sim_sms">Deleting SIM SMS\u2026</string>
     <string name="send_via_invalid_sub">Current subscription is not active, cannot send message.</string>
     <string name="mms_loading">Loading...</string>
+
+    <string name="message_notification">Message notification</string>
+    <string name="sim_full_notification">SIM full notificatiom</string>
+    <string name="device_full_notification">Memory full notificatiom</string>
+    <string name="rejected_message_notification">Rejected full notification</string>
 </resources>

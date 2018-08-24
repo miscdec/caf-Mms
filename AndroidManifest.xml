@@ -21,7 +21,7 @@
         package="com.android.mms">
 
     <original-package android:name="com.android.mms" />
-    <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="23" />
+    <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="26" />
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -295,26 +295,6 @@
                 <data android:mimeType="application/vnd.wap.sic" />
                 <data android:mimeType="application/vnd.wap.slc" />
             </intent-filter>
-        </receiver>
-        <receiver android:name=".transaction.MmsSystemEventReceiver">
-            <intent-filter>
-                <action android:name="android.intent.action.CONTENT_CHANGED" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="org.codeaurora.intent.action.ACTION_SUBSCRIPTION_SET_UICC_RESULT" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.AIRPLANE_MODE" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SIM_STATE_CHANGED" />
-            </intent-filter>
 
         </receiver>
 
@@ -355,6 +335,9 @@
             <intent-filter>
                 <action android:name="com.android.mms.transaction.SEND_MESSAGE" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
         </receiver>
 
         <receiver android:name=".transaction.MessageStatusReceiver">
@@ -368,12 +351,6 @@
         <receiver android:name=".transaction.SimFullReceiver">
             <intent-filter>
                 <action android:name="android.provider.Telephony.SIM_FULL" />
-            </intent-filter>
-        </receiver>
-
-        <receiver android:name=".transaction.SmsRejectedReceiver">
-            <intent-filter>
-                <action android:name="android.provider.Telephony.SMS_REJECTED" />
             </intent-filter>
         </receiver>
 
@@ -535,5 +512,15 @@
             android:name=".ui.SearchConversationActivity"
             android:theme="@style/NoActionBar">
         </activity>
+
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="com.android.mms.fileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true" >
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

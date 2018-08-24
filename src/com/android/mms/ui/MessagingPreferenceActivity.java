@@ -407,6 +407,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         }
 
         setMessagePreferences();
+        prefRoot.removePreference(mNotificationPrefCategory);
     }
 
     private void restoreDefaultPreferences() {

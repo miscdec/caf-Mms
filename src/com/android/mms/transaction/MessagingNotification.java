@@ -108,6 +108,8 @@ import com.google.android.mms.pdu.GenericPdu;
 import com.google.android.mms.pdu.MultimediaMessagePdu;
 import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduPersister;
+import android.app.NotificationChannel;
+
 
 /**
  * This class is used to update the notification indicator. It will check whether
@@ -126,6 +128,8 @@ public class MessagingNotification {
     private static final int ICC_NOTIFICATION_ID = 128;
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
+
+    public static final int SERVICE_NOTIFICATION_ID = 1;
     /**
      * This is the volume at which to play the in-conversation notification sound,
      * expressed as a fraction of the system notification volume.
@@ -196,6 +200,11 @@ public class MessagingNotification {
             "com.android.mms.NOTIFICATION_DELETED_ACTION";
     private static final String NOTIFICATION_GROUP_KEY = "group_key_mms";
     private static final String NOTIFICATION_MSG_TAG = ":sms:";
+
+    public  static final String NEW_MESSAGE_CHANNEL_ID = "533";
+    public  static final String SIM_FULL_CHANNEL_ID = "534";
+    public  static final String DEVICE_FULL_CHANNEL_ID = "535";
+    public  static final String REJECTED_MESSAGE_CHANNEL_ID = "536";
 
     public static class OnDeletedReceiver extends BroadcastReceiver {
         @Override
@@ -414,7 +423,8 @@ public class MessagingNotification {
             playInConversationNotificationSound(context);
             return;
         }
-        final Notification.Builder noti = new Notification.Builder(context).setWhen(timeMillis);
+        final Notification.Builder noti = new Notification.Builder(context,
+                NEW_MESSAGE_CHANNEL_ID).setWhen(timeMillis);
         Contact contact = Contact.get(address, false);
         NotificationInfo info = getNewIccMessageNotificationInfo(context, true /* isSms */,
                 address, message, null /* subject */, subId, timeMillis,
@@ -422,6 +432,11 @@ public class MessagingNotification {
         noti.setSmallIcon(R.drawable.ic_notification);
         NotificationManager nm = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        NotificationChannel channel = new NotificationChannel(NEW_MESSAGE_CHANNEL_ID,
+                context.getString(R.string.message_notification),
+                NotificationManager.IMPORTANCE_HIGH);
+        nm.createNotificationChannel(channel);
 
 //        TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(context);
         // Update the notification.
@@ -1153,7 +1168,7 @@ public class MessagingNotification {
         final int messageCount = notificationSet.size();
         NotificationInfo mostRecentNotification = notificationSet.first();
 
-        final Notification.Builder noti = new Notification.Builder(context)
+        final Notification.Builder noti = new Notification.Builder(context,NEW_MESSAGE_CHANNEL_ID)
                 .setWhen(mostRecentNotification.mTimeMillis)
                 .setColor(context.getResources().getColor(R.color.notification_accent_color));
 
@@ -1249,6 +1264,11 @@ public class MessagingNotification {
 
         NotificationManager nm = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        NotificationChannel channel = new NotificationChannel(NEW_MESSAGE_CHANNEL_ID,
+                context.getString(R.string.message_notification),
+                NotificationManager.IMPORTANCE_HIGH);
+        nm.createNotificationChannel(channel);
 
         // Update the notification.
         noti.setContentTitle(title)
@@ -1528,7 +1548,7 @@ public class MessagingNotification {
         NotificationInfo mostRecentNotification = notificationSet.first();
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0,
                 mostRecentNotification.mClickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        final Notification.Builder noti = new Notification.Builder(context)
+        final Notification.Builder noti = new Notification.Builder(context, NEW_MESSAGE_CHANNEL_ID)
                 .setWhen(mostRecentNotification.mTimeMillis)
                 .setColor(context.getResources().getColor(R.color.notification_accent_color))
                 .setContentTitle(mostRecentNotification.mTitle)
@@ -1948,7 +1968,11 @@ public class MessagingNotification {
         int totalFailedCount = getUndeliveredMessageCount(context);
 
         Intent failedIntent;
-        Notification notification = new Notification();
+        final Notification.Builder noti = new Notification.Builder(context,
+                NEW_MESSAGE_CHANNEL_ID);
+        Notification notification = new Notification.BigTextStyle(noti)
+                .build();
+
         String title;
         String description;
         if (totalFailedCount > 1) {
@@ -2004,6 +2028,11 @@ public class MessagingNotification {
 
         NotificationManager notificationMgr = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationChannel channel = new NotificationChannel(
+                NEW_MESSAGE_CHANNEL_ID,
+                context.getString(R.string.message_notification),
+                NotificationManager.IMPORTANCE_HIGH);
+        notificationMgr.createNotificationChannel(channel);
 
         if (isDownload) {
             notificationMgr.notify(DOWNLOAD_FAILED_NOTIFICATION_ID, notification);
@@ -2415,16 +2444,21 @@ public class MessagingNotification {
     private static void sendFullNotification(Context context, boolean isSms) {
         NotificationManager nm = (NotificationManager)context.getSystemService(
                 Context.NOTIFICATION_SERVICE);
-
+        final Notification.Builder noti =
+                new Notification.Builder(context, SIM_FULL_CHANNEL_ID);
         String title = context.getString(isSms ? R.string.sms_full_title
                 : R.string.memory_low_title);
         String description = context.getString(isSms ? R.string.sms_full_body
                 : R.string.memory_low_body);
         PendingIntent intent = PendingIntent.getActivity(context, 0,  new Intent(), 0);
-        Notification notification = new Notification();
+        Notification notification = new Notification.BigTextStyle(noti).build();
         notification.icon = R.drawable.notification_icon_failed;
         notification.tickerText = title;
         notification.setLatestEventInfo(context, title, description, intent);
+        NotificationChannel channel = new NotificationChannel(SIM_FULL_CHANNEL_ID,
+                context.getString(R.string.sim_full_notification),
+                NotificationManager.IMPORTANCE_HIGH);
+        nm.createNotificationChannel(channel);
         nm.notify(FULL_NOTIFICATION_ID, notification);
     }
 
