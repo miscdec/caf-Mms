@@ -190,8 +190,6 @@ public class MessageUtils {
     public static final Uri ICC2_URI = Uri.parse("content://sms/icc2");
     private static final int TIMESTAMP_LENGTH = 7;  // See TS 23.040 9.2.3.11
 
-    private static boolean mCanShowDialog;
-
     private static final String TAG = LogTag.TAG;
     private static final String PREFERRED_SIM_ICON_INDEX = "preferred_sim_icon_index";
     private static String sLocalNumber;
@@ -2691,7 +2689,6 @@ public class MessageUtils {
     }
 
     public static void removeDialogs() {
-        mCanShowDialog = false;
         if(memoryStatusDialog != null && memoryStatusDialog.isShowing()) {
             memoryStatusDialog.dismiss();
             memoryStatusDialog = null;
@@ -2699,7 +2696,6 @@ public class MessageUtils {
     }
 
     public static void showMemoryStatusDialog(Context context) {
-       mCanShowDialog = true;
        new ShowDialog(context).execute();
     }
 
