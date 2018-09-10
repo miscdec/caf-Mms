@@ -1630,4 +1630,10 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         }
         return label;
     }*/
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        MessageUtils.removeDialogs();
+    }
 }
