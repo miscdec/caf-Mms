@@ -599,7 +599,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             LogTag.debugD("dismiss progress dialog");
             mProgressDialog.dismiss();
         }
-        MessageUtils.removeDialogs();
+        if (getResources().getBoolean(R.bool.config_mailbox_enable)) {
+            MessageUtils.removeDialogs();
+        }
         Contact.clearListener();
     }
 
