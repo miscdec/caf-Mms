@@ -1711,7 +1711,8 @@ public class MessagingNotification {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0,
                 clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        final Notification.Builder noti = new Notification.Builder(context)
+        final Notification.Builder noti = new Notification.Builder(context,
+                NEW_MESSAGE_CHANNEL_ID)
                 .setWhen(System.currentTimeMillis())
                 .setColor(context.getResources().getColor(R.color.notification_accent_color))
                 .setContentTitle(name)
@@ -1759,20 +1760,32 @@ public class MessagingNotification {
 
     }
 
-    private static void doNotify(final Notification notification, Context context,
-            final long threadId) {
+    private static void doNotify(final Notification notification,
+            Context context, final long threadId) {
         String threadIdStr = Long.toString(threadId);
-        NotificationManager nm =
-                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationManager nm = (NotificationManager) context
+                .getSystemService(Context.NOTIFICATION_SERVICE);
         final String notificationTag = buildNotificationTag(context,
                 NOTIFICATION_MSG_TAG, threadIdStr);
+        NotificationChannel channel = new NotificationChannel(
+                NEW_MESSAGE_CHANNEL_ID,
+                context.getString(R.string.message_notification),
+                NotificationManager.IMPORTANCE_HIGH);
+        nm.createNotificationChannel(channel);
         nm.notify(notificationTag, NOTIFICATION_ID, notification);
     }
 
-    private static void doNotify(final Notification notification, Context context) {
-        NotificationManager nm =
-                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        final String notificationTag = buildNotificationTag(context, NOTIFICATION_MSG_TAG, null);
+    private static void doNotify(final Notification notification,
+            Context context) {
+        NotificationManager nm = (NotificationManager) context
+                .getSystemService(Context.NOTIFICATION_SERVICE);
+        final String notificationTag = buildNotificationTag(context,
+                NOTIFICATION_MSG_TAG, null);
+        NotificationChannel channel = new NotificationChannel(
+                NEW_MESSAGE_CHANNEL_ID,
+                context.getString(R.string.message_notification),
+                NotificationManager.IMPORTANCE_HIGH);
+        nm.createNotificationChannel(channel);
         nm.notify(notificationTag, NOTIFICATION_ID, notification);
     }
 
