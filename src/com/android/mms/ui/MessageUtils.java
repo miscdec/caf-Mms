@@ -206,7 +206,6 @@ public class MessageUtils {
 
     public static final int PREFER_SMS_STORE_PHONE = 0;
     public static final int PREFER_SMS_STORE_CARD = 1;
-    private static final String BOOKMARKS_ACTION = "com.android.browser.ADDBOOKMARK";
 
     // Consider oct-strean as the content type of vCard
     public static final String OCT_STREAM = "application/oct-stream";
@@ -2708,7 +2707,6 @@ public class MessageUtils {
     private static void showUrlOptions(final Context slideContext, final String messageUrl) {
         final String[] texts = new String[] {
                 slideContext.getString(R.string.menu_connect_url),
-                slideContext.getString(R.string.menu_add_to_label),
                 slideContext.getString(R.string.menu_copy_url, messageUrl)
         };
         AlertDialog.Builder builder = new AlertDialog.Builder(slideContext);
@@ -2720,9 +2718,6 @@ public class MessageUtils {
                 switch (which) {
                     case URL_OPTION_MENU_CONNECT:
                         loadUrlDialog(slideContext, messageUrl);
-                        break;
-                    case URL_OPTION_MENU_ADD_TO_LABEL:
-                        addToLabel(slideContext, messageUrl);
                         break;
                     case URL_OPTION_MENU_COPY_URL:
                         copyToClipboard(slideContext, messageUrl);
@@ -2789,20 +2784,6 @@ public class MessageUtils {
             context.startActivity(intent);
         } catch (ActivityNotFoundException e) {
             return;
-        }
-    }
-
-    private static void addToLabel(Context context, String urlString) {
-        Intent i = new Intent(BOOKMARKS_ACTION);
-        i.putExtra("title", "");
-        i.putExtra("url", urlString);
-        i.putExtra("extend", "outside");
-        try {
-            context.startActivity(i);
-        } catch (ActivityNotFoundException e) {
-            Toast.makeText(context, R.string.bookmark_save_app_not_found,
-                    Toast.LENGTH_SHORT).show();
-            Log.w(TAG, e);
         }
     }
 
