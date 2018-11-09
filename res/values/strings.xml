@@ -1201,4 +1201,14 @@
     <string name="sim_full_notification">SIM full notificatiom</string>
     <string name="device_full_notification">Memory full notificatiom</string>
     <string name="rejected_message_notification">Rejected full notification</string>
+
+    <string name="pref_mms_disable_delay">MMS Network release delay disable</string>
+    <string name="pref_mms_enable_delay">MMS Network release delay enable</string>
+    <string name="pref_mms_delay_title">MMS Network release delay</string>
+    <string name="default_mms_delay_period" translatable="false">100000</string>
+    <string name="pref_set_mms_delay_title">Set Network release delay time</string>
+
+    <string name="delay_one" translatable="false">100S</string>
+    <string name="delay_two" translatable="false">80S</string>
+    <string name="delay_three" translatable="false">60S</string>
 </resources>
