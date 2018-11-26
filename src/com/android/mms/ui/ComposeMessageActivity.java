@@ -6332,16 +6332,7 @@ public class ComposeMessageActivity extends Activity
 
         boolean ret = true;
         for (String message : messages) {
-            ContentValues values = new ContentValues();
-            values.put(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, subId);
-            values.put(Sms.ADDRESS, address);
-            values.put(Sms.BODY, message);
-            values.put(MessageUtils.SMS_BOX_ID, boxId);
-            values.put(Sms.DATE, timestamp);
-            Uri uri = getContentResolver().insert(MessageUtils.ICC_URI, values);
-            if (uri != null) {
-                ret = MessageUtils.COPY_SMS_INTO_SIM_SUCCESS.equals(uri.getLastPathSegment());
-            }
+            ret = MessageUtils.insertMessageIntoIcc(subId, address, message, boxId, timestamp);
             if (!ret) {
                 break;
             }
