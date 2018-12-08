@@ -77,7 +77,7 @@ public class PushReceiver extends BroadcastReceiver {
     private static final String WAP_PUSH_TYPE_SIC = "application/vnd.wap.sic";
     private static final String WAP_PUSH_TYPE_SLC = "application/vnd.wap.slc";
     private static final String WAP_PUSH = ":Browser Information"; // Wap push key
-
+    private static final String WAP_PUSH_DEFAULT_ADDRESS = "Browser Information";
     private class ReceivePushTask extends AsyncTask<Intent,Void,Void> {
         private Context mContext;
         public ReceivePushTask(Context context) {
@@ -144,10 +144,14 @@ public class PushReceiver extends BroadcastReceiver {
                             InputStream.class, String.class, Context.class,
                             int.class, String.class);
                     Method mGetThreadID = mWapPushHandler.getDeclaredMethod("getThreadID");
+                    String address = intent.getStringExtra("address");
+                    if (address == null) {
+                        address = WAP_PUSH_DEFAULT_ADDRESS;
+                    }
                     Uri pushMsgUri = (Uri)mHandleWapPush.invoke(WapPushHandlerObj, bais,
                             intent.getType(), mContext,
                             intent.getIntExtra(ConstantsWrapper.Phone.PHONE_KEY, 0),
-                            intent.getStringExtra("address") + WAP_PUSH);
+                            address + WAP_PUSH);
 
                     if (pushMsgUri != null) {
                         // Called off of the UI thread so ok to block.
