@@ -3,11 +3,6 @@
 ifneq ($(TARGET_USES_AOSP),true)
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
-# Include res dir from chips
-chips_dir := ../../../frameworks/opt/chips/res
-res_dirs := $(chips_dir) res
-
-$(shell rm -f $(LOCAL_PATH)/chips)
 
 LOCAL_MODULE_TAGS := optional
 
@@ -29,7 +24,10 @@ LOCAL_STATIC_JAVA_LIBRARIES += android-support-v4
 LOCAL_STATIC_JAVA_LIBRARIES += android-support-v7-recyclerview
 LOCAL_STATIC_JAVA_LIBRARIES += MmsWrapper
 
-LOCAL_RESOURCE_DIR := $(addprefix $(LOCAL_PATH)/, $(res_dirs))
+LOCAL_RESOURCE_DIR = \
+        $(LOCAL_PATH)/res \
+        frameworks/opt/chips/res
+
 LOCAL_AAPT_FLAGS := --auto-add-overlay
 LOCAL_AAPT_FLAGS += --extra-packages com.android.ex.chips
 
