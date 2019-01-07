@@ -164,6 +164,25 @@ import android.app.ActivityManager;
 import android.app.Service;
 import android.support.v4.content.FileProvider;
 
+import com.android.internal.telephony.EncodeException;
+import com.android.internal.telephony.GsmAlphabet;
+import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.SmsHeader;
+import com.android.internal.telephony.cdma.sms.BearerData;
+import com.android.internal.telephony.cdma.sms.CdmaSmsAddress;
+import com.android.internal.telephony.cdma.sms.UserData;
+import android.telephony.PhoneNumberUtils;
+import android.telephony.SmsManager;
+import android.telephony.SmsMessage;
+import android.telephony.SubscriptionManager;
+import static android.telephony.SmsMessage.ENCODING_16BIT;
+import static android.telephony.SmsMessage.ENCODING_7BIT;
+import static android.telephony.SmsMessage.ENCODING_UNKNOWN;
+import static android.telephony.SmsMessage.MAX_USER_DATA_BYTES;
+import static android.telephony.SmsMessage.MAX_USER_DATA_SEPTETS;
+
+
+
 /**
  * An utility class for managing messages.
  */
@@ -3300,6 +3319,346 @@ public class MessageUtils {
         }
         return pic_path.substring(pic_path.lastIndexOf(".") + 1).
                 trim().toLowerCase();
+    }
+
+    public static boolean insertMessageIntoIcc(int subId, String address,
+            String message, int boxId, long timestamp) {
+        Log.d(TAG, "MessageUtils: insertMessageIntoIcc subId: " + subId
+            + "; address: " + address
+            + "; message: " + message
+            + "; boxId: " + boxId
+            + "; timestamp: " + timestamp);
+        byte pdu[] = null;
+        int status;
+        if (Sms.isOutgoingFolder(boxId)) {
+            pdu = SmsMessage.getSubmitPdu(null, address, message, false,
+                    subId).encodedMessage;
+            status = SmsManager.STATUS_ON_ICC_SENT;
+        } else {
+            pdu = getDeliveryPdu(null, address, message, timestamp, subId);
+            status = SmsManager.STATUS_ON_ICC_READ;
+        }
+        boolean result = SmsManager.getSmsManagerForSubscriptionId(subId)
+                .copyMessageToIcc(null, pdu, status);
+        return result;
+    }
+
+    /**
+     * Generate a Delivery PDU byte array. see getSubmitPdu for reference.
+     */
+    private static byte[] getDeliveryPdu(String scAddress,
+            String destinationAddress, String message, long date,
+            int subId) {
+        if (isCDMAPhone(subId)) {
+            return getCdmaDeliveryPdu(scAddress, destinationAddress, message,
+                    date);
+        } else {
+            return getGsmDeliveryPdu(scAddress, destinationAddress, message,
+                    date, null, ENCODING_UNKNOWN);
+        }
+    }
+
+    public static byte[] getCdmaDeliveryPdu(String scAddress,
+            String destinationAddress, String message, long date) {
+        // Perform null parameter checks.
+        if (message == null || destinationAddress == null) {
+            Log.d(TAG, "getCDMADeliveryPdu,message =null");
+            return null;
+        }
+
+        // according to submit pdu encoding as written in privateGetSubmitPdu
+
+        // MTI = SMS-DELIVERY, UDHI = header != null
+        byte[] header = null;
+        byte mtiByte = (byte) (0x00 | (header != null ? 0x40 : 0x00));
+        ByteArrayOutputStream headerStream = getDeliveryPduHeader(
+                destinationAddress, mtiByte);
+
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream(
+                MAX_USER_DATA_BYTES + 40);
+
+        DataOutputStream dos = new DataOutputStream(byteStream);
+        // int status,Status of message. See TS 27.005 3.1, "<stat>"
+
+        /* 0 = "REC UNREAD" */
+        /* 1 = "REC READ" */
+        /* 2 = "STO UNSENT" */
+        /* 3 = "STO SENT" */
+
+        try {
+            // int uTeleserviceID;
+            int uTeleserviceID = 0; // .TELESERVICE_CT_WAP;// int
+            dos.writeInt(uTeleserviceID);
+
+            // unsigned char bIsServicePresent
+            byte bIsServicePresent = 0;// byte
+            dos.writeInt(bIsServicePresent);
+
+            // uServicecategory
+            int uServicecategory = 0;// int
+            dos.writeInt(uServicecategory);
+
+            // RIL_CDMA_SMS_Address
+            // digit_mode
+            // number_mode
+            // number_type
+            // number_plan
+            // number_of_digits
+            // digits[]
+            CdmaSmsAddress destAddr = CdmaSmsAddress.parse(PhoneNumberUtils
+                    .cdmaCheckAndProcessPlusCode(destinationAddress));
+            if (destAddr == null)
+                return null;
+            dos.writeByte(destAddr.digitMode);// int
+            dos.writeByte(destAddr.numberMode);// int
+            dos.writeByte(destAddr.ton);// int
+            Log.d(TAG, "message type=" + destAddr.ton + "destination add="
+                    + destinationAddress + "message=" + message);
+            dos.writeByte(destAddr.numberPlan);// int
+            dos.writeByte(destAddr.numberOfDigits);// byte
+            dos.write(destAddr.origBytes, 0, destAddr.origBytes.length); // digits
+
+            // RIL_CDMA_SMS_Subaddress
+            // Subaddress is not supported.
+            dos.writeByte(0); // subaddressType int
+            dos.writeByte(0); // subaddr_odd byte
+            dos.writeByte(0); // subaddr_nbr_of_digits byte
+
+            SmsHeader smsHeader = new SmsHeader()
+                    .fromByteArray(headerStream.toByteArray());
+            UserData uData = new UserData();
+            uData.payloadStr = message;
+            // uData.userDataHeader = smsHeader;
+            uData.msgEncodingSet = true;
+            uData.msgEncoding = UserData.ENCODING_UNICODE_16;
+
+            BearerData bearerData = new BearerData();
+            bearerData.messageType = BearerData.MESSAGE_TYPE_DELIVER;
+
+            bearerData.deliveryAckReq = false;
+            bearerData.userAckReq = false;
+            bearerData.readAckReq = false;
+            bearerData.reportReq = false;
+
+            bearerData.userData = uData;
+
+            byte[] encodedBearerData = BearerData.encode(bearerData);
+            if (null != encodedBearerData) {
+                // bearer data len
+                dos.writeByte(encodedBearerData.length);// int
+                Log.d(TAG,
+                        "encodedBearerData length=" + encodedBearerData.length);
+
+                // aBearerData
+                dos.write(encodedBearerData, 0, encodedBearerData.length);
+            } else {
+                dos.writeByte(0);
+            }
+
+        } catch (IOException e) {
+            Log.e(TAG, "Error writing dos", e);
+        } finally {
+            try {
+                if (null != byteStream) {
+                    byteStream.close();
+                }
+
+                if (null != dos) {
+                    dos.close();
+                }
+
+                if (null != headerStream) {
+                    headerStream.close();
+                }
+            } catch (IOException e) {
+                Log.e(TAG, "Error close dos", e);
+            }
+        }
+
+        return byteStream.toByteArray();
+    }
+
+    /**
+     * Generate a Delivery PDU byte array. see getSubmitPdu for reference.
+     */
+    public static byte[] getGsmDeliveryPdu(String scAddress,
+            String destinationAddress, String message, long date, byte[] header,
+            int encoding) {
+        // Perform null parameter checks.
+        if (message == null || destinationAddress == null) {
+            return null;
+        }
+
+        // MTI = SMS-DELIVERY, UDHI = header != null
+        byte mtiByte = (byte) (0x00 | (header != null ? 0x40 : 0x00));
+        ByteArrayOutputStream bo = getDeliveryPduHeader(destinationAddress,
+                mtiByte);
+        // User Data (and length)
+        byte[] userData;
+        if (encoding == ENCODING_UNKNOWN) {
+            // First, try encoding it with the GSM alphabet
+            encoding = ENCODING_7BIT;
+        }
+        try {
+            if (encoding == ENCODING_7BIT) {
+                userData = GsmAlphabet.stringToGsm7BitPackedWithHeader(message,
+                        header, 0, 0);
+            } else { // assume UCS-2
+                try {
+                    userData = encodeUCS2(message, header);
+                } catch (UnsupportedEncodingException uex) {
+                    Log.e("GSM", "Implausible UnsupportedEncodingException ",
+                            uex);
+                    return null;
+                }
+            }
+        } catch (EncodeException ex) {
+            // Encoding to the 7-bit alphabet failed. Let's see if we can
+            // encode it as a UCS-2 encoded message
+            try {
+                userData = encodeUCS2(message, header);
+                encoding = ENCODING_16BIT;
+            } catch (UnsupportedEncodingException uex) {
+                Log.e("GSM", "Implausible UnsupportedEncodingException ", uex);
+                return null;
+            }
+        }
+
+        if (encoding == ENCODING_7BIT) {
+            if ((0xff & userData[0]) > MAX_USER_DATA_SEPTETS) {
+                // Message too long
+                return null;
+            }
+            bo.write(0x00);
+        } else { // assume UCS-2
+            if ((0xff & userData[0]) > MAX_USER_DATA_BYTES) {
+                // Message too long
+                return null;
+            }
+            // TP-Data-Coding-Scheme
+            // Class 3, UCS-2 encoding, uncompressed
+            bo.write(0x0b);
+        }
+        byte[] timestamp = getTimestamp(date);
+        bo.write(timestamp, 0, timestamp.length);
+
+        bo.write(userData, 0, userData.length);
+        return bo.toByteArray();
+    }
+
+    private static ByteArrayOutputStream getDeliveryPduHeader(
+            String destinationAddress, byte mtiByte) {
+        ByteArrayOutputStream bo = new ByteArrayOutputStream(
+                MAX_USER_DATA_BYTES + 40);
+        bo.write(mtiByte);
+
+        byte[] daBytes;
+        daBytes = PhoneNumberUtils
+                .networkPortionToCalledPartyBCD(destinationAddress);
+
+        if (daBytes == null) {
+            Log.d(TAG,
+                    "The number can not convert to BCD, it's an An alphanumeric address, "
+                            + "destinationAddress = " + destinationAddress);
+            // Convert address to GSM 7 bit packed bytes.
+            try {
+                byte[] numberdata = GsmAlphabet
+                        .stringToGsm7BitPacked(destinationAddress);
+                // Get the real address data
+                byte[] addressData = new byte[numberdata.length - 1];
+                System.arraycopy(numberdata, 1, addressData, 0,
+                        addressData.length);
+
+                daBytes = new byte[addressData.length + OFFSET_ADDRESS_VALUE];
+                // Get the address length
+                int addressLen = numberdata[0];
+                daBytes[OFFSET_ADDRESS_LENGTH] = (byte) ((addressLen * 7
+                        % 4 != 0 ? addressLen * 7 / 4 + 1
+                                : addressLen * 7 / 4));
+                // Set address type to Alphanumeric according to 3GPP TS 23.040
+                // [9.1.2.5]
+                daBytes[OFFSET_TOA] = (byte) 0xd0;
+                System.arraycopy(addressData, 0, daBytes, OFFSET_ADDRESS_VALUE,
+                        addressData.length);
+            } catch (Exception e) {
+                Log.e(TAG, "Exception when encoding to 7 bit data.");
+            }
+        } else {
+            // destination address length in BCD digits, ignoring TON byte and
+            // pad
+            // TODO Should be better.
+            bo.write((daBytes.length - 1) * 2
+                    - ((daBytes[daBytes.length - 1] & 0xf0) == 0xf0 ? 1 : 0));
+        }
+
+        // destination address
+        bo.write(daBytes, 0, daBytes.length);
+
+        // TP-Protocol-Identifier
+        bo.write(0);
+        return bo;
+    }
+
+    private static byte[] encodeUCS2(String message, byte[] header)
+            throws UnsupportedEncodingException {
+        byte[] userData, textPart;
+        textPart = message.getBytes("utf-16be");
+
+        if (header != null) {
+            // Need 1 byte for UDHL
+            userData = new byte[header.length + textPart.length + 1];
+
+            userData[0] = (byte) header.length;
+            System.arraycopy(header, 0, userData, 1, header.length);
+            System.arraycopy(textPart, 0, userData, header.length + 1,
+                    textPart.length);
+        } else {
+            userData = textPart;
+        }
+        byte[] ret = new byte[userData.length + 1];
+        ret[0] = (byte) (userData.length & 0xff);
+        System.arraycopy(userData, 0, ret, 1, userData.length);
+        return ret;
+    }
+
+    private static byte[] getTimestamp(long time) {
+        // See TS 23.040 9.2.3.11
+        byte[] timestamp = new byte[TIMESTAMP_LENGTH];
+        SimpleDateFormat sdf = new SimpleDateFormat("yyMMddkkmmss:Z",
+                Locale.US);
+        String[] date = sdf.format(time).split(":");
+        // generate timezone value
+        String timezone = date[date.length - 1];
+        String signMark = timezone.substring(0, 1);
+        int hour = Integer.parseInt(timezone.substring(1, 3));
+        int min = Integer.parseInt(timezone.substring(3));
+        int timezoneValue = hour * 4 + min / 15;
+        // append timezone value to date[0] (time string)
+        String timestampStr = date[0] + timezoneValue;
+
+        int digitCount = 0;
+        for (int i = 0; i < timestampStr.length(); i++) {
+            char c = timestampStr.charAt(i);
+            int shift = ((digitCount & 0x01) == 1) ? 4 : 0;
+            timestamp[(digitCount >> 1)] |= (byte) ((charToBCD(c)
+                    & 0x0F) << shift);
+            digitCount++;
+        }
+
+        if (signMark.equals("-")) {
+            timestamp[timestamp.length
+                    - 1] = (byte) (timestamp[timestamp.length - 1] | 0x08);
+        }
+
+        return timestamp;
+    }
+
+    private static int charToBCD(char c) {
+        if (c >= '0' && c <= '9') {
+            return c - '0';
+        } else {
+            throw new RuntimeException("invalid char for BCD " + c);
+        }
     }
 
 }

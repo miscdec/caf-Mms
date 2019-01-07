@@ -67,16 +67,6 @@ public class TelephonyWrapper {
             return ret;
         }
 
-        public static Uri addMessageToUri(int subId, ContentResolver resolver,
-                                          Uri uri, String address, String body, String subject,
-                                          Long date, boolean read, boolean deliveryReport,
-                                          long threadId, int priority) {
-            Uri ret = Telephony.Sms.addMessageToUri(subId, resolver, uri, address,
-                    body, subject, date, read, deliveryReport, threadId, priority);
-            LogUtils.logi(TAG, "addMessageToUri2 ret=" + ret);
-            return ret;
-        }
-
         public static final class Inbox {
 
             public static Uri addMessage(int subId, ContentResolver resolver,
