@@ -980,7 +980,9 @@ public class TransactionService extends Service implements Observer {
     protected void endMmsConnectivity() {
         for (int i = 0; i < mPhoneCount; i++) {
             int[] subId = SubscriptionManagerWrapper.getSubId(i);
-            endMmsConnectivity(subId[0]);
+            if (subId != null && (subId.length > 0)) {
+                endMmsConnectivity(subId[0]);
+            }
         }
     }
 
