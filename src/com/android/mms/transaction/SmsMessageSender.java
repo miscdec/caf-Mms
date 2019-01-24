@@ -43,6 +43,10 @@ import com.android.mmswrapper.ConstantsWrapper;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.MmsException;
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
+
 
 public class SmsMessageSender implements MessageSender {
     protected final Context mContext;
@@ -137,7 +141,7 @@ public class SmsMessageSender implements MessageSender {
                     break;
                 }
                 log("updating Database with subId = " + mSubId);
-                TelephonyWrapper.Sms.addMessageToUri(mSubId, mContext.getContentResolver(),
+                addMessageToUri(mSubId, mContext.getContentResolver(),
                         Uri.parse("content://sms/queued"), mDests[i],
                         mMessageText, null, mTimestamp,
                         true /* read */,
@@ -157,6 +161,29 @@ public class SmsMessageSender implements MessageSender {
         // Notify the SmsReceiverService to send the message out
         mContext.sendBroadcast(intent);
         return false;
+    }
+
+    private Uri addMessageToUri(int subId, ContentResolver resolver,
+        Uri uri, String address, String body, String subject,
+        Long date, boolean read, boolean deliveryReport,
+        long threadId, int priority) {
+        ContentValues values = new ContentValues(8);
+        values.put(Sms.SUBSCRIPTION_ID, subId);
+        values.put(Sms.ADDRESS, address);
+        if (date != null) {
+            values.put(Sms.DATE, date);
+        }
+        values.put(Sms.READ, read ? Integer.valueOf(1) : Integer.valueOf(0));
+        values.put(Sms.SUBJECT, subject);
+        values.put(Sms.BODY, body);
+        values.put(Sms.PRIORITY, priority);
+        if (deliveryReport) {
+            values.put(Sms.STATUS, Sms.STATUS_PENDING);
+        }
+        if (threadId != -1L) {
+            values.put(Sms.THREAD_ID, threadId);
+        }
+        return resolver.insert(uri, values);
     }
 
     /**

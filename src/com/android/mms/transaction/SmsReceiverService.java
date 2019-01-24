@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014, 2017 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2010-2014, 2017, 2019 The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -975,21 +975,11 @@ public class SmsReceiverService extends Service {
     }
 
     private boolean saveMessageToIcc(SmsMessage sms) {
-        boolean result = true;
         int subscription = SmsMessageWrapper.getSubId(sms);
         String address = MessageUtils.convertIdp(this, sms.getOriginatingAddress(),
             subscription);
-        ContentValues values = new ContentValues();
-        values.put(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, subscription);
-        values.put(Sms.ADDRESS, address);
-        values.put(Sms.BODY, sms.getMessageBody());
-        values.put(MessageUtils.SMS_BOX_ID, Sms.MESSAGE_TYPE_INBOX);
-        values.put(Sms.DATE, sms.getTimestampMillis());
-        Uri uri = getContentResolver().insert(MessageUtils.ICC_URI, values);
-        if (uri != null) {
-            result = MessageUtils.COPY_SMS_INTO_SIM_SUCCESS.equals(uri.getLastPathSegment());
-        }
-        return result;
+        return  MessageUtils.insertMessageIntoIcc(subscription, address,
+            sms.getMessageBody(), Sms.MESSAGE_TYPE_INBOX, sms.getTimestampMillis());
     }
 
     private static void setSavingMessage(boolean isSaving) {
