@@ -98,25 +98,6 @@ public class ChipsRecipientAdapter extends BaseRecipientAdapter {
                             .constructSendToDestinationEntry(searchText));
                 }
 
-                // Check whether there is matched group. If exist, add the the group
-                // as a suggestion item to the drop down.
-                Cursor groupCursor = null;
-                try {
-                    groupCursor = ContactRecipientEntryUtils.filterGroupDestination(
-                            getContext(), searchText);
-                    if (groupCursor != null) {
-                        while (groupCursor.moveToNext()) {
-                            entries.add(ContactRecipientEntryUtils
-                                .createRecipientEntryForGroupQuery(
-                                    getContext(), groupCursor, true));
-                        }
-                    }
-                } finally {
-                    if (groupCursor != null) {
-                        groupCursor.close();
-                    }
-                }
-
                 HashSet<Long> existingContactIds = new HashSet<Long>();
                 while (cursor.moveToNext()) {
                     // Make sure there's only one first-level contact (i.e. contact for which
