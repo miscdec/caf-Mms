@@ -156,15 +156,6 @@ public class RecipientsEditor extends RecipientEditTextView {
         }
         if (item.getEntryType() == RecipientEntry.ENTRY_TYPE_PERSON) {
             super.onItemClick(parent, view, position, id);
-        } else if (item.getEntryType() == RecipientEntry.ENTRY_TYPE_GROUP) {
-            String groupName = item.getDisplayName();
-            List<RecipientEntry> entries = ContactRecipientEntryUtils
-                    .getGroupsMembers(mContext, groupName);
-            Iterator<RecipientEntry> iterator = entries.iterator();
-            while (iterator.hasNext()) {
-                item = iterator.next();
-                super.onGroupItemClick(position, item);
-            }
         }
 
         if (mOnSelectChipRunnable != null) {
