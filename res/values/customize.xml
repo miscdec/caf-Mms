@@ -113,4 +113,6 @@
 
     <!-- mms slide duration -->
     <integer name="def_mms_slide_duration">2000</integer>
+
+    <bool name="def_mms_delay">false</bool>
 </resources>

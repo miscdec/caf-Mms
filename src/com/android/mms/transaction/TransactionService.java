@@ -79,6 +79,9 @@ import com.google.android.mms.pdu.NotificationInd;
 import com.google.android.mms.pdu.PduHeaders;
 import com.google.android.mms.pdu.PduParser;
 import com.google.android.mms.pdu.PduPersister;
+import android.content.SharedPreferences;
+import com.android.mms.ui.MmsPreferenceActivity;
+import android.preference.PreferenceManager;
 
 /**
  * The TransactionService of the MMS Client is responsible for handling requests
@@ -193,6 +196,10 @@ public class TransactionService extends Service implements Observer {
     public static TransactionService getInstance() {
         return sInstance;
     }
+
+    private static boolean MMS_DELAY_PREF_DEFAULT = false;
+    private static int MMS_DELAY_PERIOD_DEFAULT = 100*1000;
+    private static final int EVENT_MMS_RELEASE_NETWORK_DELAY = 8;
 
     private ConnectivityManager.NetworkCallback  getNetworkCallback(String subId) {
         final String mSubId = subId;
@@ -786,11 +793,12 @@ public class TransactionService extends Service implements Observer {
         if (!mPending.isEmpty()) {
             LogTag.debugD("TransactionService exiting with transaction still pending");
         }
-
-        releaseWakeLock();
-        mServiceHandler.sendEmptyMessage(EVENT_QUIT);
+        if (!isMmsDRNetwork()) {
+            releaseWakeLock();
+            sInstance = null;
+        }
+        mServiceHandler.sendEmptyMessageDelayed(EVENT_QUIT, 2*getMmsDelayTime());
         endMmsConnectivity();
-        sInstance = null;
     }
 
     @Override
@@ -987,14 +995,57 @@ public class TransactionService extends Service implements Observer {
     }
 
     protected void endMmsConnectivity(int subId) {
+        if (isMmsDRNetwork()) {
+            sendDRNetworkMsg(subId);
+        } else {
+            endMmsConnectivityNoDelay(subId);
+        }
+    }
+
+    protected void endMmsConnectivityNoDelay(int subId) {
         try {
-            LogTag.debugD("endMmsConnectivity for subId = " + subId);
+            LogTag.debugD("endMmsConnectivityNoDelay for subId = " + subId);
             if (mConnMgr != null) {
                 releaseNetworkRequest(subId);
             }
         } finally {
             releaseWakeLock();
         }
+   }
+
+    protected void sendDRNetworkMsg(int subId) {
+        LogTag.debugD("sendDRNetworkMsg subId="+subId);
+        mServiceHandler.removeMessages(EVENT_MMS_RELEASE_NETWORK_DELAY);
+        Message message = mServiceHandler.obtainMessage(
+                EVENT_MMS_RELEASE_NETWORK_DELAY);
+        message.obj = subId;
+        mServiceHandler.sendMessageDelayed(message, getMmsDelayTime());
+    }
+
+    private boolean isMmsDRNetwork() {
+
+        if (!getApplicationContext().getResources().
+                    getBoolean(R.bool.support_MMS_RELEASE_NETWORK_DELAY))
+            return false;
+        SharedPreferences prefs = PreferenceManager.
+                    getDefaultSharedPreferences(getApplicationContext());
+        return prefs.getBoolean(
+                    MmsPreferenceActivity.MMS_DELAY,
+                    MMS_DELAY_PREF_DEFAULT);
+    }
+
+    private int getMmsDelayTime() {
+
+        if (!isMmsDRNetwork()) {
+            return 0;
+        }
+        SharedPreferences prefs = PreferenceManager.
+                getDefaultSharedPreferences(getApplicationContext());
+        String delayTime = prefs.getString(MmsPreferenceActivity.MMS_DELAY_VALUE,
+                String.valueOf(MMS_DELAY_PERIOD_DEFAULT));
+        LogTag.debugD("getMmsDelayTime delayTime: " + delayTime);
+        return Integer.parseInt(delayTime);
+
     }
 
     private final class ServiceHandler extends Handler {
@@ -1013,6 +1064,8 @@ public class TransactionService extends Service implements Observer {
                 return "EVENT_NEW_INTENT";
             } else if (msg.what == EVENT_MMS_PDP_ACTIVATION_TIMEOUT) {
                 return "EVENT_MMS_PDP_ACTIVATION_TIMEOUT";
+            } else if (msg.what == EVENT_MMS_RELEASE_NETWORK_DELAY) {
+                return "EVENT_MMS_RELEASE_NETWORK_DELAY";
             }
             return "unknown message.what";
         }
@@ -1048,6 +1101,9 @@ public class TransactionService extends Service implements Observer {
 
                 case EVENT_QUIT:
                     getLooper().quit();
+                    if (isMmsDRNetwork()) {
+                        sInstance = null;
+                    }
                     return;
 
                 case EVENT_TRANSACTION_REQUEST:
@@ -1182,6 +1238,12 @@ public class TransactionService extends Service implements Observer {
                     return;
                 case EVENT_MMS_PDP_ACTIVATION_TIMEOUT:
                     onPDPTimeout((int)msg.obj);
+                    return;
+
+                case EVENT_MMS_RELEASE_NETWORK_DELAY:
+                    if (mPending.size() <= 0 && mProcessing.isEmpty()){
+                        endMmsConnectivityNoDelay((int)msg.obj);
+                    }
                     return;
                 default:
                     Log.w(TAG, "what=" + msg.what);
