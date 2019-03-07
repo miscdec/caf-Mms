@@ -78,6 +78,8 @@ public class MmsPreferenceActivity extends PreferenceActivity {
     private static String TYPE_MMS = "mms";
 
     private static String MSG_TYPE = "msg_type";
+    public static final String MMS_DELAY = "pref_key_enable_delay_mms";
+    public static final String MMS_DELAY_VALUE = "set_mms_delay_period";
 
     private PreferenceScreen mMmsSettingsPref;
     private Preference mMmsDeliveryReportPref;
@@ -94,6 +96,9 @@ public class MmsPreferenceActivity extends PreferenceActivity {
     private ListPreference mMmsExpiryNoMultiPref;
     private ListPreference mMmsExpiryCard1Pref;
     private ListPreference mMmsExpiryCard2Pref;
+
+    private SwitchPreference mMmsDelayPref;
+    private ListPreference mMmsDelayChangePref;
 
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -124,6 +129,10 @@ public class MmsPreferenceActivity extends PreferenceActivity {
         mMmsExpiryNoMultiPref = (ListPreference) findPreference("pref_key_mms_expiry_no_multi");
         mMmsExpiryCard1Pref = (ListPreference) findPreference("pref_key_mms_expiry_sim1");
         mMmsExpiryCard2Pref = (ListPreference) findPreference("pref_key_mms_expiry_sim2");
+
+        mMmsDelayPref = (SwitchPreference) findPreference("pref_key_enable_delay_mms");
+        mMmsDelayChangePref = (ListPreference) findPreference("set_mms_delay_period");
+
         setMmsExpiryPref();
         if (!MmsConfig.getSMSDeliveryReportsEnabled()) {
             mMmsSettingsPref.removePreference(mMmsDeliveryReportPref);
@@ -294,6 +303,7 @@ public class MmsPreferenceActivity extends PreferenceActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        setMMSDelayPref();
     }
 
     @Override
@@ -328,7 +338,10 @@ public class MmsPreferenceActivity extends PreferenceActivity {
             Intent intent = new Intent(this, MessagingExpiryPreferenceActivity.class);
             intent.putExtra(MSG_TYPE, TYPE_MMS);
             startActivity(intent);
+        } else if (preference == mMmsDelayPref) {
+            updateMmsDelayChangePref();
         }
+
         return super.onPreferenceTreeClick(preferenceScreen, preference);
     }
 
@@ -343,5 +356,23 @@ public class MmsPreferenceActivity extends PreferenceActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+    }
+
+    private void setMMSDelayPref() {
+        if (getResources().getBoolean(R.bool.support_MMS_RELEASE_NETWORK_DELAY)) {
+            updateMmsDelayChangePref();
+        } else {
+            mMmsSettingsPref.removePreference(mMmsDelayPref);
+            mMmsSettingsPref.removePreference(mMmsDelayChangePref);
+        }
+    }
+
+    private void updateMmsDelayChangePref() {
+        boolean isChecked = mMmsDelayPref.isChecked();
+        if (!isChecked) {
+            mMmsSettingsPref.removePreference(mMmsDelayChangePref);
+        } else {
+            mMmsSettingsPref.addPreference(mMmsDelayChangePref);
+        }
     }
 }

@@ -642,4 +642,9 @@
     <string name="sim_full_notification">SIM卡满通知</string>
     <string name="device_full_notification">内存空间满通知</string>
     <string name="rejected_message_notification">拒绝消息通知</string>
+
+    <string name="pref_mms_disable_delay">彩信释放网络延迟关闭</string>
+    <string name="pref_mms_enable_delay">彩信释放网络延迟开启</string>
+    <string name="pref_mms_delay_title">彩信释放网络延迟</string>
+    <string name="pref_set_mms_delay_title">设置延迟时间</string>
 </resources>
