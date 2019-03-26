@@ -50,17 +50,24 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
+import java.util.Set;
+
 import com.android.mms.R;
 import com.android.mms.data.Conversation;
 import com.android.mms.data.Conversation.ConversationQueryHandler;
-
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import com.google.android.mms.pdu.PduHeaders;
 
 public class SearchConversationActivity extends Activity implements View.OnClickListener {
     private static final String TAG = "SearchConvActivity";
     private static final boolean DEBUG = false;
     private static final int EVENT_QUERY_ADDRESS_DONE = 1;
-    public static final int SEARCH_LIST_QUERY_TOKEN = 2001;
+    public  static final int SEARCH_LIST_QUERY_TOKEN = 2001;
+    private static final int SEARCH_CONVERSATION_ID_QUERY_TOKEN = 2002;
     private static final Uri SEARCH_URI = Uri.parse("content://mms-sms/search-message");
+    private static final Uri ADDRESS_URI = Uri.parse("content://mms-sms/address");
 
 
     private Toolbar mToolbar;
@@ -76,7 +83,9 @@ public class SearchConversationActivity extends Activity implements View.OnClick
     public ThreadListQueryHandler mQueryHandler;
     private MyHandler mHandler = new MyHandler();
     private QueryAddressTask mQueryTask = null;
-
+    private static final long RESULT_FOR_ID_NOT_FOUND = -1L;
+    // Escape character
+    private static final char SEARCH_ESCAPE_CHARACTER = '!';
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -247,10 +256,43 @@ public class SearchConversationActivity extends Activity implements View.OnClick
                         mQueryTask.requestQuery(mQueryString);
                     }
                     break;
+                case SEARCH_CONVERSATION_ID_QUERY_TOKEN:
+                    String threadIds = (String)msg.obj;
+                    logD(TAG, "SEARCH_CONVERSATION_ID_QUERY_TOKEN threadIds:" + threadIds
+                            +"; searchString=" + mQueryString);
+                    Uri queryUri = SEARCH_URI.buildUpon().appendQueryParameter(
+                            "thread_ids", threadIds).build()
+                            .buildUpon().appendQueryParameter(
+                                    "key_str", addEscapeCharacter(mQueryString)).build();
+                    Conversation.startConversationQuery(mQueryHandler,
+                            SEARCH_LIST_QUERY_TOKEN, null, queryUri);
+                    break;
                 default:
                     break;
             }
         }
+    }
+
+    private String addEscapeCharacter(String keyStr) {
+        if (keyStr == null) {
+            return keyStr;
+        }
+        if (keyStr.contains("%") ||
+                keyStr.contains(String.valueOf(SEARCH_ESCAPE_CHARACTER))) {
+            StringBuilder searchKeyStrBuilder = new StringBuilder();
+            int keyStrLen = keyStr.length();
+            for (int i = 0; i < keyStrLen; i++) {
+                if (keyStr.charAt(i) == '%' ||
+                        keyStr.charAt(i) == SEARCH_ESCAPE_CHARACTER) {
+                    searchKeyStrBuilder.append(SEARCH_ESCAPE_CHARACTER);
+                    searchKeyStrBuilder.append(keyStr.charAt(i));
+                    continue;
+                }
+                searchKeyStrBuilder.append(keyStr.charAt(i));
+            }
+            return searchKeyStrBuilder.toString();
+        }
+        return keyStr;
     }
 
     private class QueryAddressTask {
@@ -373,11 +415,105 @@ public class SearchConversationActivity extends Activity implements View.OnClick
                                 "key_str", mQuery).build()
                         .buildUpon().appendQueryParameter(
                                 "contact_addr", contactAddress).build();
-                Conversation.startConversationQuery(mQueryHandler,
-                        SEARCH_LIST_QUERY_TOKEN, null, queryUri);
+                queryThreadId(contactAddress);
             } catch (SQLiteException e) {
                 Log.e(TAG, "startAsyncQuery Error:", e);
             }
+        }
+    }
+
+    private static final String DEFAULT_STRING_ZERO = "0";
+
+    private void queryThreadId(String contactAddress) {
+        new Thread(new Runnable(){
+            public void run(){
+                if (null != contactAddress) {
+                    String threadId = getThreadIdByAddress(contactAddress);
+                    Message msg = mHandler.obtainMessage(SEARCH_CONVERSATION_ID_QUERY_TOKEN);
+                    msg.obj = threadId;
+                    mHandler.sendMessage(msg);
+                }
+            }
+        }).start();
+    }
+    private String getThreadIdByAddress(String contactAddress) {
+        long[] threadIdSet = getSortedSet(getThreadIdsByAddressList(contactAddress.split(",")));
+        String threadIdString = getCommaSeparatedId(threadIdSet);
+        if (TextUtils.isEmpty(threadIdString)) {
+            threadIdString = DEFAULT_STRING_ZERO;
+        }
+        logD(TAG, "getThreadIdByAddress=" + threadIdString);
+        return threadIdString;
+    }
+
+    private long[] getSortedSet(Set<Long> numbers) {
+        int size = numbers.size();
+        long[] result = new long[size];
+        int i = 0;
+
+        for (Long number : numbers) {
+            result[i++] = number;
+        }
+
+        if (size > 1) {
+            Arrays.sort(result);
+        }
+
+        return result;
+    }
+
+    private Set<Long> getThreadIdsByAddressList(String[] addresses) {
+        int count = addresses.length;
+        Set<Long> result = new HashSet<Long>(count);
+
+        for (int i = 0; i < count; i++) {
+            String address = addresses[i];
+            if (address != null && !address.equals(PduHeaders.FROM_INSERT_ADDRESS_TOKEN_STR)) {
+                long id = getSingleThreadId(address);
+                if (id != RESULT_FOR_ID_NOT_FOUND) {
+                    result.add(id);
+                } else {
+                    Log.e(TAG, "Address ID not found for: " + address);
+                }
+            }
+        }
+        return result;
+    }
+
+    private String getCommaSeparatedId(long[] threadIds) {
+        int size = threadIds.length;
+        StringBuilder buffer = new StringBuilder();
+
+        for (int i = 0; i < size; i++) {
+            if (i != 0) {
+                buffer.append(',');
+            }
+            buffer.append(String.valueOf(threadIds[i]));
+        }
+        return buffer.toString();
+    }
+
+    private long getSingleThreadId(String address) {
+        Uri uri = ADDRESS_URI.buildUpon().appendQueryParameter(
+                "address_info", address).build();
+
+        logD(TAG, "getSingleThreadId uri="+uri);
+        Cursor cursor = null;
+        try {
+            cursor = getContentResolver().query(uri, null, null, null, null);
+            if (cursor == null || cursor.getCount() == 0) {
+                return 0;
+            }
+            if (cursor.moveToFirst()) {
+                long threadId = cursor.getLong(0);
+                logD(TAG, "getSingleThreadId threadId="+threadId);
+                return (threadId >= 0) ? threadId : 0;
+            }
+            return 0;
+        } finally {
+           if (cursor != null) {
+               cursor.close();
+           }
         }
     }
 

@@ -148,4 +148,14 @@
         <item>32</item>
     </string-array>
 
+   <string-array name="entries_mms_delay">
+        <item>@string/delay_one</item>
+        <item>@string/delay_two</item>
+        <item>@string/delay_three</item>
+    </string-array>
+    <string-array name="entries_mms_delay_value" translatable="false">
+        <item>100000</item>
+        <item>80000</item>
+        <item>60000</item>
+    </string-array>
 </resources>
