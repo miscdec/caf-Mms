@@ -120,4 +120,5 @@
     <bool name="config_show_spn_on_list_item">false</bool>
 
     <bool name="config_resend_to_edit">false</bool>
+    <bool name="support_MMS_RELEASE_NETWORK_DELAY">false</bool>
 </resources>
