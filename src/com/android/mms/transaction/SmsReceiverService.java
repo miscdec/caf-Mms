@@ -81,7 +81,7 @@ import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.android.mmswrapper.TelephonyManagerWrapper;
 import com.android.mmswrapper.TelephonyWrapper;
 import com.google.android.mms.MmsException;
-
+import java.util.Iterator;
 /**
  * This service essentially plays the role of a "worker thread", allowing us to store
  * incoming messages to the database, update notifications, etc. without blocking the
@@ -117,6 +117,16 @@ public class SmsReceiverService extends Service {
         SMS_PRIORITY   //6
     };
 
+    private static final String[] SEND_PROJECTION_TYPE = new String[] {
+        Sms._ID, // 0
+        Sms.THREAD_ID, // 1
+        Sms.ADDRESS, // 2
+        Sms.BODY, // 3
+        Sms.STATUS, // 4
+        Sms.SUBSCRIPTION_ID, // 5
+        Sms.TYPE // 6
+    };
+
     static final String CB_AREA_INFO_RECEIVED_ACTION =
             "android.cellbroadcastreceiver.CB_AREA_INFO_RECEIVED";
 
@@ -136,6 +146,7 @@ public class SmsReceiverService extends Service {
     private static final int SEND_COLUMN_STATUS     = 4;
     private static final int SEND_COLUMN_SUB_ID   = 5;
     private static final int SEND_COLUMN_PRIORITY   = 6;
+    private static final int SEND_COLUMN_TYPE   = 6;
 
     private static boolean sIsSavingMessage = false;
 
@@ -276,13 +287,33 @@ public class SmsReceiverService extends Service {
     private void handleSendMessage(Intent intent) {
         int subId = intent.getIntExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY,
                 SubscriptionManager.getDefaultSmsSubscriptionId());
+        printMap(mSending,"handleSendMessage : put queue SMS to sending");
         if (mSending.get(subId) == null) {
            mSending.put(subId, false);
         }
+        printMap(mSending,"handleSendMessage : finish puting queue SMS to sending");
         if (!mSending.get(subId)) {
             sendFirstQueuedMessage(subId);
         } else {
+            printSendingSMS(subId);
             LogTag.debugD("subId=" + subId + " is in mSending ");
+        }
+    }
+
+    private static void printMap(Map<Integer, Boolean> map, String functionName) {
+        try {
+            LogTag.debugD(functionName);
+            Iterator iterator = map.entrySet().iterator();
+            StringBuilder sb = new StringBuilder();
+            while(iterator.hasNext()) {
+                Map.Entry entry = (Map.Entry) iterator.next();
+                boolean value =  (boolean) entry.getValue();
+                int key = (int) entry.getKey();
+                sb.append("value:"+value+";key:"+key+";");
+            }
+            LogTag.debugD("printSendingMap key and value" + sb.toString());
+        } catch (Exception e) {
+            LogTag.debugD("printSendingMap error" + e);
         }
     }
 
@@ -297,11 +328,61 @@ public class SmsReceiverService extends Service {
             {
                 int subId = info.getSubscriptionId();
                 if (mSending.get(subId) == null) {
+                    printMap(mSending,"handleSendInactiveMessage :"
+                            + "Remove fail sending SMS to sending");
                     mSending.put(subId, false);
+                    printMap(mSending,"handleSendInactiveMessage :"
+                            + "Finish removing fail sending SMS to sending");
                 }
                 if (!mSending.get(subId)) {
                     sendFirstQueuedMessage(subId);
                 }
+            }
+        }
+    }
+
+    private void dumpSendingMsg(Cursor c) {
+        if ((c != null) && (c.getCount() > 0)) {
+            while (c.moveToNext()) {
+                String msgText = c.getString(SEND_COLUMN_BODY);
+                String address = c.getString(SEND_COLUMN_ADDRESS);
+                int threadId = c.getInt(SEND_COLUMN_THREAD_ID);
+                int status = c.getInt(SEND_COLUMN_STATUS);
+                int msgId = c.getInt(SEND_COLUMN_ID);
+                int subId = c.getInt(SEND_COLUMN_SUB_ID);
+                int type = c.getInt(SEND_COLUMN_TYPE);
+                Log.d("Mms", " sending message infor: Text: " + msgText
+                    + " address: " + address
+                    + " threadId: " + threadId
+                    + " status: " + status
+                    + " msgId: " + msgId
+                    + " subId: " + subId
+                    + " type: " + type);
+           }
+        }
+
+    }
+
+    private void printSendingSMS(int subId) {
+        Log.d("Mms", "Check SMS message sending status subId:"+subId);
+        final Uri uri = Uri.parse("content://sms/outbox");
+        ContentResolver resolver = getContentResolver();
+        String where = "sub_id=?";
+        String[] whereArgs = new String[] { Integer.toString(subId) };
+        Cursor c = SqliteWrapper.query(this, resolver, uri,
+            SEND_PROJECTION_TYPE, where, whereArgs, "date ASC");
+        try {
+            if ((c != null) && (c.getCount() > 0)) {
+                Log.d("Mms", " exist sending msg:");
+                dumpSendingMsg(c);
+            } else {
+                Log.d("Mms", "Database does not exist sending message");
+            }
+        } catch (Exception e) {
+            Log.d("Mms", " print sending SMS error:" + e);
+        } finally {
+            if (c != null) {
+                c.close();
             }
         }
     }
@@ -351,12 +432,20 @@ public class SmsReceiverService extends Service {
                             ", threadId: " + threadId);
 
                     try {
-                        sender.sendMessage(SendingProgressTokenManager.NO_TOKEN);;
+                        sender.sendMessage(SendingProgressTokenManager.NO_TOKEN);
+                        printMap(mSending, "sendFirstQueuedMessage :"
+                                + "Put first queue SMS to sending");
                         mSending.put(subscription, true);
+                        printMap(mSending, "sendFirstQueuedMessage :"
+                                + "Finish puting first queue SMS to sending");
                     } catch (MmsException e) {
                         Log.e(TAG, "sendFirstQueuedMessage: failed to send message " + msgUri
                                 + ", caught ", e);
+                        printMap(mSending, "sendFirstQueuedMessage:"
+                                + "Sending SMS error, Finish sending");
                         mSending.put(subscription, false);
+                        printMap(mSending, "sendFirstQueuedMessage:"
+                                + "Sending SMS error, Finish sending");
                         messageFailedToSend(msgUri, SmsManager.RESULT_ERROR_GENERIC_FAILURE);
                         success = false;
                         // Sending current message fails. Try to send more pending messages
@@ -393,10 +482,14 @@ public class SmsReceiverService extends Service {
         boolean sendNextMsg = intent.getBooleanExtra(EXTRA_MESSAGE_SENT_SEND_NEXT, false);
         int subId = intent.getIntExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY,
                 SubscriptionManager.getDefaultSmsSubscriptionId());
+        printMap(mSending, "handleSmsSent:"
+                + "Sending SMS has callback, change sending status");
         mSending.put(subId, false);
+        printMap(mSending, "handleSmsSent: "
+                + "Sending SMS has callback, finish changing sending status");
         LogTag.debugD("handleSmsSent uri: " + uri + " sendNextMsg: " + sendNextMsg +
                 " resultCode: " + resultCode +
-                " = " + translateResultCode(resultCode) + " error: " + error);
+                " = " + translateResultCode(resultCode) + " error: " + error + ";subId:"+subId);
 
         if (resultCode == Activity.RESULT_OK) {
             if (sendNextMsg) {
@@ -565,7 +658,11 @@ public class SmsReceiverService extends Service {
             {
                 int subId = info.getSubscriptionId();
                 if (mSending.get(subId) == null) {
+                    printMap(mSending, "handleBootCompleted:"
+                            + "After reboot, reset all subId status");
                     mSending.put(subId, false);
+                    printMap(mSending, "handleBootCompleted:"
+                            + "After reboot, finish reseting all subId status");
                 }
                 if (mSending.get(subId) != null) {
                     if (!mSending.get(subId)) {
