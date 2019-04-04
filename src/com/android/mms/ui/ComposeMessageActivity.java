@@ -6449,11 +6449,18 @@ public class ComposeMessageActivity extends Activity
         ArrayList<Uri> mSelectedLockedMsg = new ArrayList<Uri>();
 
         public void checkAll(boolean isCheck) {
+            resetSelectData();
             for (int i = 0; i < getListView().getCount(); i++) {
                 MessageItem item = getMessageItemByPos(i);
                 boolean isBurnMsg = false;
                 getListView().setItemChecked(i, isCheck);
             }
+        }
+
+        private void resetSelectData() {
+            mMmsSelected = 0;
+            mUnlockedCount = 0;
+            mCheckedCount = 0;
         }
 
         private class DeleteMessagesListener implements OnClickListener {
