@@ -975,7 +975,7 @@ public class TransactionService extends Service implements Observer {
 
     private void releaseNetworkRequest(int subId) {
         int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
-        if ((phoneId >= 0) && (mMmsNetworkCallback[phoneId] != null)) {
+        if (isPhoneIdValid(phoneId) && (mMmsNetworkCallback[phoneId] != null)) {
             mIsAvailable[phoneId] = false;
             Log.d(TAG, "releaseNetworkRequest phoneId=" + phoneId);
 
@@ -983,6 +983,10 @@ public class TransactionService extends Service implements Observer {
             mMmsNetworkRequest[phoneId] = null;
             mMmsNetworkCallback[phoneId] = null;
         }
+    }
+
+    private boolean isPhoneIdValid(int phoneId) {
+        return phoneId >= 0 && phoneId < mPhoneCount;
     }
 
     protected void endMmsConnectivity() {
