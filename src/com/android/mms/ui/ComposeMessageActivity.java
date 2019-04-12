@@ -4036,7 +4036,13 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case REQUEST_CODE_ECM_EXIT_DIALOG:
-                boolean outOfEmergencyMode = data.getBooleanExtra(EXIT_ECM_RESULT, false);
+                boolean outOfEmergencyMode = false;
+                if (data != null) {
+                    outOfEmergencyMode = data.getBooleanExtra(EXIT_ECM_RESULT, false);
+                } else {
+                    outOfEmergencyMode = resultCode == RESULT_OK;
+                }
+
                 LogTag.debugD("outOfEmergencyMode:" + outOfEmergencyMode);
                 if (outOfEmergencyMode) {
                     sendMessage(false);
