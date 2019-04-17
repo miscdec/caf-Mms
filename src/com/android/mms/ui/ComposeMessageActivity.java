@@ -4036,7 +4036,13 @@ public class ComposeMessageActivity extends Activity
                 break;
 
             case REQUEST_CODE_ECM_EXIT_DIALOG:
-                boolean outOfEmergencyMode = data.getBooleanExtra(EXIT_ECM_RESULT, false);
+                boolean outOfEmergencyMode = false;
+                if (data != null) {
+                    outOfEmergencyMode = data.getBooleanExtra(EXIT_ECM_RESULT, false);
+                } else {
+                    outOfEmergencyMode = resultCode == RESULT_OK;
+                }
+
                 LogTag.debugD("outOfEmergencyMode:" + outOfEmergencyMode);
                 if (outOfEmergencyMode) {
                     sendMessage(false);
@@ -5361,10 +5367,8 @@ public class ComposeMessageActivity extends Activity
     }
 
     private boolean isPreparedForSending() {
-        TelephonyManager tm = (TelephonyManager)getSystemService(
-                Context.TELEPHONY_SERVICE);
-        boolean isImsReg = TelephonyManagerWrapper.isImsRegistered(tm);
-        if (mIsAirplaneModeOn && !isImsReg) {
+
+        if (mIsAirplaneModeOn && !isImsRegistered()) {
             LogTag.debugD("airplane mode on and ims not registered");
             return false;
         }
@@ -5373,18 +5377,36 @@ public class ComposeMessageActivity extends Activity
 
         if (getContext().getResources().getBoolean(R.bool.enable_send_blank_message)) {
             Log.d(TAG, "Blank SMS");
-            return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode()) &&
-                    recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
-                    mIsSmsEnabled;
+            return (MessageUtils.getActivatedIccCardCount() > 0
+                    || isCdmaNVMode()) && recipientCount > 0
+                    && recipientCount <= MmsConfig.getRecipientLimit()
+                    && mIsSmsEnabled;
         } else {
-            return (MessageUtils.getActivatedIccCardCount() > 0 || isCdmaNVMode() ||
-                    isImsReg) &&
-                    recipientCount > 0 && recipientCount <= MmsConfig.getRecipientLimit() &&
-                    mIsSmsEnabled &&
-                    (mWorkingMessage.hasAttachment() || mWorkingMessage.hasText() ||
-                        mWorkingMessage.hasSubject());
+            return (MessageUtils.getActivatedIccCardCount() > 0
+                    || isCdmaNVMode()
+                    || isImsRegistered())
+                    && recipientCount > 0
+                    && recipientCount <= MmsConfig.getRecipientLimit()
+                    && mIsSmsEnabled
+                    && (mWorkingMessage.hasAttachment()
+                            || mWorkingMessage.hasText() || mWorkingMessage.hasSubject());
 
         }
+    }
+
+    private boolean isImsRegistered() {
+        boolean isImsReg = false;
+        int defaultSubId = SubscriptionManager.getDefaultSmsSubscriptionId();
+        TelephonyManager tm =
+                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        LogTag.debugD("isImsRegistered: default SMS subId:" + defaultSubId);
+        if ((tm.getPhoneCount()) > 1 && MessageUtils.isMsimIccCardActive()) {
+            isImsReg = tm.isImsRegistered(defaultSubId);
+        } else {
+            isImsReg = tm.isImsRegistered();
+        }
+        LogTag.debugD("isImsRegistered: is IMS register ? " + isImsReg);
+        return isImsReg;
     }
 
     private BroadcastReceiver mAirplaneModeBroadcastReceiver = new BroadcastReceiver() {
