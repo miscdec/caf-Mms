@@ -208,9 +208,12 @@ public class TransactionService extends Service implements Observer {
         return new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
-                mIsAvailable[mPhoneId] = true;
-                Log.d(TAG, "sub:" + mSubId + "NetworkCallback.onAvailable: network=" + network +
-                        " mIsAvailable=" + mIsAvailable[mPhoneId]);
+                if (isPhoneIdValid(mPhoneId)) {
+                    mIsAvailable[mPhoneId] = true;
+                    Log.d(TAG, "sub:" + mSubId
+                            + "NetworkCallback.onAvailable: network=" + network
+                            + " mIsAvailable=" + mIsAvailable[mPhoneId]);
+                }
                 mServiceHandler.removeMessages(EVENT_MMS_PDP_ACTIVATION_TIMEOUT,
                         Integer.parseInt(mSubId));
                 onMmsPdpConnected(mSubId, network);
@@ -223,6 +226,9 @@ public class TransactionService extends Service implements Observer {
             }
             @Override
             public void onLost(Network network) {
+                if (isPhoneIdValid(mPhoneId)) {
+                    return;
+                }
                 mIsAvailable[mPhoneId] = false;
                 Log.d(TAG, "sub:" + mSubId + "NetworkCallback.onLost: network=" + network +
                         " mIsAvailable=" + mIsAvailable[mPhoneId]);
@@ -1321,7 +1327,7 @@ public class TransactionService extends Service implements Observer {
                     for (int index = 0; index < mPending.size(); index++) {
                         Transaction trans = mPending.get(index);
                         int phoneId = SubscriptionManager.getPhoneId(trans.getSubId());
-                        if (mIsAvailable[phoneId]) {
+                        if (isPhoneIdValid(phoneId) && mIsAvailable[phoneId]) {
                             transaction = mPending.remove(index);
                             LogTag.debugD("processPendingTxn: handle mPending[" + index + "]"
                                     + " sub" + transaction.getSubId());
@@ -1425,7 +1431,7 @@ public class TransactionService extends Service implements Observer {
                     */
                     beginMmsConnectivity(subId);
 
-                if (!mIsAvailable[phoneId]) {
+                if (isPhoneIdValid(phoneId) && !mIsAvailable[phoneId]) {
                     mPending.add(transaction);
                     LogTag.debugD("processTransaction: connResult=APN_REQUEST_STARTED, " +
                             "defer transaction pending MMS connectivity");
