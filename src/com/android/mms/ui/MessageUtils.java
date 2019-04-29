@@ -317,8 +317,7 @@ public class MessageUtils {
     private static final char SBC_CHAR_END   = 65373;
 
     protected static final int URL_OPTION_MENU_CONNECT = 0;
-    protected static final int URL_OPTION_MENU_ADD_TO_LABEL = 1;
-    protected static final int URL_OPTION_MENU_COPY_URL = 2;
+    protected static final int URL_OPTION_MENU_COPY_URL = 1;
 
     private static final String WIFI_CALL_TURNON = "wifi_call_turnon";
     private static final int WIFI_CALLING_DISABLED = 0;
