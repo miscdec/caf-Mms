@@ -417,8 +417,22 @@ public class MessageUtils {
         Manifest.permission.READ_SMS, Manifest.permission.READ_PHONE_STATE,
         Manifest.permission.READ_CONTACTS
     };
+
+
     public static String [] sSMSExtendPermissions = new String [] {
         Manifest.permission.READ_EXTERNAL_STORAGE
+    };
+
+    public static String[] sSMSBasicPermissions_FOR_DEFAULT_MESSAGING = new String[] {
+            Manifest.permission.READ_SMS, Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.READ_CONTACTS, Manifest.permission.SEND_SMS,
+            Manifest.permission.RECEIVE_SMS, Manifest.permission.WRITE_CONTACTS,
+            Manifest.permission.CALL_PHONE,
+    };
+
+    public static String [] sSMSExtendPermissions_FOR_DEFAULT_MESSAGING = new String [] {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
 
     private MessageUtils() {
@@ -3268,7 +3282,19 @@ public class MessageUtils {
     }
 
     public static String[] getMissingBasicPermissions() {
-        return getMissingPermissions(sSMSBasicPermissions);
+        if (MmsConfig.isSmsEnabled(MmsApp.getApplication())) {
+            return getMissingPermissions(sSMSBasicPermissions_FOR_DEFAULT_MESSAGING);
+        } else {
+            return getMissingPermissions(sSMSBasicPermissions);
+        }
+    }
+
+    public static String[] getMissingExternalPermissions() {
+        if (MmsConfig.isSmsEnabled(MmsApp.getApplication())) {
+            return getMissingPermissions(sSMSExtendPermissions_FOR_DEFAULT_MESSAGING);
+        } else {
+            return getMissingPermissions(sSMSExtendPermissions);
+        }
     }
 
     public static boolean hasStoragePermission() {
