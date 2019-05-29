@@ -55,6 +55,7 @@
     <!-- wifi -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CALL_PRIVILEGED" />
 
     <application android:name="MmsApp"
             android:label="@string/app_label"
