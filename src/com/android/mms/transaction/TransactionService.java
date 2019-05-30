@@ -963,7 +963,7 @@ public class TransactionService extends Service implements Observer {
         int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
         Log.v(TAG, "beginMmsConnectivity for subId = " + subId +" phoneId=" + phoneId);
 
-        if ((phoneId >= 0) && (mMmsNetworkRequest[phoneId] == null)) {
+        if (isPhoneIdValid(phoneId) && (mMmsNetworkRequest[phoneId] == null)) {
             mMmsNetworkRequest[phoneId] = buildNetworkRequest(Integer.toString(subId));
             mMmsNetworkCallback[phoneId] = getNetworkCallback(Integer.toString(subId));
 

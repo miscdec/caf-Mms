@@ -3360,8 +3360,11 @@ public class ComposeMessageActivity extends Activity
     private void dialRecipient() {
         if (isRecipientCallable()) {
             String number = getRecipients().get(0).getNumber();
-            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
-            startActivity(dialIntent);
+            if (TextUtils.isEmpty(number)) {
+                return;
+            }
+            startActivity(new Intent(Intent.ACTION_CALL_PRIVILEGED,
+                    Uri.parse("tel:" + number)));
         }
     }
 
