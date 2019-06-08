@@ -1077,49 +1077,15 @@ public class MessageUtils {
     }
 
     public static void selectAudio(final Activity activity, final int requestCode) {
-        // We are not only displaying default RingtonePicker to add, we could have
-        // other choices like external audio and system audio. Allow user to select
-        // an audio from particular storage (Internal or External) and return it.
-        String[] items =  new String[2];
-        items[SELECT_SYSTEM] = activity.getString(R.string.system_audio_item);
-        items[SELECT_EXTERNAL] = activity.getString(R.string.external_audio_item);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity,
-                android.R.layout.simple_list_item_1, android.R.id.text1, items);
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-        AlertDialog dialog = builder.setTitle(activity.getString(R.string.select_audio))
-                .setAdapter(adapter, new OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Intent audioIntent = null;
-                        switch (which) {
-                            case SELECT_SYSTEM:
-                                audioIntent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
-                                audioIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT,
-                                        false);
-                                audioIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT,
-                                        false);
-                                audioIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_INCLUDE_DRM,
-                                        false);
-                                audioIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE,
-                                        activity.getString(R.string.select_audio));
-                                break;
-                            case SELECT_EXTERNAL:
-                                audioIntent = new Intent();
-                                audioIntent.setAction(Intent.ACTION_PICK);
-                                audioIntent.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
-                                break;
-                        }
-                        // Add try here is to avoid monkey test failure.
-                        try {
-                            activity.startActivityForResult(audioIntent, requestCode);
-                        } catch (ActivityNotFoundException ex) {
-                            Toast.makeText(activity, R.string.audio_picker_app_not_found,
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                })
-                .create();
-        dialog.show();
+        Intent audioIntent = new Intent();
+        audioIntent.setAction(Intent.ACTION_PICK);
+        audioIntent.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+        try {
+            activity.startActivityForResult(audioIntent, requestCode);
+        } catch (ActivityNotFoundException ex) {
+            Toast.makeText(activity, R.string.audio_picker_app_not_found,
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     public static void recordSound(Activity activity, int requestCode, long sizeLimit) {
