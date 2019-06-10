@@ -109,11 +109,18 @@ public class PermissionGuardActivity extends Activity {
         for (int i=0; i<missingPermissions.length;i++){
             missingList.add(missingPermissions[i]);
         }
+
+        String[] missingExternalPermission = MessageUtils.getMissingExternalPermissions();
+        for (String externalPer : missingExternalPermission) {
+            missingList.add(externalPer);
+        }
+
         if (mExtPermissions != null) {
             for (int i=0; i< mExtPermissions.length;i++){
                 missingList.add(mExtPermissions[i]);
             }
         }
+
         final String[] missingArray = new String[missingList.size()];
         missingList.toArray(missingArray);
         requestPermissions(missingArray, PERMISSION_REQUEST_CODE);
