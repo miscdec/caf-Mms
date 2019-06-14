@@ -1151,13 +1151,10 @@ public class ComposeMessageActivity extends Activity
     private boolean isMmsApnUnmetered(int subId) {
         try {
             boolean isRoaming = TelephonyManagerWrapper.isNetworkRoaming(this, subId);
-            boolean isIwlan = TelephonyManagerWrapper.isCurrentRatIwlan(this, subId);
-            Log.d(TAG, "isMmsApnUnmetered: isRoaming=" + isRoaming + ", isIwlan=" + isIwlan);
+            Log.d(TAG, "isMmsApnUnmetered: isRoaming=" + isRoaming);
 
             String carrierConfig;
-            if (isIwlan) {
-                carrierConfig = CarrierConfigManager.KEY_CARRIER_METERED_IWLAN_APN_TYPES_STRINGS;
-            } else if (isRoaming) {
+            if (isRoaming) {
                 carrierConfig = CarrierConfigManager.KEY_CARRIER_METERED_ROAMING_APN_TYPES_STRINGS;
             } else {
                 carrierConfig = CarrierConfigManager.KEY_CARRIER_METERED_APN_TYPES_STRINGS;
@@ -3360,8 +3357,11 @@ public class ComposeMessageActivity extends Activity
     private void dialRecipient() {
         if (isRecipientCallable()) {
             String number = getRecipients().get(0).getNumber();
-            Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
-            startActivity(dialIntent);
+            if (TextUtils.isEmpty(number)) {
+                return;
+            }
+            startActivity(new Intent(Intent.ACTION_CALL_PRIVILEGED,
+                    Uri.parse("tel:" + number)));
         }
     }
 

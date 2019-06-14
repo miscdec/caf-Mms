@@ -128,6 +128,7 @@ public class PlayVideoOrPicActivity extends Activity {
                     pauseVideo();
                     showPlayButton();
                 } else {
+                    resetVideoUI();
                     playVideo();
                 }
             }
@@ -252,11 +253,15 @@ public class PlayVideoOrPicActivity extends Activity {
     }
 
     private void resetVideo() {
+        resetVideoUI();
+        showPlayButton();
+    }
+
+    private void resetVideoUI() {
         mVideo.seekTo(0);
         mVideo.removeCallbacks(mUpdateThread);
         mProgressBar.updateLocation(0f);
         mCurPlayTime.setText(VIDEO_DURATION_INITIAL_STATUS);
-        showPlayButton();
     }
 
     @Override
