@@ -52,6 +52,7 @@ public class VideoModel extends RegionMediaModel {
             throws MmsException {
         this(context, null, null, uri, region);
         initModelFromUri(uri);
+        mSrc = reSetAttachmentName();
         checkContentRestriction();
     }
 
