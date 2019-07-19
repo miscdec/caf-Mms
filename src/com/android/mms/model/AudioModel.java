@@ -49,6 +49,7 @@ public class AudioModel extends MediaModel {
     public AudioModel(Context context, Uri uri) throws MmsException {
         this(context, null, null, uri);
         initModelFromUri(uri);
+        mSrc = reSetAttachmentName();
         checkContentRestriction();
     }
 
