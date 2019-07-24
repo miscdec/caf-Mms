@@ -66,6 +66,7 @@ public class ImageModel extends RegionMediaModel {
         initModelFromUri(uri);
         checkContentRestriction();
         mSrc = System.currentTimeMillis() + "_" + mSrc;
+        mSrc = reSetAttachmentName();
     }
 
     public ImageModel(Context context, String contentType, String src,
