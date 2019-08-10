@@ -56,6 +56,7 @@ public class VcardModel extends MediaModel {
     public VcardModel(Context context, Uri uri) throws MmsException {
         this(context, ContentType.TEXT_VCARD, null, uri);
         initModelFromUri(uri);
+        mSrc = reSetAttachmentName();
     }
 
     public VcardModel(Context context, String contentType, String src, Uri uri)
