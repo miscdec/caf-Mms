@@ -56,6 +56,7 @@ import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.ReadRecInd;
 import com.google.android.mms.pdu.SendReq;
 import com.google.android.mms.util.SqliteWrapper;
+import android.text.TextUtils;
 
 public class MmsMessageSender implements MessageSender {
     private static final String TAG = LogTag.TAG;
@@ -213,7 +214,10 @@ public class MmsMessageSender implements MessageSender {
             int status) {
         EncodedStringValue[] sender = new EncodedStringValue[1];
         sender[0] = new EncodedStringValue(to);
-
+        if (TextUtils.isEmpty(to) || TextUtils.isEmpty(messageId)) {
+            Log.e(TAG, "Invalide PDU: to: " + to + ";messageId: " + messageId);
+            return;
+        }
         try {
             final ReadRecInd readRec = new ReadRecInd(
                     new EncodedStringValue(PduHeaders.FROM_INSERT_ADDRESS_TOKEN_STR.getBytes()),
