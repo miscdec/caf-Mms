@@ -37,6 +37,7 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
+import android.text.TextUtils;
 // TODO: remove dependency for SDK build
 
 public abstract class MediaModel extends Model implements EventListener {
@@ -54,7 +55,7 @@ public abstract class MediaModel extends Model implements EventListener {
     protected int mSize;
     protected int mSeekTo;
     protected boolean mMediaResizeable;
-
+    protected static final int MAX_SRC_LENGTH = 30;
     private final ArrayList<MediaAction> mMediaActions;
     public static enum MediaAction {
         NO_ACTIVE_ACTION,
@@ -326,5 +327,23 @@ public abstract class MediaModel extends Model implements EventListener {
      * @throws MmsException
      */
     protected void resizeMedia(int byteLimit, long messageId) throws MmsException {
+    }
+
+    public String reSetAttachmentName() {
+        Log.d("Mms","reSetAttachmentName src is "+mSrc);
+        if (TextUtils.isEmpty(mSrc)) {
+            return mSrc;
+        }
+        int dotPos = mSrc.lastIndexOf('.');
+        String tempName = mSrc;
+        if (0 <= dotPos && dotPos < mSrc.length()) {
+            String subName = mSrc.substring(0, dotPos);
+            if (!TextUtils.isEmpty(subName) && subName.length() > MAX_SRC_LENGTH) {
+                subName = mSrc.substring(0, MAX_SRC_LENGTH);
+                tempName = subName + mSrc.substring(dotPos + 1);
+            }
+        }
+        Log.d("Mms","reSetAttachmentName final src is "+tempName);
+        return tempName;
     }
 }
