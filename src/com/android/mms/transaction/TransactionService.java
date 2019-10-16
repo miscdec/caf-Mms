@@ -201,6 +201,10 @@ public class TransactionService extends Service implements Observer {
     private static int MMS_DELAY_PERIOD_DEFAULT = 100*1000;
     private static final int EVENT_MMS_RELEASE_NETWORK_DELAY = 8;
 
+    private static final String MMS_DOWNLOADED_PERSIST_CONFIG = "persist.config_downloaded_MMS";
+    private static final String MMS_DOWNLOADED_ACTION = "com.android.mms.MMS_DOWNLOADED";
+
+
     private ConnectivityManager.NetworkCallback  getNetworkCallback(String subId) {
         final String mSubId = subId;
         final int mPhoneId = SubscriptionManagerWrapper.getPhoneId(Integer.parseInt(mSubId));
@@ -866,6 +870,7 @@ public class TransactionService extends Service implements Observer {
                     switch (transaction.getType()) {
                         case Transaction.NOTIFICATION_TRANSACTION:
                         case Transaction.RETRIEVE_TRANSACTION:
+                            sendDownloadedBroadcast(true);
                             // We're already in a non-UI thread called from
                             // NotificationTransacation.run(), so ok to block here.
                             long threadId = MessagingNotification.getThreadId(
@@ -909,6 +914,12 @@ public class TransactionService extends Service implements Observer {
                                     }
                                 }
                             }
+                        } else {
+                            if ((type == Transaction.RETRIEVE_TRANSACTION) ||
+                                    ((type == Transaction.NOTIFICATION_TRANSACTION)
+                                            && DownloadManager.getInstance().isAuto())) {
+                                sendDownloadedBroadcast(true);
+                            }
                         }
                     }
                 case TransactionState.CANCELED:
@@ -927,6 +938,22 @@ public class TransactionService extends Service implements Observer {
             transaction.detach(this);
             stopSelfIfIdle(serviceId);
         }
+    }
+
+    private boolean isSendDownloadedBroadcast() {
+        String flag = SystemProperties.get(MMS_DOWNLOADED_PERSIST_CONFIG,"0");
+        Log.d("Mms","isSendBroadcast: flag " + flag);
+        return !TextUtils.isEmpty(flag) && "1".equals(flag);
+    }
+
+    private void sendDownloadedBroadcast(boolean result) {
+        if (!isSendDownloadedBroadcast())
+            return;
+        Intent intent = new Intent(MMS_DOWNLOADED_ACTION);
+        intent.putExtra("result",result);
+        intent.setPackage("com.googlecode.android_scripting");
+        Log.d("Mms","sendDownloadedBroadcast: Intent " + intent);
+        sendBroadcast(intent);
     }
 
     private synchronized void createWakeLock() {
