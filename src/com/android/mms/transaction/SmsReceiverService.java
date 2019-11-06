@@ -51,7 +51,6 @@ import android.provider.Telephony.Sms;
 import android.provider.Telephony.Sms.Inbox;
 import android.provider.Telephony.Sms.Intents;
 import android.provider.Telephony.Sms.Outbox;
-import android.telephony.CellBroadcastMessage;
 import android.telephony.ServiceState;
 import android.telephony.SmsCbMessage;
 import android.telephony.SmsManager;
@@ -609,12 +608,21 @@ public class SmsReceiverService extends Service {
         setSavingMessage(false);
     }
 
+    private int getSubId(SmsCbMessage cbMessage) {
+        SubscriptionManager subMgr = (SubscriptionManager)this.getSystemService(
+                Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+        int[] subIds = subMgr.getSubscriptionIds(
+                cbMessage.getSlotIndex());
+        return (subIds == null || subIds.length == 0)
+                ? SubscriptionManager.INVALID_SUBSCRIPTION_ID : subIds[0];
+    }
+
     private void handleCbSmsReceived(Intent intent, int error) {
         Bundle extras = intent.getExtras();
         if (extras == null) {
             return;
         }
-        CellBroadcastMessage cbMessage = (CellBroadcastMessage) extras.get("message");
+        SmsCbMessage cbMessage = (SmsCbMessage) extras.get("message");
         if (cbMessage == null) {
             return;
         }
@@ -623,7 +631,7 @@ public class SmsReceiverService extends Service {
                 getSystemService(Context.TELEPHONY_SERVICE);
         String country = "";
         if (isMSim) {
-            country = TelephonyManagerWrapper.getSimCountryIso(tm, cbMessage.getSubId());
+            country = TelephonyManagerWrapper.getSimCountryIso(tm, getSubId(cbMessage));
         } else {
             country = tm.getSimCountryIso();
         }
@@ -920,11 +928,11 @@ public class SmsReceiverService extends Service {
         return insertedUri;
     }
 
-    private Uri storeCbMessage(Context context, CellBroadcastMessage sms, int error) {
+    private Uri storeCbMessage(Context context, SmsCbMessage sms, int error) {
         // Store the broadcast message in the content provider.
         ContentValues values = new ContentValues();
         values.put(Sms.ERROR_CODE, error);
-        values.put(Sms.SUBSCRIPTION_ID, sms.getSubId());
+        values.put(Sms.SUBSCRIPTION_ID, getSubId(sms));
 
         // CB messages are concatenated by telephony framework into a single
         // message in intent, so grab the body directly.
