@@ -162,7 +162,7 @@ import com.google.android.mms.pdu.SendReq;
 import org.codeaurora.internal.IExtTelephony;
 import android.app.ActivityManager;
 import android.app.Service;
-import android.support.v4.content.FileProvider;
+import androidx.core.content.FileProvider;
 
 import com.android.internal.telephony.EncodeException;
 import com.android.internal.telephony.GsmAlphabet;

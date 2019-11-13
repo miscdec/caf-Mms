@@ -1,0 +1,45 @@
+// Copyright 2007-2008 The Android Open Source Project
+
+android_app {
+    name: "Mms",
+
+    srcs: ["src/**/*.java"] + [
+        "src/org/codeaurora/presenceserv/IPresenceServiceCB.aidl",
+        "src/org/codeaurora/presenceserv/IPresenceService.aidl",
+    ],
+
+    // Builds against the public SDK
+    //LOCAL_SDK_VERSION := current
+    platform_apis: true,
+
+    libs: [
+        "telephony-common",
+        "org.apache.http.legacy",
+        "telephony-ext",
+    ],
+    static_libs: [
+        "android-common",
+        "jsr305",
+    ] + ["libchips"]
+      + ["libphonenumber"]
+      + ["MmsWrapper"]
+      + ["androidx.core_core"]
+      + ["androidx.recyclerview_recyclerview"]
+      + ["androidx.legacy_legacy-support-core-ui"],
+
+    aaptflags: ["--auto-add-overlay"] + [
+        "--extra-packages",
+        "com.android.ex.chips",
+    ],
+
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
+
+    privileged: true,
+
+    overrides: ["messaging"],
+
+}
+
+// This finds and builds the test apk as well, so a single make does both.

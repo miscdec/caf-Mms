@@ -484,7 +484,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" >
 
-                    <android.support.v4.view.ViewPager
+                    <androidx.viewpager.widget.ViewPager
                         android:id="@+id/attachments_selector_pager"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" />

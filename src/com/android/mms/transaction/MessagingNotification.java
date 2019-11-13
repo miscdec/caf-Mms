@@ -62,7 +62,7 @@ import android.provider.BaseColumns;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.Sms;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
+import androidx.core.graphics.drawable.RoundedBitmapDrawable;
 import android.telephony.PhoneStateListener;
 import android.telephony.SubscriptionManager;
 import android.telephony.SubscriptionInfo;
