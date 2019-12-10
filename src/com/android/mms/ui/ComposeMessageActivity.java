@@ -6726,17 +6726,19 @@ public class ComposeMessageActivity extends Activity
             recordAllSelectedItems();
             switch (item.getItemId()) {
             case R.id.forward:
-                int position = mSelectedPos.get(0).intValue();
-                MessageItem msgItem = getMessageItemByPos(position);
-                if (msgItem != null &&
+                if ((mSelectedPos != null) && (mSelectedPos.size() > 0)) {
+                    int position = mSelectedPos.get(0).intValue();
+                    MessageItem msgItem = getMessageItemByPos(position);
+                    if (msgItem != null &&
                         msgItem.isMms() &&
                         !isAllowForwardMessage(msgItem)) {
-                    Toast.makeText(ComposeMessageActivity.this,
+                        Toast.makeText(ComposeMessageActivity.this,
                             R.string.forward_size_over,
                             Toast.LENGTH_SHORT).show();
-                    return false;
+                        return false;
+                    }
+                    forwardMessageCheck();
                 }
-                forwardMessageCheck();
                 break;
             case R.id.delete:
                 confirmDeleteDialog(new DeleteMessagesListener(), mCheckedCount != mUnlockedCount);
@@ -6751,17 +6753,23 @@ public class ComposeMessageActivity extends Activity
                 break;
             case R.id.resend:
                 mode.finish();
-                resendCheckedMessage();
+                if ((mSelectedPos != null) && (mSelectedPos.size() > 0)) {
+                    resendCheckedMessage();
+                }
                 return true;
             case R.id.copy_to_sim:
                 copySmsToSim();
                 break;
             case R.id.detail:
-                showMessageDetail();
+                if ((mSelectedPos != null) && (mSelectedPos.size() > 0)) {
+                    showMessageDetail();
+                }
                 break;
             case R.id.save_attachment:
                     if (MessageUtils.hasStoragePermission()) {
-                        saveAttachment();
+                        if ((mSelectedPos != null) && (mSelectedPos.size() > 0)) {
+                            saveAttachment();
+                        }
                     } else {
                         requestPermissions(new String[] {
                             Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -6769,13 +6777,17 @@ public class ComposeMessageActivity extends Activity
                     }
                 break;
             case R.id.report:
-                showReport();
+                if ((mSelectedPos != null) && (mSelectedPos.size() > 0)) {
+                    showReport();
+                }
                 break;
             case R.id.copy_text:
-                int pos = mSelectedPos.get(0).intValue();
-                MessageItem copyItem = getMessageItemByPos(pos);
-                if (copyItem != null && copyItem.isSms()) {
-                    copyToClipboard(copyItem.mBody);
+                if ((mSelectedPos != null) && (mSelectedPos.size() > 0)) {
+                    int pos = mSelectedPos.get(0).intValue();
+                    MessageItem copyItem = getMessageItemByPos(pos);
+                    if (copyItem != null && copyItem.isSms()) {
+                        copyToClipboard(copyItem.mBody);
+                    }
                 }
                 break;
             case R.id.more:
