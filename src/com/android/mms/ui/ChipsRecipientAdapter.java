@@ -18,7 +18,7 @@ package com.android.mms.ui;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.support.v4.util.Pair;
+import androidx.core.util.Pair;
 import android.text.TextUtils;
 import android.text.util.Rfc822Token;
 import android.util.Log;
