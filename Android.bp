@@ -39,7 +39,7 @@ android_app {
     privileged: true,
 
     overrides: ["messaging"],
-
+    system_ext_specific: true,
 }
 
 // This finds and builds the test apk as well, so a single make does both.
