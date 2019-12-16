@@ -1,5 +1,13 @@
 // Copyright 2007-2008 The Android Open Source Project
 
+prebuilt_etc {
+    name: "privapp_whitelist_com.android.mms",
+    src: "privapp-permissions-mms.xml",
+    sub_dir: "permissions",
+    system_ext_specific: true,
+    filename_from_src: true,
+}
+
 android_app {
     name: "Mms",
 
@@ -27,6 +35,7 @@ android_app {
       + ["androidx.recyclerview_recyclerview"]
       + ["androidx.legacy_legacy-support-core-ui"],
 
+    required: ["privapp_whitelist_com.android.mms"],
     aaptflags: ["--auto-add-overlay"] + [
         "--extra-packages",
         "com.android.ex.chips",
