@@ -294,10 +294,36 @@ public class SmsReceiverService extends Service {
         printMap(mSending,"handleSendMessage : finish puting queue SMS to sending");
         if (!mSending.get(subId)) {
             sendFirstQueuedMessage(subId);
+        } else if (!isSmsSending(subId)) {
+            mSending.put(subId, false);
+            sendFirstQueuedMessage(subId);
         } else {
             printSendingSMS(subId);
             LogTag.debugD("subId=" + subId + " is in mSending ");
         }
+    }
+
+    private boolean isSmsSending(int subId) {
+        Log.d("Mms", "Check SMS message sending status subId:"+subId);
+        final Uri uri = Uri.parse("content://sms/outbox");
+        ContentResolver resolver = getContentResolver();
+        String where = "sub_id=?";
+        String[] whereArgs = new String[] { Integer.toString(subId) };
+        Cursor c = SqliteWrapper.query(this, resolver, uri,
+            SEND_PROJECTION_TYPE, where, whereArgs, "date ASC");
+        try {
+            if ((c != null) && (c.getCount() > 0)) {
+                Log.d("Mms", " exist sending msg:");
+                dumpSendingMsg(c);
+                return true;
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+        Log.d("Mms", "Database does not exist sending message");
+        return false;
     }
 
     private static void printMap(Map<Integer, Boolean> map, String functionName) {
