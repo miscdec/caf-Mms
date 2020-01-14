@@ -1099,17 +1099,18 @@ public class MessageListItem extends ZoomMessageListItem implements
     public void onMessageListItemClick() {
         // If the message is a failed one, clicking it should reload it in the compose view,
         // regardless of whether it has links in it
-        if (mMessageItem != null &&
-                mMessageItem.isOutgoingMessage() &&
-                mMessageItem.isFailedMessage()) {
-            // Assuming the current message is a failed one, reload it into the compose view so
-            // the user can resend it.
-            if (mContext.getResources().getBoolean(R.bool.config_resend_to_edit)) {
-                sendMessage(mMessageItem, MSG_LIST_EDIT);
-            } else {
-                sendMessage(mMessageItem, MSG_LIST_RESEND);
+        if (mMessageItem != null) {
+            if ((mMessageItem.isOutgoingMessage() && mMessageItem.isFailedMessage())
+                    || mMessageItem.mDeliveryStatus == MessageItem.DeliveryStatus.FAILED) {
+                // Assuming the current message is a failed one, reload it into the compose view
+                // so the user can resend it.
+                if (mContext.getResources().getBoolean(R.bool.config_resend_to_edit)) {
+                    sendMessage(mMessageItem, MSG_LIST_EDIT);
+                } else {
+                    sendMessage(mMessageItem, MSG_LIST_RESEND);
+                }
+                return;
             }
-            return;
         }
         // Check for links. If none, do nothing; if 1, open it; if >1, ask user to pick one
         final URLSpan[] spans = mBodyTextView.getUrls();
