@@ -94,13 +94,16 @@ public class MessageStatusService extends IntentService {
                 Uri updateUri = ContentUris.withAppendedId(STATUS_URI, messageId);
                 int status = message.getStatus();
                 boolean isStatusReport = message.isStatusReportMessage();
-                ContentValues contentValues = new ContentValues(2);
+                ContentValues contentValues = new ContentValues(3);
 
                 LogTag.debugD("updateMessageStatus: msgUrl=" + messageUri + ", status=" + status +
                         ", isStatusReport=" + isStatusReport);
 
                 contentValues.put(Sms.STATUS, status);
                 contentValues.put(Inbox.DATE_SENT, System.currentTimeMillis());
+                if (status >= Sms.STATUS_FAILED) {
+                    contentValues.put(Sms.TYPE, Sms.MESSAGE_TYPE_FAILED);
+                }
                 SqliteWrapper.update(context, context.getContentResolver(),
                                     updateUri, contentValues, null, null);
             } else {
