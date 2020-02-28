@@ -571,15 +571,18 @@ public class SmsReceiverService extends Service {
     private void handleSmsReceived(Intent intent, int error) {
         SmsMessage[] msgs = Intents.getMessagesFromIntent(intent);
         String format = intent.getStringExtra("format");
-
+        int subId = intent.getIntExtra(ConstantsWrapper.Phone.SUBSCRIPTION_KEY, -1);
         // Because all sub id have been changed to phone id in Mms,
         // so also change it here.
         SmsMessage sms4log = msgs[0];
         LogTag.debugD("handleSmsReceived" + (sms4log.isReplace() ? "(replace)" : "") +
                     ", address: " + sms4log.getOriginatingAddress() +
-                    ", body: " + sms4log.getMessageBody());
+                    ", body: " + sms4log.getMessageBody() + "; subId: " + subId);
         int saveLoc = MessageUtils.getSmsPreferStoreLocation(this,
                 SubscriptionManagerWrapper.getPhoneId(SmsMessageWrapper.getSubId(msgs[0])));
+        for(SmsMessage message : msgs) {
+           message.setSubId(subId);
+        }
         if (getResources().getBoolean(R.bool.config_savelocation)
                 && saveLoc == MessageUtils.PREFER_SMS_STORE_CARD) {
             LogTag.debugD("PREFER SMS STORE CARD");
@@ -587,8 +590,6 @@ public class SmsReceiverService extends Service {
                 SmsMessage sms = msgs[i];
                 boolean saveSuccess = saveMessageToIcc(sms);
                 if (saveSuccess) {
-                    int subId = MessageUtils.isMultiSimEnabledMms()
-                            ? SmsMessageWrapper.getSubId(sms) : (int)MessageUtils.SUB_INVALID;
                     int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
                     String address = MessageUtils.convertIdp(this,
                             sms.getDisplayOriginatingAddress(), phoneId);
