@@ -535,7 +535,15 @@ public class ManageSimMessages extends Activity
 
         if (null != mCursor) {
             if(mState != SHOW_BUSY) {
-                menu.add(0, OPTION_MENU_SIM_CAPACITY, 0, R.string.sim_capacity_title);
+                if (MessageUtils.isMultiSimEnabledMms()) {
+                    if (MessageUtils.isIccCardActivated(mSlotId)) {
+                        menu.add(0, OPTION_MENU_SIM_CAPACITY, 0, R.string.sim_capacity_title);
+                    }
+                } else {
+                    if (MessageUtils.hasIccCard()) {
+                        menu.add(0, OPTION_MENU_SIM_CAPACITY, 0, R.string.sim_capacity_title);
+                    }
+                }
             }
         }
         return true;
@@ -787,7 +795,9 @@ public class ManageSimMessages extends Activity
 
         @Override
         public void onDestroyActionMode(ActionMode arg0) {
-            mSelectionMenu.dismiss();
+            if (mSelectionMenu != null) {
+                mSelectionMenu.dismiss();
+            }
         }
 
         @Override
