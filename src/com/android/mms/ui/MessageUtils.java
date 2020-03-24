@@ -159,7 +159,6 @@ import com.google.android.mms.pdu.PduPart;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.RetrieveConf;
 import com.google.android.mms.pdu.SendReq;
-import org.codeaurora.internal.IExtTelephony;
 import android.app.ActivityManager;
 import android.app.Service;
 import androidx.core.content.FileProvider;
@@ -1922,18 +1921,14 @@ public class MessageUtils {
         } else {
             callback.replyTo = new Messenger(callback.getTarget());
         }
-        IExtTelephony extTelephony = IExtTelephony.Stub.asInterface(ServiceManager
-                .getService("extphone"));
+
         boolean ret = false;
         Bundle bundle = new Bundle();
         try {
-            ret = extTelephony.setSmscAddress(sub, smsc);
-        } catch (NullPointerException e) {
+            ret = SmsManager.getSmsManagerForSubscriptionId(sub).setSmscAddress(smsc);
+        } catch (Exception e) {
             log(METHOD_SET_SMSC + e);
             bundle.putSerializable(EXTRA_EXCEPTION, e);
-        } catch (RemoteException ex) {
-            log(METHOD_SET_SMSC + ex);
-            bundle.putSerializable(EXTRA_EXCEPTION, ex);
         }
         log("Set: sub = " + sub + " smsc= " + smsc + " ret=" + ret);
         bundle.putBoolean(EXTRA_SMSC_RESULT, ret);
@@ -1944,18 +1939,13 @@ public class MessageUtils {
         if (callback == null) {
             return;
         }
-        IExtTelephony extTelephony = IExtTelephony.Stub.asInterface(ServiceManager
-                .getService("extphone"));
         String smsc = null;
         Bundle bundle = new Bundle();
         try {
-            smsc = extTelephony.getSmscAddress(sub);
-        } catch (NullPointerException e) {
+            smsc = SmsManager.getSmsManagerForSubscriptionId(sub).getSmscAddress();
+        } catch (Exception e) {
             log(METHOD_GET_SMSC + e);
             bundle.putSerializable(EXTRA_EXCEPTION, e);
-        } catch (RemoteException ex) {
-            log(METHOD_GET_SMSC + ex);
-            bundle.putSerializable(EXTRA_EXCEPTION, ex);
         }
         log("Get: sub = " + sub + " smsc=" + smsc);
         bundle.putString(EXTRA_SMSC, smsc);
