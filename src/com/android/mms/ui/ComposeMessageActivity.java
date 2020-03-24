@@ -6288,11 +6288,13 @@ public class ComposeMessageActivity extends Activity
             if (which >= 0) {
                 slot = which;
             } else if (which == DialogInterface.BUTTON_POSITIVE) {
-                int [] subId = SubscriptionManagerWrapper.getSubId(slot);
                 if (MessageUtils.hasInvalidSmsRecipient(getContext(), msgItems)) {
                     showInvalidCopyDialog();
                 } else {
-                    new Thread(new CopyToSimThread(msgItems, subId[0])).start();
+                    int [] subId = SubscriptionManagerWrapper.getSubId(slot);
+                    if ((subId != null) && (subId.length > 0)) {
+                        new Thread(new CopyToSimThread(msgItems, subId[0])).start();
+                    }
                 }
             }
         }
