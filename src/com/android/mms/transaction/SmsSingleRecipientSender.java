@@ -100,9 +100,9 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                                     + "mThreadId=" + mThreadId
                                     + "|mUri=" + mUri
                                     );
-            TelephonyWrapper.sendTextForSubscriberWithSelfPermissions(mSubId,
+            TelephonyWrapper.sendTextForSubscriberWithOptions(mSubId,
                     ActivityThread.currentPackageName(), mDest,
-                    mServiceCenter, "", sentIntent, deliveryIntent, true);
+                    mServiceCenter, "", sentIntent, deliveryIntent, true, mPriority, isExpectMore, validityPeriod);
         } catch (RemoteException ex) {
             // ignore it
         } catch (Exception ex) {

@@ -106,18 +106,22 @@ public class TelephonyWrapper {
         }
     }
 
-    public static void sendTextForSubscriberWithSelfPermissions(int subId, String callingPackage,
+    public static void sendTextForSubscriberWithOptions(int subId, String callingPackage,
                                                                 String destAddr, String scAddr,
                                                                 String text,
                                                                 PendingIntent sentIntent,
                                                                 PendingIntent deliveryIntent,
-                                                                boolean persistMessage)
+                                                                boolean persistMessage,
+                                                                int priority,
+                                                                boolean expectMore,
+                                                                int validityPeriod)
             throws RemoteException {
         ISms mISms = ISms.Stub.asInterface(ServiceManager.getService("isms"));
         if (null != mISms) {
-            mISms.sendTextForSubscriberWithSelfPermissions(subId,
+            mISms.sendTextForSubscriberWithOptions(subId,
                     callingPackage, destAddr, scAddr, text, sentIntent, deliveryIntent,
-                    persistMessage);
+                    persistMessage, priority, expectMore, validityPeriod);
         }
     }
+
 }
