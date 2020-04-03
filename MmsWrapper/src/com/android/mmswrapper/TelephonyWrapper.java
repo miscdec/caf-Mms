@@ -37,6 +37,8 @@ import android.os.ServiceManager;
 import android.net.Uri;
 import android.provider.Telephony;
 
+import java.lang.reflect.Method;
+
 import com.android.internal.telephony.ISms;
 
 public class TelephonyWrapper {
@@ -116,11 +118,20 @@ public class TelephonyWrapper {
                                                                 boolean expectMore,
                                                                 int validityPeriod)
             throws RemoteException {
-        ISms mISms = ISms.Stub.asInterface(ServiceManager.getService("isms"));
-        if (null != mISms) {
-            mISms.sendTextForSubscriberWithOptions(subId,
-                    callingPackage, destAddr, scAddr, text, sentIntent, deliveryIntent,
-                    persistMessage, priority, expectMore, validityPeriod);
+        try {
+            ISms mISms = ISms.Stub.asInterface(ServiceManager.getService("isms"));
+            if (null != mISms) {
+               Class iSmsClass = mISms.getClass();
+               Method method = iSmsClass.getMethod("sendTextForSubscriberWithOptions", int.class,
+                       String.class, String.class, String.class, String.class,
+                       PendingIntent.class, PendingIntent.class, boolean.class, int.class,
+                       boolean.class, int.class);
+               method.invoke(mISms, subId, callingPackage, destAddr, scAddr, text,
+                       sentIntent, deliveryIntent, persistMessage, priority,
+                       expectMore, validityPeriod);
+            }
+        } catch (Exception e) {
+            LogUtils.logi(TAG, "sendTextForSubscriberWithOptions exception: " + e);
         }
     }
 
