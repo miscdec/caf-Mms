@@ -222,6 +222,8 @@ import org.codeaurora.presenceserv.IPresenceService;
 import org.codeaurora.presenceserv.IPresenceServiceCB;
 
 import java.util.HashSet;
+import android.sysprop.TelephonyProperties;
+
 
 /**
  * This is the main UI for:
@@ -5502,8 +5504,9 @@ public class ComposeMessageActivity extends Activity
 
         if (bCheckEcmMode) {
             // TODO: expose this in telephony layer for SDK build
-            String inEcm = SystemProperties.get(ConstantsWrapper.TelephonyProperty.PROPERTY_INECM_MODE);
-            if (Boolean.parseBoolean(inEcm)) {
+            boolean inEcm = TelephonyProperties.in_ecm_mode().orElse(false);
+            Log.d(TAG,"ecm mode: " + inEcm);
+            if (inEcm) {
                 try {
                     startActivityForResult(
                             new Intent(ConstantsWrapper.TelephonyIntent.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS, null),
@@ -6285,11 +6288,13 @@ public class ComposeMessageActivity extends Activity
             if (which >= 0) {
                 slot = which;
             } else if (which == DialogInterface.BUTTON_POSITIVE) {
-                int [] subId = SubscriptionManagerWrapper.getSubId(slot);
                 if (MessageUtils.hasInvalidSmsRecipient(getContext(), msgItems)) {
                     showInvalidCopyDialog();
                 } else {
-                    new Thread(new CopyToSimThread(msgItems, subId[0])).start();
+                    int [] subId = SubscriptionManagerWrapper.getSubId(slot);
+                    if ((subId != null) && (subId.length > 0)) {
+                        new Thread(new CopyToSimThread(msgItems, subId[0])).start();
+                    }
                 }
             }
         }
