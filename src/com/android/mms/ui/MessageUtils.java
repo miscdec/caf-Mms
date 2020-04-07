@@ -179,7 +179,7 @@ import static android.telephony.SmsMessage.ENCODING_7BIT;
 import static android.telephony.SmsMessage.ENCODING_UNKNOWN;
 import static android.telephony.SmsMessage.MAX_USER_DATA_BYTES;
 import static android.telephony.SmsMessage.MAX_USER_DATA_SEPTETS;
-
+import android.telephony.SubscriptionInfo;
 
 
 /**
@@ -3640,6 +3640,28 @@ public class MessageUtils {
         } else {
             throw new RuntimeException("invalid char for BCD " + c);
         }
+    }
+
+    public static boolean isSMSPromptEnabled(Context context) {
+        int defaultSubId = SubscriptionManager.getDefaultSmsSubscriptionId();
+        SubscriptionManager sm =
+                (SubscriptionManager)context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+        final List<SubscriptionInfo> subInfoList = sm
+                .getActiveSubscriptionInfoList();
+        if (subInfoList == null) {
+            return false;
+        }
+
+        final int subInfoLength = subInfoList.size();
+
+        for (int i = 0; i < subInfoLength; i++) {
+            final SubscriptionInfo sir = subInfoList.get(i);
+            if (sir != null && sir.getSubscriptionId() == defaultSubId) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

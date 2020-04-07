@@ -1254,7 +1254,7 @@ public class ComposeMessageActivity extends Activity
             if (isMultiSim) {
                 if ((tm.getPhoneCount()) > 1 &&
                         MessageUtils.isMsimIccCardActive()) {
-                    if(SmsManager.getDefault().isSMSPromptEnabled()) {
+                    if(MessageUtils.isSMSPromptEnabled(ComposeMessageActivity.this)) {
                         launchMsimDialog(true, isMms);
                     } else {
                         sendMsimMessageNotPrompt(true, isMms, defaultSubId);
@@ -1275,7 +1275,7 @@ public class ComposeMessageActivity extends Activity
         } else if (TelephonyManager.getDefault().isMultiSimEnabled()) {
             if ((tm.getPhoneCount()) > 1 &&
                     MessageUtils.isMsimIccCardActive()) {
-                if(SmsManager.getDefault().isSMSPromptEnabled()) {
+                if(MessageUtils.isSMSPromptEnabled(ComposeMessageActivity.this)) {
                     launchMsimDialog(true, isMms);
                 } else {
                     sendMsimMessageNotPrompt(true, isMms, defaultSubId);
@@ -1723,7 +1723,7 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void resendMessage(MessageItem msgItem) {
-        if (SmsManagerWrapper.isSMSPromptEnabled(SmsManager.getDefault())) {
+        if (MessageUtils.isSMSPromptEnabled(ComposeMessageActivity.this)) {
             mWorkingMessage.setWorkingMessageSub(msgItem.mSubId);
         }
         if (msgItem.isMms()) {
