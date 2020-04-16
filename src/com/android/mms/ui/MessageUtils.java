@@ -1180,9 +1180,11 @@ public class MessageUtils {
         SlideModel slide = slideshow.get(0);
         MediaModel mm = null;
         if (slide.hasImage()) {
-            mm = slide.getImage();
+            playMedia(context, slide.getImage());
+            return;
         } else if (slide.hasVideo()) {
-            mm = slide.getVideo();
+            playMedia(context, slide.getVideo());
+            return;
         } else if (slide.hasVcard()) {
             mm = slide.getVcard();
             String lookupUri = ((VcardModel) mm).getLookupUri();
@@ -1217,6 +1219,23 @@ public class MessageUtils {
         context.startActivity(intent);
     }
 
+    private static void playMedia(Context context, MediaModel mediaMode) {
+        if((context == null) || (mediaMode == null))
+            return;
+        Intent intent = new Intent(context,
+                PlayVideoOrPicActivity.class);
+        int type = -1;
+        if (mediaMode.isImage()) {
+            type = WorkingMessage.IMAGE;
+        } else if (mediaMode.isVideo()) {
+            type = WorkingMessage.VIDEO;
+        }
+        intent.putExtra(PlayVideoOrPicActivity.VIDEO_PIC_TYPE,
+                type);
+        intent.putExtra(PlayVideoOrPicActivity.VIDEO_PIC_PATH,
+                getUriFromFile(context, mediaMode).toString());
+        context.startActivity(intent);
+    }
     private static Uri getUriFromFile(Context context, MediaModel mm) {
         Uri uri = mm.getUri();
         if (uri != null && mm.isFileUri(uri)) {
