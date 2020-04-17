@@ -4550,6 +4550,16 @@ public class ComposeMessageActivity extends Activity
         return true;
     }
 
+    private Uri formatUri(Uri uri) {
+        if (uri == null) {
+            return uri;
+        }
+        String uriString = uri.toString();
+        if (uriString.startsWith("content://0@mms")) {
+            uriString = uriString.replace("content://0@mms","content://mms");
+        }
+        return Uri.parse(uriString);
+    }
     // Handle send actions, where we're told to send a picture(s) or text.
     private boolean handleSendIntent() {
         Intent intent = getIntent();
@@ -4562,7 +4572,7 @@ public class ComposeMessageActivity extends Activity
         String action = intent.getAction();
         if (Intent.ACTION_SEND.equals(action)) {
             if (extras.containsKey(Intent.EXTRA_STREAM)) {
-                final Uri uri = (Uri)extras.getParcelable(Intent.EXTRA_STREAM);
+                final Uri uri = formatUri((Uri)extras.getParcelable(Intent.EXTRA_STREAM));
                 getAsyncDialog().runAsync(new Runnable() {
                     @Override
                     public void run() {
