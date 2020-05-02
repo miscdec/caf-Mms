@@ -37,6 +37,8 @@ import android.os.ServiceManager;
 import android.net.Uri;
 import android.provider.Telephony;
 
+import java.lang.reflect.Method;
+
 import com.android.internal.telephony.ISms;
 
 public class TelephonyWrapper {
@@ -106,18 +108,31 @@ public class TelephonyWrapper {
         }
     }
 
-    public static void sendTextForSubscriberWithSelfPermissions(int subId, String callingPackage,
+    public static void sendTextForSubscriberWithOptions(int subId, String callingPackage,
                                                                 String destAddr, String scAddr,
                                                                 String text,
                                                                 PendingIntent sentIntent,
                                                                 PendingIntent deliveryIntent,
-                                                                boolean persistMessage)
+                                                                boolean persistMessage,
+                                                                int priority,
+                                                                boolean expectMore,
+                                                                int validityPeriod)
             throws RemoteException {
-        ISms mISms = ISms.Stub.asInterface(ServiceManager.getService("isms"));
-        if (null != mISms) {
-            mISms.sendTextForSubscriberWithSelfPermissions(subId,
-                    callingPackage, destAddr, scAddr, text, sentIntent, deliveryIntent,
-                    persistMessage);
+        try {
+            ISms mISms = ISms.Stub.asInterface(ServiceManager.getService("isms"));
+            if (null != mISms) {
+               Class iSmsClass = mISms.getClass();
+               Method method = iSmsClass.getMethod("sendTextForSubscriberWithOptions", int.class,
+                       String.class, String.class, String.class, String.class,
+                       PendingIntent.class, PendingIntent.class, boolean.class, int.class,
+                       boolean.class, int.class);
+               method.invoke(mISms, subId, callingPackage, destAddr, scAddr, text,
+                       sentIntent, deliveryIntent, persistMessage, priority,
+                       expectMore, validityPeriod);
+            }
+        } catch (Exception e) {
+            LogUtils.logi(TAG, "sendTextForSubscriberWithOptions exception: " + e);
         }
     }
+
 }

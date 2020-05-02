@@ -42,17 +42,6 @@ public class SmsManagerWrapper {
     public static final int RESULT_ERROR_LIMIT_EXCEEDED = SmsManager.RESULT_ERROR_LIMIT_EXCEEDED;
 
     /**
-     * Get SMS prompt property,  enabled or not
-     *
-     * @return true if enabled, false otherwise
-     */
-    public static boolean isSMSPromptEnabled(SmsManager sm) {
-        boolean ret = sm.isSMSPromptEnabled();
-        LogUtils.logi(TAG, "isSMSPromptEnabled=" + ret);
-        return ret;
-    }
-
-    /**
      * Get the capacity count of sms on Icc card
      *
      * @return the capacity count of sms on Icc card
