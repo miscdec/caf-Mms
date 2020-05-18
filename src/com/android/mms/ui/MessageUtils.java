@@ -179,7 +179,7 @@ import static android.telephony.SmsMessage.ENCODING_7BIT;
 import static android.telephony.SmsMessage.ENCODING_UNKNOWN;
 import static android.telephony.SmsMessage.MAX_USER_DATA_BYTES;
 import static android.telephony.SmsMessage.MAX_USER_DATA_SEPTETS;
-
+import android.telephony.SubscriptionInfo;
 
 
 /**
@@ -1180,9 +1180,11 @@ public class MessageUtils {
         SlideModel slide = slideshow.get(0);
         MediaModel mm = null;
         if (slide.hasImage()) {
-            mm = slide.getImage();
+            playMedia(context, slide.getImage());
+            return;
         } else if (slide.hasVideo()) {
-            mm = slide.getVideo();
+            playMedia(context, slide.getVideo());
+            return;
         } else if (slide.hasVcard()) {
             mm = slide.getVcard();
             String lookupUri = ((VcardModel) mm).getLookupUri();
@@ -1217,6 +1219,23 @@ public class MessageUtils {
         context.startActivity(intent);
     }
 
+    private static void playMedia(Context context, MediaModel mediaMode) {
+        if((context == null) || (mediaMode == null))
+            return;
+        Intent intent = new Intent(context,
+                PlayVideoOrPicActivity.class);
+        int type = -1;
+        if (mediaMode.isImage()) {
+            type = WorkingMessage.IMAGE;
+        } else if (mediaMode.isVideo()) {
+            type = WorkingMessage.VIDEO;
+        }
+        intent.putExtra(PlayVideoOrPicActivity.VIDEO_PIC_TYPE,
+                type);
+        intent.putExtra(PlayVideoOrPicActivity.VIDEO_PIC_PATH,
+                getUriFromFile(context, mediaMode).toString());
+        context.startActivity(intent);
+    }
     private static Uri getUriFromFile(Context context, MediaModel mm) {
         Uri uri = mm.getUri();
         if (uri != null && mm.isFileUri(uri)) {
@@ -3640,6 +3659,28 @@ public class MessageUtils {
         } else {
             throw new RuntimeException("invalid char for BCD " + c);
         }
+    }
+
+    public static boolean isSMSPromptEnabled(Context context) {
+        int defaultSubId = SubscriptionManager.getDefaultSmsSubscriptionId();
+        SubscriptionManager sm =
+                (SubscriptionManager)context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+        final List<SubscriptionInfo> subInfoList = sm
+                .getActiveSubscriptionInfoList();
+        if (subInfoList == null) {
+            return false;
+        }
+
+        final int subInfoLength = subInfoList.size();
+
+        for (int i = 0; i < subInfoLength; i++) {
+            final SubscriptionInfo sir = subInfoList.get(i);
+            if (sir != null && sir.getSubscriptionId() == defaultSubId) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

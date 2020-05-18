@@ -228,7 +228,7 @@ public class NotificationQuickReplyActivity extends Activity {
         int subId = SubscriptionManager.getDefaultSmsSubscriptionId();
         if ((MessageUtils.getPhoneCount()) > 1 &&
                 MessageUtils.isMsimIccCardActive() &&
-                SmsManagerWrapper.isSMSPromptEnabled(SmsManager.getDefault())) {
+                MessageUtils.isSMSPromptEnabled(NotificationQuickReplyActivity.this)) {
             if (mMsgSubId >= 0) {
                 subId = mMsgSubId;
             } else {
