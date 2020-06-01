@@ -1092,7 +1092,14 @@ public class ComposeMessageActivity extends Activity
                     new View.OnClickListener() {
                         public void onClick(View v) {
                             dismissMsimDialog();
-                            int subId = SubscriptionManager.getSubId(phoneId)[0];
+                            int[] subIds = SubscriptionManager.getSubId(phoneId);
+                            if ((subIds == null) || (subIds.length <= 0)) {
+                                Toast.makeText(ComposeMessageActivity.this,
+                                        getString(R.string.send_via_invalid_sub),
+                                        Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            int subId = subIds[0];
                             LogTag.debugD("LaunchMsimDialog: subscription selected " + subId);
                             if (!SubscriptionManager.from(getApplicationContext())
                                     .isActiveSubId(subId)) {
