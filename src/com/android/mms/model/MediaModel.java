@@ -340,7 +340,7 @@ public abstract class MediaModel extends Model implements EventListener {
             String subName = mSrc.substring(0, dotPos);
             if (!TextUtils.isEmpty(subName) && subName.length() > MAX_SRC_LENGTH) {
                 subName = mSrc.substring(0, MAX_SRC_LENGTH);
-                tempName = subName + mSrc.substring(dotPos + 1);
+                tempName = subName + mSrc.substring(dotPos - 1);
             }
         }
         Log.d("Mms","reSetAttachmentName final src is "+tempName);
