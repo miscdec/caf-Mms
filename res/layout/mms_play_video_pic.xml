@@ -73,11 +73,6 @@
             android:layout_marginLeft="26dp"
             android:layout_centerVertical="true"
             android:layout_height="wrap_content"/>
-        <com.android.mms.ui.VideoProgressBar
-            android:layout_toRightOf="@id/cur_play_time"
-            android:layout_width="222dp"
-            android:layout_height="50dp"
-            android:id="@+id/video_progress"/>
         <TextView
             android:textSize="14sp"
             android:textColor="@color/video_timer_font_color"
@@ -86,9 +81,15 @@
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"
             android:layout_marginLeft="16dp"
-            android:layout_toRightOf="@id/video_progress"
+            android:layout_marginRight="26dp"
             android:layout_centerVertical="true"
             android:id="@+id/video_duration"/>
+        <com.android.mms.ui.VideoProgressBar
+            android:layout_toRightOf="@id/cur_play_time"
+            android:layout_toLeftOf="@id/video_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:id="@+id/video_progress"/>
 
     </RelativeLayout>
 </FrameLayout>

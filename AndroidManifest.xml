@@ -427,6 +427,7 @@
         <provider android:name="TempFileProvider"
                   android:exported="true"
                   android:authorities="mms_temp_file"
+                  android:grantUriPermissions="true"
                   android:multiprocess="true" />
 
         <activity android:name=".ui.MiniPreferenceActivity" >
