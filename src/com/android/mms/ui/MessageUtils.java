@@ -1958,6 +1958,10 @@ public class MessageUtils {
         if (callback == null) {
             return;
         }
+        int subId[] = SubscriptionManagerWrapper.getSubId(sub);
+        if (subId != null && subId.length > 0) {
+            sub = subId[0];
+        }
         String smsc = null;
         Bundle bundle = new Bundle();
         try {
