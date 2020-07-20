@@ -579,7 +579,7 @@ public class SmsReceiverService extends Service {
                     ", address: " + sms4log.getOriginatingAddress() +
                     ", body: " + sms4log.getMessageBody() + "; subId: " + subId);
         int saveLoc = MessageUtils.getSmsPreferStoreLocation(this,
-                SubscriptionManagerWrapper.getPhoneId(SmsMessageWrapper.getSubId(msgs[0])));
+                SubscriptionManagerWrapper.getPhoneId(subId));
         for(SmsMessage message : msgs) {
            message.setSubId(subId);
         }

@@ -363,7 +363,7 @@ public class MessageUtils {
     private static final boolean PREF_SHOULD_SHOW_URL_WARNING = true;
 
     private static final String CELL_BROADCAST_PACKAGE_NAME =
-            "com.android.cellbroadcastreceiver";
+            "com.android.cellbroadcastreceiver.module";
     private static final String CELL_BROADCAST_ACTIVITY_NAME =
             "com.android.cellbroadcastreceiver.CellBroadcastListActivity";
     private static final long COMPRESSION_FACTOR = 3;
@@ -1957,6 +1957,10 @@ public class MessageUtils {
     public static void getSmscFromSub(Context context, int sub, Message callback) {
         if (callback == null) {
             return;
+        }
+        int subId[] = SubscriptionManagerWrapper.getSubId(sub);
+        if (subId != null && subId.length > 0) {
+            sub = subId[0];
         }
         String smsc = null;
         Bundle bundle = new Bundle();
