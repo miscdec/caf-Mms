@@ -1,5 +1,6 @@
 # Copyright 2007-2008 The Android Open Source Project
 
+ifneq ($(TARGET_NO_TELEPHONY), true)
 ifeq ($(TARGET_FWK_SUPPORTS_FULL_VALUEADDS),true)
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
@@ -42,3 +43,4 @@ include $(BUILD_PACKAGE)
 # This finds and builds the test apk as well, so a single make does both.
 include $(call all-makefiles-under,$(LOCAL_PATH))
 endif#TARGET_FWK_SUPPORTS_FULL_VALUEADDS
+endif #TARGET_NO_TELEPHONY
