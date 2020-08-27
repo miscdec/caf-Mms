@@ -32,6 +32,8 @@ import com.android.mms.ui.ManageSimMessages;
 import com.android.mms.ui.MessageUtils;
 import com.android.mmswrapper.ConstantsWrapper;
 import android.app.NotificationChannel;
+import android.telephony.SubscriptionManager;
+
 
 /**
  * Receive Intent.SIM_FULL_ACTION.  Handle notification that SIM is full.
@@ -52,8 +54,10 @@ public class SimFullReceiver extends BroadcastReceiver {
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
             final Notification.Builder noti =
                     new Notification.Builder(context, MessagingNotification.SIM_FULL_CHANNEL_ID);
-            int slot = intent.getIntExtra(ConstantsWrapper.Phone.SLOT_KEY,
+
+            int slot = intent.getIntExtra(SubscriptionManager.EXTRA_SLOT_INDEX,
                     ConstantsWrapper.Phone.SUB1);
+            Log.d("Mms"," sim " + slot + " is full ");
             Intent viewSimIntent = new Intent(context, ManageSimMessages.class);
             viewSimIntent.setAction(Intent.ACTION_VIEW);
             viewSimIntent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, slot);
