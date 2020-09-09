@@ -358,7 +358,14 @@ public class PlayVideoOrPicActivity extends Activity {
 
         Uri targetUri = null;
         try {
-            targetUri = Uri.fromFile(createNewFile(outputDir, contentType));
+
+            File f = createNewFile(outputDir, contentType);
+            if (f == null) {
+                Log.d(TAG, "file is existed, cancel copy file, return sourceUri.");
+                return sourceUri;
+            }
+            targetUri = Uri.fromFile(f);
+
         } catch (final Exception ex) {
             Log.e(TAG, "Error while create new file ", ex);
             return null;
