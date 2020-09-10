@@ -5539,6 +5539,39 @@ public class ComposeMessageActivity extends Activity
         return (size + KILOBYTE -1) / KILOBYTE + 1;
     }
 
+    public boolean isEmergencySmsSupport() {
+        PersistableBundle b;
+        boolean eSmsCarrierSupport = false;
+        ContactList recipients = getRecipients();
+        int subId = mWorkingMessage.mCurrentConvSubId;
+        if (recipients == null || recipients.size() != 1) {
+            return false;
+        }
+        Log.d(TAG, "isEmergencySmsSupport subId: " + subId);
+        if (!PhoneNumberUtils.isLocalEmergencyNumber(getApplicationContext(),
+                subId, recipients.get(0).getNumber())) {
+            Log.d(TAG, "isEmergencySmsSupport not an emergency number");
+            return false;
+        }
+
+        CarrierConfigManager configManager = (CarrierConfigManager) getApplicationContext()
+                .getSystemService(Context.CARRIER_CONFIG_SERVICE);
+        if (configManager == null) {
+            Log.d(TAG, "isEmergencySmsSupport configManager is null");
+            return false;
+        }
+        b = configManager.getConfigForSubId(subId);
+        if (b == null) {
+            Log.d(TAG, "isEmergencySmsSupport PersistableBundle is null");
+            return false;
+        }
+        eSmsCarrierSupport = b.getBoolean(
+                CarrierConfigManager.KEY_SUPPORT_EMERGENCY_SMS_OVER_IMS_BOOL);
+        Log.d(TAG,"isEmergencySmsSupport emergencySmsCarrierSupport: " + eSmsCarrierSupport);
+
+        return eSmsCarrierSupport;
+    }
+
     private void sendMessage(boolean bCheckEcmMode) {
         // Check message size, if >= max message size, do not send message.
         if(checkMessageSizeExceeded()){
@@ -5550,7 +5583,7 @@ public class ComposeMessageActivity extends Activity
             // TODO: expose this in telephony layer for SDK build
             boolean inEcm = TelephonyProperties.in_ecm_mode().orElse(false);
             Log.d(TAG,"ecm mode: " + inEcm);
-            if (inEcm) {
+            if (inEcm && !isEmergencySmsSupport()) {
                 try {
                     startActivityForResult(
                             new Intent(ConstantsWrapper.TelephonyIntent.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS, null),
