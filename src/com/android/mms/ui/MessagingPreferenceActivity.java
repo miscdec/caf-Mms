@@ -432,7 +432,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         updateSignatureStatus();
 
         mSmscPrefCate = (PreferenceCategory) findPreference("pref_key_smsc");
-        showSmscPref();
+       // showSmscPref();
 
         PreferenceScreen keyRoot = (PreferenceScreen)findPreference("pref_key_root");
         keyRoot.removePreference(mSmscPrefCate);

@@ -95,6 +95,7 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
             }
         }
     };
+    private boolean mSMSCFlag;
 
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -112,6 +113,7 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
     }
 
     private void showSmscPref() {
+        mSMSCFlag = true;
         int count = MessageUtils.getPhoneCount();
         for (int i = 0; i < count; i++) {
             final Preference pref = new Preference(this);
@@ -175,9 +177,9 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
     }
 
     private void setSMSCPrefState(int id, boolean prefEnabled) {
-        // We need update the preference summary.
+        Log.d(TAG, "SmscPreference setSMSCPrefState get SMSC from phone " + id
+                + "; prefEnabled: " + prefEnabled);
         if (prefEnabled) {
-            Log.d(TAG, "get SMSC from sub= " + id);
             if (getResources().getBoolean(R.bool.def_enable_reset_smsc)) {
                 updateSmscFromPreference(id);
             } else {
@@ -346,10 +348,22 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
             }
             Throwable exception = (Throwable) bundle
                     .getSerializable(MessageUtils.EXTRA_EXCEPTION);
+            int phoneId = bundle.getInt(MessageUtils.EXTRA_SMSC_PHONEID, 0);
+            boolean isGet = bundle.getBoolean(MessageUtils.EXTRA_SMSC_GET, false);
             boolean result = bundle.getBoolean(MessageUtils.EXTRA_SMSC_RESULT, false);
-            if (!result || exception != null) {
-                Log.d(TAG, "Error: " + exception + " result:" + result);
-                mOwner.showToast(R.string.set_smsc_error);
+            if (isGet) {
+                result = bundle
+                        .getString(MessageUtils.EXTRA_SMSC, null) != null;
+            }
+            Log.d(TAG, "SmscPreference: Error: " + exception
+                    + " result:" + result + "; phoneId: " + phoneId
+                    + "isGet: " + isGet);
+            if (!result && exception != null) {
+                if (MessageUtils.isIccCardActivated(phoneId)) {
+                    mOwner.showToast(R.string.set_smsc_error);
+                } else {
+                    Log.d(TAG, "phoneId " + phoneId + " state is invalid");
+                }
                 return;
             }
 
@@ -431,7 +445,11 @@ public class SMSCPreferenceActivity extends PreferenceActivity {
     @Override
     protected void onResume() {
         // Initialize the sms signature
-        updateSMSCPref();
+        Log.d("smsc","SmscPreference: smsc mSMSCFlag: " + mSMSCFlag);
+        if (!mSMSCFlag) {
+            updateSMSCPref();
+        }
+        mSMSCFlag = false;
         registerListeners();
         super.onResume();
     }

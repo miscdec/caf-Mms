@@ -340,6 +340,9 @@ public class MessageUtils {
     public static final String EXTRA_EXCEPTION = "exception";
     public static final String EXTRA_USEROBJ = "userobj";
 
+    public static final String EXTRA_SMSC_PHONEID = "smsc_phoneId";
+    public static final String EXTRA_SMSC_GET = "get_flag";
+
     // add for obtaining all short message count
     public static final Uri MESSAGES_COUNT_URI = Uri.parse("content://mms-sms/messagescount");
 
@@ -1934,43 +1937,57 @@ public class MessageUtils {
         return tm.hasIccCard();
     }
 
-    public static void setSmscForSub(Context context, int sub, String smsc, Message callback) {
+    public static void setSmscForSub(Context context, int phoneId, String smsc, Message callback) {
         if (callback == null) {
             return;
         } else {
             callback.replyTo = new Messenger(callback.getTarget());
         }
-
+        log("setSmscForSub: phoneId = " + phoneId + "; smsc = " + smsc);
+        int subIds[] = SubscriptionManagerWrapper.getSubId(phoneId);
+        int subId = SubscriptionManagerWrapper.INVALID_PHONE_INDEX;
+        if (subIds != null && subIds.length > 0) {
+            subId = subIds[0];
+        } else {
+            log("setSmscForSub: sub infor is null = ");
+        }
         boolean ret = false;
         Bundle bundle = new Bundle();
+        bundle.putInt("smsc_phoneId", phoneId);
         try {
-            ret = SmsManager.getSmsManagerForSubscriptionId(sub).setSmscAddress(smsc);
+            ret = SmsManager.getSmsManagerForSubscriptionId(subId).setSmscAddress(smsc);
         } catch (Exception e) {
             log(METHOD_SET_SMSC + e);
             bundle.putSerializable(EXTRA_EXCEPTION, e);
         }
-        log("Set: sub = " + sub + " smsc= " + smsc + " ret=" + ret);
+        log("setSmscForSub: phoneId: " + phoneId + "subId = " + subId + " smsc= " + smsc + " ret=" + ret);
         bundle.putBoolean(EXTRA_SMSC_RESULT, ret);
         smscResponse(bundle, callback);
     }
 
-    public static void getSmscFromSub(Context context, int sub, Message callback) {
+    public static void getSmscFromSub(Context context, int phoneId, Message callback) {
         if (callback == null) {
             return;
         }
-        int subId[] = SubscriptionManagerWrapper.getSubId(sub);
-        if (subId != null && subId.length > 0) {
-            sub = subId[0];
+        log("getSmscFromSub: phoneId = " + phoneId);
+        int subId = SubscriptionManagerWrapper.INVALID_PHONE_INDEX;
+        int subIds[] = SubscriptionManagerWrapper.getSubId(phoneId);
+        if (subIds != null && subIds.length > 0) {
+            subId = subIds[0];
+        } else {
+            log("Get: sub infor is null = ");
         }
         String smsc = null;
         Bundle bundle = new Bundle();
+        bundle.putInt(EXTRA_SMSC_PHONEID, phoneId);
+        bundle.putBoolean(EXTRA_SMSC_GET, true);
         try {
-            smsc = SmsManager.getSmsManagerForSubscriptionId(sub).getSmscAddress();
+            smsc = SmsManager.getSmsManagerForSubscriptionId(subId).getSmscAddress();
         } catch (Exception e) {
             log(METHOD_GET_SMSC + e);
             bundle.putSerializable(EXTRA_EXCEPTION, e);
         }
-        log("Get: sub = " + sub + " smsc=" + smsc);
+        log("getSmscFromSub: phoneId: " + phoneId + " ;subId = " + subId + " ;smsc=" + smsc);
         bundle.putString(EXTRA_SMSC, smsc);
         bundle.putBoolean(EXTRA_SMSC_RESULT, (null != smsc) ? true : false);
         smscResponse(bundle, callback);
@@ -2002,10 +2019,10 @@ public class MessageUtils {
      * Return whether the card is activated according to Subscription
      * used for DSDS
      */
-    public static boolean isIccCardActivated(int subscription) {
+    public static boolean isIccCardActivated(int slotId) {
         TelephonyManager tm = (TelephonyManager)MmsApp.
                 getApplication().getSystemService(Context.TELEPHONY_SERVICE);
-        int simState = TelephonyManagerWrapper.getSimState(tm, subscription);
+        int simState = TelephonyManagerWrapper.getSimState(tm, slotId);
         return (simState != TelephonyManager.SIM_STATE_ABSENT)
                     && (simState != TelephonyManager.SIM_STATE_UNKNOWN);
     }
