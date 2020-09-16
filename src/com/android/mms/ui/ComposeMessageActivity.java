@@ -5442,12 +5442,22 @@ public class ComposeMessageActivity extends Activity
 
     private boolean isImsRegistered() {
         boolean isImsReg = false;
-        int defaultSubId = SubscriptionManager.getDefaultSmsSubscriptionId();
         TelephonyManager tm =
                 (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        LogTag.debugD("isImsRegistered: default SMS subId:" + defaultSubId);
         if ((tm.getPhoneCount()) > 1 && MessageUtils.isMsimIccCardActive()) {
-            isImsReg = tm.isImsRegistered(defaultSubId);
+            int defaultSubId = SubscriptionManager.getDefaultSmsSubscriptionId();
+            LogTag.debugD("isImsRegistered: defaultSubId: " + defaultSubId);
+            if (SubscriptionManager.isValidSubscriptionId(defaultSubId)) {
+                isImsReg = tm.isImsRegistered(defaultSubId);
+            } else {
+                int subId = SubscriptionManagerWrapper.getSubIdBySlotId(0);
+                LogTag.debugD("isImsRegistered: phoneId 0, subId: " + subId);
+                if (subId == SubscriptionManagerWrapper.INVALID_SUBSCRIPTION_ID) {
+                    subId = SubscriptionManagerWrapper.getSubIdBySlotId(1);
+                    LogTag.debugD("isImsRegistered: phoneId 1, subId: " + subId);
+                }
+                isImsReg = tm.isImsRegistered(subId);
+            }
         } else {
             isImsReg = tm.isImsRegistered();
         }
