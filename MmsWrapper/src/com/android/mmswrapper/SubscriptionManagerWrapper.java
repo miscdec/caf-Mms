@@ -37,6 +37,7 @@ public class SubscriptionManagerWrapper {
 
     private static final String TAG = "SubscriptionManagerWrapper";
     public static final int INVALID_PHONE_INDEX = SubscriptionManager.INVALID_PHONE_INDEX;
+    public static final int INVALID_SUBSCRIPTION_ID = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
 
     public static int getPhoneId(int subId) {
         int ret = SubscriptionManager.getPhoneId(subId);
@@ -60,5 +61,14 @@ public class SubscriptionManagerWrapper {
         boolean ret = sm.isActiveSubId(subId);
         LogUtils.logi(TAG, "isActiveSubId:" + subId + "=" + ret);
         return ret;
+    }
+
+    public static int getSubIdBySlotId(int slotId) {
+        int[] ret = SubscriptionManager.getSubId(slotId);
+        if ((ret !=  null) && (ret.length > 0)) {
+            LogUtils.logi(TAG, "getSubId: slotId: " + slotId + "; subId: " + ret[0]);
+            return ret[0];
+        }
+        return INVALID_SUBSCRIPTION_ID;
     }
 }
