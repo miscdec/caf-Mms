@@ -848,6 +848,81 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    private AsyncTask<String, Void, int[]> getAsyncTask() {
+         AsyncTask<String, Void, int[]> asyncTask =
+              new AsyncTask<String, Void, int[]>(){
+                @Override
+                protected int[] doInBackground(String... params) {
+                    Log.d(TAG, " doInBackground Thread id: "+Thread.currentThread().getId());
+                    if (params != null && params.length > 0) {
+                        Log.d("count","doInBackground: " + params[0]);
+                        return SmsMessage.calculateLength(params[0], false);
+                    }
+                    return null;
+                }
+                @Override
+                protected void onPostExecute(int[] result) {
+                    if (result == null || result.length < 3)
+                        return;
+                    /* SmsMessage.calculateLength returns an int[4] with:
+                     *   int[0] being the number of SMS's required,
+                     *   int[1] the number of code units used,
+                     *   int[2] is the number of code units remaining until the next message.
+                     *   int[3] is the encoding type that should be used for the message.
+                     */
+                    int msgCount = result[0];
+                    int remainingInCurrentMessage = result[2];
+                    Log.d("count", "onPostExecute: msgCount: " + msgCount
+                            + "; remainingInCurrentMessage: " + remainingInCurrentMessage);
+                    if (!MmsConfig.getMultipartSmsEnabled()) {
+                        // The provider doesn't support multi-part sms's
+                        // so as soon as the user types an sms longer than one segment,
+                        // we have to turn the message into an mms.
+                        mWorkingMessage.setLengthRequiresMms(msgCount > 1, true);
+                    } else {
+                        int threshold =
+                                MmsConfig.getSmsToMmsTextThreshold(ComposeMessageActivity.this);
+                        mWorkingMessage.setLengthRequiresMms(threshold > 0
+                                && msgCount > threshold, true);
+                    }
+
+                    // Show the counter only if:
+                    // - We are not in MMS mode
+                    // - We are going to send more than one message OR we are getting close
+                    boolean showCounter = false;
+                    if (!mWorkingMessage.requiresMms() &&
+                            (msgCount > 1 ||
+                                    remainingInCurrentMessage
+                                            <= CHARS_REMAINING_BEFORE_COUNTER_SHOWN)) {
+                        showCounter = true;
+                    }
+
+            if (mShowTwoButtons) {
+                showTwoSmsOrMmsSendButton(mWorkingMessage.requiresMms());
+            } else {
+                showSmsOrMmsSendButton(mWorkingMessage.requiresMms());
+            }
+
+                    if (showCounter) {
+                        // Update the remaining characters and number of messages required.
+                        String counterText = msgCount > 1 ? remainingInCurrentMessage
+                                + " / " + msgCount : String.valueOf(remainingInCurrentMessage);
+                        mTextCounter.setText(counterText);
+                        mTextCounter.setVisibility(View.VISIBLE);
+                        if (mShowTwoButtons) {
+                            mTextCounterSec.setText(counterText);
+                            mTextCounterSec.setVisibility(View.VISIBLE);
+                        }
+                    } else {
+                        mTextCounter.setVisibility(View.GONE);
+                        if (mShowTwoButtons) {
+                            mTextCounterSec.setVisibility(View.GONE);
+                        }
+                    }
+                }
+            };
+        return asyncTask;
+    }
     private void updateCounter(CharSequence text, int start, int before, int count) {
         WorkingMessage workingMessage = mWorkingMessage;
         if (workingMessage.requiresMms()) {
@@ -865,56 +940,8 @@ public class ComposeMessageActivity extends Activity
                 return;
             }
         }
-
-        int[] params = SmsMessage.calculateLength(text, false);
-            /* SmsMessage.calculateLength returns an int[4] with:
-             *   int[0] being the number of SMS's required,
-             *   int[1] the number of code units used,
-             *   int[2] is the number of code units remaining until the next message.
-             *   int[3] is the encoding type that should be used for the message.
-             */
-        int msgCount = params[0];
-        int remainingInCurrentMessage = params[2];
-        if (!MmsConfig.getMultipartSmsEnabled()) {
-            // The provider doesn't support multi-part sms's so as soon as the user types
-            // an sms longer than one segment, we have to turn the message into an mms.
-            mWorkingMessage.setLengthRequiresMms(msgCount > 1, true);
-        } else {
-            int threshold = MmsConfig.getSmsToMmsTextThreshold(ComposeMessageActivity.this);
-            mWorkingMessage.setLengthRequiresMms(threshold > 0 && msgCount > threshold, true);
-        }
-
-        // Show the counter only if:
-        // - We are not in MMS mode
-        // - We are going to send more than one message OR we are getting close
-        boolean showCounter = false;
-        if (!workingMessage.requiresMms() &&
-                (msgCount > 1 ||
-                 remainingInCurrentMessage <= CHARS_REMAINING_BEFORE_COUNTER_SHOWN)) {
-            showCounter = true;
-        }
-
-        if (mShowTwoButtons) {
-            showTwoSmsOrMmsSendButton(workingMessage.requiresMms());
-        } else {
-            showSmsOrMmsSendButton(workingMessage.requiresMms());
-        }
-
-        if (showCounter) {
-            // Update the remaining characters and number of messages required.
-            String counterText = msgCount > 1 ? remainingInCurrentMessage + " / " + msgCount
-                    : String.valueOf(remainingInCurrentMessage);
-            mTextCounter.setText(counterText);
-            mTextCounter.setVisibility(View.VISIBLE);
-            if (mShowTwoButtons) {
-                mTextCounterSec.setText(counterText);
-                mTextCounterSec.setVisibility(View.VISIBLE);
-            }
-        } else {
-            mTextCounter.setVisibility(View.GONE);
-            if (mShowTwoButtons) {
-                mTextCounterSec.setVisibility(View.GONE);
-            }
+        if (text != null && text.length() > 0) {
+            getAsyncTask().executeOnExecutor(AsyncTask.SERIAL_EXECUTOR, text.toString());
         }
     }
 

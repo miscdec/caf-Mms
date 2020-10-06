@@ -58,6 +58,7 @@ import com.android.mms.MmsConfig;
 import com.android.mms.transaction.TransactionService;
 import com.android.mmswrapper.ConstantsWrapper;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
+import java.util.HashMap;
 
 public class SmsPreferenceActivity extends PreferenceActivity {
     private static String TAG = "SmsPreferenceActivity";
@@ -143,6 +144,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
             }
         }
     };
+    private boolean mSMSCFlag;
 
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -379,8 +381,8 @@ public class SmsPreferenceActivity extends PreferenceActivity {
     }
 
     private void showSmscPref() {
+        mSMSCFlag = true;
         if (!MessageUtils.isMultiSimEnabledMms()) {
-            //remove all multi
             prefSmsSettings.removePreference(mSmsCenterNumber);
             prefSmsSettings.removePreference(mSmsCenterNumberSim1);
             prefSmsSettings.removePreference(mSmsCenterNumberSim2);
@@ -447,6 +449,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
             }
             int count = MessageUtils.getPhoneCount();
             int iccCardActivited = 0;
+            HashMap<Integer, Boolean> phoneStateMap =  new HashMap<Integer, Boolean>();
             for (int i = 0; i < count; i++) {
                 boolean isCDMA = false;
                 int subId[] = SubscriptionManagerWrapper.getSubId(i);
@@ -457,7 +460,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                         && MessageUtils.hasActivatedIccCard(i)) {
                     iccCardActivited++;
                 }
-                setSMSCPrefState(i, !isCDMA && !isAirPlaneModeOn()
+                phoneStateMap.put(i, !isCDMA && !isAirPlaneModeOn()
                         && MessageUtils.hasActivatedIccCard(i));
             }
             if (iccCardActivited == 0) {
@@ -470,11 +473,19 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                 mSmsCenterNumber.setEnabled(true);
             } else {
                 prefSmsSettings.removePreference(mSmsCenterNumber);
+                boolean state = false;
+                for (int i = 0; i < MessageUtils.getPhoneCount(); i++) {
+                    state = phoneStateMap.get(i);
+                    Log.d("smsc","updateSMSCPref: phone " + i + " state " + state);
+                    setSMSCPrefState(i, state);
+                }
             }
         }
     }
 
     private void setSMSCPrefState(int id, boolean prefEnabled) {
+        Log.d(TAG, "setSMSCPrefState get SMSC from phone " + id
+                + "; prefEnabled: " + prefEnabled);
         // We need update the preference summary.
         if (!MessageUtils.isMultiSimEnabledMms()) {
             if (prefEnabled) {
@@ -491,7 +502,6 @@ public class SmsPreferenceActivity extends PreferenceActivity {
             }
         } else {
             if (prefEnabled) {
-                Log.d(TAG, "get SMSC from sub= " + id);
                 if (getResources().getBoolean(R.bool.def_enable_reset_smsc)) {
                     updateSmscFromPreference(id);
                 } else {
@@ -670,7 +680,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog,
                                         int whichButton) {
-                                    Log.d(TAG, "set SMSC from sub= " + sub
+                                    Log.d(TAG, "set SMSC from phone " + sub
                                             + " SMSC= " + displayedSMSC);
                                     Bundle userParams = new Bundle();
                                     userParams.putInt(ConstantsWrapper.Phone.SLOT_KEY,
@@ -769,10 +779,22 @@ public class SmsPreferenceActivity extends PreferenceActivity {
             }
             Throwable exception = (Throwable) bundle
                     .getSerializable(MessageUtils.EXTRA_EXCEPTION);
+            int phoneId = bundle.getInt(MessageUtils.EXTRA_SMSC_PHONEID, 0);
+            boolean isGet = bundle.getBoolean(MessageUtils.EXTRA_SMSC_GET, false);
             boolean result = bundle.getBoolean(MessageUtils.EXTRA_SMSC_RESULT, false);
-            if (!result || exception != null) {
-                Log.d(TAG, "Error: " + exception + " result:" + result);
-                mOwner.showToast(R.string.set_smsc_error);
+            if (isGet) {
+                result = bundle
+                        .getString(MessageUtils.EXTRA_SMSC, null) != null;
+            }
+            Log.d(TAG, "SmsPreference: Error: " + exception
+                    + " result:" + result + "; phoneId: " + phoneId
+                    + " isGet: " + isGet);
+            if (!result && exception != null) {
+                if (MessageUtils.isIccCardActivated(phoneId)) {
+                    mOwner.showToast(R.string.set_smsc_error);
+                } else {
+                    Log.d(TAG, "phoneId " + phoneId + " state is invalid");
+                }
                 return;
             }
 
@@ -814,7 +836,7 @@ public class SmsPreferenceActivity extends PreferenceActivity {
                 if (summary == null) {
                     return;
                 }
-                Log.d(TAG, "Update SMSC: sub= " + sub + " SMSC= " + summary);
+                Log.d(TAG, "Update SMSC: phone " + sub + " SMSC= " + summary);
                 int end = summary.lastIndexOf("\"");
                 if (!MessageUtils.isMultiSimEnabledMms()) {
                     mSmsCenterNumberSS.setSummary((end > 0)? summary.substring(1, end) : summary);
@@ -861,6 +883,11 @@ public class SmsPreferenceActivity extends PreferenceActivity {
         // Initialize the sms signature
         updateSignatureStatus();
         registerListeners();
+        Log.d("smsc","SmsPreference: smsc mSMSCFlag: " + mSMSCFlag);
+        if (!mSMSCFlag) {
+            updateSMSCPref();
+        }
+        mSMSCFlag = false;
         super.onResume();
     }
 
