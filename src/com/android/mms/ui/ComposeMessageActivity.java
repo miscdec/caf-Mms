@@ -1783,6 +1783,14 @@ public class ComposeMessageActivity extends Activity
             }
 
             editSmsMessageItem(msgItem);
+            boolean inEcm = TelephonyProperties.in_ecm_mode().orElse(false);
+            Log.d(TAG,"ecm mode: " + inEcm);
+            if (inEcm && !isEmergencySmsSupport()) {
+                if (mWorkingMessage.getText() != null) {
+                    mTextEditor.setTextKeepState(mWorkingMessage.getText());
+                    mTextEditor.setSelection(mTextEditor.length());
+                }
+            }
         }
 
         sendMessage(true);
