@@ -1783,6 +1783,14 @@ public class ComposeMessageActivity extends Activity
             }
 
             editSmsMessageItem(msgItem);
+            boolean inEcm = TelephonyProperties.in_ecm_mode().orElse(false);
+            Log.d(TAG,"ecm mode: " + inEcm);
+            if (inEcm && !isEmergencySmsSupport()) {
+                if (mWorkingMessage.getText() != null) {
+                    mTextEditor.setTextKeepState(mWorkingMessage.getText());
+                    mTextEditor.setSelection(mTextEditor.length());
+                }
+            }
         }
 
         sendMessage(true);
@@ -5549,14 +5557,24 @@ public class ComposeMessageActivity extends Activity
         return (size + KILOBYTE -1) / KILOBYTE + 1;
     }
 
+    private ContactList getRecipientForEmergency() {
+        ContactList contactList;
+        if (isRecipientsEditorVisible()) {
+            contactList = mWorkingMessage.getWorkingContactLists();
+        } else {
+            contactList = mConversation.getRecipients();
+        }
+        return contactList;
+    }
     public boolean isEmergencySmsSupport() {
         PersistableBundle b;
         boolean eSmsCarrierSupport = false;
-        ContactList recipients = getRecipients();
-        int subId = mWorkingMessage.mCurrentConvSubId;
+        ContactList recipients = getRecipientForEmergency();
         if (recipients == null || recipients.size() != 1) {
+            Log.d(TAG, "recipient is invalid");
             return false;
         }
+        int subId = mWorkingMessage.mCurrentConvSubId;
         Log.d(TAG, "isEmergencySmsSupport subId: " + subId);
         if (!PhoneNumberUtils.isLocalEmergencyNumber(getApplicationContext(),
                 subId, recipients.get(0).getNumber())) {
