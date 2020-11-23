@@ -891,6 +891,12 @@ public class WorkingMessage {
         return recipients.serialize();
     }
 
+    public ContactList getWorkingContactLists() {
+        if (mWorkingRecipients == null) {
+            return null;
+        }
+        return ContactList.getByNumbers(mWorkingRecipients, false);
+    }
     // Call when we've returned from adding an attachment. We're no longer forcing the message
     // into a Mms message. At this point we either have the goods to make the message a Mms
     // or we don't. No longer fake it.
