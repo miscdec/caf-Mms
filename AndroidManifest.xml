@@ -65,7 +65,6 @@
             android:allowTaskReparenting="true"
             android:usesCleartextTraffic="true"
             android:supportsRtl="true">
-        <uses-library android:name="com.qrd.wappush" android:required="false" />
 
         <service android:name=".transaction.TransactionService"
                  android:exported="false" />
