@@ -38,6 +38,8 @@ import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mmswrapper.ConstantsWrapper;
 import com.android.mmswrapper.ConnectivityManagerWrapper;
 
+import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mms.MmsConfig;
 /**
  * MmsSystemEventReceiver receives the
  * {@link android.content.intent.ACTION_BOOT_COMPLETED},
@@ -72,6 +74,7 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
         }
 
         String action = intent.getAction();
+        Log.d(TAG, "MDN: SIM state change 1: " + action);
         if (action.equals(Mms.Intents.CONTENT_CHANGED_ACTION)) {
             Uri changed = (Uri) intent.getParcelableExtra(Mms.Intents.DELETED_CONTENTS);
             MmsApp.getApplication().getPduLoaderManager().removePdu(changed);
@@ -98,11 +101,19 @@ public class MmsSystemEventReceiver extends BroadcastReceiver {
             }
         } else if (action.equals(ConstantsWrapper.TelephonyIntent.ACTION_SIM_STATE_CHANGED)) {
             String stateExtra = intent.getStringExtra(ConstantsWrapper.IccCard.INTENT_KEY_ICC_STATE);
+            int slotId = intent.getIntExtra(ConstantsWrapper.Phone.PHONE_KEY,
+                    SubscriptionManagerWrapper.INVALID_PHONE_INDEX);
+            Log.d(TAG, "MDN: SIM state slotId: " + slotId
+                    + "; stateExtra: " + stateExtra
+                    + "; action: " + action);
             if (ConstantsWrapper.IccCard.INTENT_VALUE_ICC_LOADED.equals(stateExtra)) {
                 MessagingNotification.nonBlockingUpdateNewMessageIndicator(
                         context, MessagingNotification.THREAD_NONE, false);
                 if (isMmsNetworkReadyForPendingMsg(context)) {
                     wakeUpService(context);
+                }
+                if (slotId != SubscriptionManagerWrapper.INVALID_PHONE_INDEX) {
+                    MmsConfig.loadCarrierHttpSetting(context, slotId);
                 }
             }
         }
