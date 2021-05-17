@@ -821,19 +821,19 @@ public class MessageUtils {
             }
         }
 
-        // Received: ***
-        details.append('\n');
-        if (smsType == Sms.MESSAGE_TYPE_DRAFT) {
-            details.append(res.getString(R.string.saved_label));
-        } else if (smsType == Sms.MESSAGE_TYPE_INBOX) {
-            details.append(res.getString(R.string.received_label));
-        } else {
-            details.append(res.getString(R.string.sent_label));
-        }
-
         long date = cursor.getLong(cursor.getColumnIndexOrThrow(Sms.DATE));
-        details.append(MessageUtils.formatTimeStampString(context, date, true));
-
+        if (date > 0) {
+            // Received: ***
+            details.append('\n');
+            if (smsType == Sms.MESSAGE_TYPE_DRAFT) {
+                details.append(res.getString(R.string.saved_label));
+            } else if (smsType == Sms.MESSAGE_TYPE_INBOX) {
+                details.append(res.getString(R.string.received_label));
+            } else {
+                details.append(res.getString(R.string.sent_label));
+            }
+            details.append(MessageUtils.formatTimeStampString(context, date, true));
+        }
         // Delivery report
         if (TelephonyWrapper.Sms.isOutgoingFolder(smsType)) {
             long status = cursor.getLong(COLUMN_SMS_STATUS);

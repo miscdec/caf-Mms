@@ -32,6 +32,18 @@ java_library {
 
     srcs: ["src/**/*.java"],
 
-    libs: ["telephony-common"],
+    sdk_version: "core_platform",
+    libs: [
+        "telephony-common",
+
+        // order matters: classes in framework-connectivity are resolved before framework,
+        // meaning @hide APIs in framework-connectivity are resolved before @SystemApi
+        // stubs in framework
+        "framework-connectivity.impl",
+        "framework",
+
+        // if sdk_version="" this gets automatically included, but here we need to add manually.
+        "framework-res",
+    ],
 
 }
