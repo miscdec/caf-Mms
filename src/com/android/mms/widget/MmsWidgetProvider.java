@@ -97,14 +97,16 @@ public class MmsWidgetProvider extends AppWidgetProvider {
         // Open Mms's app conversation list when click on header
         final Intent convIntent = new Intent(context, ConversationList.class);
         clickIntent = PendingIntent.getActivity(
-                context, 0, convIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                context, 0, convIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
         remoteViews.setOnClickPendingIntent(R.id.widget_header, clickIntent);
 
         // On click intent for Compose
         final Intent composeIntent = new Intent(context, ComposeMessageActivity.class);
         composeIntent.setAction(Intent.ACTION_SENDTO);
         clickIntent = PendingIntent.getActivity(
-                context, 0, composeIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                context, 0, composeIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
         remoteViews.setOnClickPendingIntent(R.id.widget_compose, clickIntent);
 
         // On click intent for Conversation
@@ -113,7 +115,8 @@ public class MmsWidgetProvider extends AppWidgetProvider {
         Intent msgIntent = new Intent();
         taskStackBuilder.addNextIntent(msgIntent);
         remoteViews.setPendingIntentTemplate(R.id.conversation_list,
-                taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT));
+                taskStackBuilder.getPendingIntent(0,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
 
         AppWidgetManager.getInstance(context).updateAppWidget(appWidgetId, remoteViews);
     }
