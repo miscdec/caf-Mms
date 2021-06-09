@@ -169,7 +169,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                                 mUri,
                                 mContext,
                                 MessageStatusReceiver.class),
-                                0));
+                                PendingIntent.FLAG_MUTABLE));
             } else {
                 deliveryIntents.add(null);
             }
@@ -187,7 +187,8 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                 intent.putExtra(SmsReceiverService.EXTRA_MESSAGE_SENT_SEND_NEXT, true);
             }
             LogTag.debugD("sendMessage sendIntent: " + intent);
-            sentIntents.add(PendingIntent.getBroadcast(mContext, requestCode, intent, 0));
+            sentIntents.add(PendingIntent.getBroadcast(mContext, requestCode, intent,
+                    PendingIntent.FLAG_MUTABLE));
         }
 
         int validityPeriod = getValidityPeriod(mSubId);

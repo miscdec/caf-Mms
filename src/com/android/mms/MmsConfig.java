@@ -31,8 +31,12 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.mms.ui.MessageUtils;
-import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.android.mmswrapper.ConstantsWrapper;
+import com.android.mmswrapper.TelephonyManagerWrapper;
+import android.content.res.Configuration;
+import android.telephony.SubscriptionManager;
+import android.telephony.SubscriptionInfo;
 
 public class MmsConfig {
     private static final String TAG = LogTag.TAG;
@@ -130,6 +134,7 @@ public class MmsConfig {
 
     private static final String MMS_DESTINATION = "9798";
 
+    private static final String[] mMdnInfoArray = new String[MessageUtils.getPhoneCount()];
     public static void init(Context context) {
         if (LOCAL_LOGV) {
             Log.v(TAG, "MmsConfig.init()");
@@ -139,7 +144,7 @@ public class MmsConfig {
                 android.os.SystemProperties.get(ConstantsWrapper.TelephonyProperty.PROPERTY_ICC_OPERATOR_NUMERIC));
 
         loadMmsSettings(context);
-
+        loadCarrierHttpSettings(context);
         MAX_SLIDE_NUM = context.getResources().getInteger(R.integer.max_slide_num);
     }
 
@@ -502,6 +507,128 @@ public class MmsConfig {
                         errorStr);
             Log.e(TAG, err);
         }
+    }
+
+    public static String getHttpParaBySubId(int subId) {
+        int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
+        if ((phoneId >= 0) && (phoneId < mMdnInfoArray.length)) {
+            return mMdnInfoArray[phoneId];
+        } else {
+            return null;
+        }
+
+    }
+
+    private static void loadCarrierHttpSettings(Context context) {
+        for (int i= 0; i< mMdnInfoArray.length; i++) {
+            if (MessageUtils.isIccCardActivated(i)) {
+                Log.d(TAG, "MDN: loadCarrierHttpSettings phone i " + i + " is active");
+                loadCarrierHttpSetting(context, i);
+            } else {
+                Log.d(TAG, "MDN: loadCarrierHttpSettings phone i " + i + " isn't active");
+            }
+        }
+    }
+
+    public static void loadCarrierHttpSetting(final Context context, final int phoneId) {
+        int subId = SubscriptionManagerWrapper.getSubIdBySlotId(phoneId);
+        Context subContext = getSubContext(context, subId);
+        Log.d(TAG, "MDN: loadCarrierHttpSetting: context " + context
+                + "; subContext: " + subContext
+                + "; phoneId: " + phoneId
+                + "; subId: " + subId);
+        if (subContext == null) {
+            Log.d(TAG, "MDN: loadCarrierHttpSetting subId " + subId + " context is null  " );
+            return;
+        }
+        XmlResourceParser parser = subContext.getResources().getXml(R.xml.sub_mms_config);
+        try {
+            beginDocument(parser, "mms_config");
+
+            while (true) {
+                nextElement(parser);
+                String tag = parser.getName();
+                if (tag == null) {
+                    break;
+                }
+                String name = parser.getAttributeName(0);
+                String value = parser.getAttributeValue(0);
+                String text = null;
+                if (parser.next() == XmlPullParser.TEXT) {
+                    text = parser.getText();
+                }
+
+                Log.v(TAG, "MDN: tag: " + tag + " value: " + value + " - " +
+                            text);
+
+                if ("name".equalsIgnoreCase(name)) {
+                    if ("string".equals(tag)) {
+                        if ("httpParams".equalsIgnoreCase(value)) {
+                            Log.d(TAG, "MDN: loadCarrierHttpSetting httpParams is   " + text);
+                            if ((phoneId >= 0) && (phoneId < mMdnInfoArray.length)) {
+                                mMdnInfoArray[phoneId] = text;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (XmlPullParserException e) {
+            Log.e(TAG, "loadMmsSettings caught ", e);
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "loadMmsSettings caught ", e);
+        } catch (IOException e) {
+            Log.e(TAG, "loadMmsSettings caught ", e);
+        } finally {
+            parser.close();
+        }
+    }
+
+    private static Context getSubContext(final Context context, final int subId) {
+        final String[] mccMnc = getMccMnc(context, subId);
+        if (TextUtils.isEmpty(mccMnc[0]) || TextUtils.isEmpty(mccMnc[1])) {
+            return null;
+        }
+        final Configuration subConfig = new Configuration();
+        subConfig.mcc = Integer.parseInt(mccMnc[0]);
+        subConfig.mnc = Integer.parseInt(mccMnc[1]);
+        return context.createConfigurationContext(subConfig);
+    }
+
+    static String[] getMccMnc(final Context context, final int subId) {
+        String[] mccMnc =  new String[2];
+        String mcc;
+        String mnc;
+        StringBuilder sb =  new StringBuilder();
+        if (MessageUtils.isMultiSimEnabledMms()) {
+            Log.d(TAG,"MDN: getMccMnc: Support multi sim.");
+            final SubscriptionManager subscriptionManager = SubscriptionManager.from(context);
+            final SubscriptionInfo subInfo = subscriptionManager.getActiveSubscriptionInfo(subId);
+            if (subInfo != null) {
+                mcc = subInfo.getMccString();
+                mnc = subInfo.getMncString();
+                Log.d(TAG,"MDN: getMccMnc: Mcc is: " + mcc
+                        + "; Mnc is: " + mnc);
+                mccMnc[0] = mcc;
+                mccMnc[1] = mnc;
+            }
+        } else {
+            Log.d(TAG,"MDN: getMccMnc: Do't support multi sim.");
+            final String mccMncString = TelephonyManagerWrapper.getMccMnc(context);
+            Log.d(TAG,"MDN: getMccMnc: MccMnc is: " + mccMncString);
+            try {
+                mcc = mccMncString.substring(0, 3);
+                mnc = mccMncString.substring(3);
+                Log.d(TAG,"MDN: getMccMnc: Mcc is: " + mcc
+                        + "; Mnc is: " + mnc);
+                mccMnc[0] = mcc;
+                mccMnc[1] = mnc;
+            } catch (Exception e) {
+                Log.w(TAG, "MDN: Invalid mcc/mnc from system " + mccMncString + ": " + e);
+            }
+        }
+        Log.d(TAG,"MDN: getMccMnc: final Mcc_mnc is: "
+                + mccMnc[0] + "_" + mccMnc[1]);
+        return mccMnc;
     }
 
     public static String getMmsDestination() {
