@@ -162,4 +162,10 @@ public class TelephonyManagerWrapper {
         LogUtils.logi(TAG, "isNetworkRoaming subId=" + subId + "flag=" + flag);
         return flag;
     }
+
+    public static String getMccMnc(Context context) {
+        TelephonyManager telephonyManager =
+                (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        return telephonyManager.getSimOperator();
+    }
 }

@@ -339,10 +339,9 @@ public class HttpUtils {
                 connection.setRequestMethod(METHOD_POST);
                 connection.setRequestProperty(HEADER_CONTENT_TYPE,
                     HEADER_VALUE_CONTENT_TYPE_WITHOUT_CHARSET);
-
-                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+             //   if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                     logHttpHeaders(connection.getRequestProperties());
-                }
+                //}
                 connection.setFixedLengthStreamingMode(pdu.length);
                 // Sending request body
                 final OutputStream out = new BufferedOutputStream(connection.getOutputStream());
@@ -417,8 +416,8 @@ public class HttpUtils {
 
     private static void addExtraHeaders(Context context,
             HttpURLConnection connection, int subId) {
-        final String extraHttpParams = MmsConfig.getHttpParams();
-
+        final String extraHttpParams = MmsConfig.getHttpParaBySubId(subId);
+        Log.d(TAG,"HttpUtils.addExtraHeaders: httpParamters is " + extraHttpParams);
         if (!TextUtils.isEmpty(extraHttpParams)) {
             // Parse the parameter list
             String paramList[] = extraHttpParams.split("\\|");
@@ -426,7 +425,10 @@ public class HttpUtils {
                 String splitPair[] = paramPair.split(":", 2);
                 if (splitPair.length == 2) {
                     final String name = splitPair[0].trim();
+                    Log.d(TAG,"HttpUtils.addExtraHeaders: name is " + name
+                            + "; value is " + splitPair[1].trim());
                     final String value = resolveMacro(context, splitPair[1].trim(), subId);
+                    Log.d(TAG,"HttpUtils.addExtraHeaders: resolver value is " + value);
                     if (!TextUtils.isEmpty(name) && !TextUtils.isEmpty(value)) {
                         // Add the header if the param is valid
                        connection.setRequestProperty(name, value);
@@ -585,9 +587,13 @@ public class HttpUtils {
                     for (String value : values) {
                         sb.append(key).append('=').append(value).append('\n');
                     }
+                    Log.v(TAG, "HTTP: headers key is " + key
+                            + "; value is " + String.join(",",values));
                 }
             }
             Log.v(TAG, "HTTP: headers\n" + sb.toString());
+        } else {
+            Log.d("Mms","headers is null");
         }
     }
 
