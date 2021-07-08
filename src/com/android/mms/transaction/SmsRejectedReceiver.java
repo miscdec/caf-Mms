@@ -67,7 +67,7 @@ public class SmsRejectedReceiver extends BroadcastReceiver {
                     | Intent.FLAG_ACTIVITY_SINGLE_TOP
                     | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             PendingIntent pendingIntent = PendingIntent.getActivity(
-                    context, 0, viewConvIntent, 0);
+                    context, 0, viewConvIntent, PendingIntent.FLAG_IMMUTABLE);
 
             Notification notification = new Notification.BigTextStyle(noti).build();
 

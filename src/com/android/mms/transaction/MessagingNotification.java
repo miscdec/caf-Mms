@@ -443,12 +443,12 @@ public class MessagingNotification {
         PendingIntent pendingIntent;
         if (phoneId == MessageUtils.SUB_INVALID) {
             pendingIntent = PendingIntent.getActivity(context, 0, info.mClickIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT);
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
         } else {
             // Use requestCode to avoid updating all intents of previous notifications
             pendingIntent = PendingIntent.getActivity(context,
                     NEW_ICC_NOTIFICATION_ID[phoneId], info.mClickIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT);
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
         }
         String title = info.mTitle;
         noti.setContentTitle(title)
@@ -1199,7 +1199,8 @@ public class MessagingNotification {
         if (isMultiNewMessages) {    // messages from multiple threads
             Intent mainActivityIntent = getMultiThreadsViewIntent(context);
             pendingIntent = PendingIntent.getActivity(context, 0,
-                    mainActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    mainActivityIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
             title = context.getString(R.string.message_count_notification, messageCount);
             Drawable backgroundDrawable = context
                     .getResources().getDrawable(R.drawable.notification_multi_icon_background);
@@ -1253,12 +1254,13 @@ public class MessagingNotification {
             }
 
             pendingIntent = PendingIntent.getActivity(context, 0,
-                    mostRecentNotification.mClickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    mostRecentNotification.mClickIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
         }
 
         Intent mActivityIntent = getMultiThreadsViewIntent(context);
         PendingIntent mPendingIntent = PendingIntent.getActivity(context, 0,
-                mActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                mActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
         // Always have to set the small icon or the notification is ignored
         noti.setSmallIcon(R.drawable.ic_notification);
 
@@ -1332,7 +1334,7 @@ public class MessagingNotification {
 
         // set up delete intent
         noti.setDeleteIntent(PendingIntent.getBroadcast(context, 0,
-                sNotificationOnDeleteIntent, 0));
+                sNotificationOnDeleteIntent, PendingIntent.FLAG_MUTABLE));
 
         final Notification notification;
 
@@ -1372,7 +1374,8 @@ public class MessagingNotification {
                             downloadIntent.putExtra(
                                     NotificationActionHandleReceiver.MSG_ID, msgId);
                             PendingIntent downloadPendingIntent = PendingIntent.getBroadcast(
-                                    context, 0, downloadIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                                    context, 0, downloadIntent,
+                                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
 
                             noti.addAction(R.drawable.notification_download,
                                     downloadText, downloadPendingIntent);
@@ -1547,7 +1550,8 @@ public class MessagingNotification {
         final int messageCount = notificationSet.size();
         NotificationInfo mostRecentNotification = notificationSet.first();
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0,
-                mostRecentNotification.mClickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                mostRecentNotification.mClickIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
         final Notification.Builder noti = new Notification.Builder(context, NEW_MESSAGE_CHANNEL_ID)
                 .setWhen(mostRecentNotification.mTimeMillis)
                 .setColor(context.getResources().getColor(R.color.notification_accent_color))
@@ -1616,7 +1620,8 @@ public class MessagingNotification {
                                     NotificationActionHandleReceiver.MSG_ID, msgId);
                             downloadIntent.setData(msgUri);
                             PendingIntent downloadPendingIntent = PendingIntent.getBroadcast(
-                                    context, 0, downloadIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                                    context, 0, downloadIntent,
+                                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
 
                             noti.addAction(R.drawable.notification_download,
                                     downloadText, downloadPendingIntent);
@@ -1709,7 +1714,7 @@ public class MessagingNotification {
             final String sortkey) {
         Intent clickIntent = getClickIntent(context, true, threadId);
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0,
-                clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                clickIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
 
         final Notification.Builder noti = new Notification.Builder(context,
                 NEW_MESSAGE_CHANNEL_ID)
@@ -1815,7 +1820,7 @@ public class MessagingNotification {
                 sortkey);
 
         PendingIntent replyPendingIntent = PendingIntent.getActivity(context, 0,
-                replyIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                replyIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
         RemoteInput remoteInput = new RemoteInput.Builder(
                 NotificationQuickReplyActivity.KEY_TEXT_REPLY)
                 .setLabel(typeMessageText)
@@ -2024,7 +2029,7 @@ public class MessagingNotification {
         notification.tickerText = title;
 
         notification.setLatestEventInfo(context, title, description,
-                taskStackBuilder.getPendingIntent(0,  PendingIntent.FLAG_UPDATE_CURRENT));
+                taskStackBuilder.getPendingIntent(0,  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
 
         if (noisy) {
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
@@ -2463,7 +2468,8 @@ public class MessagingNotification {
                 : R.string.memory_low_title);
         String description = context.getString(isSms ? R.string.sms_full_body
                 : R.string.memory_low_body);
-        PendingIntent intent = PendingIntent.getActivity(context, 0,  new Intent(), 0);
+        PendingIntent intent = PendingIntent.getActivity(context, 0,  new Intent(),
+                PendingIntent.FLAG_MUTABLE);
         Notification notification = new Notification.BigTextStyle(noti).build();
         notification.icon = R.drawable.notification_icon_failed;
         notification.tickerText = title;

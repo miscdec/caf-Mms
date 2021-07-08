@@ -292,7 +292,8 @@ public class RetryScheduler implements Observer {
                     Intent service = new Intent(TransactionService.ACTION_ONALARM,
                             null, context, TransactionService.class);
                     PendingIntent operation = PendingIntent.getService(
-                            context, 0, service, PendingIntent.FLAG_ONE_SHOT);
+                            context, 0, service,
+                            PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
                     AlarmManager am = (AlarmManager) context.getSystemService(
                             Context.ALARM_SERVICE);
                     am.setExact(AlarmManager.RTC, retryAt, operation);

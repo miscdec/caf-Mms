@@ -214,7 +214,7 @@ public class HttpUtils {
         sAlarmTag++;
         intent.putExtra(INTENT_EXTRA_TAG, sAlarmTag);
         sAlarmIntent = PendingIntent.getBroadcast (context, 0,
-                intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         am.setExact(AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + HTTP_TIMEOUT, sAlarmIntent);
