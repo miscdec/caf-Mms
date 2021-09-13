@@ -106,6 +106,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
+import  android.app.role.RoleManager;
+
+
 /**
  * With this activity, users can set preferences for MMS and SMS and
  * can access and manipulate SMS messages stored on the SIM.
@@ -293,26 +296,11 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     }
 
     private void updateSmsEnabledState() {
-        // Show the right pref (SMS Disabled or SMS Enabled)
         PreferenceScreen prefRoot = (PreferenceScreen)findPreference("pref_key_root");
-        final PackageManager packageManager = getPackageManager();
-        final String smsAppPackage = Telephony.Sms.getDefaultSmsPackage(this);
-        ApplicationInfo smsAppInfo = null;
-        String mSmsAppName = "Messaging";
-        try {
-            smsAppInfo = packageManager.getApplicationInfo(smsAppPackage, 0);
-            mSmsAppName = smsAppInfo.loadLabel(packageManager).toString();
-        } catch (NameNotFoundException e) {
-        }
-
-        if (!mIsSmsEnabled) {
-            prefRoot.addPreference(mSmsDisabledPref);
+        if (mIsSmsEnabled) {
             prefRoot.removePreference(mSmsEnabledPref);
-            mSmsDisabledPref.setSummary(mSmsAppName);
         } else {
-            prefRoot.removePreference(mSmsDisabledPref);
             prefRoot.addPreference(mSmsEnabledPref);
-            mSmsEnabledPref.setSummary(mSmsAppName);
         }
 
         // Enable or Disable the settings as appropriate
@@ -338,7 +326,6 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             addPreferencesFromResource(R.xml.preferences);
         }
 
-        mSmsDisabledPref = findPreference("pref_key_sms_disabled");
         mSmsEnabledPref = findPreference("pref_key_sms_enabled");
 
         mStoragePrefCategory = (PreferenceCategory)findPreference("pref_key_storage_settings");
@@ -931,11 +918,19 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             startActivity(new Intent(this, SmsPreferenceActivity.class));
         } else if (preference == findPreference("pref_key_mms_text_settings")) {
             startActivity(new Intent(this, MmsPreferenceActivity.class));
+        } else if (preference == mSmsEnabledPref) {
+            startDefaultSMSApp();
         }
 
         return super.onPreferenceTreeClick(preferenceScreen, preference);
     }
 
+    private void startDefaultSMSApp() {
+        Log.d("Mms","startDefaultSMSApp");
+        final RoleManager roleManager = getSystemService(RoleManager.class);
+        final Intent intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS);
+        startActivityForResult(intent, 1);
+    }
     /**
      * Trigger the TransactionService to download any outstanding messages.
      */
