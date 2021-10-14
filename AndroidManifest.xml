@@ -78,7 +78,8 @@
                   android:label="@string/app_label"
                   android:configChanges="orientation|screenSize|keyboardHidden"
                   android:theme="@style/MmsNewStyleTheme"
-                  android:launchMode="singleTop">
+                  android:launchMode="singleTop"
+                  android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -109,7 +110,8 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/MmsHoloTheme"
             android:uiOptions="splitActionBarWhenNarrow"
-            android:launchMode="singleTop">
+            android:launchMode="singleTop"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -132,7 +134,8 @@
                   android:windowSoftInputMode="stateHidden|adjustResize"
                   android:theme="@style/NoActionBar"
                   android:parentActivityName=".ui.ConversationList"
-                  android:launchMode="singleTop" >
+                  android:launchMode="singleTop"
+                  android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -282,7 +285,8 @@
         <activity android:name=".ui.WwwContextMenuActivity"
             android:label="@string/message_options"
             android:theme="@android:style/Theme.Holo.Light.Dialog"
-            android:excludeFromRecents="true">
+            android:excludeFromRecents="true"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -291,7 +295,8 @@
         </activity>
 
         <receiver android:name=".transaction.PushReceiver"
-            android:permission="android.permission.BROADCAST_WAP_PUSH">
+            android:permission="android.permission.BROADCAST_WAP_PUSH"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
                 <data android:mimeType="application/vnd.wap.mms-message" />
@@ -305,7 +310,8 @@
                   android:theme="@style/MmsNewStyleTheme"
                   android:launchMode="singleTop"
                   android:configChanges="orientation|screenSize|keyboardHidden"
-                  android:label="@string/sim_manage_messages_title">
+                  android:label="@string/sim_manage_messages_title"
+                  android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
@@ -313,7 +319,8 @@
 
         <!-- Require sender permissions to prevent SMS spoofing -->
         <receiver android:name=".transaction.PrivilegedSmsReceiver"
-            android:permission="android.permission.BROADCAST_SMS">
+            android:permission="android.permission.BROADCAST_SMS"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.provider.Telephony.SMS_DELIVER" />
             </intent-filter>
@@ -321,7 +328,8 @@
 
         <!-- Require the sender to have this permission to prevent third party spoofing -->
         <receiver android:name=".transaction.PrivilegedCbReceiver"
-            android:permission="android.permission.RECEIVE_EMERGENCY_BROADCAST">
+            android:permission="android.permission.RECEIVE_EMERGENCY_BROADCAST"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.cellbroadcastreceiver.CB_AREA_INFO_RECEIVED" />
             </intent-filter>
@@ -329,7 +337,8 @@
 
         <!-- Catch-all receiver for broadcasts that don't have associated security -->
         <receiver android:name=".transaction.SmsReceiver"
-            android:permission="android.permission.SEND_SMS">
+            android:permission="android.permission.SEND_SMS"
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.android.mms.transaction.MESSAGE_SENT" />
                 <!-- TODO Do a better data match here. -->
@@ -343,7 +352,8 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".transaction.MessageStatusReceiver">
+        <receiver android:name=".transaction.MessageStatusReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.android.mms.transaction.MessageStatusReceiver.MESSAGE_STATUS_RECEIVED" />
             </intent-filter>
@@ -351,14 +361,16 @@
 
         <service android:name=".transaction.MessageStatusService"/>
 
-        <receiver android:name=".transaction.SimFullReceiver">
+        <receiver android:name=".transaction.SimFullReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.provider.Telephony.SIM_FULL" />
             </intent-filter>
         </receiver>
 
         <activity android:name=".ui.ConfirmRateLimitActivity"
-                  android:theme="@android:style/Theme.Dialog">
+            android:theme="@android:style/Theme.Dialog"
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.android.mms.RATE_LIMIT_SURPASSED" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -381,7 +393,8 @@
         <activity android:name=".ui.SearchActivity"
             android:theme="@style/MmsHoloTheme"
             android:label="@string/search"
-            android:configChanges="orientation|screenSize|keyboardHidden" >
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -391,7 +404,8 @@
         </activity>
 
         <activity android:name=".ui.MultiPickContactGroups"
-            android:configChanges="orientation|screenSize">
+            android:configChanges="orientation|screenSize"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -431,7 +445,8 @@
                   android:grantUriPermissions="true"
                   android:multiprocess="true" />
 
-        <activity android:name=".ui.MiniPreferenceActivity" >
+        <activity android:name=".ui.MiniPreferenceActivity"
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.android.mms.intent.action.MESSAGING_APP_NOTIFICATIONS" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -471,7 +486,8 @@
             android:name=".transaction.MmsNoConfirmationSendActivity"
             android:label="@string/plugger"
             android:enabled="@bool/enablePlugger"
-            android:icon="@drawable/icon_of_plugger">
+            android:icon="@drawable/icon_of_plugger"
+            android:exported="false">
             <intent-filter android:priority="@string/plugger_priority">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -484,14 +500,16 @@
             android:screenOrientation="portrait"
             android:theme="@style/MmsNewStyleTheme">
         </activity>
-        <service android:name="com.android.mms.transaction.MmsNoConfirmationSendService">
+        <service android:name="com.android.mms.transaction.MmsNoConfirmationSendService"
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.android.mms.transaction.MmsNoConfirmationSendService"/>
             </intent-filter>
         </service>
 
         <receiver
-            android:name=".ui.NotificationActionHandleReceiver" >
+            android:name=".ui.NotificationActionHandleReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="org.codeaurora.intent.action.MARK_AS_READ" />
                 <action android:name="org.codeaurora.intent.action.DOWNLOAD" />
