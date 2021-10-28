@@ -3139,7 +3139,8 @@ public class MessageUtils {
             intent.setAction(android.provider.Settings.ACTION_WIFI_SETTINGS);
             PendingIntent pendingIntent =
                     PendingIntent.getActivity(
-                            context, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                            context, 1, intent,
+                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
             Notification.Builder builder = new Notification.Builder(context);
             builder.setOngoing(false);
