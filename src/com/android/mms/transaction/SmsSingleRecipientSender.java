@@ -82,7 +82,8 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
         intent.putExtra(SmsReceiverService.EXTRA_MESSAGE_SENT_SEND_NEXT, true);
 
         LogTag.debugD("sendEmptyMessage sendIntent: " + intent);
-        PendingIntent sentIntent = PendingIntent.getBroadcast(mContext, requestCode, intent, 0);
+        PendingIntent sentIntent = PendingIntent.getBroadcast(mContext, requestCode, intent,
+                PendingIntent.FLAG_MUTABLE);
 
         int validityPeriod = getValidityPeriod(mSubId);
         // Remove all attributes for CDMA international roaming.
