@@ -230,7 +230,11 @@ public abstract class MediaModel extends Model implements EventListener {
             Log.e(TAG, "MediaMetadataRetriever failed to get duration for " + mUri.getPath(), ex);
             throw new MmsException(ex);
         } finally {
-            retriever.release();
+            try {
+                retriever.release();
+            } catch (IOException ex) {
+                throw new MmsException(ex);
+            }
         }
     }
 

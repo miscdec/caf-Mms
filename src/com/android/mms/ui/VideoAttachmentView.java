@@ -17,6 +17,7 @@
 
 package com.android.mms.ui;
 
+import java.io.IOException;
 import java.util.Map;
 
 import android.content.Context;
@@ -115,7 +116,7 @@ public class VideoAttachmentView extends LinearLayout implements
         } finally {
             try {
                 retriever.release();
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException | IOException ex) {
                 // Ignore failures while cleaning up.
             }
         }

@@ -463,7 +463,11 @@ public class MessageUtils {
         } catch (RuntimeException e) {
             Log.e(TAG, "Unable to open 3GP file to determine mimetype");
         } finally {
-            retriever.release();
+            try {
+                retriever.release();
+            } catch (IOException e) {
+                Log.e(TAG, "Unable to release retriever", e);
+            }
         }
         // Default to video 3gp if the file is unreadable as this was the default before
         // ambiguous resolution support was added.

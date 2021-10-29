@@ -37,6 +37,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.io.IOException;
 import java.util.Set;
 
 /**
@@ -381,7 +382,7 @@ public class ThumbnailManager extends BackgroundLoaderManager {
             } finally {
                 try {
                     retriever.release();
-                } catch (RuntimeException ex) {
+                } catch (RuntimeException | IOException ex) {
                     // Ignore failures while cleaning up.
                 }
             }
