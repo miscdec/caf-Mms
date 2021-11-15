@@ -38,6 +38,11 @@ import android.content.res.Configuration;
 import android.telephony.SubscriptionManager;
 import android.telephony.SubscriptionInfo;
 
+import android.os.Process;
+import android.os.UserHandle;
+import android.os.Binder;
+import  android.app.role.RoleManager;
+
 public class MmsConfig {
     private static final String TAG = LogTag.TAG;
     private static final boolean DEBUG = true;
@@ -153,14 +158,31 @@ public class MmsConfig {
     }
 
     public static boolean isSmsEnabled(Context context) {
-        String defaultSmsApplication = Telephony.Sms.getDefaultSmsPackage(context);
-
-        if (defaultSmsApplication != null && defaultSmsApplication.equals(MMS_APP_PACKAGE)) {
+        String defaultSMSApp  =  getDefaultSMSApp(context);
+        if (defaultSMSApp != null && defaultSMSApp.equals(MMS_APP_PACKAGE)) {
             return true;
         }
         return false;
     }
 
+
+    private static int getIncomingUserId(Context context) {
+        int contextUserId = UserHandle.myUserId();
+        final int callingUid = Binder.getCallingUid();
+        if (UserHandle.getAppId(callingUid) < Process.FIRST_APPLICATION_UID) {
+            return contextUserId;
+        } else {
+            return UserHandle.getUserHandleForUid(callingUid).getIdentifier();
+        }
+    }
+
+    public static String getDefaultSMSApp(Context context) {
+        int userId = getIncomingUserId(context);
+        RoleManager roleManager = context.getSystemService(RoleManager.class);
+        String defaultSMSApp = roleManager.getSmsRoleHolder(userId);
+        Log.d("Mms","default SMS App: " + defaultSMSApp);
+        return  defaultSMSApp;
+    }
     public static boolean isSmsPromoDismissed(Context context) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         return preferences.getBoolean(SMS_PROMO_DISMISSED_KEY, false);
