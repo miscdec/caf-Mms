@@ -497,7 +497,7 @@ public class MessagingNotification {
 
         // set up delete intent
         noti.setDeleteIntent(PendingIntent.getBroadcast(context, 0,
-                sNotificationOnDeleteIntent, 0));
+                sNotificationOnDeleteIntent, PendingIntent.FLAG_IMMUTABLE));
 
         final Notification notification;
         // This sets the text for the collapsed form:
@@ -1558,7 +1558,7 @@ public class MessagingNotification {
                 .setContentTitle(mostRecentNotification.mTitle)
                 .setContentIntent(pendingIntent)
                 .setDeleteIntent(PendingIntent.getBroadcast(context, 0,
-                        sNotificationOnDeleteIntent, 0))
+                        sNotificationOnDeleteIntent, PendingIntent.FLAG_IMMUTABLE))
                 .setSmallIcon(R.drawable.ic_notification)
                 .setCategory(Notification.CATEGORY_MESSAGE)
                 .setPriority(Notification.PRIORITY_HIGH)
