@@ -21,23 +21,10 @@
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     android:key="pref_key_root" >
-
-    <Preference
-        android:key="pref_key_sms_disabled"
-        android:persistent="false"
-        android:title="@string/pref_title_default_app" >
-        <intent android:action="android.provider.Telephony.ACTION_CHANGE_DEFAULT" >
-            <extra
-                android:name="package"
-                android:value="com.android.mms" />
-        </intent>
-    </Preference>
     <Preference
         android:key="pref_key_sms_enabled"
         android:persistent="false"
         android:title="@string/pref_title_default_app" >
-        <intent android:action="android.provider.Telephony.ACTION_CHANGE_DEFAULT" >
-        </intent>
     </Preference>
 
     <PreferenceCategory
