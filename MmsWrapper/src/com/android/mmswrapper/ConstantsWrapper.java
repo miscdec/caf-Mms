@@ -78,6 +78,8 @@ public class ConstantsWrapper {
                 TelephonyIntents.ACTION_SERVICE_STATE_CHANGED;
         public static final String ACTION_SIM_STATE_CHANGED =
                 TelephonyIntents.ACTION_SIM_STATE_CHANGED;
+        public static final String  ACTION_SHOW_NOTICE_SCM_BLOCK_OTHERS =
+            "org.codeaurora.intent.action.SHOW_NOTICE_SCM_BLOCK_OTHERS";
     }
 
     /**
