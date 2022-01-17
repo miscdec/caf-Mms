@@ -5611,7 +5611,7 @@ public class ComposeMessageActivity extends Activity
         if (bCheckEcmMode) {
             // TODO: expose this in telephony layer for SDK build
             boolean inEcm = TelephonyProperties.in_ecm_mode().orElse(false);
-            boolean inScm = SystemProperties.getBoolean("ril.cdma.inscmmode", false);
+            boolean inScm = SystemProperties.getBoolean("ril.inscbm", false);
             Log.d(TAG,"ecm mode: " + inEcm);
             Log.d(TAG,"scm mode: " + inScm);
             if ((inEcm || inScm) && !isEmergencySmsSupport()) {
