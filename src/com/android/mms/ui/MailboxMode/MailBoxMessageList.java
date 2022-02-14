@@ -761,7 +761,7 @@ public class MailBoxMessageList extends ListActivity implements
                 break;
             case R.id.action_cell_broadcasts:
                 try {
-                    startActivity(MessageUtils.getCellBroadcastIntent());
+                    startActivity(MessageUtils.getCellBroadcastIntent(MailBoxMessageList.this));
                 } catch (ActivityNotFoundException e) {
                     Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
                 }
