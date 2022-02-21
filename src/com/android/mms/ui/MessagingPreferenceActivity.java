@@ -896,7 +896,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
              MessageUtils.showMemoryStatusDialog(MessagingPreferenceActivity.this);
         } else if (preference == mCellBroadcsatsPref) {
             try {
-                startActivity(MessageUtils.getCellBroadcastIntent());
+                startActivity(MessageUtils.getCellBroadcastIntent(MessagingPreferenceActivity.this));
             } catch (ActivityNotFoundException e) {
                 Log.e(TAG,
                         "ActivityNotFoundException for CellBroadcastListActivity");
@@ -905,7 +905,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
                 R.bool.def_custom_preferences_settings)
                 && preference == mCBsettingPref) {
             try {
-                startActivity(MessageUtils.getCellBroadcastIntent());
+                startActivity(MessageUtils.getCellBroadcastIntent(MessagingPreferenceActivity.this));
             } catch (ActivityNotFoundException e) {
                 Log.e(TAG,
                         "ActivityNotFoundException for CellBroadcastListActivity");

@@ -781,7 +781,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 break;
             case R.id.action_cell_broadcasts:
                 try {
-                    startActivity(MessageUtils.getCellBroadcastIntent());
+                    startActivity(MessageUtils.getCellBroadcastIntent(ConversationList.this));
                 } catch (ActivityNotFoundException e) {
                     Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
                 }
