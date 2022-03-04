@@ -369,6 +369,10 @@ public class MessageUtils {
             "com.android.cellbroadcastreceiver.module";
     private static final String CELL_BROADCAST_ACTIVITY_NAME =
             "com.android.cellbroadcastreceiver.CellBroadcastListActivity";
+
+    private static final String ORIGIN_CELL_BROADCAST_PACKAGE_NAME =
+            "com.android.cellbroadcastreceiver";
+
     private static final long COMPRESSION_FACTOR = 3;
 
     static {
@@ -2919,11 +2923,22 @@ public class MessageUtils {
         builder.show();
     }
 
-    public static Intent getCellBroadcastIntent() {
+
+    public static Intent getCellBroadcastIntent(Context context) {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.setComponent(new ComponentName(
                 CELL_BROADCAST_PACKAGE_NAME,
                 CELL_BROADCAST_ACTIVITY_NAME));
+
+        if (context != null) {
+            Log.d(TAG,"init activity");
+            if (context.getPackageManager().resolveActivity(intent, 0) == null) {
+                Log.d(TAG,"init original activity");
+                intent.setComponent(new ComponentName(
+                        ORIGIN_CELL_BROADCAST_PACKAGE_NAME,
+                        CELL_BROADCAST_ACTIVITY_NAME));
+            }
+        }
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         return intent;
     }
@@ -3139,7 +3154,8 @@ public class MessageUtils {
             intent.setAction(android.provider.Settings.ACTION_WIFI_SETTINGS);
             PendingIntent pendingIntent =
                     PendingIntent.getActivity(
-                            context, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                            context, 1, intent,
+                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
             Notification.Builder builder = new Notification.Builder(context);
             builder.setOngoing(false);
