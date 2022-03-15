@@ -4082,7 +4082,7 @@ public class ComposeMessageActivity extends Activity
 
                 LogTag.debugD("outOfEmergencyMode:" + outOfEmergencyMode);
                 if (outOfEmergencyMode) {
-                    sendMessage(false);
+                    sendMessage(true);
                 }
                 break;
 
@@ -4090,7 +4090,7 @@ public class ComposeMessageActivity extends Activity
                 boolean isScbmExit = resultCode == RESULT_OK;
                 LogTag.debugD("isScbmExit:" + isScbmExit);
                 if (isScbmExit) {
-                    sendMessage(false);
+                    sendMessage(true);
                 }
                 break;
 
