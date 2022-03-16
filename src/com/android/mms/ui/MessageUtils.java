@@ -2923,24 +2923,33 @@ public class MessageUtils {
         builder.show();
     }
 
-
-    public static Intent getCellBroadcastIntent(Context context) {
+    private static Intent getCellBroadcastIntent(String packageName) {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.setComponent(new ComponentName(
-                CELL_BROADCAST_PACKAGE_NAME,
+                packageName,
                 CELL_BROADCAST_ACTIVITY_NAME));
-
-        if (context != null) {
-            Log.d(TAG,"init activity");
-            if (context.getPackageManager().resolveActivity(intent, 0) == null) {
-                Log.d(TAG,"init original activity");
-                intent.setComponent(new ComponentName(
-                        ORIGIN_CELL_BROADCAST_PACKAGE_NAME,
-                        CELL_BROADCAST_ACTIVITY_NAME));
-            }
-        }
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         return intent;
+    }
+
+    public static void startCellBroadcastActivity(Context context) {
+        try {
+            Log.d(TAG,"start cb activity");
+            context.startActivity(getCellBroadcastIntent(CELL_BROADCAST_PACKAGE_NAME));
+        } catch (ActivityNotFoundException e) {
+            Log.d(TAG,"not find cb activity");
+            startOriginCellBroadcastActivity(context);
+        }
+    }
+
+    public static void startOriginCellBroadcastActivity(Context context) {
+        try {
+            Log.d(TAG,"start origin cb activity");
+            context.startActivity(getCellBroadcastIntent(ORIGIN_CELL_BROADCAST_PACKAGE_NAME));
+        } catch (ActivityNotFoundException e) {
+            Log.e(TAG,
+                    "ActivityNotFoundException for CellBroadcastListActivity");
+        }
     }
 
     public static String convertIdp(Context context, String number, int subscription) {

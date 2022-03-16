@@ -780,11 +780,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 MessageUtils.showMemoryStatusDialog(this);
                 break;
             case R.id.action_cell_broadcasts:
-                try {
-                    startActivity(MessageUtils.getCellBroadcastIntent(ConversationList.this));
-                } catch (ActivityNotFoundException e) {
-                    Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
-                }
+                MessageUtils.startCellBroadcastActivity(ConversationList.this);
                 return true;
             default:
                 return true;
