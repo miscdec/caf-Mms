@@ -760,11 +760,7 @@ public class MailBoxMessageList extends ListActivity implements
                 MessageUtils.showMemoryStatusDialog(this);
                 break;
             case R.id.action_cell_broadcasts:
-                try {
-                    startActivity(MessageUtils.getCellBroadcastIntent(MailBoxMessageList.this));
-                } catch (ActivityNotFoundException e) {
-                    Log.e(TAG, "ActivityNotFoundException for CellBroadcastListActivity");
-                }
+                MessageUtils.startCellBroadcastActivity(MailBoxMessageList.this);
                 break;
             default:
                 return true;
