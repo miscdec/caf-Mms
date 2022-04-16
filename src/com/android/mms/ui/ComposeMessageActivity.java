@@ -254,6 +254,7 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_INFO     = 110;
     public static final int REQUEST_CODE_ATTACH_ADD_CONTACT_VCARD    = 111;
     public static final int REQUEST_CODE_ATTACH_REPLACE_CONTACT_INFO = 112;
+    public static final int REQUEST_CODE_SCM_EXIT_DIALOG  = 113;
 
     private static final String TAG = LogTag.TAG;
 
@@ -4081,7 +4082,15 @@ public class ComposeMessageActivity extends Activity
 
                 LogTag.debugD("outOfEmergencyMode:" + outOfEmergencyMode);
                 if (outOfEmergencyMode) {
-                    sendMessage(false);
+                    sendMessage(true);
+                }
+                break;
+
+            case REQUEST_CODE_SCM_EXIT_DIALOG:
+                boolean isScbmExit = resultCode == RESULT_OK;
+                LogTag.debugD("isScbmExit:" + isScbmExit);
+                if (isScbmExit) {
+                    sendMessage(true);
                 }
                 break;
 
@@ -5602,12 +5611,22 @@ public class ComposeMessageActivity extends Activity
         if (bCheckEcmMode) {
             // TODO: expose this in telephony layer for SDK build
             boolean inEcm = TelephonyProperties.in_ecm_mode().orElse(false);
+            boolean inScm = SystemProperties.getBoolean("ril.inscbm", false);
             Log.d(TAG,"ecm mode: " + inEcm);
-            if (inEcm && !isEmergencySmsSupport()) {
+            Log.d(TAG,"scm mode: " + inScm);
+            if ((inEcm || inScm) && !isEmergencySmsSupport()) {
                 try {
-                    startActivityForResult(
-                            new Intent(ConstantsWrapper.TelephonyIntent.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS, null),
+                    if (inEcm) {
+                        startActivityForResult(
+                            new Intent(ConstantsWrapper.TelephonyIntent.
+                            ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS, null),
                             REQUEST_CODE_ECM_EXIT_DIALOG);
+                    } else {
+                        startActivityForResult(
+                            new Intent(ConstantsWrapper.TelephonyIntent.
+                            ACTION_SHOW_NOTICE_SCM_BLOCK_OTHERS, null),
+                            REQUEST_CODE_SCM_EXIT_DIALOG);
+                    }
                     return;
                 } catch (ActivityNotFoundException e) {
                     // continue to send message
