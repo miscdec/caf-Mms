@@ -104,6 +104,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 
+import android.app.NotificationManager;
+
 /**
  * This activity provides a list view of existing conversations.
  */
@@ -175,6 +177,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (MessageUtils.checkPermissionsIfNeeded(this)) {
             return;
         }
+
+        checkNotificationPermission();
+
         // Cache recipients information in a background thread in advance.
         RecipientIdCache.init(getApplication());
 
@@ -237,6 +242,16 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             }
         } catch (Settings.SettingNotFoundException e) {
             Log.w(TAG, "SettingNotFoundException wfc");
+        }
+    }
+
+    private void checkNotificationPermission() {
+        NotificationManager nm = (NotificationManager) getSystemService(
+                Context.NOTIFICATION_SERVICE);
+        if (!nm.areNotificationsEnabled()) {
+            Toast.makeText(this,
+                    getString(R.string.enable_notification),
+                    Toast.LENGTH_SHORT).show();
         }
     }
 
