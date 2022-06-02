@@ -1211,4 +1211,7 @@
     <string name="delay_one" translatable="false">100S</string>
     <string name="delay_two" translatable="false">80S</string>
     <string name="delay_three" translatable="false">60S</string>
+
+    <string name="enable_notification">Notification disabled, it blocks send notification. Please enable it in Settings.</string>
+
 </resources>
