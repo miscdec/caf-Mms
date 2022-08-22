@@ -56,7 +56,7 @@ public class PermissionGuardActivity extends Activity {
     private TextView mNext;
     private TextView mSettings;
     private long mRequestTime;
-    private static long PERMISSION_DENY_THRESHOLD_MILLLIS = 250;
+    private static long PERMISSION_DENY_THRESHOLD_MILLLIS = 500;
     private static final int PERMISSION_REQUEST_CODE = 1;
     private static final String PACKAGE_URI_PREFIX = "package:";
     public static final String ORIGINAL_INTENT = "original_intent";

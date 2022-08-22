@@ -424,9 +424,9 @@ public class MessageUtils {
         Manifest.permission.READ_CONTACTS
     };
 
-
     public static String [] sSMSExtendPermissions = new String [] {
-        Manifest.permission.READ_EXTERNAL_STORAGE
+            Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_VIDEO,
+            Manifest.permission.READ_MEDIA_IMAGES
     };
 
     public static String[] sSMSBasicPermissions_FOR_DEFAULT_MESSAGING = new String[] {
