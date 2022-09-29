@@ -1181,7 +1181,7 @@
         <item quantity="other"><xliff:g id="count">%d</xliff:g> mins</item>
     </plurals>
     <string name="posted_now">Now</string>
-    <string name="basic_permission_required">Messaging needs SMS, Phone, Contacts and External Storage permissions.</string>
+    <string name="basic_permission_required">Messaging needs SMS, Phone, Contacts, Music and audio, Photos and videos permissions.</string>
     <string name="next">Next &gt;</string>
     <string name="settings">Settings &gt;</string>
     <string name="exit">Exit</string>

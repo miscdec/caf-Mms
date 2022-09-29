@@ -21,7 +21,7 @@
         package="com.android.mms">
 
     <original-package android:name="com.android.mms" />
-    <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="31" />
+    <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="33"/>
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -60,6 +60,9 @@
     <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application android:name="MmsApp"
             android:label="@string/app_label"
