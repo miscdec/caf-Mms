@@ -616,7 +616,7 @@
     <string name="notification_view_message_text">查看消息</string>
     <string name="conversation_list_send_fail_text">发送失败，点击即可重发。</string>
     <string name="conversation_transaction_fail">操作失败，点击即可重试。</string>
-    <string name="basic_permission_required">短信应用需要获取 短信, 电话,联系人和手机USB存储权限.</string>
+    <string name="basic_permission_required">短信应用需要获取 短信,电话,通讯录,音乐和音频,照片和视频等权限.</string>
     <plurals name="num_minutes_ago">
         <item quantity="one"><xliff:g id="count">%d</xliff:g>" 分钟前"</item>
         <item quantity="other"><xliff:g id="count">%d</xliff:g>" 分钟前"</item>
