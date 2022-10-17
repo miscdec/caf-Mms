@@ -5577,8 +5577,7 @@ public class ComposeMessageActivity extends Activity
         }
         int subId = mWorkingMessage.mCurrentConvSubId;
         Log.d(TAG, "isEmergencySmsSupport subId: " + subId);
-        if (!PhoneNumberUtils.isLocalEmergencyNumber(getApplicationContext(),
-                subId, recipients.get(0).getNumber())) {
+        if (!PhoneNumberUtils.isEmergencyNumber(subId, recipients.get(0).getNumber())) {
             Log.d(TAG, "isEmergencySmsSupport not an emergency number");
             return false;
         }
