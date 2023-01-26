@@ -33,6 +33,7 @@ import android.content.Context;
 import android.provider.Settings.SettingNotFoundException;
 import android.telecom.PhoneAccount;
 import android.telephony.ServiceState;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 
 public class TelephonyManagerWrapper {
@@ -138,9 +139,15 @@ public class TelephonyManagerWrapper {
     }
 
     public static String getNai(Context context, int phoneId) {
-        boolean ret = false;
-        TelephonyManager tm = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-        return tm.getNai(phoneId);
+        SubscriptionManager sm = (SubscriptionManager) context.getSystemService(
+                Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+        int[] subId = sm.getSubscriptionIds(phoneId);
+        if (subId == null) {
+            return null;
+        }
+        TelephonyManager tm = ((TelephonyManager)context.getSystemService(
+                Context.TELEPHONY_SERVICE)).createForSubscriptionId(subId[0]);
+        return tm.getNai();
     }
 
     public static boolean isCurrentRatIwlan(Context context, int subId) {
