@@ -1214,4 +1214,5 @@
 
     <string name="enable_notification">Notification disabled, it blocks send notification. Please enable it in Settings.</string>
 
+    <string name="invalid_mms_apn_config">Mms not supported for this operator or incorrect MMS APN configuration in device. Please check the MMS APN configuration.</string>
 </resources>
