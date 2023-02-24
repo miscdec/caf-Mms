@@ -18,6 +18,7 @@
 package com.android.mms;
 
 import android.app.Application;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -76,6 +77,15 @@ public class MmsApp extends Application {
 
     private MmsSystemEventReceiver mSystemEventReceiver = new MmsSystemEventReceiver();
     private SmsRejectedReceiver mSmsRejectedReceiver = new SmsRejectedReceiver();
+
+    private BroadcastReceiver mSimConfigChangeReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(TelephonyManager.ACTION_MULTI_SIM_CONFIG_CHANGED)) {
+                System.exit(0);
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
@@ -136,6 +146,9 @@ public class MmsApp extends Application {
 
         registSystemReceiver();
         registSmsRejectedReceiver();
+
+        registerReceiver(mSimConfigChangeReceiver,
+                new IntentFilter(TelephonyManager.ACTION_MULTI_SIM_CONFIG_CHANGED));
     }
 
     private void registSystemReceiver() {
@@ -224,6 +237,7 @@ public class MmsApp extends Application {
 
         unregisterReceiver(mSystemEventReceiver);
         unregisterReceiver(mSmsRejectedReceiver);
+        unregisterReceiver(mSimConfigChangeReceiver);
     }
 
     @Override
