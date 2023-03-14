@@ -476,6 +476,17 @@ public class ComposeMessageActivity extends Activity
     private static final String SIM_STATE_CHANGE_ACTION =
             "android.intent.action.SIM_STATE_CHANGED";
 
+    private static final String[] APN_PROJECTION = {
+            Telephony.Carriers.TYPE,            // 0
+            Telephony.Carriers.MMSC,            // 1
+            Telephony.Carriers.MMSPROXY,        // 2
+            Telephony.Carriers.MMSPORT          // 3
+    };
+    private static final int COLUMN_TYPE         = 0;
+    private static final int COLUMN_MMSC         = 1;
+    private static final int COLUMN_MMSPROXY     = 2;
+    private static final int COLUMN_MMSPORT      = 3;
+
     /**
      * Whether this activity is currently running (i.e. not paused)
      */
@@ -5600,10 +5611,81 @@ public class ComposeMessageActivity extends Activity
         return eSmsCarrierSupport;
     }
 
+    private boolean isValidApnType(String types, String requestType) {
+        // If APN type is unspecified, assume APN_TYPE_ALL.
+        if (TextUtils.isEmpty(types)) {
+            return true;
+        }
+
+        for (String t : types.split(",")) {
+            if (t.equals(requestType) || t.equals(ConstantsWrapper.Phone.APN_TYPE_ALL)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasValidMmsApnConfiguration(int subId) {
+        if (subId == SubscriptionManagerWrapper.INVALID_SUBSCRIPTION_ID) {
+            Log.d(TAG,"hasValidMmsApnConfiguration: invalid Sub");
+            return false;
+        }
+
+        Uri contentUri = Uri.withAppendedPath(Telephony.Carriers.CONTENT_URI,
+                "/subId/" + subId);
+        Cursor cursor = SqliteWrapper.query(this, getContentResolver(),
+                contentUri, APN_PROJECTION, null, null,
+                null);
+        if (cursor == null || cursor.getCount() == 0) {
+            Log.e(TAG, "hasValidMmsApnConfiguration: cursor null or empty");
+            return false;
+        }
+
+        try {
+            while (cursor.moveToNext()) {
+                if (isValidApnType(cursor.getString(COLUMN_TYPE),
+                        ConstantsWrapper.Phone.APN_TYPE_MMS)) {
+                    // need check MMSC is non empty even if type config support mms capability
+                    String mmsc = cursor.getString(COLUMN_MMSC);
+                    if (!TextUtils.isEmpty(mmsc)) {
+                        Log.v(TAG, "hasValidMmsApnConfiguration: return true for mmsc = "
+                                + mmsc);
+                        return true;
+                    }
+                }
+            }
+        } finally {
+            cursor.close();
+        }
+        Log.v(TAG, "hasValidMmsApnConfiguration: no valid MMS APN config");
+        return false;
+    }
+
+    private void showMmsNotSupportedDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.send_mms);
+        builder.setMessage(getString(R.string.invalid_mms_apn_config));
+        builder.setCancelable(true);
+        builder.setPositiveButton(R.string.yes, new OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
     private void sendMessage(boolean bCheckEcmMode) {
         // Check message size, if >= max message size, do not send message.
         if(checkMessageSizeExceeded()){
             LogTag.debugD("MessageSizeExceeded");
+            return;
+        }
+
+        // Check MMS APN config, prompt one dialog if missing MMS APN or its config incorrect
+        int subId = mWorkingMessage.getWorkingMessageSub();
+        if (mWorkingMessage.requiresMms() && !hasValidMmsApnConfiguration(subId)) {
+            LogTag.debugD("sendMessage: Miss MMS APN or no valid MMS APN configuration");
+            showMmsNotSupportedDialog();
             return;
         }
 

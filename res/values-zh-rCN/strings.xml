@@ -647,4 +647,5 @@
     <string name="pref_mms_enable_delay">彩信释放网络延迟开启</string>
     <string name="pref_mms_delay_title">彩信释放网络延迟</string>
     <string name="pref_set_mms_delay_title">设置延迟时间</string>
+    <string name="invalid_mms_apn_config">不支持彩信，请检查彩信APN配置!</string>
 </resources>
