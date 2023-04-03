@@ -391,6 +391,11 @@ public class WorkingMessage {
     public void setWorkingMessageSub(int subId) {
         mCurrentConvSubId = subId;
     }
+
+    public int getWorkingMessageSub() {
+        return mCurrentConvSubId;
+    }
+
     /**
      * @return True if the message has any text. A message with just whitespace is not considered
      * to have text.
