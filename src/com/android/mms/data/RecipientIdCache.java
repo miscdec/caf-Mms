@@ -70,8 +70,16 @@ public class RecipientIdCache {
         }
 
         Context context = sInstance.mContext;
-        Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
-                sAllCanonical, null, null, null, null);
+
+        Cursor c = null;
+        try {
+            c = SqliteWrapper.query(context, context.getContentResolver(),
+                    sAllCanonical, null, null, null, null);
+        } catch (IllegalStateException exception) {
+            Log.w(TAG, "return for sub service unavailable exception = " + exception);
+            return;
+        }
+
         if (c == null) {
             Log.w(TAG, "null Cursor in fill()");
             return;
