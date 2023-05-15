@@ -57,6 +57,7 @@ import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -93,6 +94,8 @@ public class SmsReceiverService extends Service {
     private ServiceHandler mServiceHandler;
     private Looper mServiceLooper;
     private static Map<Integer, Boolean> mSending = new HashMap<Integer, Boolean>();
+    private SmsTelephonyCallback mTelephonyCallback;
+    private TelephonyManager mTelephonyManager;
 
     public static final String MESSAGE_SENT_ACTION =
         "com.android.mms.transaction.MESSAGE_SENT";
@@ -534,7 +537,7 @@ public class SmsReceiverService extends Service {
             // We got an error with no service or no radio. Register for state changes so
             // when the status of the connection/radio changes, we can try to send the
             // queued up messages.
-            registerForServiceStateChanges();
+            registerForServiceStateChanges(subId);
             // We couldn't send the message, put in the queue to retry later.
             TelephonyWrapper.Sms.moveMessageToFolder(this, uri, Sms.MESSAGE_TYPE_QUEUED, error);
             mToastHandler.post(new Runnable() {
@@ -1045,28 +1048,24 @@ public class SmsReceiverService extends Service {
         context.startActivity(smsDialogIntent);
     }
 
-    private void registerForServiceStateChanges() {
-        Context context = getApplicationContext();
+    private void registerForServiceStateChanges(int subId) {
         unRegisterForServiceStateChanges();
-
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ConstantsWrapper.TelephonyIntent.ACTION_SERVICE_STATE_CHANGED);
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
-            Log.v(TAG, "registerForServiceStateChanges");
+        if (mTelephonyCallback == null) {
+            mTelephonyCallback = new SmsTelephonyCallback();
+            Log.d(TAG, "registerForServiceStateChanges: mTelephonyCallback = "
+                    + mTelephonyCallback);
+            mTelephonyManager = ((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE))
+                    .createForSubscriptionId(subId);
+            mTelephonyManager.registerTelephonyCallback(
+                    getApplicationContext().getMainExecutor(), mTelephonyCallback);
         }
-
-        context.registerReceiver(SmsReceiver.getInstance(), intentFilter);
     }
 
     private void unRegisterForServiceStateChanges() {
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
-            Log.v(TAG, "unRegisterForServiceStateChanges");
-        }
-        try {
-            Context context = getApplicationContext();
-            context.unregisterReceiver(SmsReceiver.getInstance());
-        } catch (IllegalArgumentException e) {
-            // Allow un-matched register-unregister calls
+        if (mTelephonyCallback != null) {
+            Log.d(TAG, "unRegisterTelephonyCallback: mTelephonyCallback = " + mTelephonyCallback);
+            mTelephonyManager.unregisterTelephonyCallback(mTelephonyCallback);
+            mTelephonyCallback = null;
         }
     }
 
@@ -1120,5 +1119,25 @@ public class SmsReceiverService extends Service {
 
     public static boolean getSavingMessage() {
         return sIsSavingMessage;
+    }
+
+    private class SmsTelephonyCallback extends TelephonyCallback implements
+            TelephonyCallback.ServiceStateListener {
+        @Override
+        public void onServiceStateChanged(ServiceState serviceState) {
+            Log.d(TAG, "onServiceStateChanged: serviceState = " + serviceState);
+            if (serviceState != null && serviceState.getState() == ServiceState.STATE_IN_SERVICE) {
+                List<SubscriptionInfo> subInfoList = SubscriptionManager.from(
+                        getApplicationContext()).getActiveSubscriptionInfoList();
+                if(subInfoList != null) {
+                    for (SubscriptionInfo info : subInfoList) {
+                        int subId = info.getSubscriptionId();
+                        Log.d(TAG, "onServiceStateChanged: call sendFirstQueuedMessage for sub = "
+                                + subId);
+                        sendFirstQueuedMessage(subId);
+                    }
+                }
+            }
+        }
     }
 }
