@@ -6853,6 +6853,9 @@ public class ComposeMessageActivity extends Activity
         }
 
         private void showMessageDetail() {
+            if (mSelectedPos.isEmpty()) {
+                return;
+            }
             Cursor c = (Cursor) getListView().getAdapter().getItem(
                     mSelectedPos.get(0));
             String type = c.getString(COLUMN_MSG_TYPE);
@@ -6874,12 +6877,18 @@ public class ComposeMessageActivity extends Activity
         }
 
         private void showReport() {
+            if (mSelectedPos.isEmpty()) {
+                return;
+            }
             Cursor c = (Cursor) getListView().getAdapter().getItem(
                     mSelectedPos.get(0));
             showDeliveryReport(c.getLong(COLUMN_ID), c.getString(COLUMN_MSG_TYPE));
         }
 
         private void resendCheckedMessage() {
+            if (mSelectedPos.isEmpty()) {
+                return;
+            }
             Cursor c = (Cursor) getListView().getAdapter().getItem(mSelectedPos.get(0));
             MessageItem item = mMsgListAdapter.getCachedMessageItem(
                     c.getString(COLUMN_MSG_TYPE), c.getLong(COLUMN_ID), c);
@@ -6928,6 +6937,9 @@ public class ComposeMessageActivity extends Activity
             recordAllSelectedItems();
             switch (item.getItemId()) {
             case R.id.forward:
+                if (mSelectedPos.isEmpty()) {
+                    return false;
+                }
                 int position = mSelectedPos.get(0).intValue();
                 MessageItem msgItem = getMessageItemByPos(position);
                 if (msgItem != null &&
@@ -6974,6 +6986,9 @@ public class ComposeMessageActivity extends Activity
                 showReport();
                 break;
             case R.id.copy_text:
+                if (mSelectedPos.isEmpty()) {
+                    return false;
+                }
                 int pos = mSelectedPos.get(0).intValue();
                 MessageItem copyItem = getMessageItemByPos(pos);
                 if (copyItem != null && copyItem.isSms()) {
@@ -7042,6 +7057,9 @@ public class ComposeMessageActivity extends Activity
         }
 
         private boolean forwardMessageCheck() {
+            if (mSelectedPos.isEmpty()) {
+                return false;
+            }
             int position = mSelectedPos.get(0).intValue();
             MessageItem msgItem = getMessageItemByPos(position);
             if (msgItem != null &&
