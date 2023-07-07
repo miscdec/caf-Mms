@@ -263,6 +263,7 @@ public class MessagingNotification {
 
         // initialize the notification deleted action
         sNotificationOnDeleteIntent = new Intent(NOTIFICATION_DELETED_ACTION);
+        sNotificationOnDeleteIntent.setPackage(context.getPackageName());
 
         sScreenDensity = context.getResources().getDisplayMetrics().density;
     }

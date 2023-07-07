@@ -1100,8 +1100,9 @@ public class MessageListItem extends ZoomMessageListItem implements
         // If the message is a failed one, clicking it should reload it in the compose view,
         // regardless of whether it has links in it
         if (mMessageItem != null) {
-            if ((mMessageItem.isOutgoingMessage() && mMessageItem.isFailedMessage())
-                    || mMessageItem.mDeliveryStatus == MessageItem.DeliveryStatus.FAILED) {
+            boolean bSendFailed = mMessageItem.isOutgoingMessage()
+                    && mMessageItem.isFailedMessage();
+            if (bSendFailed) {
                 // Assuming the current message is a failed one, reload it into the compose view
                 // so the user can resend it.
                 if (mContext.getResources().getBoolean(R.bool.config_resend_to_edit)) {
@@ -1163,13 +1164,24 @@ public class MessageListItem extends ZoomMessageListItem implements
         // know whether the message has been delivered. For mms, msgItem.mDeliveryStatus set
         // to MessageItem.DeliveryStatus.RECEIVED simply means the setting requesting a
         // delivery report was turned on when the message was sent. Yes, it's confusing!
-        if ((msgItem.isOutgoingMessage() && msgItem.isFailedMessage()) ||
-                msgItem.mDeliveryStatus == MessageItem.DeliveryStatus.FAILED) {
-            if (mSendFailView != null) {
+        boolean bSendFailed = msgItem.isOutgoingMessage() && msgItem.isFailedMessage();
+        boolean bDeliveryFailed = msgItem.mDeliveryStatus == MessageItem.DeliveryStatus.FAILED;
+        if (bSendFailed || bDeliveryFailed) {
+            // send failed
+            if (mSendFailView != null && bSendFailed) {
                 mSendFailView.setVisibility(View.VISIBLE);
+                mDateView.setVisibility(View.GONE);
+                mDeliveredIndicator.setVisibility(View.GONE);
             }
-            mDateView.setVisibility(View.GONE);
-            mDeliveredIndicator.setVisibility(View.GONE);
+
+            // send success, but delivery report failed
+            if (!bSendFailed && bDeliveryFailed) {
+                mDeliveredIndicator.setImageResource(R.drawable.report);
+                mDeliveredIndicator.setVisibility(View.VISIBLE);
+                if (mSendFailView != null) {
+                    mSendFailView.setVisibility(View.GONE);
+                }
+            }
         } else if (msgItem.isSms() &&
                 msgItem.mDeliveryStatus == MessageItem.DeliveryStatus.RECEIVED) {
             mDeliveredIndicator.setImageResource(R.drawable.report);
