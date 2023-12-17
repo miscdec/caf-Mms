@@ -227,7 +227,7 @@
     <string name="menu_delete_messages" msgid="2610286783513247420">"Eliminar mensajes"</string>
     <string name="menu_lock" msgid="7603793126077557472">"Bloquear"</string>
     <string name="menu_unlock" msgid="6662865558677424039">"Desbloquear"</string>
-    <string name="sim_copy_to_phone_memory" product="tablet" msgid="3721000641648594602">"Copiar en la memoria del tablet"</string>
+
     <string name="sim_copy_to_phone_memory" product="default" msgid="5895767417844881971">"Copiar en memoria del teléfono"</string>
     <string name="sim_delete" msgid="610790510655316922">"Eliminar"</string>
     <string name="sim_manage_messages_title" msgid="3989147182100584333">"Mensajes de texto de tarjeta SIM"</string>

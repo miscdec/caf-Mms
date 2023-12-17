@@ -98,6 +98,8 @@ import com.android.mms.transaction.TransactionService;
 import com.android.mms.util.Recycler;
 import com.android.mmswrapper.ConstantsWrapper;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mmswrapper.compat.PhoneUtils;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -519,7 +521,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
             if(MessageUtils.getActivatedIccCardCount() <
                     ConstantsWrapper.Phone.MAX_PHONE_COUNT_DUAL_SIM) {
                 int subId = SmsManager.getDefault().getDefaultSmsSubscriptionId();
-                int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
+                int phoneId = PhoneUtils.getPhoneId(subId,getApplicationContext());
                 mManageSimPref.setSummary(
                         getString(R.string.pref_summary_manage_sim_messages_slot,
                                 phoneId + 1));

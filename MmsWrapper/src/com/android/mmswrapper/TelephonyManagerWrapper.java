@@ -29,11 +29,14 @@
 
 package com.android.mmswrapper;
 
+import android.annotation.TargetApi;
 import android.content.Context;
+import android.os.Build;
 import android.provider.Settings.SettingNotFoundException;
 import android.telecom.PhoneAccount;
 import android.telephony.ServiceState;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 
 public class TelephonyManagerWrapper {
     private static final String TAG = "TelephonyManagerWrapper";
@@ -41,9 +44,32 @@ public class TelephonyManagerWrapper {
 
     public static int getIntAtIndex(android.content.ContentResolver cr,
                                     String name, int index) throws SettingNotFoundException {
-        int ret = TelephonyManager.getIntAtIndex(cr, name, index);
-        LogUtils.logi(TAG, "getIntAtIndex name=" + name + "|index=" + index + "|ret=" + ret);
-        return ret;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+            return getIntAtIndexSetting(cr, name, index);
+        }else {
+            int ret = TelephonyManager.getIntAtIndex(cr, name, index);
+            LogUtils.logi(TAG, "getIntAtIndex name=" + name + "|index=" + index + "|ret=" + ret);
+            return ret;
+        }
+
+    }
+
+
+    public static int getIntAtIndexSetting(android.content.ContentResolver cr,
+                                    String name, int index)
+            throws android.provider.Settings.SettingNotFoundException {
+        String v = android.provider.Settings.Global.getString(cr, name);
+        if (v != null) {
+            String valArray[] = v.split(",");
+            if ((index >= 0) && (index < valArray.length) && (valArray[index] != null)) {
+                try {
+                    return Integer.parseInt(valArray[index]);
+                } catch (NumberFormatException e) {
+                    Log.e(TAG, "Exception while parsing Integer: ", e);
+                }
+            }
+        }
+        throw new android.provider.Settings.SettingNotFoundException(name);
     }
 
     public static String getLine1Number(TelephonyManager tm, int subId) {

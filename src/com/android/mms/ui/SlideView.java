@@ -369,7 +369,7 @@ public class SlideView extends AbsoluteLayout implements
             }
             mScrollText.requestFocus();
         }
-        mTextView.setAutoLinkMask(Linkify.ALL);
+//        mTextView.setAutoLinkMask(Linkify.ALL);
         mTextView.setLinksClickable(false);
         mTextView.setVisibility(View.VISIBLE);
         mTextView.setText(text);

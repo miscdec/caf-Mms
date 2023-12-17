@@ -18,14 +18,27 @@
  */
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-        package="com.android.mms">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.android.mms">
 
     <original-package android:name="com.android.mms" />
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="33"/>
 
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="vnd.android-dir/mms-sms" />
+        </intent>
+    </queries>
+
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
     <uses-permission android:name="android.permission.READ_PROFILE" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
@@ -39,7 +52,9 @@
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"
+        tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.INSTALL_DRM" />
     <uses-permission android:name="android.permission.WRITE_APN_SETTINGS" />
     <uses-permission android:name="com.android.browser.permission.READ_HISTORY_BOOKMARKS" />
@@ -116,7 +131,7 @@
             android:theme="@style/MmsHoloTheme"
             android:uiOptions="splitActionBarWhenNarrow"
             android:launchMode="singleTop"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -291,7 +306,7 @@
             android:label="@string/message_options"
             android:theme="@android:style/Theme.Holo.Light.Dialog"
             android:excludeFromRecents="true"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -316,7 +331,7 @@
                   android:launchMode="singleTop"
                   android:configChanges="orientation|screenSize|keyboardHidden"
                   android:label="@string/sim_manage_messages_title"
-                  android:exported="false">
+                  android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
@@ -410,7 +425,7 @@
 
         <activity android:name=".ui.MultiPickContactGroups"
             android:configChanges="orientation|screenSize"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -502,7 +517,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.PlayVideoOrPicActivity"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullSensor"
             android:theme="@style/MmsNewStyleTheme">
         </activity>
         <service android:name="com.android.mms.transaction.MmsNoConfirmationSendService"
@@ -532,7 +547,7 @@
         </activity>
         <activity
             android:name=".ui.PermissionGuardActivity"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullSensor"
             android:configChanges="orientation|screenSize|keyboardHidden">
         </activity>
         <activity

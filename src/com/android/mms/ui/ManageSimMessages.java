@@ -732,37 +732,31 @@ public class ManageSimMessages extends Activity
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             recordAllSelectedItems();
-            switch (item.getItemId()) {
-                case R.id.forward:
-                    forwardMessage();
-                    break;
-                case R.id.delete:
-                    confirmDeleteDialog(new MultiMessagesListener());
-                    break;
-                case R.id.copy_to_phone:
-                    int pos = mSelectedPos.get(0);
-                    if (!MessageUtils.checkIsPhoneMessageFull(getContext())) {
-                        final Cursor cursor = (Cursor) getListView().getAdapter().getItem(pos);
-                        if (null != cursor ) {
-                            String address = cursor.getString(
-                                    cursor.getColumnIndexOrThrow("address"));
-                            String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
-                            Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
-                            int subId = cursor.getInt(cursor.getColumnIndexOrThrow("sub_id"));
-                            int status = cursor.getInt(cursor.getColumnIndexOrThrow("status"));
-                            new CopyThread(address, body, date, subId, status).execute();
-                        } else {
-                            showToast(false);
-                        }
+            int itemId = item.getItemId();
+            if (itemId == R.id.forward) {
+                forwardMessage();
+            } else if (itemId == R.id.delete) {
+                confirmDeleteDialog(new MultiMessagesListener());
+            } else if (itemId == R.id.copy_to_phone) {
+                int pos = mSelectedPos.get(0);
+                if (!MessageUtils.checkIsPhoneMessageFull(getContext())) {
+                    final Cursor cursor = (Cursor) getListView().getAdapter().getItem(pos);
+                    if (null != cursor) {
+                        String address = cursor.getString(
+                                cursor.getColumnIndexOrThrow("address"));
+                        String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
+                        Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
+                        int subId = cursor.getInt(cursor.getColumnIndexOrThrow("sub_id"));
+                        int status = cursor.getInt(cursor.getColumnIndexOrThrow("status"));
+                        new CopyThread(address, body, date, subId, status).execute();
+                    } else {
+                        showToast(false);
                     }
-                    break;
-                case R.id.reply:
-                    replyMessage();
-                    break;
-                case R.id.more:
-                    return true;
-                default:
-                    break;
+                }
+            } else if (itemId == R.id.reply) {
+                replyMessage();
+            } else if (itemId == R.id.more) {
+                return true;
             }
             mode.finish();
             return true;

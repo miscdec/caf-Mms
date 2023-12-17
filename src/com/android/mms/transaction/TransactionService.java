@@ -74,6 +74,7 @@ import com.android.mmswrapper.ConnectivityManagerWrapper;
 import com.android.mmswrapper.ConstantsWrapper;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.android.mmswrapper.TelephonyManagerWrapper;
+import com.android.mmswrapper.compat.PhoneUtils;
 import com.google.android.mms.pdu.GenericPdu;
 import com.google.android.mms.pdu.NotificationInd;
 import com.google.android.mms.pdu.PduHeaders;
@@ -207,7 +208,7 @@ public class TransactionService extends Service implements Observer {
 
     private ConnectivityManager.NetworkCallback  getNetworkCallback(String subId) {
         final String mSubId = subId;
-        final int mPhoneId = SubscriptionManagerWrapper.getPhoneId(Integer.parseInt(mSubId));
+        final int mPhoneId = PhoneUtils.getPhoneId(Integer.parseInt(mSubId),getApplicationContext());
 
         return new ConnectivityManager.NetworkCallback() {
             @Override
@@ -987,7 +988,7 @@ public class TransactionService extends Service implements Observer {
         // Take a wake lock so we don't fall asleep before the message is downloaded.
         createWakeLock();
 
-        int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
+        int phoneId = PhoneUtils.getPhoneId(subId,getApplicationContext());
         Log.v(TAG, "beginMmsConnectivity for subId = " + subId +" phoneId=" + phoneId);
 
         if (isPhoneIdValid(phoneId) && (mMmsNetworkRequest[phoneId] == null)) {
@@ -1007,7 +1008,7 @@ public class TransactionService extends Service implements Observer {
     }
 
     private void releaseNetworkRequest(int subId) {
-        int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
+        int phoneId = PhoneUtils.getPhoneId(subId,getApplicationContext());
         if (isPhoneIdValid(phoneId) && (mMmsNetworkCallback[phoneId] != null)) {
             mIsAvailable[phoneId] = false;
             Log.d(TAG, "releaseNetworkRequest phoneId=" + phoneId);
@@ -1428,7 +1429,7 @@ public class TransactionService extends Service implements Observer {
                 }
 
                 int subId = transaction.getSubId();
-                int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
+                int phoneId = PhoneUtils.getPhoneId(subId,getApplicationContext());
                 boolean isRequestNetworkQueued = true;
                 LogTag.debugD("processTransaction :subId="+subId
                     + "; phoneId = " + phoneId

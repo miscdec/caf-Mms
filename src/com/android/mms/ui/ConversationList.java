@@ -192,7 +192,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         getListView().addHeaderView(mListViewHeader);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        getWindow().setStatusBarColor(getResources().getColor(R.color.primary_color_dark));
+        getWindow().setStatusBarColor(getResources().getColor(R.color.primary_color_dark,getTheme()));
         if (MessageUtils.isMailboxMode()) {
             Intent modeIntent = new Intent(this, MailBoxMessageList.class);
             startActivityIfNeeded(modeIntent, -1);
@@ -769,36 +769,30 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch(item.getItemId()) {
-            case R.id.search:
-                Intent searchintent = new Intent(this, SearchConversationActivity.class);
-                startActivity(searchintent);
-                return true;
-            case R.id.action_delete_all:
-                // The invalid threadId of -1 means all threads here.
-                confirmDeleteThread(-1L, mQueryHandler);
-                break;
-            case R.id.action_settings:
-                Intent intent = new Intent(this, MessagingPreferenceActivity.class);
-                startActivityIfNeeded(intent, -1);
-                break;
-            case R.id.action_change_to_folder_mode:
-                Intent modeIntent = new Intent(this, MailBoxMessageList.class);
-                startActivityIfNeeded(modeIntent, -1);
-                MessageUtils.setMailboxMode(true);
-                finish();
-                break;
-            case R.id.action_debug_dump:
-                LogTag.dumpInternalTables(this);
-                break;
-            case R.id.action_memory_status:
-                MessageUtils.showMemoryStatusDialog(this);
-                break;
-            case R.id.action_cell_broadcasts:
-                MessageUtils.startCellBroadcastActivity(ConversationList.this);
-                return true;
-            default:
-                return true;
+        int itemId = item.getItemId();
+        if (itemId == R.id.search) {
+            Intent searchintent = new Intent(this, SearchConversationActivity.class);
+            startActivity(searchintent);
+            return true;
+        } else if (itemId == R.id.action_delete_all) {// The invalid threadId of -1 means all threads here.
+            confirmDeleteThread(-1L, mQueryHandler);
+        } else if (itemId == R.id.action_settings) {
+            Intent intent = new Intent(this, MessagingPreferenceActivity.class);
+            startActivityIfNeeded(intent, -1);
+        } else if (itemId == R.id.action_change_to_folder_mode) {
+            Intent modeIntent = new Intent(this, MailBoxMessageList.class);
+            startActivityIfNeeded(modeIntent, -1);
+            MessageUtils.setMailboxMode(true);
+            finish();
+        } else if (itemId == R.id.action_debug_dump) {
+            LogTag.dumpInternalTables(this);
+        } else if (itemId == R.id.action_memory_status) {
+            MessageUtils.showMemoryStatusDialog(this);
+        } else if (itemId == R.id.action_cell_broadcasts) {
+            MessageUtils.startCellBroadcastActivity(ConversationList.this);
+            return true;
+        } else {
+            return true;
         }
         return false;
     }
@@ -1247,7 +1241,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     cursor.close();
                 }
                 mNotificationLabel.setText(unreadCount > 0 ?
-                        getString(R.string.unread_notification_message_label, unreadCount) :
+                        getString(R.string.unread_notification_message_label, String.valueOf(unreadCount)) :
                         getString(R.string.notification_message_label));
                 break;
 
@@ -1387,11 +1381,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
                     String label = getString(R.string.
                                     unread_notification_message_label,
-                            mUnreadCount);
+                            String.valueOf(mUnreadCount));
                     mNotificationLabel.setText(formatTextToBold(label));
                     mNotificationView.setBackground(getResources().
                             getDrawable(R.drawable.
-                                    conversation_item_background_unread));
+                                    conversation_item_background_unread,getTheme()));
                 } else {
                     mNotificationDate.setText(MessageUtils.
                             formatTimeStampString(getApplicationContext(),
@@ -1410,7 +1404,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                             getString(R.string.notification_message_label));
                     mNotificationView.setBackground(getResources().
                             getDrawable(R.drawable.
-                                    conversation_item_background_read));
+                                    conversation_item_background_read,getTheme()));
                 }
             }
         }.execute(cursor);
@@ -1560,15 +1554,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            switch (item.getItemId()) {
-                case R.id.delete:
-                    if (mSelectedThreadIds.size() > 0) {
-                        confirmDeleteThreads(mSelectedThreadIds, mQueryHandler);
-                    }
-                    mode.finish();
-                    break;
-                default:
-                    break;
+            if (item.getItemId() == R.id.delete) {
+                if (mSelectedThreadIds.size() > 0) {
+                    confirmDeleteThreads(mSelectedThreadIds, mQueryHandler);
+                }
+                mode.finish();
             }
             return true;
         }

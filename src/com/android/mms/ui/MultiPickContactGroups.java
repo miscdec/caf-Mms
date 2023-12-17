@@ -201,17 +201,13 @@ public class MultiPickContactGroups extends ListActivity implements
 
     public void onClick(View v) {
         int id = v.getId();
-        switch (id) {
-            case R.id.btn_ok:
-                startQuery(PHONE_CONTACT_QUERY_TOKEN);
-                break;
-            case R.id.btn_cancel:
-                this.setResult(this.RESULT_CANCELED);
-                finish();
-                break;
-            case R.id.select_all_check:
-                selectAll(mSelectAllCheckBox.isChecked());
-                break;
+        if (id == R.id.btn_ok) {
+            startQuery(PHONE_CONTACT_QUERY_TOKEN);
+        } else if (id == R.id.btn_cancel) {
+            this.setResult(this.RESULT_CANCELED);
+            finish();
+        } else if (id == R.id.select_all_check) {
+            selectAll(mSelectAllCheckBox.isChecked());
         }
     }
 

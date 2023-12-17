@@ -95,14 +95,12 @@ public class RecipientListActivity extends ListActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                finish();
-                break;
-            case R.id.action_settings:
-                Intent intent = new Intent(this, MessagingPreferenceActivity.class);
-                startActivity(intent);
-                break;
+        int itemId = item.getItemId();
+        if (itemId == android.R.id.home) {
+            finish();
+        } else if (itemId == R.id.action_settings) {
+            Intent intent = new Intent(this, MessagingPreferenceActivity.class);
+            startActivity(intent);
         }
         return true;
     }

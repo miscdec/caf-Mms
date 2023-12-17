@@ -168,46 +168,41 @@ public class MultiPickContactsActivity extends ExpandableListActivity implements
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.btn_ok:
-                Intent intent = new Intent();
-                if (getSelectedResult()) {
-                    putExtraWithContact(intent);
-                    setResult(RESULT_OK, intent);
-                } else {
-                    setResult(RESULT_CANCELED);
-                }
-                finish();
-                break;
-            case R.id.btn_cancel:
+        int id = v.getId();
+        if (id == R.id.btn_ok) {
+            Intent intent = new Intent();
+            if (getSelectedResult()) {
+                putExtraWithContact(intent);
+                setResult(RESULT_OK, intent);
+            } else {
                 setResult(RESULT_CANCELED);
-                finish();
-                break;
-            case R.id.pick_item_checkbox:
-                /**
-                 * When we get the check box or radio button onClick event, the
-                 * status of the check box had been changed. So we won't set the
-                 * checked status, but only modify the selected content.
-                 */
-                CheckBox cb = (CheckBox) v;
-                long contactId = (Long) cb.getTag();
-                boolean cbCecked = cb.isChecked();
-                if (cbCecked) {
-                    mSelected.addSelected(contactId);
-                } else {
-                    mSelected.removeSelected(contactId);
-                }
-                setOKButtonState();
-                break;
-            case R.id.pick_item_radiobutton:
-                RadioButton rb = (RadioButton) v;
-                String lookupKey = (String) rb.getTag();
-                boolean rbChecked = rb.isChecked();
-                if (rbChecked) {
-                    mSelected.addSelected(lookupKey);
-                }
-                setOKButtonState();
-                break;
+            }
+            finish();
+        } else if (id == R.id.btn_cancel) {
+            setResult(RESULT_CANCELED);
+            finish();
+        } else if (id == R.id.pick_item_checkbox) {/**
+         * When we get the check box or radio button onClick event, the
+         * status of the check box had been changed. So we won't set the
+         * checked status, but only modify the selected content.
+         */
+            CheckBox cb = (CheckBox) v;
+            long contactId = (Long) cb.getTag();
+            boolean cbCecked = cb.isChecked();
+            if (cbCecked) {
+                mSelected.addSelected(contactId);
+            } else {
+                mSelected.removeSelected(contactId);
+            }
+            setOKButtonState();
+        } else if (id == R.id.pick_item_radiobutton) {
+            RadioButton rb = (RadioButton) v;
+            String lookupKey = (String) rb.getTag();
+            boolean rbChecked = rb.isChecked();
+            if (rbChecked) {
+                mSelected.addSelected(lookupKey);
+            }
+            setOKButtonState();
         }
     }
 

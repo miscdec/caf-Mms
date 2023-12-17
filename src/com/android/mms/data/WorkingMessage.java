@@ -36,6 +36,7 @@ import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
@@ -1730,7 +1731,9 @@ public class WorkingMessage {
             req.setSubject(new EncodedStringValue(subject.toString()));
         }
 
-        req.setDate(System.currentTimeMillis() / 1000L);
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R){
+            req.setDate(System.currentTimeMillis() / 1000L);
+        }
 
         return req;
     }

@@ -28,6 +28,7 @@ import com.android.mmswrapper.ConstantsWrapper;
 import com.android.mmswrapper.SmsManagerWrapper;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.android.mmswrapper.TelephonyWrapper;
+import com.android.mmswrapper.compat.PhoneUtils;
 import com.google.android.mms.MmsException;
 
 public class SmsSingleRecipientSender extends SmsMessageSender {
@@ -229,7 +230,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
         String valitidyPeriod = null;
         if (MessageUtils.isMultiSimEnabledMms()) {
-            int phoneId = SubscriptionManagerWrapper.getPhoneId(subscription);
+            int phoneId = PhoneUtils.getPhoneId(subscription,mContext);
             switch (phoneId) {
                 case MessageUtils.SUB1:
                     if (MessageUtils.isMsimIccCardActive()) {

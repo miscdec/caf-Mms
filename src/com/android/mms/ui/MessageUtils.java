@@ -1088,8 +1088,9 @@ public class MessageUtils {
 
     public static void selectAudio(final Activity activity, final int requestCode) {
         Intent audioIntent = new Intent();
-        audioIntent.setAction(Intent.ACTION_PICK);
-        audioIntent.setData(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+        new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        audioIntent.addCategory(Intent.CATEGORY_OPENABLE);
+        audioIntent.setDataAndType(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,"audio/*");
         try {
             activity.startActivityForResult(audioIntent, requestCode);
         } catch (ActivityNotFoundException ex) {
@@ -1105,7 +1106,21 @@ public class MessageUtils {
                 "com.android.soundrecorder.SoundRecorder");
         intent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
         intent.putExtra(EXIT_AFTER_RECORD, true);
-        activity.startActivityForResult(intent, requestCode);
+        try {
+            activity.startActivityForResult(intent, requestCode);
+        } catch (ActivityNotFoundException ex) {
+            Intent newintent = new Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION);
+            newintent.setType(ContentType.AUDIO_AMR);
+            newintent.putExtra(android.provider.MediaStore.Audio.Media.EXTRA_MAX_BYTES, sizeLimit);
+            newintent.putExtra(EXIT_AFTER_RECORD, true);
+            try {
+                activity.startActivityForResult(newintent, requestCode);
+            }catch (ActivityNotFoundException e){
+                Toast.makeText(activity, R.string.audio_picker_app_not_found,
+                        Toast.LENGTH_SHORT).show();
+            }
+
+        }
     }
 
     public static void recordVideo(Activity activity, int requestCode, long sizeLimit) {

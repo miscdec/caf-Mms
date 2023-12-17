@@ -57,6 +57,7 @@ import android.Manifest;
 import android.animation.AnimatorSet;
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
+import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -95,6 +96,7 @@ import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -238,6 +240,7 @@ import android.sysprop.TelephonyProperties;
  * address String The addresses of the recipients in current conversation.
  * exit_on_sent boolean Exit this activity after the message is sent.
  */
+@SuppressLint("LogTagMismatch")
 public class ComposeMessageActivity extends Activity
         implements View.OnClickListener, TextView.OnEditorActionListener,
         MessageStatusListener, Contact.UpdateListener, IZoomListener {
@@ -1318,7 +1321,7 @@ public class ComposeMessageActivity extends Activity
 
         if (mRecipientsEditor.hasInvalidRecipient(isMms)) {
             showInvalidRecipientDialog();
-        } else if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+        } else if (((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).isMultiSimEnabled()) {
             if ((tm.getPhoneCount()) > 1 &&
                     MessageUtils.isMsimIccCardActive()) {
                 if(MessageUtils.isSMSPromptEnabled(ComposeMessageActivity.this)) {
@@ -5141,6 +5144,7 @@ public class ComposeMessageActivity extends Activity
         mMsgListView.setClipToPadding(false);
 
         mMsgListView.setOnSizeChangedListener(new OnSizeChangedListener() {
+
             public void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
                 if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                     Log.v(TAG, "onSizeChanged: w=" + width + " h=" + height +
@@ -5691,7 +5695,12 @@ public class ComposeMessageActivity extends Activity
 
         if (bCheckEcmMode) {
             // TODO: expose this in telephony layer for SDK build
-            boolean inEcm = TelephonyProperties.in_ecm_mode().orElse(false);
+            boolean inEcm = false;
+            try{
+                inEcm = TelephonyProperties.in_ecm_mode().orElse(false);
+            }catch (Exception | Error e){
+                LogTag.error(e.getLocalizedMessage());
+            }
             boolean inScm = SystemProperties.getBoolean("ril.inscbm", false);
             Log.d(TAG,"ecm mode: " + inEcm);
             Log.d(TAG,"scm mode: " + inScm);
@@ -5805,8 +5814,10 @@ public class ComposeMessageActivity extends Activity
 
         // Close the soft on-screen keyboard if we're in landscape mode so the user can see the
         // conversation.
-        if (mIsLandscape || isInMultiWindowMode()) {
-            hideKeyboard();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            if (mIsLandscape || isInMultiWindowMode()) {
+                hideKeyboard();
+            }
         }
 
         mLastRecipientCount = 0;
@@ -6926,8 +6937,8 @@ public class ComposeMessageActivity extends Activity
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             recordAllSelectedItems();
-            switch (item.getItemId()) {
-            case R.id.forward:
+            int itemId = item.getItemId();
+            if (itemId == R.id.forward) {
                 int position = mSelectedPos.get(0).intValue();
                 MessageItem msgItem = getMessageItemByPos(position);
                 if (msgItem != null &&
@@ -6939,52 +6950,42 @@ public class ComposeMessageActivity extends Activity
                     return false;
                 }
                 forwardMessageCheck();
-                break;
-            case R.id.delete:
+            } else if (itemId == R.id.delete) {
                 confirmDeleteDialog(new DeleteMessagesListener(), mCheckedCount != mUnlockedCount);
-                break;
-            case R.id.lock:
+            } else if (itemId == R.id.lock) {
                 if (item.getTitle().equals(
                         getContext().getString(R.string.menu_lock))) {
                     getWorkThread().startWork(WORK_TOKEN_LOCK);
                 } else {
                     getWorkThread().startWork(WORK_TOKEN_UNLOCK);
                 }
-                break;
-            case R.id.resend:
+            } else if (itemId == R.id.resend) {
                 mode.finish();
                 resendCheckedMessage();
                 return true;
-            case R.id.copy_to_sim:
+            } else if (itemId == R.id.copy_to_sim) {
                 copySmsToSim();
-                break;
-            case R.id.detail:
+            } else if (itemId == R.id.detail) {
                 showMessageDetail();
-                break;
-            case R.id.save_attachment:
-                    if (MessageUtils.hasStoragePermission()) {
-                        saveAttachment();
-                    } else {
-                        requestPermissions(new String[] {
+            } else if (itemId == R.id.save_attachment) {
+                if (MessageUtils.hasStoragePermission()) {
+                    saveAttachment();
+                } else {
+                    requestPermissions(new String[]{
                             Manifest.permission.WRITE_EXTERNAL_STORAGE
-                        }, SAVE_ATTACHMENT_PERMISSION_REQUEST_CODE);
-                    }
-                break;
-            case R.id.report:
+                    }, SAVE_ATTACHMENT_PERMISSION_REQUEST_CODE);
+                }
+            } else if (itemId == R.id.report) {
                 showReport();
-                break;
-            case R.id.copy_text:
+            } else if (itemId == R.id.copy_text) {
                 int pos = mSelectedPos.get(0).intValue();
                 MessageItem copyItem = getMessageItemByPos(pos);
                 if (copyItem != null && copyItem.isSms()) {
                     copyToClipboard(copyItem.mBody);
                 }
-                break;
-            case R.id.more:
+            } else if (itemId == R.id.more) {
                 prepareActionMode(mode);
                 return true;
-            default:
-                break;
             }
             mode.finish();
             return true;

@@ -176,7 +176,8 @@ public class SmsMessageSender implements MessageSender {
         values.put(Sms.READ, read ? Integer.valueOf(1) : Integer.valueOf(0));
         values.put(Sms.SUBJECT, subject);
         values.put(Sms.BODY, body);
-        values.put(Sms.PRIORITY, priority);
+//        values.put(Sms.PRIORITY, priority);
+        values.put("priority",priority);
         if (deliveryReport) {
             values.put(Sms.STATUS, Sms.STATUS_PENDING);
         }

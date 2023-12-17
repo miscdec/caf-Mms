@@ -735,35 +735,30 @@ public class MailBoxMessageList extends ListActivity implements
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.search:
-                if (getResources().getBoolean(R.bool.config_classify_search)) {
-                    Intent searchintent = new Intent(this, SearchActivityExtend.class);
-                    startActivityIfNeeded(searchintent, -1);
-                    break;
-                }
+        int itemId = item.getItemId();
+        if (itemId == R.id.search) {
+            if (getResources().getBoolean(R.bool.config_classify_search)) {
+                Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                startActivityIfNeeded(searchintent, -1);
                 return true;
-            case R.id.action_compose_new:
-                startActivity(ComposeMessageActivity.createIntent(this, 0));
-                break;
-            case R.id.action_settings:
-                Intent intent = new Intent(this, MessagingPreferenceActivity.class);
-                startActivityIfNeeded(intent, -1);
-                break;
-            case R.id.action_change_to_conversation_mode:
-                Intent modeIntent = new Intent(this, ConversationList.class);
-                startActivityIfNeeded(modeIntent, -1);
-                MessageUtils.setMailboxMode(false);
-                finish();
-                break;
-            case R.id.action_memory_status:
-                MessageUtils.showMemoryStatusDialog(this);
-                break;
-            case R.id.action_cell_broadcasts:
-                MessageUtils.startCellBroadcastActivity(MailBoxMessageList.this);
-                break;
-            default:
-                return true;
+            }
+            return true;
+        } else if (itemId == R.id.action_compose_new) {
+            startActivity(ComposeMessageActivity.createIntent(this, 0));
+        } else if (itemId == R.id.action_settings) {
+            Intent intent = new Intent(this, MessagingPreferenceActivity.class);
+            startActivityIfNeeded(intent, -1);
+        } else if (itemId == R.id.action_change_to_conversation_mode) {
+            Intent modeIntent = new Intent(this, ConversationList.class);
+            startActivityIfNeeded(modeIntent, -1);
+            MessageUtils.setMailboxMode(false);
+            finish();
+        } else if (itemId == R.id.action_memory_status) {
+            MessageUtils.showMemoryStatusDialog(this);
+        } else if (itemId == R.id.action_cell_broadcasts) {
+            MessageUtils.startCellBroadcastActivity(MailBoxMessageList.this);
+        } else {
+            return true;
         }
         return true;
     }
@@ -1050,12 +1045,8 @@ public class MailBoxMessageList extends ListActivity implements
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             ListView listView = getListView();
             final int checkedCount = listView.getCheckedItemCount();
-            switch (item.getItemId()) {
-                case R.id.delete:
-                    confirmDeleteMessages();
-                    break;
-                default:
-                    break;
+            if (item.getItemId() == R.id.delete) {
+                confirmDeleteMessages();
             }
             mode.finish();
             return true;

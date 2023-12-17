@@ -30,6 +30,7 @@ import android.location.CountryListener;
 import android.content.pm.PackageManager;
 import android.content.ComponentName;
 import android.net.Uri;
+import android.os.Build;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.provider.SearchRecentSuggestions;
@@ -58,6 +59,8 @@ import android.provider.Telephony.Mms;
 import android.net.ConnectivityManager;
 import com.android.mms.transaction.SmsRejectedReceiver;
 import android.provider.Telephony.Sms;
+import android.view.textclassifier.TextClassificationManager;
+import android.view.textclassifier.TextClassifier;
 
 public class MmsApp extends Application {
     public static final String LOG_TAG = LogTag.TAG;
@@ -76,6 +79,9 @@ public class MmsApp extends Application {
 
     private MmsSystemEventReceiver mSystemEventReceiver = new MmsSystemEventReceiver();
     private SmsRejectedReceiver mSmsRejectedReceiver = new SmsRejectedReceiver();
+
+
+
 
     @Override
     public void onCreate() {

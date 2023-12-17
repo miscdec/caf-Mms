@@ -227,7 +227,7 @@
     <string name="menu_delete_messages" msgid="2610286783513247420">"सन्देशहरू मेटाउनुहोस्"</string>
     <string name="menu_lock" msgid="7603793126077557472">"लक गर्नुहोस्"</string>
     <string name="menu_unlock" msgid="6662865558677424039">"अनलक गर्नुहोस्"</string>
-    <string name="sim_copy_to_phone_memory" product="tablet" msgid="3721000641648594602">"ट्याब्लेट मेमोरीमा प्रतिलिपि गर्नुहोस्"</string>
+
     <string name="sim_copy_to_phone_memory" product="default" msgid="5895767417844881971">"फोन मेमोरीमा प्रतिलिपि गर्नुहोस्"</string>
     <string name="sim_delete" msgid="610790510655316922">"मेट्नुहोस्"</string>
     <string name="sim_manage_messages_title" msgid="3989147182100584333">"SIM कार्डमा पाठ सन्देशहरू"</string>

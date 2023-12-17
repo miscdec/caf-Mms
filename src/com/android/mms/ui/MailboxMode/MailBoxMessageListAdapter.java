@@ -57,6 +57,7 @@ import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MailboxMode.MailBoxMessageListItem;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
+import com.android.mmswrapper.compat.PhoneUtils;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.PduPersister;
 
@@ -150,7 +151,7 @@ public class MailBoxMessageListAdapter extends CursorAdapter implements Contact.
         }
 
         if (!isDraft && MessageUtils.isMsimIccCardActive()) {
-            int phoneId = SubscriptionManagerWrapper.getPhoneId(mSubscription);
+            int phoneId = PhoneUtils.getPhoneId(mSubscription,mContext);
             sDefaultContactImage = (phoneId == MessageUtils.SUB1) ? mContext.getResources()
                     .getDrawable(R.drawable.ic_contact_picture_card1) : mContext.getResources()
                     .getDrawable(R.drawable.ic_contact_picture_card2);

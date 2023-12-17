@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 import org.apache.http.HttpEntity;
@@ -37,6 +38,7 @@ import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
 
+import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -68,9 +70,9 @@ import java.io.ByteArrayOutputStream;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.HttpURLConnection;
-import com.android.i18n.phonenumbers.NumberParseException;
-import com.android.i18n.phonenumbers.PhoneNumberUtil;
-import com.android.i18n.phonenumbers.Phonenumber;
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.util.Base64;
@@ -78,7 +80,7 @@ import java.io.UnsupportedEncodingException;
 import com.android.mmswrapper.TelephonyManagerWrapper;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.google.android.mms.MmsException;
-
+@SuppressLint("LogTagMismatch")
 public class HttpUtils {
     private static final String TAG = LogTag.TRANSACTION;
 
@@ -205,6 +207,7 @@ public class HttpUtils {
         }
     }
 
+
     private static synchronized void startAlarmForTimeout(Context context) {
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
             Log.d(TAG, "[HttpUtils] startAlarmForTimeout for " + HTTP_TIMEOUT);
@@ -261,7 +264,7 @@ public class HttpUtils {
      * A helper method to send or retrieve data through HTTP protocol.
      *
      * @param token The token to identify the sending progress.
-     * @param url The URL used in a GET request. Null when the method is
+     * @param urlString The URL used in a GET request. Null when the method is
      *         HTTP_POST_METHOD.
      * @param pdu The data to be POST. Null when the method is HTTP_GET_METHOD.
      * @param method HTTP_POST_METHOD or HTTP_GET_METHOD.
@@ -552,17 +555,9 @@ public class HttpUtils {
 
         if (!TextUtils.isEmpty(nai)) {
             byte[] encoded = null;
-            try {
-                encoded = Base64.encode(nai.getBytes("UTF-8"), Base64.NO_WRAP);
-            } catch (UnsupportedEncodingException e) {
-                encoded = Base64.encode(nai.getBytes(), Base64.NO_WRAP);
-            }
-            try {
-                nai = new String(encoded, "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                nai = new String(encoded);
-            }
-         }
+            encoded = Base64.encode(nai.getBytes(StandardCharsets.UTF_8), Base64.NO_WRAP);
+            nai = new String(encoded, StandardCharsets.UTF_8);
+        }
          return nai;
     }
 
@@ -591,7 +586,7 @@ public class HttpUtils {
                             + "; value is " + String.join(",",values));
                 }
             }
-            Log.v(TAG, "HTTP: headers\n" + sb.toString());
+            Log.v(TAG, "HTTP: headers\n" + sb);
         } else {
             Log.d("Mms","headers is null");
         }

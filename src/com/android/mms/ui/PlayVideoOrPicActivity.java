@@ -293,26 +293,21 @@ public class PlayVideoOrPicActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                onBackPressed();
-                break;
-            case R.id.video_pic_menu_save:
-                new SaveAttachmentTask().execute(Uri.parse(mPath));
-                break;
-            case R.id.video_pic_menu_share:
-                Intent intent = new Intent(Intent.ACTION_SEND);
-                if (mType == WorkingMessage.VIDEO) {
-                    intent.setType("video/*");
-                } else {
-                    intent.setType("image/*");
-                }
-                intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(mPath));
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                startActivity(intent);
-                break;
-            default:
-                break;
+        int itemId = item.getItemId();
+        if (itemId == android.R.id.home) {
+            onBackPressed();
+        } else if (itemId == R.id.video_pic_menu_save) {
+            new SaveAttachmentTask().execute(Uri.parse(mPath));
+        } else if (itemId == R.id.video_pic_menu_share) {
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            if (mType == WorkingMessage.VIDEO) {
+                intent.setType("video/*");
+            } else {
+                intent.setType("image/*");
+            }
+            intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(mPath));
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intent);
         }
         return true;
     }

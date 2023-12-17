@@ -118,15 +118,11 @@ public class SearchConversationActivity extends Activity implements View.OnClick
 
     @Override
     public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.search_close_button:
-                setQueryString(null);
-                break;
-            case R.id.search_back_button:
-                onBackPressed();
-                break;
-            default:
-                break;
+        int id = view.getId();
+        if (id == R.id.search_close_button) {
+            setQueryString(null);
+        } else if (id == R.id.search_back_button) {
+            onBackPressed();
         }
 
     }

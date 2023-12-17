@@ -43,6 +43,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.Browser;
@@ -55,6 +56,7 @@ import android.telephony.SubscriptionManager;
 import android.telephony.SubscriptionInfo;
 import android.telephony.TelephonyManager;
 import android.text.Html;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.method.HideReturnsTransformationMethod;
@@ -70,6 +72,9 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.textclassifier.TextClassificationManager;
+import android.view.textclassifier.TextClassifier;
+import android.view.textclassifier.TextLinks;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Checkable;
@@ -80,6 +85,8 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.content.res.ResourcesCompat;
 
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
@@ -254,6 +261,7 @@ public class MessageListItem extends ZoomMessageListItem implements
             mBodyTextView = mBodyButtomTextView;
         }
         mBodyTextView.setVisibility(View.VISIBLE);
+
     }
 
     public void bind(MessageItem msgItem, boolean convHasMultiRecipients, int position) {
@@ -465,18 +473,17 @@ public class MessageListItem extends ZoomMessageListItem implements
 
         if (isSelf || !TextUtils.isEmpty(addr)) {
             if (isChecked()) {
-                avatarDrawable = mContext.getResources().getDrawable(R.drawable.selected);
-                backgroundDrawable = mContext.getResources().getDrawable(
-                        R.drawable.selected_icon_background);
+                avatarDrawable = ResourcesCompat.getDrawable(getResources(),R.drawable.selected, mContext.getTheme());
+                backgroundDrawable = ResourcesCompat.getDrawable(getResources(),
+                        R.drawable.selected_icon_background, mContext.getTheme());
             } else {
                 int defaultColor;
                 if (isSelf) {
                     mAvatar.assignContactUri(Profile.CONTENT_URI);
 
                     if (avatarDrawable.equals(sDefaultContactImage)) {
-                        avatarDrawable = mContext.getResources().getDrawable(R.drawable.stranger);
-                        backgroundDrawable = mContext.getResources().getDrawable(
-                                R.drawable.default_avatar_background);
+                        avatarDrawable = ResourcesCompat.getDrawable(getResources(),R.drawable.stranger, mContext.getTheme());
+                        backgroundDrawable = ResourcesCompat.getDrawable(getResources(), R.drawable.default_avatar_background, mContext.getTheme());
                     }
                     defaultColor = mContext.getResources().getColor(R.color.white);
                 } else {
@@ -512,8 +519,8 @@ public class MessageListItem extends ZoomMessageListItem implements
                 }
                 if (TextUtils.isEmpty(mMessageItem.mSubject)
                         && TextUtils.isEmpty(mMessageItem.mBody)) {
-                    mBackgroundColor = mContext.getResources().getColor(R.color.transparent_white);
-                    mDateView.setTextColor(R.color.transparent_black);
+                    mBackgroundColor = mContext.getResources().getColor(R.color.transparent_white, mContext.getTheme());
+                    mDateView.setTextColor(getResources().getColor(R.color.transparent_black, mContext.getTheme()));
                     if (mMessageItem.mAttachmentType == WorkingMessage.AUDIO
                             && mPlayAudioLayout != null) {
                         mPlayAudioLayout.setBackgroundColor(defaultColor);
@@ -533,7 +540,7 @@ public class MessageListItem extends ZoomMessageListItem implements
 
         if (avatarVisible) {
             mAvatar.setImageDrawable(avatarDrawable);
-            mAvatar.setBackgroundDrawable(backgroundDrawable);
+            mAvatar.setBackground(backgroundDrawable);
             mAvatar.setVisibility(View.VISIBLE);
         } else {
             mAvatar.setVisibility(View.INVISIBLE);
@@ -550,6 +557,8 @@ public class MessageListItem extends ZoomMessageListItem implements
             mDownloading.setVisibility(View.GONE);
             mDownloadingTitle.setVisibility(View.GONE);
         }
+
+
 
         //layout type may be changed after reload pdu, so update textView here.
         if (mMessageItem.isMms() && mMessageItem.mLayoutType == LayoutModel.LAYOUT_TOP_TEXT) {
@@ -897,8 +906,8 @@ public class MessageListItem extends ZoomMessageListItem implements
         mPlayAudioLayout = (ViewGroup) findViewById(R.id.play_audio_layout);
         mAudioDuration = (TextView) mPlayAudioLayout.findViewById(R.id.play_audio_duration);
         mAudioDuration.setText(AUDIO_DURATION_INITIAL_STATUS);
-        mAudioDuration.setTextColor(isSelf ? R.color.audio_duration_color_black
-                : R.color.audio_duration_c0lor_white);
+        mAudioDuration.setTextColor(isSelf ?  getResources().getColor(R.color.audio_duration_color_black, mContext.getTheme())
+                :  getResources().getColor(R.color.audio_duration_c0lor_white, mContext.getTheme()));
         mAudioPlayProgressBar = (ProgressBar) mPlayAudioLayout
                 .findViewById(R.id.play_audio_progressbar);
         Drawable progressBarDrawable = mAudioPlayProgressBar.getProgressDrawable().mutate();
@@ -1112,9 +1121,20 @@ public class MessageListItem extends ZoomMessageListItem implements
                 return;
             }
         }
-        // Check for links. If none, do nothing; if 1, open it; if >1, ask user to pick one
-        final URLSpan[] spans = mBodyTextView.getUrls();
-        if (spans.length == 0) {
+        int linksNumber = 0;
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P){
+            TextClassificationManager classificationManager = getContext().getSystemService(TextClassificationManager.class);
+            TextClassifier textClassifier = classificationManager.getTextClassifier();
+            TextLinks links =  textClassifier.generateLinks(new TextLinks.Request.Builder(mBodyTextView.getText()).build());
+            linksNumber = links.getLinks().size();
+        }else {
+            // Check for links. If none, do nothing; if 1, open it; if >1, ask user to pick one
+            final URLSpan[] spans = mBodyTextView.getUrls();
+            linksNumber = spans.length;
+        }
+
+
+        if (linksNumber == 0) {
             if (mMessageItem.mMessageType == PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND) {
                 if (mMessageItem.getMmsDownloadStatus()
                         != DownloadManager.STATE_PRE_DOWNLOADING

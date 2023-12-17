@@ -1,0 +1,4 @@
+include ':modules:chips'
+include ':modules:colorpicker'
+include ':modules:photoviewer'
+include ':MmsWrapper'

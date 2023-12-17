@@ -280,13 +280,13 @@ public class MessageTemplate extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.add:
-                createNewMessageDialog(null);
-                return true;
-            case android.R.id.home:
-                finish();
-                return true;
+        int itemId = item.getItemId();
+        if (itemId == R.id.add) {
+            createNewMessageDialog(null);
+            return true;
+        } else if (itemId == android.R.id.home) {
+            finish();
+            return true;
         }
         return false;
     }

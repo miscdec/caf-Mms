@@ -29,16 +29,32 @@
 
 package com.android.mmswrapper;
 
+
 import android.net.ConnectivityManager;
 import android.net.NetworkRequest;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 public class ConnectivityManagerWrapper {
     private static final String TAG = "ConnectivityManagerWrapper";
 
-    public static boolean getMobileDataEnabled(ConnectivityManager cm) {
-        boolean ret = cm.getMobileDataEnabled();
-        LogUtils.logi(TAG, "getMobileDataEnabled=" + ret);
-        return ret;
+//    public static boolean getMobileDataEnabled(ConnectivityManager cm) {
+//        boolean ret = cm.getMobileDataEnabled();
+//        LogUtils.logi(TAG, "getMobileDataEnabled=" + ret);
+//        return ret;
+//    }
+
+    public static boolean getMobileDataEnabled(ConnectivityManager cm){
+        String name = "getMobileDataEnabled";
+
+        try {
+            Method method = cm.getClass().getMethod(name);
+            return (boolean) method.invoke(ConnectivityManagerWrapper.class);
+        } catch (Exception e) {
+//            throw new RuntimeException(e);
+            return false;
+        }
     }
 
     public static void requestNetwork(ConnectivityManager cm, NetworkRequest request,

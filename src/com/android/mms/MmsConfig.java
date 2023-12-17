@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.XmlResourceParser;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.provider.Telephony;
 import android.text.TextUtils;
 import android.util.Log;
@@ -34,6 +35,8 @@ import com.android.mms.ui.MessageUtils;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.android.mmswrapper.ConstantsWrapper;
 import com.android.mmswrapper.TelephonyManagerWrapper;
+import com.android.mmswrapper.compat.PhoneUtils;
+
 import android.content.res.Configuration;
 import android.telephony.SubscriptionManager;
 import android.telephony.SubscriptionInfo;
@@ -178,12 +181,33 @@ public class MmsConfig {
 
     public static String getDefaultSMSApp(Context context) {
         int userId = getIncomingUserId(context);
-        RoleManager roleManager = context.getSystemService(RoleManager.class);
-        String defaultSMSApp = roleManager.getSmsRoleHolder(userId);
-        Log.d("Mms","default SMS App: " + defaultSMSApp);
-        return  defaultSMSApp;
+        try {
+            RoleManager roleManager = context.getSystemService(RoleManager.class);
+            String defaultSMSApp = roleManager.getSmsRoleHolder(userId);
+            Log.d("Mms","default SMS App: " + defaultSMSApp);
+            return  defaultSMSApp;
+        }catch (Exception | Error e){
+            Log.d("Mms","this app does not have system permission!");
+            return getDefaultSmsPackageName(context);
+        }
     }
-    public static boolean isSmsPromoDismissed(Context context) {
+
+    public static String getDefaultSmsPackageName(Context context) {
+        String defaultSmsPackage;
+//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+//            defaultSmsPackage = Settings.Secure.getString(context.getContentResolver(),
+//                    "sms_default_application");
+//        } else {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setType("vnd.android-dir/mms-sms");
+            defaultSmsPackage = intent.resolveActivity(context.getPackageManager()).getPackageName();
+//        }
+        Log.d("Mms","default SMS PackageName: " + defaultSmsPackage);
+        return defaultSmsPackage;
+    }
+
+
+public static boolean isSmsPromoDismissed(Context context) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         return preferences.getBoolean(SMS_PROMO_DISMISSED_KEY, false);
     }
@@ -532,7 +556,7 @@ public class MmsConfig {
     }
 
     public static String getHttpParaBySubId(int subId) {
-        int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
+        int phoneId = PhoneUtils.getPhoneId(subId,MmsApp.getApplication().getApplicationContext());
         if ((phoneId >= 0) && (phoneId < mMdnInfoArray.length)) {
             return mMdnInfoArray[phoneId];
         } else {

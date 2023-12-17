@@ -102,6 +102,7 @@ import com.android.mms.widget.MmsWidgetProvider;
 import com.android.mmswrapper.ConstantsWrapper;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
 
+import com.android.mmswrapper.compat.PhoneUtils;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.GenericPdu;
@@ -415,7 +416,7 @@ public class MessagingNotification {
 
     public static void blockingUpdateNewIccMessageIndicator(Context context, String address,
             String message, int subId, long timeMillis) {
-        int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
+        int phoneId = PhoneUtils.getPhoneId(subId,context);
         if (MessageUtils.getSimThreadByPhoneId(phoneId) == sCurrentlyDisplayedThreadId) {
             // We are already diplaying the messages list view, no need to send notification.
             // Just play notification sound.
@@ -1075,7 +1076,7 @@ public class MessagingNotification {
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-        clickIntent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, SubscriptionManagerWrapper.getPhoneId(subId));
+        clickIntent.putExtra(ConstantsWrapper.Phone.SLOT_KEY, PhoneUtils.getPhoneId(subId,context));
         String senderInfo = buildTickerMessage(
                 context, address, null, null, subId).toString();
         String senderInfoName = senderInfo.substring(

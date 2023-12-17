@@ -79,6 +79,7 @@ import com.android.mmswrapper.SmsMessageWrapper;
 import com.android.mmswrapper.SubscriptionManagerWrapper;
 import com.android.mmswrapper.TelephonyManagerWrapper;
 import com.android.mmswrapper.TelephonyWrapper;
+import com.android.mmswrapper.compat.PhoneUtils;
 import com.google.android.mms.MmsException;
 import java.util.Iterator;
 /**
@@ -579,7 +580,7 @@ public class SmsReceiverService extends Service {
                     ", address: " + sms4log.getOriginatingAddress() +
                     ", body: " + sms4log.getMessageBody() + "; subId: " + subId);
         int saveLoc = MessageUtils.getSmsPreferStoreLocation(this,
-                SubscriptionManagerWrapper.getPhoneId(subId));
+                PhoneUtils.getPhoneId(subId,getApplicationContext()));
         for(SmsMessage message : msgs) {
            message.setSubId(subId);
         }
@@ -590,7 +591,7 @@ public class SmsReceiverService extends Service {
                 SmsMessage sms = msgs[i];
                 boolean saveSuccess = saveMessageToIcc(sms);
                 if (saveSuccess) {
-                    int phoneId = SubscriptionManagerWrapper.getPhoneId(subId);
+                    int phoneId = PhoneUtils.getPhoneId(subId,getApplicationContext());
                     String address = MessageUtils.convertIdp(this,
                             sms.getDisplayOriginatingAddress(), phoneId);
                     MessagingNotification.blockingUpdateNewIccMessageIndicator(
