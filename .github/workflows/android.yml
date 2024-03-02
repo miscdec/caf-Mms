@@ -1,0 +1,42 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "QSSI.13.0.r1-09900-qssi.0-dev" ]
+  pull_request:
+    branches: [ "QSSI.13.0.r1-09900-qssi.0-dev" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    - name: Build with Gradle
+      run: ./gradlew assembleRelease
+          
+    - name: Build with Gradle
+      run: ./gradlew assembleDebug
+      
+    - uses: actions/upload-artifact@v2
+      with:
+        name: release-apk
+        path: |
+          ${{github.workspace}}/build/outputs/apk/release/*.apk
+          
+    - uses: actions/upload-artifact@v2
+      with:
+        name: debug-apk
+        path: |
+          ${{github.workspace}}/build/outputs/apk/debug/*.apk
+          
